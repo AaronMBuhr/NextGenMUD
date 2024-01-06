@@ -13,6 +13,12 @@ class MyConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
+        await self.send(text_data=json.dumps({ 
+            'text_type': 'static',
+            'text': 'Hello World!'
+        }))
+
         await self.send(text_data=json.dumps({
-            'message': message
+            'text_type': 'dynamic',
+            'text': 'received'
         }))

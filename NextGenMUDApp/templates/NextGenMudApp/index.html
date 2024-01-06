@@ -1,31 +1,94 @@
 <!DOCTYPE html>
 <html>
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% load static %}
 <head>
     <title>My WebSocket App</title>
-    <!-- Add other head elements here -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .text-box {
+            width: 95%;
+            margin: 10px auto;
+            padding: 5px;
+        }
+        #staticText, #dynamicText {
+            height: 12em;
+            overflow-y: scroll;
+        }
+        #inputText {
+            width: 80%;
+            display: inline-block;
+        }
+        #submitButton {
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome to My WebSocket App</h1>
-    <!-- Add more HTML here to structure your page -->
+    <textarea id="staticText" class="text-box" readonly></textarea>
+    <textarea id="dynamicText" class="text-box" readonly></textarea>
+    <textarea id="inputText" class="text-box"></textarea>
+    <button id="submitButton">Submit</button>
 
     <script type="text/javascript">
-        // JavaScript to open and manage WebSocket connection
+
+        function messageReceived(data) {
+            console.log('Message received:', data);
+            if (data.text_type === "static") {
+                document.getElementById('staticText').value = data.text;
+            } else if (data.text_type === "dynamic") {
+                document.getElementById('dynamicText').value += data.text + "\n";
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            const webSocketBridge = new WebSocket('ws://' + window.location.host + '/ws/somepath/');
+            const webSocketBridge = new WebSocket('ws://' + window.location.host + '/nextgenmud/ws/');
+
+            webSocketBridge.onopen = function(e) {
+                console.log('WebSocket connection established');
+            };
+
+            webSocketBridge.onerror = function(e) {
+                console.error('WebSocket error occurred:', e);
+            };
 
             webSocketBridge.onmessage = function(e) {
                 const data = JSON.parse(e.data);
-                // Handle incoming WebSocket messages here
+                console.log('Message received:', data);
+                messageReceived(data);
             };
 
             webSocketBridge.onclose = function(e) {
-                console.error('Chat socket closed unexpectedly');
-                // Handle WebSocket closure here
+                console.error('WebSocket connection closed unexpectedly');
             };
 
-            // Add more JavaScript as needed for your application
-        });
-    </script>
+            document.getElementById('submitButton').onclick = function() {
+                const inputText = document.getElementById('inputText').value;
+                webSocketBridge.send(JSON.stringify({ message: inputText }));
+                document.getElementById('inputText').value = ''; // Clear input box after sending
+            };
+
+            const inputText = document.getElementById('inputText');
+            const submitButton = document.getElementById('submitButton');
+
+            submitButton.onclick = function() {
+                sendMessage();
+            };
+
+            inputText.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();  // Prevent the default action to stop from submitting the form
+                    sendMessage();
+                }
+            });
+
+            function sendMessage() {
+                const message = inputText.value;
+                webSocketBridge.send(JSON.stringify({ message: message }));
+                inputText.value = ''; // Clear input box after sending
+            }
+    });
+
+</script>
 </body>
 </html>
