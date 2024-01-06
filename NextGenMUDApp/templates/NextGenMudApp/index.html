@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<head>
+    <title>My WebSocket App</title>
+    <!-- Add other head elements here -->
+</head>
+<body>
+    <h1>Welcome to My WebSocket App</h1>
+    <!-- Add more HTML here to structure your page -->
+
+    <script type="text/javascript">
+        // JavaScript to open and manage WebSocket connection
+        document.addEventListener('DOMContentLoaded', function() {
+            const webSocketBridge = new WebSocket('ws://' + window.location.host + '/ws/somepath/');
+
+            webSocketBridge.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                // Handle incoming WebSocket messages here
+            };
+
+            webSocketBridge.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+                // Handle WebSocket closure here
+            };
+
+            // Add more JavaScript as needed for your application
+        });
+    </script>
+</body>
+</html>
