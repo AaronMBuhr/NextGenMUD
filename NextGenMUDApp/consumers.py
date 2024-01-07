@@ -1,24 +1,55 @@
-# yourapp/consumers.py
-import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from collections import deque
+from custom_detail_logger import CustomDetailLogger
+import json
+from .operating_state import operating_state
+from . import state_handler
 
-class MyConsumer(AsyncWebsocketConsumer):
+class MyWebsocketConsumer(AsyncWebsocketConsumer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.input_queue_ = deque()
+
+    @property
+    def input_queue(self):
+        return self.input_queue_
+    
     async def connect(self):
+        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.connect()> ")
+        logger.debug("accepting connection")
         await self.accept()
+        logger.debug("connection accepted, loading character")
+        if not operating_state:
+            raise Exception("operating_state is None")
+        await self.send(text_data=json.dumps({ 
+            'text_type': 'dynamic',
+            'text': 'Incoming connection'
+        }))
+        await state_handler.startConnection(self)
+        logger.debug("character loaded")
 
     async def disconnect(self, close_code):
-        pass
+        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
+        logger.debug("disconnecting and removing character")
+        state_handler.removeCharacter(self)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
+        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.receive()> ")
+        logger.debug(f"message: {message}")
+        self.input_queue_.append(message)
 
-        await self.send(text_data=json.dumps({ 
-            'text_type': 'static',
-            'text': 'Hello World!'
-        }))
 
-        await self.send(text_data=json.dumps({
-            'text_type': 'dynamic',
-            'text': 'received'
-        }))
+    # def send(self, text_data):
+    #     super().send(text_data=text_data)
+    #     # await self.send(text_data=json.dumps({ 
+    #     #     'text_type': 'static',
+    #     #     'text': 'Hello World!'
+    #     # }))
+
+    #     # await self.send(text_data=json.dumps({
+    #     #     'text_type': 'dynamic',
+    #     #     'text': 'received'
+    #     # }))

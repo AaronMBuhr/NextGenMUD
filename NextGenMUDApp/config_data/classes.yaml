@@ -1,0 +1,32 @@
+CLASSES:
+  - name: Fighter
+    hit_die: 10
+  - name: Wizard
+    hit_die: 4
+  - name: Rogue
+    hit_die: 6
+  - name: Cleric
+    hit_die: 8
+
+SAVING_THROWS:
+  PROGRESSION: [ 0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19 ]
+
+ATTRIBUTES:
+  - name: Strength
+    short_name: STR
+    description: Physical power
+  - name: Dexterity
+    short_name: DEX
+    description: Agility and reflexes
+  - name: Constitution
+    short_name: CON
+    description: Health and stamina
+  - name: Intelligence
+    short_name: INT
+    description: Knowledge and reasoning
+  - name: Wisdom
+    short_name: WIS
+    description: Perception and intuition
+  - name: Charisma
+    short_name: CHA
+    description: Force of personality

@@ -1,0 +1,23 @@
+ZONES:
+  starting_zone:
+    name: Starting Zone
+    description: The place where all new characters begin their adventures.
+    rooms:
+      starting_room:
+        name: Starting Room
+        description: >
+          The room where all new characters begin their adventures.
+          
+          Exits: north
+        exits:
+          north:
+            destination: starting_room_2
+      starting_room_2:
+        name: Starting Room 2
+        description: >
+          The second room where all new characters begin their adventures.
+          
+          Exits: south
+        exits:
+          south:
+            destination: starting_room
