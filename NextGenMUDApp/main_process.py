@@ -1,6 +1,6 @@
 from .actions import world_move
 import asyncio
-from .command_handler import command_handlers
+from .command_handler import process_command
 from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 from .operating_state import operating_state
@@ -35,13 +35,14 @@ async def main_game_loop():
 
 async def process_input(conn: Connection, input: str):
     logger = CustomDetailLogger(__name__, prefix="processInput()> ")
-    print(f"processing input for character {conn.character.name_}: {input}")
-    command = input.split(" ")[0]
-    if not command in command_handlers:
-        conn.send("dynamic", "Unknown command")
-    else:
-        try:
-            await command_handlers[command](conn.character, input)
-        except KeyError:
-            logger.error(f"KeyError processing command {command}")
-            conn.send("dynamic", "Command failure.")
+    logger.debug(f"processing input for character {conn.character.name_}: {input}")
+    # command = input.split(" ")[0]
+    # if not command in command_handlers:
+    #     conn.send("dynamic", "Unknown command")
+    # else:
+    #     try:
+    #         await command_handlers[command](conn.character, input)
+    #     except KeyError:
+    #         logger.error(f"KeyError processing command {command}")
+    #         conn.send("dynamic", "Command failure.")
+    await process_command(conn.character, input)

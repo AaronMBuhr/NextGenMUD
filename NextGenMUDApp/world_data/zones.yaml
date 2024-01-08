@@ -12,6 +12,21 @@ ZONES:
         exits:
           north:
             destination: starting_room_2
+        triggers:
+          - type: catch_any
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "random"
+            script: |
+              settempvar char $A starting_room_random $random(1,100)
+              echo The random number is %{a.starting_room_random}.
+              $if($numlte({a.starting_room_random},50), eq, true){
+                echo Less than or equal to 50.
+              }
+              else {
+                echo Greater than 50.
+              }
       starting_room_2:
         name: Starting Room 2
         description: >
@@ -24,7 +39,7 @@ ZONES:
         triggers:
           - type: catch_any
             criteria: 
-              - subject: "%*"
+              - subject: "%{*}"
                 operator: contains
                 predicate: "arrives."
             script: |

@@ -31,6 +31,7 @@ async def process_line(actor: Actor, script: str, vars: dict):
     remaining_script = script[end:].strip()
 
     # Evaluate and replace custom function calls in the line
+    line = replace_vars(line, vars)
     line = evaluate_functions_in_line(actor, line, vars)
     logger.debug(f"line after evaluate_functions_in_line(): {line}")
 
@@ -72,7 +73,7 @@ def evaluate_condition(actor: Actor, condition: str, vars: dict) -> bool:
     return True  # Placeholder
 
 
-def evaluate_functions_in_line(actor: Actor, line: str, vars: dict):
+def evaluate_functions_in_line(actor: Actor, line: str, vars: dict) -> str:
     # Loop to find and replace all function calls in the line
     while '$' in line:
         start = line.find('$')
@@ -86,10 +87,28 @@ def evaluate_functions_in_line(actor: Actor, line: str, vars: dict):
 
         # Evaluate the function based on its name and arguments
         if func_name == 'name':
-            result = name(args[0], state)
+            # result = name(args[0], state)
+            raise NotImplementedError("name() function not implemented")
         elif func_name == 'equipped':
-            result = equipped(args[0], args[1], state)
+            # result = equipped(args[0], args[1], state)
+            raise NotImplementedError("equipped() function not implemented")
         # Add more functions here as needed
+        elif func_name == "numeq":
+            result = "true" if int(args[0]) == int(args[1]) else "false"
+        elif func_name == "numneq":
+            result = "true" if int(args[0]) != int(args[1]) else "false"
+        elif func_name == "numgt":
+            result = "true" if int(args[0]) > int(args[1]) else "false"
+        elif func_name == "numlt":
+            result = "true" if int(args[0]) < int(args[1]) else "false"
+        elif func_name == "numgte":
+            result = "true" if int(args[0]) >= int(args[1]) else "false"
+        elif func_name == "numlte":
+            result = "true" if int(args[0]) <= int(args[1]) else "false"
+        elif func_name == 'between':
+            result = "true" if int(args[0]) <= int(args[1]) <= int(args[2]) else "false"
+        elif func_name == 'random':
+            result = random.randint(int(args[0]), int(args[1]))
         else:
             result = 'UNKNOWN_FUNCTION'
 

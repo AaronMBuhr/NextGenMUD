@@ -58,7 +58,7 @@ command_handlers = {
 }
 
 
-async def process_command(actor: Actor, input: str, vars: None):
+async def process_command(actor: Actor, input: str, vars: dict = None):
     logger = CustomDetailLogger(__name__, prefix="process_command()> ")
     logger.debug(f"processing input for actor {actor.id_}: {input}")
     parts = split_preserving_quotes(input)
@@ -93,6 +93,7 @@ async def cmd_say(actor: Actor, input: str):
         'r': actor.pronoun_subject_,
         'R': actor.pronoun_object_,
         '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    logger.debug("before echo")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"{actor.name_} says, \"{text}\"", vars, exceptions=[actor])
@@ -102,7 +103,9 @@ async def cmd_say(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
+    logger.debug("after echo, before send_text")
+    await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
+    logger.debug("after send_text")
 
 
 async def cmd_echo(actor: Actor, input: str):
@@ -367,4 +370,3 @@ async def cmd_settempvar(actor: Actor, input: str):
 
 async def cmd_setpermvar(actor: Actor, input: str):
     await cmd_setvar_helper(actor, input, actor.perm_variables_, "perm")
-    

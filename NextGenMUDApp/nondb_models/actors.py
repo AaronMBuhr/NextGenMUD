@@ -33,8 +33,8 @@ class Actor:
         self.reference_number_ = reference_prefix + str(Actor.current_reference_num_)
         Actor.references_[self.reference_number_] = self
         Actor.current_reference_num_ += 1
-        self.temp_variables = {}
-        self.perm_variables = {}
+        self.temp_variables_ = {}
+        self.perm_variables_ = {}
 
     def to_dict(self):
         return {'actor_type': self.actor_type_.name, 'id': self.id_, 'name': self.name_, 'reference_number': self.reference_number_}
@@ -72,7 +72,7 @@ class Actor:
         logger.debug(f"formatted text: {text}")
         # check room triggers
         if exceptions and self in exceptions:
-            return
+            return text
         logger.debug(f"triggers:\n{self.triggers_by_type_}")
         for trigger_type in [ TriggerType.CATCH_ANY ]:
             if trigger_type in self.triggers_by_type_:
@@ -144,13 +144,13 @@ class Room(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> str:
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
-        logger.debug("running super")
+        logger.debug("running super, text: " + text)
         text = await super().echo(text_type, text, vars, exceptions)
-        logger.debug("ran super")
+        logger.debug("ran super, text: " + text)
         for c in self.characters_:
             logger.debug(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
-                logger.debug(f"sending text to {c.name_}")
+                logger.debug(f"sending '{text}' to {c.name_}")
                 await c.echo(text_type, text, vars, exceptions)
         return text
 
