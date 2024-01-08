@@ -26,7 +26,7 @@ class Zone:
 
 def find_target_character(actor: Actor, target_name: str) -> Character:
     if target_name[0] == Constants.REFERENCE_SYMBOL:
-        return Actor.getReference(target_name[1:])
+        return Actor.get_reference(target_name[1:])
             
     # Determine the starting point
     start_room = None

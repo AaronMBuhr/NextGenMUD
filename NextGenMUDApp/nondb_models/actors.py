@@ -4,7 +4,7 @@ from ..core import FlagBitmap
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto
 import json
-from nondb_models.triggers import TriggerType
+from .triggers import TriggerType
 
 
 def replace_vars(script: str, vars: dict) -> str:
@@ -25,6 +25,7 @@ class Actor:
         self.actor_type_ = actor_type
         self.id_ = id
         self.name_ = name
+        self.pronoun_ = "it"
         self.location_room_ = None
         self.triggers_by_type_ = {}
         reference_prefix = self.actor_type_.name[0]  # First character of ActorType
@@ -41,7 +42,7 @@ class Actor:
         return f"{self.__class__.__name__}({fields_info})"
 
     @classmethod
-    def getReference(cls, reference_number):
+    def get_reference(cls, reference_number):
         try:
             return cls.references_[reference_number]
         except KeyError:
@@ -55,7 +56,7 @@ class Actor:
     def dereference(self):
         Actor.dereference_(self.reference_number_)
 
-    async def sendText(self, text_type: CommTypes, text: str):
+    async def send_text(self, text_type: CommTypes, text: str):
         pass
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
@@ -124,10 +125,10 @@ class Room(Actor):
                 logger.debug(f"sending text to {c.name_}")
                 await c.echo(text_type, text, vars, exceptions)
 
-    def removeCharacter(self, character: 'Character'):
+    def remove_character(self, character: 'Character'):
         self.characters_.remove(character)
 
-    def addCharacter(self, character: 'Character'):
+    def add_character(self, character: 'Character'):
         self.characters_.append(character)
 
 
@@ -144,10 +145,9 @@ class Character(Actor):
         self.character_flags_ = FlagBitmap()
         self.connection_ = None
     
-    async def sendText(self, text_type: CommTypes, text: str):
+    async def send_text(self, text_type: CommTypes, text: str):
         logger = CustomDetailLogger(__name__, prefix="Character.sendText()> ")
         logger.debug(f"sendText: {text}")
-        logger.debug(f"exceptions: {exceptions}")
         if self.connection_:
             logger.debug(f"connection exists, sending text to {self.name_}")
             await self.connection_.send(text_type, text)
@@ -160,7 +160,7 @@ class Character(Actor):
         super().echo(self, text_type, text, vars, exceptions)
         if exceptions and self in exceptions:
             return
-        await self.sendText(text_type, text, exceptions)
+        await self.send_text(text_type, text, exceptions)
 
 class Object(Actor):
 
@@ -175,24 +175,3 @@ class Object(Actor):
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
         super().echo(self, text_type, text, vars, exceptions)
-
-# class Zone:
-#     def __init__(self, id):
-#         self.id_ = id
-#         self.name_ = ""
-#         self.rooms_ = {}
-#         self.actors_ = {}
-#         self.description_ = ""
-
-#     def to_dict(self):
-#         return {
-#             'id': self.id_,
-#             'name': self.name_,
-#             'rooms': {room_id: room.to_dict() for room_id, room in self.rooms_.items()},
-#             'actors': self.actors_,  # Make sure this is also serializable
-#             'description': self.description_
-#         }
-
-#     def __str__(self):
-#         return json.dumps(self.to_dict(), indent=4)
-

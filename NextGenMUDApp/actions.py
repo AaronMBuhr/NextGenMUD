@@ -13,7 +13,7 @@ async def arriveRoom(actor: Actor, room: Room, room_from: Room = None):
         raise Exception("Actor must not already be in a room to arrive in a room.")
     
     actor.location_room = room
-    room.addCharacter(actor)
+    room.add_character(actor)
     # await room.sendText("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
     await do_echo(room, CommTypes.DYNAMIC, f"{actor.name_} arrives.")
 
@@ -36,7 +36,7 @@ async def worldMove(actor: Actor, direction: str):
         raise Exception(f"Location {actor.location.id} does not have an exit in direction {direction}")
     
     actor.location_room.sendText("dynamic", f"{actor.name_} leaves {direction}", exceptions=[actor])
-    await actor.sendText("dynamic", f"You leave {direction}")
+    await actor.send_text("dynamic", f"You leave {direction}")
     old_room = actor.location_room
     destination = actor.location_room.exits[direction]
     if "." in destination:
@@ -54,7 +54,7 @@ async def do_echo(actor: Actor, comm_type: CommTypes, text: str):
     logger = CustomDetailLogger(__name__, prefix="do_echo()> ")
     logger.debug(f"actor: {actor}, text: {text}")
     if actor.actor_type == ActorType.CHARACTER and actor.connection_ != None: 
-        await actor.sendText(comm_type, text)
+        await actor.send_text(comm_type, text)
     # check triggers
     for trigger_type in [ TriggerType.CATCH_ANY ]:
         if trigger_type in actor.triggers_by_type_:

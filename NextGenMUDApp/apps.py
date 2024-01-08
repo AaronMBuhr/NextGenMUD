@@ -1,6 +1,6 @@
 
 from django.apps import AppConfig
-from .main_process import startMainProcess
+from .main_process import start_main_process
 from .operating_state import operating_state
 
 class NextGenMUDAppConfig(AppConfig):
@@ -11,6 +11,6 @@ class NextGenMUDAppConfig(AppConfig):
         # from . import background_tasks
         # background_tasks.start_my_task()
         operating_state.Initialize()
-        startMainProcess()
+        start_main_process()
 
 

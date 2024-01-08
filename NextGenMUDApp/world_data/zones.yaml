@@ -26,3 +26,4 @@ ZONES:
             criteria: arrives.
             script: |
               tell %s You trip as you enter.
+              echoexcept %s trips as %e enters.

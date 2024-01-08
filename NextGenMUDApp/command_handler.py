@@ -44,13 +44,13 @@ async def process_command(actor: Actor, input: str, vars: None):
     command = parts[0]
     if not command in command_handlers:
         if conn := actor.connection_:
-            actor.sendText(CommTypes.DYNAMIC, "Unknown command")
+            actor.send_text(CommTypes.DYNAMIC, "Unknown command")
     else:
         try:
             await command_handlers[command](conn.character, parts)
         except KeyError:
             logger.error(f"KeyError processing command {command}")
-            actor.sendText(CommTypes.DYNAMIC, "Command failure.")
+            actor.send_text(CommTypes.DYNAMIC, "Command failure.")
 
 #async def cmd_tell(actor: Actor, input: str):
 
@@ -58,7 +58,7 @@ async def cmd_say(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_say()> ")
     logger.debug(f"actor: {actor}, input: {input}")
     if len(input) < 2:
-        actor.sendText("dynamic", "Say what?")
+        actor.send_text("dynamic", "Say what?")
         return
     text = input[1]
     if actor.location_room_:
@@ -70,35 +70,55 @@ async def cmd_say(actor: Actor, input: str):
             await actor.location_room_.sendText("dynamic", {text}, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    actor.sendText("dynamic", f"You say, \"{text}\"")
+    actor.send_text("dynamic", f"You say, \"{text}\"")
 
 async def cmd_echoexcept(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echoexcept()> ")
     logger.debug(f"actor: {actor}, input: {input}")
     if len(input) < 2:
-        actor.sendText("dynamic", "Echo except who?")
+        actor.send_text("dynamic", "Echo except who?")
         return
     if len(input) < 3:
-        actor.sendText("dynamic", "Echo what?")
+        actor.send_text("dynamic", "Echo what?")
     pieces = split_preserving_quotes(input)
     exclude = [ world.find_target_character(actor, pieces[1]) ]
     text = ' '.join(pieces[2:])
-    actor.echo(CommTypes.DYNAMIC, text, exceptions=exclude)
-    actor.sendText("dynamic", f"To everyone except {exclude[0].name_} you echo '{text}'.")
+    msg = f"To everyone except {exclude[0].name_} you echo '{text}'."
+    vars = { 
+        'a': actor.name_, 
+        'A': actor.reference_number_, 
+        's': exclude[0].name_,
+        'S': exclude[0].reference_number_,
+        'p': exclude[0].pronoun_,
+        't': exclude[0].name_, 
+        'T': exclude[0].reference_number_, 
+        'q': exclude[0].pronoun_,
+        '*': text }
+    actor.echo(CommTypes.DYNAMIC, text, vars, exceptions=exclude)
+    actor.send_text("dynamic", msg)
 
 async def cmd_tell(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_tell()> ")
     logger.debug(f"actor: {actor}, input: {input}")
     if len(input) < 2:
-        actor.sendText("dynamic", "Tell who?")
+        actor.send_text("dynamic", "Tell who?")
         return
     if len(input) < 3:
-        actor.sendText("dynamic", "Tell what?")
+        actor.send_text("dynamic", "Tell what?")
     pieces = split_preserving_quotes(input)
     target = world.find_target_character(actor, pieces[1])
     text = ' '.join(pieces[2:])
-    target.echo(CommTypes.DYNAMIC, f"{actor.name_} tells you '{text}'.")
-    actor.sendText("dynamic", f"You tell {target.name_} '{text}'.")
+    msg = f"{actor.name_} tells you '{text}'."
+    vars = { 
+        'a': actor.name_, 
+        'A': actor.reference_number_, 
+        's': target.name_,
+        'S': target.reference_number_,
+        'p': target.pronoun_,
+        't': target.name_, 
+        'T': target.reference_number_, 
+        'q': target.pronoun_,
+        '*': msg }
+    target.echo(CommTypes.DYNAMIC, msg)
+    actor.send_text("dynamic", f"You tell {target.name_} '{text}'.")
 
-
-        

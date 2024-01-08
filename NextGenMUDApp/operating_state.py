@@ -4,7 +4,6 @@ import json
 from .communication import Connection
 from .nondb_models.actors import Character, Room #, Zone
 from .nondb_models.world import Zone
-# from .nondb_models.world import Zone
 import os
 import sys
 import yaml

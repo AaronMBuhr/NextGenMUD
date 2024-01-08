@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from .command_handler import processCommand
+from ..command_handler import process_command
 from enum import Enum
 import re
+from . import scripts
 
 def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
@@ -46,7 +47,7 @@ class Trigger:
 
     async def runScript(self, actor: 'Actor', vars: dict) -> None:
         for line in self.script_.splitlines():
-            await processCommand(actor, line, vars)
+            await process_command(actor, line, vars)
 
 
 # class CatchTellTrigger(Trigger):
@@ -68,4 +69,11 @@ class CatchAnyTrigger(Trigger):
     async def run(self, actor: 'Actor', text: str, vars: dict) -> None:
         vars = {**vars, **({ 'a': actor.name_, 'A': actor.reference_number_, '*': text })}
         for crit in self.criteria_:
+            if not crit.evaluate(vars):
+                return
+        await self.runScript(actor, vars)
+
+async def run_script(script: str, vars: dict) -> None:
+    while script := scripts.process_line(script, vars):
+        pass
 
