@@ -28,7 +28,8 @@ async def load_in_character(connection: Connection):
     new_player.connection_.character = new_player
     new_player.name_ = "Test Player"
     new_player.description_ = "A test player."
-    new_player.pronoun_ = "he"
+    new_player.pronoun_subject_ = "he"
+    new_player.pronoun_object_ = "him"
     operating_state.players_.append(new_player)
     # print(YamlDumper.to_yaml_compatible_str(operating_state.zones_))
     first_zone = operating_state.zones_[list(operating_state.zones_.keys())[0]]

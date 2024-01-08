@@ -7,10 +7,14 @@ def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
     return text
 
-def replace_vars(text: str, vars: dict) -> str:
+def actor_vars(actor: 'Actor', name: str) -> dict:
+    # Using dictionary comprehension to prefix keys and combine dictionaries
+    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
+
+def replace_vars(script: str, vars: dict) -> str:
     for var, value in vars.items():
-        text = text.replace(f"%{var}", value)
-    return text
+        script = script.replace("%{" + var + "}", value)
+    return script
 
 class TriggerType(Enum):
     CATCH_ANY = 1
@@ -129,7 +133,9 @@ class TriggerCatchAny(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict) -> None:
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
-        vars = {**vars, **({ 'a': actor.name_, 'A': actor.reference_number_, 'e': actor.pronoun_, '*': text })}
+        vars = {**vars, 
+                **({ 'a': actor.name_, 'A': actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
+                **(actor_vars(actor, "a"))}
         logger.debug("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars):

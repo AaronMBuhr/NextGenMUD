@@ -5,6 +5,10 @@ from .nondb_models.actors import ActorType, Actor, Room, Character, FlagBitmap
 from .operating_state import operating_state
 from .nondb_models.triggers import TriggerType
 
+def actor_vars(actor: Actor, name: str) -> dict:
+    # Using dictionary comprehension to prefix keys and combine dictionaries
+    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
+
 async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
     logger.debug(f"actor: {actor}, room: {room}, room_from: {room_from}")
@@ -16,21 +20,25 @@ async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     actor.location_room_ = room
     room.add_character(actor)
     # await room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
-    vars = { 
+    room_msg = f"{actor.name_} arrives."
+    vars = { **{ 
         'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_,
-        'e': actor.pronoun_,
-        's': actor.name_,
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_,
-        'f': actor.pronoun_,
-        't': actor.name_,
-        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_,
-        'g': actor.pronoun_,
-    }
+        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+        'p': actor.pronoun_subject_,
+        'P': actor.pronoun_object_,
+        's': actor.name_, 
+        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+        'q': actor.pronoun_subject_,
+        'Q': actor.pronoun_object_,
+        't': actor.name_, 
+        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+        'r': actor.pronoun_subject_,
+        'R': actor.pronoun_object_,
+        '*': room_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
     logger.debug(f"Sending room description to actor for: {room.name_}")
     # await actor.send_text(CommTypes.STATIC, room.description_)
     await actor.send_text(CommTypes.STATIC, room.name_ + "\n" + room.description_)
-    await room.echo(CommTypes.DYNAMIC, f"{actor.name_} arrives.", vars, exceptions=[actor])
+    await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor])
     # # TODO:L: figure out what direction "from" based upon back-path
     # actor.location_room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
 

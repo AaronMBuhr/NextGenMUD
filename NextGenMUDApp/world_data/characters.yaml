@@ -25,5 +25,5 @@ CHARACTERS:
                 predicate: "kicks you"
             script: |
               emote gets angry!
-              attack %A
+              attack %{A}
 

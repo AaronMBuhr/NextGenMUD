@@ -7,18 +7,9 @@ from .operating_state import operating_state
 
 def replace_vars(script: str, vars: dict) -> str:
     for var, value in vars.items():
-        script = script.replace(f"%{var}", value)
+        script = script.replace("%{" + var + "}", value)
     return script
 
-# # Example usage
-# vars = {'t': 'long sword', 'T': 'O12345', 'a': 'city guard', 'A': 'C45678'}
-# script = """
-# echo The %a picks up the %t.
-# get %T
-# """
-
-# processed_script = replace_vars(script, vars)
-# print(processed_script)
 
 
 async def run_script(actor: Actor, script: str, vars: dict):

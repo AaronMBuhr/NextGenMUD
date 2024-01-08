@@ -9,7 +9,7 @@ from .triggers import TriggerType, Trigger
 
 def replace_vars(script: str, vars: dict) -> str:
     for var, value in vars.items():
-        script = script.replace(f"%{var}", value)
+        script = script.replace("%{" + var + "}", value)
     return script
 
 class ActorType(Enum):
@@ -25,13 +25,16 @@ class Actor:
         self.actor_type_ = actor_type
         self.id_ = id
         self.name_ = name
-        self.pronoun_ = "it"
+        self.pronoun_subject_ = "it"
+        self.pronoun_object_ = "it"
         self.location_room_ = None
         self.triggers_by_type_ = {}
         reference_prefix = self.actor_type_.name[0]  # First character of ActorType
         self.reference_number_ = reference_prefix + str(Actor.current_reference_num_)
         Actor.references_[self.reference_number_] = self
         Actor.current_reference_num_ += 1
+        self.temp_variables = {}
+        self.perm_variables = {}
 
     def to_dict(self):
         return {'actor_type': self.actor_type_.name, 'id': self.id_, 'name': self.name_, 'reference_number': self.reference_number_}
@@ -59,7 +62,7 @@ class Actor:
     async def send_text(self, text_type: CommTypes, text: str):
         pass
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> str:
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
         logger.debug("running")
         logger.debug(f"text: {text}")
@@ -77,6 +80,7 @@ class Actor:
                 for trigger in self.triggers_by_type_[trigger_type]:
                     logger.debug(f"checking trigger: {trigger.to_dict()}")
                     await trigger.run(self, text, vars)
+        return text
 
 
 class Room(Actor):
@@ -138,16 +142,17 @@ class Room(Actor):
                 self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
 
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> str:
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
         logger.debug("running super")
-        await super().echo(text_type, text, vars, exceptions)
+        text = await super().echo(text_type, text, vars, exceptions)
         logger.debug("ran super")
         for c in self.characters_:
             logger.debug(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
                 logger.debug(f"sending text to {c.name_}")
                 await c.echo(text_type, text, vars, exceptions)
+        return text
 
     def remove_character(self, character: 'Character'):
         self.characters_.remove(character)
@@ -179,14 +184,15 @@ class Character(Actor):
         else:
             logger.debug("no connection")
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> str:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
         logger.debug("running super")
-        await super().echo(text_type, text, vars, exceptions)
+        text = await super().echo(text_type, text, vars, exceptions)
         if exceptions and self in exceptions:
             return
         logger.debug("sending text")
         await self.send_text(text_type, text)
+        return text
 
 class Object(Actor):
 
@@ -198,6 +204,7 @@ class Object(Actor):
         self.attributes_ = {}
         self.object_flags_ = FlagBitmap()
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> str:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
-        await super().echo(text_type, text, vars, exceptions)
+        text = await super().echo(text_type, text, vars, exceptions)
+        return text
