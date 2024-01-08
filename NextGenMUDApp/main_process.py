@@ -9,7 +9,7 @@ import time
 
 
 def start_main_process():
-    print("Starting main game loop")
+    logger = CustomDetailLogger(__name__, prefix="start_main_process()> ")
     main_process_thread = threading.Thread(target=run_main_game_loop)
     main_process_thread.start()
 
@@ -20,8 +20,8 @@ def run_main_game_loop():
     loop.close()
 
 async def main_game_loop():
-    logger = CustomDetailLogger(__name__, prefix="mainGameLoop()> ")
-    print("Game loop started")
+    logger = CustomDetailLogger(__name__, prefix="main_game_loop()> ")
+    logger.debug("Game loop started")
     while True:
         for conn in operating_state.connections_:
             logger.debug("processing input queue")

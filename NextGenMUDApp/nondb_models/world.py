@@ -2,6 +2,7 @@ from ..constants import Constants
 from enum import Enum
 import json
 from .actors import Actor, Character, Room, Object
+from ..operating_state import operating_state
 
 class Zone:
     def __init__(self, id):
@@ -20,8 +21,13 @@ class Zone:
             'description': self.description_
         }
 
+    def __repr__(self):
+        fields_dict = self.to_dict()
+        fields_info = ', '.join([f"{key}={value}" for key, value in fields_dict.items()])
+        return f"{self.__class__.__name__}({fields_info})"
+
     def __str__(self):
-        return json.dumps(self.to_dict(), indent=4)
+        return self.__repr__()
 
 
 def find_target_character(actor: Actor, target_name: str) -> Character:

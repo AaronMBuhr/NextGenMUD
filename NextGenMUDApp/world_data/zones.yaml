@@ -28,5 +28,5 @@ ZONES:
                 operator: contains
                 predicate: "arrives."
             script: |
-              tell %s You trip as you enter.
-              echoexcept %s trips as %e enters.
+              echoto %S You trip as you enter.
+              echoexcept %S %s trips as %f enters.

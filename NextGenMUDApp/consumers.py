@@ -2,7 +2,6 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from collections import deque
 from custom_detail_logger import CustomDetailLogger
 import json
-from .operating_state import operating_state
 from . import state_handler
 
 class MyWebsocketConsumer(AsyncWebsocketConsumer):
@@ -20,19 +19,17 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         logger.debug("accepting connection")
         await self.accept()
         logger.debug("connection accepted, loading character")
-        if not operating_state:
-            raise Exception("operating_state is None")
         await self.send(text_data=json.dumps({ 
             'text_type': 'dynamic',
             'text': 'Incoming connection'
         }))
-        await state_handler.startConnection(self)
+        await state_handler.start_connection(self)
         logger.debug("character loaded")
 
     async def disconnect(self, close_code):
         logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
         logger.debug("disconnecting and removing character")
-        state_handler.removeCharacter(self)
+        state_handler.remove_character(self)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)

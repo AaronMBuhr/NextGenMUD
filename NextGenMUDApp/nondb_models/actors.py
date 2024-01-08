@@ -61,6 +61,7 @@ class Actor:
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
+        logger.debug("running")
         logger.debug(f"text: {text}")
         logger.debug(f"vars: {vars}")
         if vars:
@@ -69,9 +70,12 @@ class Actor:
         # check room triggers
         if exceptions and self in exceptions:
             return
+        logger.debug(f"triggers:\n{self.triggers_by_type_}")
         for trigger_type in [ TriggerType.CATCH_ANY ]:
             if trigger_type in self.triggers_by_type_:
+                logger.debug(f"checking trigger_type: {trigger_type}")
                 for trigger in self.triggers_by_type_[trigger_type]:
+                    logger.debug(f"checking trigger: {trigger.to_dict()}")
                     await trigger.run(self, text, vars)
 
 
@@ -90,16 +94,24 @@ class Room(Actor):
     def to_dict(self):
         return {
             'id': self.id_,
+            'name': self.name_,
             'description': self.description_,
+            'zone': self.zone_.id_ if self.zone_ else None,
             'exits': self.exits_,
+            'triggers': self.triggers_by_type_,
             # Convert complex objects to a serializable format, if necessary
             # 'zone': self.zone_.to_dict() if self.zone_ else None,
             # 'characters': [c.to_dict() for c in self.characters_],
             # 'objects': [o.to_dict() for o in self.objects_],
         }
 
+    def __repr__(self):
+        fields_dict = self.to_dict()
+        fields_info = ', '.join([f"{key}={value}" for key, value in fields_dict.items()])
+        return f"{self.__class__.__name__}({fields_info})"
+
     def __str__(self):
-        return json.dumps(self.to_dict(), indent=4)
+        return self.__repr__()
 
     def from_yaml(self, zone, yaml_data: str):
         self.name_ = yaml_data['name']
@@ -120,15 +132,17 @@ class Room(Actor):
             #     self.triggers_by_type_[trigger_type] += trigger_info
             for trig in yaml_data['triggers']:
                 # logger.debug(f"loading trigger_type: {trigger_type}")
-                if not trig["type"] in self.triggers_by_type_:
-                    self.triggers_by_type_[trig["type"]] = []
-                new_trigger = Trigger(trig["type"])
-                self.triggers_by_type_[trig["type"]] += trig
+                new_trigger = Trigger.new_trigger(trig["type"]).from_dict(trig)
+                if not new_trigger.trigger_type_ in self.triggers_by_type_:
+                    self.triggers_by_type_[new_trigger.trigger_type_] = []
+                self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
 
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
-        super().echo(self, text_type, text, vars, exceptions)
+        logger.debug("running super")
+        await super().echo(text_type, text, vars, exceptions)
+        logger.debug("ran super")
         for c in self.characters_:
             logger.debug(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
@@ -167,10 +181,12 @@ class Character(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
-        super().echo(self, text_type, text, vars, exceptions)
+        logger.debug("running super")
+        await super().echo(text_type, text, vars, exceptions)
         if exceptions and self in exceptions:
             return
-        await self.send_text(text_type, text, exceptions)
+        logger.debug("sending text")
+        await self.send_text(text_type, text)
 
 class Object(Actor):
 
@@ -184,4 +200,4 @@ class Object(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
-        super().echo(self, text_type, text, vars, exceptions)
+        await super().echo(text_type, text, vars, exceptions)

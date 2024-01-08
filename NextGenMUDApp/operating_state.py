@@ -3,7 +3,6 @@ from django.conf import settings
 import json
 from .communication import Connection
 from .nondb_models.actors import Character, Room #, Zone
-from .nondb_models.world import Zone
 import os
 import sys
 import yaml
@@ -18,12 +17,13 @@ class OperatingState:
         self.connections_ = []
 
     def Initialize(self):
+        from .nondb_models.world import Zone
         logger = CustomDetailLogger(__name__, prefix="Initialize()> ")
         zones_file_path = os.path.join(settings.BASE_DIR, 'NextGenMUDApp', 'world_data', 'zones.yaml')
         with open(zones_file_path, "r") as yf:
             yaml_data = yaml.safe_load(yf)
 
-        logger.debug(f"zone yaml_data: {yaml_data}")
+        # logger.debug(f"zone yaml_data: {yaml_data}")
         for zone_id, zone_info in yaml_data['ZONES'].items():
             # logger.debug(f"loading zone_id: {zone_id}")
             new_zone = Zone(zone_id)
@@ -31,27 +31,29 @@ class OperatingState:
             # logger.debug(f"new_zone.name_: {new_zone.name_}")
             new_zone.description_ = zone_info['description']
 
+            logger.debug("loading rooms")
             for room_id, room_info in zone_info['rooms'].items():
                 # logger.debug(f"loading room_id: {room_id}")
                 new_room = Room(room_id)
                 new_room.from_yaml(new_zone, room_info)
                 new_zone.rooms_[room_id] = new_room
+            logger.debug("rooms loaded")
 
             # logger.debug(repr(new_zone))
             # logger.debug(f"setting new_zone for zone id '{zone_id}': {new_zone}")
             # logger.debug(f"setting new_zone for zone id '{zone_id}': {YamlDumper.to_yaml_compatible_str(new_zone)}")
-            logger.debug(f"setting new_zone for zone id '{zone_id}': {YamlDumper.to_yaml_compatible_str(new_zone)}")
+            # logger.debug(f"setting new_zone for zone id '{zone_id}': {YamlDumper.to_yaml_compatible_str(new_zone)}")
             self.zones_[zone_id] = new_zone
         if self.zones_ == {}:
             raise Exception("No zones loaded.")
         if self.zones_ == None:
             raise Exception("Zones is NONE.")
-        logger.debug(f"loaded zones: {YamlDumper.to_yaml_compatible_str(self.zones_)}")
-        logger.debug(f"loaded zones: {self.zones_}")
-        logger.debug(f"loaded zones: {YamlDumper.to_yaml_compatible_str(self.zones_)}")
-        logger.debug(f"zone keys: {self.zones_.keys()}")
-        logger.debug(f"loaded zones: {self.zones_['starting_zone']}")
-        logger.debug(f"first zone: {self.zones_[list(self.zones_.keys())[0]]}")
+        # logger.debug(f"loaded zones: {YamlDumper.to_yaml_compatible_str(self.zones_)}")
+        # logger.debug(f"loaded zones: {self.zones_}")
+        # logger.debug(f"loaded zones: {YamlDumper.to_yaml_compatible_str(self.zones_)}")
+        # logger.debug(f"zone keys: {self.zones_.keys()}")
+        # logger.debug(f"loaded zones: {self.zones_['starting_zone']}")
+        # logger.debug(f"first zone: {self.zones_[list(self.zones_.keys())[0]]}")
 
 
 

@@ -1,3 +1,4 @@
+from custom_detail_logger import CustomDetailLogger
 from . import command_handler
 from .constants import Constants
 from .nondb_models.actors import Actor, Character, Room, Object
@@ -20,15 +21,27 @@ def replace_vars(script: str, vars: dict) -> str:
 # print(processed_script)
 
 
+async def run_script(actor: Actor, script: str, vars: dict):
+    logger = CustomDetailLogger(__name__, prefix="run_script()> ")
+    logger.debug(f"actor: {actor}, script: {script}, vars: {vars}")
+    script = replace_vars(script, vars)
+    logger.debug(f"after replace_vars: {script}")
+    while script := await process_line(actor, script, vars):
+        logger.debug(f"remaining: {script}")
+        # pass
 
-def process_line(actor: Actor, script: str, vars: dict):
+
+async def process_line(actor: Actor, script: str, vars: dict):
+    logger = CustomDetailLogger(__name__, prefix="process_line()> ")
     # Process the first command or line
     end = script.find('\n') if '\n' in script else len(script)
     line = script[:end].strip()
+    logger.debug(f"line: {line}")
     remaining_script = script[end:].strip()
 
     # Evaluate and replace custom function calls in the line
     line = evaluate_functions_in_line(actor, line, vars)
+    logger.debug(f"line after evaluate_functions_in_line(): {line}")
 
     if line.startswith('$if'):
         # Special handling for if-else condition
@@ -55,7 +68,8 @@ def process_line(actor: Actor, script: str, vars: dict):
         chosen_block = true_block if condition_result else false_block
         remaining_script = chosen_block + '\n' + remaining_script
     else:
-        command_handler.process_command(actor, line, vars)
+        logger.debug(f"process_command on line: {line}")
+        await command_handler.process_command(actor, line, vars)
 
     return remaining_script
 

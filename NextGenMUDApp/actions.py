@@ -1,3 +1,4 @@
+from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from .communication import CommTypes
 from .nondb_models.actors import ActorType, Actor, Room, Character, FlagBitmap
@@ -15,14 +16,24 @@ async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     actor.location_room_ = room
     room.add_character(actor)
     # await room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
-    await do_echo(room, CommTypes.DYNAMIC, f"{actor.name_} arrives.")
-
+    vars = { 
+        'a': actor.name_, 
+        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_,
+        'e': actor.pronoun_,
+        's': actor.name_,
+        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_,
+        'f': actor.pronoun_,
+        't': actor.name_,
+        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_,
+        'g': actor.pronoun_,
+    }
+    logger.debug(f"Sending room description to actor for: {room.name_}")
+    # await actor.send_text(CommTypes.STATIC, room.description_)
+    await actor.send_text(CommTypes.STATIC, room.name_ + "\n" + room.description_)
+    await room.echo(CommTypes.DYNAMIC, f"{actor.name_} arrives.", vars, exceptions=[actor])
     # # TODO:L: figure out what direction "from" based upon back-path
     # actor.location_room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
 
-    logger.debug(f"Sending room description to actor for: {room.name_}")
-    # await actor.send_text(CommTypes.STATIC, room.description_)
-    await do_echo(actor, CommTypes.STATIC, room.name_ + "\n" + room.description_)
 
 
 async def world_move(actor: Actor, direction: str):
@@ -50,16 +61,16 @@ async def world_move(actor: Actor, direction: str):
     await arrive_room(actor, new_room, old_room)
 
 
-async def do_echo(actor: Actor, comm_type: CommTypes, text: str):
-    logger = CustomDetailLogger(__name__, prefix="do_echo()> ")
-    logger.debug(f"actor: {actor}, text: {text}")
-    if actor.actor_type_ == ActorType.CHARACTER and actor.connection_ != None: 
-        await actor.send_text(comm_type, text)
-    # check triggers
-    for trigger_type in [ TriggerType.CATCH_ANY ]:
-        if trigger_type in actor.triggers_by_type_:
-            for trigger in actor.triggers_by_type_[trigger_type]:
-                await trigger.run(actor, text, None)
+# async def do_echo(actor: Actor, comm_type: CommTypes, text: str):
+#     logger = CustomDetailLogger(__name__, prefix="do_echo()> ")
+#     logger.debug(f"actor: {actor}, text: {text}")
+#     if actor.actor_type_ == ActorType.CHARACTER and actor.connection_ != None: 
+#         await actor.send_text(comm_type, text)
+#     # check triggers
+#     for trigger_type in [ TriggerType.CATCH_ANY ]:
+#         if trigger_type in actor.triggers_by_type_:
+#             for trigger in actor.triggers_by_type_[trigger_type]:
+#                 await trigger.run(actor, text, None)
 
 async def do_tell(actor: Actor, target: Actor, text: str):
     logger = CustomDetailLogger(__name__, prefix="do_tell()> ")

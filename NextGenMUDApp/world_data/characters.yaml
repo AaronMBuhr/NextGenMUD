@@ -1,0 +1,29 @@
+CHARACTERS:
+  - zone: starting_zone
+    characters:
+      - id: rabbit
+        name: a rabbit
+        description: >
+          A small, furry rabbit.
+        attributes:
+          strength: 2
+          dexterity: 14
+          constitution: 3
+          intelligence: 2
+          wisdom: 2
+          charisma: 10
+        class: Fighter
+        level: 1
+        hit_points: 10
+        character_flags:
+          - npc
+        triggers:
+          - type: catch_any
+            criteria: 
+              - subject: "%*"
+                operator: contains
+                predicate: "kicks you"
+            script: |
+              emote gets angry!
+              attack %A
+
