@@ -2,7 +2,8 @@ from custom_detail_logger import CustomDetailLogger
 from django.conf import settings
 import json
 from .communication import Connection
-from .nondb_models.actors import Character, Room, Zone
+from .nondb_models.actors import Character, Room #, Zone
+from .nondb_models.world import Zone
 # from .nondb_models.world import Zone
 import os
 import sys
@@ -34,13 +35,7 @@ class OperatingState:
             for room_id, room_info in zone_info['rooms'].items():
                 # logger.debug(f"loading room_id: {room_id}")
                 new_room = Room(room_id)
-                new_room.description_ = room_info['description']
-                new_room.zone_ = new_zone
-
-                for direction, exit_info in room_info['exits'].items():
-                    # logger.debug(f"loading direction: {direction}")
-                    new_room.exits_[direction] = exit_info['destination']
-
+                new_room.from_yaml(new_zone, room_info)
                 new_zone.rooms_[room_id] = new_room
 
             # logger.debug(repr(new_zone))

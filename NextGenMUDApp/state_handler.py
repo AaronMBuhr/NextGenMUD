@@ -15,7 +15,7 @@ async def startConnection(consumer: 'MyWebsocketConsumer'):
     }))
 
     new_connection = Connection(consumer)
-    await new_connection.send("static", "Welcome to NextGenMUD!")
+    # await new_connection.send("static", "Welcome to NextGenMUD!")
     operating_state.connections_.append(new_connection)
     await loadInCharacter(new_connection)
     return new_connection

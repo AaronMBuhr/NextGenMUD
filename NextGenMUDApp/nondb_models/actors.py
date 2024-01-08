@@ -4,88 +4,86 @@ from ..core import FlagBitmap
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto
 import json
+from nondb_models.triggers import TriggerType
+
+
+def replace_vars(script: str, vars: dict) -> str:
+    for var, value in vars.items():
+        script = script.replace(f"%{var}", value)
+    return script
 
 class ActorType(Enum):
     CHARACTER = 1
     OBJECT = 2
     ROOM = 3
 
-
 class Actor:
+    references_ = {}  # Class variable for storing references
+    current_reference_num_ = 1  # Class variable for tracking the current reference number
 
-    def __init__(self, actor_type: ActorType, id: str):
+    def __init__(self, actor_type: ActorType, id: str, name: str = ""):
         self.actor_type_ = actor_type
         self.id_ = id
-
-    # def __str__(self):
-    #     return self.id_
-
-    # def __repr__(self):
-    #     return self.id_
+        self.name_ = name
+        self.location_room_ = None
+        self.triggers_by_type_ = {}
+        reference_prefix = self.actor_type_.name[0]  # First character of ActorType
+        self.reference_number_ = reference_prefix + str(Actor.current_reference_num_)
+        Actor.references_[self.reference_number_] = self
+        Actor.current_reference_num_ += 1
 
     def to_dict(self):
-        return({'actor_type': self.actor_type_.name, 'id': self.id_})
+        return {'actor_type': self.actor_type_.name, 'id': self.id_, 'name': self.name_, 'reference_number': self.reference_number_}
 
     def __repr__(self):
         fields_dict = self.to_dict()
         fields_info = ', '.join([f"{key}={value}" for key, value in fields_dict.items()])
         return f"{self.__class__.__name__}({fields_info})"
 
-    @property
-    def actor_type(self):
-        return self.actor_type_
+    @classmethod
+    def getReference(cls, reference_number):
+        try:
+            return cls.references_[reference_number]
+        except KeyError:
+            return None
     
-    @actor_type.setter
-    def actor_type(self, value):
-        self.actor_type_ = value
+    @classmethod
+    def dereference(cls, reference_number):
+        if reference_number in cls.references_:
+            del cls.references_[reference_number]
 
-    @property
-    def id(self):
-        return self.id_
+    def dereference(self):
+        Actor.dereference_(self.reference_number_)
 
-    @id.setter
-    def id(self, value):
-        self.id_ = value
-
-    @abstractmethod
-    async def sendText(self, text_type: CommTypes, text: str, exceptions=None):
+    async def sendText(self, text_type: CommTypes, text: str):
         pass
 
-
-class ExitDirectionsEnum(Enum):
-    NORTH = 1
-    SOUTH = 2
-    EAST = 3
-    WEST = 4
-    UP = 5
-    DOWN = 6
-    NORTHEAST = 7
-    NORTHWEST = 8
-    SOUTHEAST = 9
-    SOUTHWEST = 10
-    IN = 11
-    OUT = 12
-
-class ExitDirections:
-    def __init__(self, direction_list):
-        self.direction_list = direction_list
-
-    def __getattr__(self, name):
-        if name in ExitDirectionsEnum.__members__:
-            enum_member = ExitDirectionsEnum[name]
-            return self.direction_list[enum_member.value - 1]
-        raise AttributeError(f"'ExitDirections' object has no attribute '{name}'")
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+        logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
+        logger.debug(f"text: {text}")
+        logger.debug(f"vars: {vars}")
+        if vars:
+            text = replace_vars(text, vars)
+        logger.debug(f"formatted text: {text}")
+        # check room triggers
+        if exceptions and self in exceptions:
+            return
+        for trigger_type in [ TriggerType.CATCH_ANY ]:
+            if trigger_type in self.triggers_by_type_:
+                for trigger in self.triggers_by_type_[trigger_type]:
+                    await trigger.run(self, text, vars)
 
 
 class Room(Actor):
     
-    def __init__(self, id, zone=None):
-        super().__init__(ActorType.ROOM, id)
+    def __init__(self, id: str, zone=None, name: str = ""):
+        super().__init__(ActorType.ROOM, id, name)
         self.exits_ = {}
         self.description_ = ""
         self.zone_ = None
         self.characters_ = []
         self.objects_ = []
+        self.location_room_ = self
 
     def to_dict(self):
         return {
@@ -101,31 +99,30 @@ class Room(Actor):
     def __str__(self):
         return json.dumps(self.to_dict(), indent=4)
 
-    @property
-    def exits(self):
-        return self.exits_
+    def from_yaml(self, zone, yaml_data: str):
+        self.name_ = yaml_data['name']
+        self.description_ = yaml_data['description']
+        self.zone_ = zone
 
-    @exits.setter
-    def exits(self, value):
-        self.exits_ = value
-    
-    @property
-    def description(self):
-        return self.description_
-    
-    @description.setter
-    def description(self, value):
-        self.description_ = value
+        for direction, exit_info in yaml_data['exits'].items():
+            # logger.debug(f"loading direction: {direction}")
+            self.exits_[direction] = exit_info['destination']
 
-    async def sendText(self, text_type: CommTypes, text: str, exceptions=None):
-        logger = CustomDetailLogger(__name__, prefix="Room.sendText()> ")
-        logger.debug(f"sendText: {text}")
-        logger.debug(f"exceptions: {exceptions}")
+        for trigger_type, trigger_info in yaml_data['triggers'].items():
+            # logger.debug(f"loading trigger_type: {trigger_type}")
+            if not trigger_type in self.triggers_by_type_:
+                self.triggers_by_type_[trigger_type] = []
+            self.triggers_by_type_[trigger_type] += trigger_info
+
+
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+        logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
+        super().echo(self, text_type, text, vars, exceptions)
         for c in self.characters_:
             logger.debug(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
                 logger.debug(f"sending text to {c.name_}")
-                await c.sendText(text_type, text)
+                await c.echo(text_type, text, vars, exceptions)
 
     def removeCharacter(self, character: 'Character'):
         self.characters_.remove(character)
@@ -139,55 +136,63 @@ class CharacterFlags(Enum):
 
 class Character(Actor):
     
-    def __init__(self, id):
-        super().__init__(ActorType.CHARACTER, id)
-        self.name_ = ""
-        self.location_room_ = None
+    def __init__(self, id: str, name: str = ""):
+        super().__init__(ActorType.CHARACTER, id, name)
         self.attributes_ = {}
         self.classes_ = {}
         self.inventory_ = {}
         self.character_flags_ = FlagBitmap()
         self.connection_ = None
     
-    @property
-    def location_room(self):
-        return self.location_room_
-    
-    @location_room.setter
-    def location_room(self, value):
-        self.location_room_ = value
-
-    async def sendText(self, text_type: CommTypes, text: str, exceptions=None):
+    async def sendText(self, text_type: CommTypes, text: str):
         logger = CustomDetailLogger(__name__, prefix="Character.sendText()> ")
         logger.debug(f"sendText: {text}")
         logger.debug(f"exceptions: {exceptions}")
         if self.connection_:
-            logger.debug("connection exists")
-            if exceptions is None or self not in exceptions:
-                logger.debug(f"sending text to {self.name_}")
-                await self.connection_.send(text_type, text)
-                logger.debug("text sent")
+            logger.debug(f"connection exists, sending text to {self.name_}")
+            await self.connection_.send(text_type, text)
+            logger.debug("text sent")
         else:
             logger.debug("no connection")
 
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+        logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
+        super().echo(self, text_type, text, vars, exceptions)
+        if exceptions and self in exceptions:
+            return
+        await self.sendText(text_type, text, exceptions)
 
-class Zone:
-    def __init__(self, id):
-        self.id_ = id
+class Object(Actor):
+
+    def __init__(self, id: str, name: str = ""):
+        super().__init__(ActorType.OBJECT, id, name)
         self.name_ = ""
-        self.rooms_ = {}
-        self.actors_ = {}
-        self.description_ = ""
+        self.location_inventory_ = None
+        self.location_container_ = None
+        self.attributes_ = {}
+        self.object_flags_ = FlagBitmap()
 
-    def to_dict(self):
-        return {
-            'id': self.id_,
-            'name': self.name_,
-            'rooms': {room_id: room.to_dict() for room_id, room in self.rooms_.items()},
-            'actors': self.actors_,  # Make sure this is also serializable
-            'description': self.description_
-        }
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):
+        logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
+        super().echo(self, text_type, text, vars, exceptions)
 
-    def __str__(self):
-        return json.dumps(self.to_dict(), indent=4)
+# class Zone:
+#     def __init__(self, id):
+#         self.id_ = id
+#         self.name_ = ""
+#         self.rooms_ = {}
+#         self.actors_ = {}
+#         self.description_ = ""
+
+#     def to_dict(self):
+#         return {
+#             'id': self.id_,
+#             'name': self.name_,
+#             'rooms': {room_id: room.to_dict() for room_id, room in self.rooms_.items()},
+#             'actors': self.actors_,  # Make sure this is also serializable
+#             'description': self.description_
+#         }
+
+#     def __str__(self):
+#         return json.dumps(self.to_dict(), indent=4)
 
