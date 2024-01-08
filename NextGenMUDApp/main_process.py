@@ -1,6 +1,6 @@
-from .actions import worldMove
+from .actions import world_move
 import asyncio
-from .command_handlers import command_handlers
+from .command_handler import command_handlers
 from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 from .operating_state import operating_state

@@ -4,7 +4,7 @@ from ..core import FlagBitmap
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto
 import json
-from .triggers import TriggerType
+from .triggers import TriggerType, Trigger
 
 
 def replace_vars(script: str, vars: dict) -> str:
@@ -85,6 +85,7 @@ class Room(Actor):
         self.characters_ = []
         self.objects_ = []
         self.location_room_ = self
+        self.triggers_by_type_ = {}
 
     def to_dict(self):
         return {
@@ -109,11 +110,20 @@ class Room(Actor):
             # logger.debug(f"loading direction: {direction}")
             self.exits_[direction] = exit_info['destination']
 
-        for trigger_type, trigger_info in yaml_data['triggers'].items():
-            # logger.debug(f"loading trigger_type: {trigger_type}")
-            if not trigger_type in self.triggers_by_type_:
-                self.triggers_by_type_[trigger_type] = []
-            self.triggers_by_type_[trigger_type] += trigger_info
+        if 'triggers' in yaml_data:
+            # print(f"triggers: {yaml_data['triggers']}")
+            # raise NotImplementedError("Triggers not implemented yet.")
+            # for trigger_type, trigger_info in yaml_data['triggers'].items():
+            #     # logger.debug(f"loading trigger_type: {trigger_type}")
+            #     if not trigger_type in self.triggers_by_type_:
+            #         self.triggers_by_type_[trigger_type] = []
+            #     self.triggers_by_type_[trigger_type] += trigger_info
+            for trig in yaml_data['triggers']:
+                # logger.debug(f"loading trigger_type: {trigger_type}")
+                if not trig["type"] in self.triggers_by_type_:
+                    self.triggers_by_type_[trig["type"]] = []
+                new_trigger = Trigger(trig["type"])
+                self.triggers_by_type_[trig["type"]] += trig
 
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None):

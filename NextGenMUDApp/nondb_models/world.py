@@ -1,4 +1,4 @@
-from . import Constants
+from ..constants import Constants
 from enum import Enum
 import json
 from .actors import Actor, Character, Room, Object

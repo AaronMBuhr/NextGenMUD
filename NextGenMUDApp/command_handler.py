@@ -1,4 +1,4 @@
-from .actions import worldMove
+from .actions import world_move
 from .communication import CommTypes
 from custom_detail_logger import CustomDetailLogger
 from .nondb_models.actors import Actor, ActorType
@@ -24,14 +24,14 @@ def split_preserving_quotes(text):
 
 
 command_handlers = {
-    "north": lambda char, input: worldMove(char, "north"),
-    "n": lambda char, input: worldMove(char, "north"),
-    "south": lambda char, input: worldMove(char, "south"),
-    "s": lambda char, input: worldMove(char, "south"),
-    "east": lambda char, input: worldMove(char, "east"),
-    "e": lambda char, input: worldMove(char, "east"),
-    "west": lambda char, input: worldMove(char, "west"),
-    "w": lambda char, input: worldMove(char, "west"),
+    "north": lambda char, input: world_move(char, "north"),
+    "n": lambda char, input: world_move(char, "north"),
+    "south": lambda char, input: world_move(char, "south"),
+    "s": lambda char, input: world_move(char, "south"),
+    "east": lambda char, input: world_move(char, "east"),
+    "e": lambda char, input: world_move(char, "east"),
+    "west": lambda char, input: world_move(char, "west"),
+    "w": lambda char, input: world_move(char, "west"),
  #   "tell": lambda char, input: cmd_tell(char, input),
     "echoexcept": lambda char, input: cmd_echoexcept(char, input),
     "say": lambda char, input: cmd_say(char, input)

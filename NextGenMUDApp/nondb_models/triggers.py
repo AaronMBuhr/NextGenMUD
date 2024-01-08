@@ -1,8 +1,6 @@
 from abc import abstractmethod
-from ..command_handler import process_command
 from enum import Enum
 import re
-from . import scripts
 
 def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
@@ -23,6 +21,11 @@ class TriggerCriteria:
         self.operator_ = None
         self.predicate_ = None
     
+    def from_dict(self, values: dict) -> None:
+        self.subject_ = values['subject']
+        self.operator_ = values['operator']
+        self.predicate_ = values['predicate']
+
     @abstractmethod
     def evaluate(self, vars: dict) -> bool:
         subject = execute_functions(replace_vars(self.subject, vars))
@@ -37,15 +40,24 @@ class TriggerCriteria:
 class Trigger:
     
     def __init__(self, trigger_type: TriggerType) -> None:
-        self.trigger_type_ = trigger_type
+        if (isinstance(trigger_type, str)):
+            self.trigger_type_ = TriggerType[trigger_type.upper()]
+        else:
+            self.trigger_type_ = trigger_type
         self.criteria_ = []
         self.script_ = ""
+
+    def from_dict(self, values: dict) -> None:
+        self.trigger_type_: TriggerType[values['type'].upper()]
+        self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values['criteria']]
+        self.script_ = values['script']
 
     @abstractmethod
     async def run(self, actor: 'Actor', text: str, vars: dict, var: dict) -> None:
         pass
 
     async def runScript(self, actor: 'Actor', vars: dict) -> None:
+        from ..command_handler import process_command
         for line in self.script_.splitlines():
             await process_command(actor, line, vars)
 

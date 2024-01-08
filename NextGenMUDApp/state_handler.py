@@ -1,5 +1,5 @@
 from .nondb_models.actors import Character
-from .actions import arriveRoom
+from .actions import arrive_room
 from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 import json
@@ -36,7 +36,7 @@ async def loadInCharacter(connection: Connection):
     logger.debug(f"first_zone: {first_zone}")
     first_room = first_zone.rooms_[list(first_zone.rooms_.keys())[0]]
     logger.debug(f"first_room: {first_room}")
-    await arriveRoom(new_player, first_room)
+    await arrive_room(new_player, first_room)
 
 
 def removeConnection(consumer: 'MyWebsocketConsumer'):

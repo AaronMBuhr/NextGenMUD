@@ -22,8 +22,11 @@ ZONES:
           south:
             destination: starting_room
         triggers:
-          - type: on_worldmsg
-            criteria: arrives.
+          - type: catch_any
+            criteria: 
+              - subject: "%*"
+                operator: contains
+                predicate: "arrives."
             script: |
               tell %s You trip as you enter.
               echoexcept %s trips as %e enters.
