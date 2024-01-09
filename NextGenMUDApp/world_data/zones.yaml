@@ -45,3 +45,28 @@ ZONES:
             script: |
               echoto %{S} You trip as you enter.
               echoexcept %{S} %{s} trips as %{q} enters.
+          # - type: timer_tick
+          #   criteria: 
+          #     - subject: "%{time_elapsed}"
+          #       operator: "numgte"
+          #       predicate: 4
+          #   script: |
+          #     echo Tick!
+          # - type: timer_tick
+          #   criteria:
+          #     - subject: "%{time_elapsed}"
+          #       operator: "numgte"
+          #       predicate: 4
+          #     - subject: "$random(1,100)"
+          #       operator: "numlte"
+          #       predicate: 25
+          #   script: |
+          #     echo Wildlife rustles in the underbrush.
+          - type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "squirrel"
+            script: |
+              echo You see a squirrel.
+              echoexcept %{S} %{s} sees a squirrel.

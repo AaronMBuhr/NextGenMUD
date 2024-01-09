@@ -1,21 +1,19 @@
+from .core import replace_vars
 from .actions import world_move
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from .nondb_models.actors import Actor, ActorType
 from .nondb_models import world
+from .operating_state import operating_state
 import re
 from typing import Callable
+from yaml_dumper import YamlDumper
+import yaml
 
 def actor_vars(actor: Actor, name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
     return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
-
-
-def replace_vars(script: str, vars: dict) -> str:
-    for var, value in vars.items():
-        script = script.replace("%{" + var + "}", value)
-    return script
 
 
 def split_preserving_quotes(text):
@@ -32,6 +30,15 @@ def split_preserving_quotes(text):
 
 
 command_handlers = {
+    # privileged commands
+    "show": lambda command, char, input: cmd_show(char, input),
+    "echo": lambda command, char, input: cmd_echo(char, input),
+    "echoto": lambda command, char, input: cmd_echoto(char, input),
+    "echoexcept": lambda command, char, input: cmd_echoexcept(char, input),
+    "settempvar": lambda command, char, input: cmd_settempvar(char, input),
+    "setpermvar": lambda command, char, input: cmd_setpermvar(char, input),
+
+    # normal commands
     "north": lambda command, char, input: world_move(char, "north"),
     "n": lambda command, char, input: world_move(char, "north"),
     "south": lambda command, char, input: world_move(char, "south"),
@@ -40,16 +47,12 @@ command_handlers = {
     "e": lambda command, char, input: world_move(char, "east"),
     "west": lambda command, char, input: world_move(char, "west"),
     "w": lambda command, char, input: world_move(char, "west"),
-    "echo": lambda command, char, input: cmd_echo(char, input),
-    "echoto": lambda command, char, input: cmd_echoto(char, input),
-    "echoexcept": lambda command, char, input: cmd_echoexcept(char, input),
     "say": lambda command, char, input: cmd_say(char, input),
     "tell": lambda command, char, input: cmd_tell(char, input),
     "emote": lambda command, char,input: cmd_emote(char, input),
-    "settempvar": lambda command, char, input: cmd_settempvar(char, input),
-    "setpermvar": lambda command, char, input: cmd_setpermvar(char, input),
+    "look": lambda command, char, input: cmd_look(char, input),
 
-#   various emotes
+    # various emotes
     "kick": lambda command, char, input: cmd_specific_emote(command, char, input),
     "kiss": lambda command, char, input: cmd_specific_emote(command, char, input),
     "lick": lambda command, char, input: cmd_specific_emote(command, char, input),
@@ -378,3 +381,130 @@ async def cmd_settempvar(actor: Actor, input: str):
 
 async def cmd_setpermvar(actor: Actor, input: str):
     await cmd_setvar_helper(actor, input, lambda d: d.perm_variables_, "perm")
+
+
+async def cmd_show(actor: Actor, input: str):
+    pieces = input.split(' ')
+    if len(pieces) < 1:
+        await actor.send_text(CommTypes.DYNAMIC, "Show what?")
+        return
+    answer = {}
+    if pieces[0].lower() == "zones":
+        answer["ZONES"] = {
+            zone.id_: {"id": zone.id_, "name": zone.name_, "description": zone.description_} 
+            for zone in operating_state.zones_.values()
+        }
+    elif pieces[0].lower() == "zone":
+        try:
+            zone = operating_state.zones_[pieces[1]]
+        except KeyError:
+            await actor.send_text(CommTypes.DYNAMIC, f"zone {pieces[1]} not found.")
+            return
+        answer["ZONE"] = {}
+        answer["ZONE"][zone.id_] = {"id": zone.id_, "name": zone.name_, "description": zone.description_}
+        answer["ZONE"][zone.id_]["rooms"] = {
+            room.id_: {
+                "id": room.id_,
+                "name": room.name_,
+#                "description": room.description_,
+                "characters": [character.id_ for character in room.characters_],
+                "objects": [object.id_ for object in room.objects_],
+                "triggers": {
+                    trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
+                        {
+                            "criteria": [
+                                f"{criterion.subject_}, {criterion.operator_}, {criterion.predicate_}"
+                                for criterion in trigger.criteria_
+                            ]
+                        }
+                        for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type_.items()
+                    ] 
+                    for trigger_type, triggers in room.triggers_by_type_.items()  # Correctly extracting trigger_type and triggers
+                }
+            }
+            for room in zone.rooms_.values()
+        }
+    elif pieces[0].lower() == "characters":
+        answer["CHARACTERS"] = {
+            a.id_ : {
+                "id": a.id_,
+                "name": a.name_,
+                "description": a.description_,
+                "location": a.location_room_.id_ if a.location_room_ else None,
+                "temp_variables": a.temp_variables_,
+                "perm_variables": a.perm_variables_,
+            } for a in Actor.references_.values() if a.actor_type_ == ActorType.CHARACTER
+        }
+    elif pieces[0].lower() == "room":
+        try:
+            room = world.find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
+        except KeyError:
+            await actor.send_text(CommTypes.DYNAMIC, f"room '{' '.join(pieces[1])} not found.")
+            return
+        answer["ROOMS"] = {
+            room.id_: {
+                "id": room.id_,
+                "name": room.name_,
+                "description": room.description_,
+                "characters": [character.id_ for character in room.characters_],
+                "objects": [object.id_ for object in room.objects_],
+                "triggers": {
+                    trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
+                        trigger.to_dict() for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type_.items()
+                    ] 
+                    for trigger_type, triggers in room.triggers_by_type_.items()  # Correctly extracting trigger_type and triggers
+                }
+            }
+        }
+    yaml_answer = yaml.dump(answer)
+    # yaml_answer = YamlDumper.to_yaml_compatible_str(answer)
+
+    # yaml_answer = YamlDumper.to_yaml_compatible_str(answer["ROOMS"]["starting_room_2"]["triggers"])
+    # yaml_answer = yaml_answer + "\n\n" + yaml.dump(answer["ROOMS"]["starting_room_2"]["triggers"])
+
+    await actor.send_text(CommTypes.STATIC, yaml_answer)
+
+async def cmd_look(actor: Actor, input: str):
+    logger = CustomDetailLogger(__name__, prefix="cmd_look()> ")
+    from .nondb_models.triggers import TriggerType, Trigger
+    # TODO:M: add various look permutations
+    room = actor.location_room_
+    pieces = input.split(' ')
+    if input.strip() == "":
+        await actor.send_text(CommTypes.DYNAMIC, "You look around.")
+        await actor.send_text(CommTypes.STATIC, room.name_ + "\n" + room.description_)
+        return
+    found = False
+    try:
+        logger.debug(f"target: {input}")
+        logger.debug("Blah Looking for CATCH_LOOK triggers")
+        # print(yaml.dump(room.triggers_by_type_))
+        print("**** should have dumped ****")
+        logger.debug(f"Still looking for CATCH_LOOK triggers {room.id_}")
+        logger.debug(f"heh 2 {room.triggers_by_type_.keys()}")
+        for trig in room.triggers_by_type_[TriggerType.CATCH_LOOK]:
+            logger.debug(f"checking trigger for: {trig.criteria_[0].subject_}")
+            logger.debug("before trig.run")
+            vars = { **{ 
+                'a': actor.name_, 
+                'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+                'p': actor.pronoun_subject_,
+                'P': actor.pronoun_object_,
+                's': actor.name_, 
+                'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+                'q': actor.pronoun_subject_,
+                'Q': actor.pronoun_object_,
+                't': actor.name_, 
+                'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+                'r': actor.pronoun_subject_,
+                'R': actor.pronoun_object_,
+                '*': input }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+            if await trig.run(actor, input, vars):
+                found = True
+            logger.debug("after trig.run")
+        logger.debug(f"done looking for CATCH_LOOK triggers {room.id_}")
+    except Exception as ex:
+        logger.debug(f"excepted looking for CATCH_LOOK triggers: {ex}")
+        pass
+    if not found:
+        await actor.send_text(CommTypes.DYNAMIC, "You don't see that.")

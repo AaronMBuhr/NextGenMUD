@@ -1,4 +1,3 @@
-from .nondb_models.actors import Character
 from .actions import arrive_room
 from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
@@ -22,6 +21,7 @@ async def start_connection(consumer: 'MyWebsocketConsumer'):
 
 
 async def load_in_character(connection: Connection):
+    from .nondb_models.actors import Character
     logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
     new_player = Character("test_player")
     new_player.connection_ = connection

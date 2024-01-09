@@ -2,7 +2,6 @@ from custom_detail_logger import CustomDetailLogger
 from django.conf import settings
 import json
 from .communication import Connection
-from .nondb_models.actors import Character, Room #, Zone
 import os
 import sys
 import yaml
@@ -17,6 +16,7 @@ class OperatingState:
         self.connections_ = []
 
     def Initialize(self):
+        from .nondb_models.actors import Character, Room #, Zone
         from .nondb_models.world import Zone
         logger = CustomDetailLogger(__name__, prefix="Initialize()> ")
         zones_file_path = os.path.join(settings.BASE_DIR, 'NextGenMUDApp', 'world_data', 'zones.yaml')

@@ -5,8 +5,10 @@ from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 from .operating_state import operating_state
 import threading
+from .nondb_models.triggers import TriggerTimerTick
 import time
 
+TICK_SEC = 2
 
 def start_main_process():
     logger = CustomDetailLogger(__name__, prefix="start_main_process()> ")
@@ -29,8 +31,11 @@ async def main_game_loop():
                 input = conn.input_queue.popleft()
                 logger.debug(f"input: {input}")
                 await process_input(conn, input)
+        for trig in TriggerTimerTick.timer_tick_triggers_: 
+            logger.debug(f"running timer tick trigger for {trig.actor_.rid}")
+            await trig.run(trig.actor_, "", {})
         logger.debug("sleeping")
-        time.sleep(2)
+        time.sleep(TICK_SEC)
 
 
 async def process_input(conn: Connection, input: str):

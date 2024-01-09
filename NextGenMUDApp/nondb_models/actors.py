@@ -1,16 +1,11 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..core import FlagBitmap
+from ..core import FlagBitmap, replace_vars
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto
 import json
 from .triggers import TriggerType, Trigger
 
-
-def replace_vars(script: str, vars: dict) -> str:
-    for var, value in vars.items():
-        script = script.replace("%{" + var + "}", value)
-    return script
 
 class ActorType(Enum):
     CHARACTER = 1
@@ -36,6 +31,10 @@ class Actor:
         self.temp_variables_ = {}
         self.perm_variables_ = {}
 
+    @classmethod
+    def references(self):
+        return Actor.references_
+    
     @property
     def rid(self):
         return self.reference_number_ + "{" + self.id_ + "}"
@@ -140,7 +139,7 @@ class Room(Actor):
             #     self.triggers_by_type_[trigger_type] += trigger_info
             for trig in yaml_data['triggers']:
                 # logger.debug(f"loading trigger_type: {trigger_type}")
-                new_trigger = Trigger.new_trigger(trig["type"]).from_dict(trig)
+                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
                 if not new_trigger.trigger_type_ in self.triggers_by_type_:
                     self.triggers_by_type_[new_trigger.trigger_type_] = []
                 self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
@@ -151,6 +150,7 @@ class Room(Actor):
         logger.debug("running super, text: " + text)
         text = await super().echo(text_type, text, vars, exceptions)
         logger.debug("ran super, text: " + text)
+        logger.debug(f"checking characters: {self.characters_}")
         for c in self.characters_:
             logger.debug(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:

@@ -118,3 +118,14 @@ def find_all_characters(actor: Actor, target_name: str) -> str:
 
     # Format and return the results
     return "\n".join(matching_characters)
+
+
+def find_target_room(actor: Actor, target_name: str, start_zone: Zone) -> str:
+    for room in start_zone.rooms_.values():
+        if room.name_.startswith(target_name) or room.id_.startswith(target_name):
+            return room
+    for zone in operating_state.zones_:
+        for room in zone.rooms_.values():
+            if room.name_.startswith(target_name) or room.id_.startswith(target_name):
+                return room
+    return None

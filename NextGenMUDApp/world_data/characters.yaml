@@ -20,7 +20,7 @@ CHARACTERS:
         triggers:
           - type: catch_any
             criteria: 
-              - subject: "%*"
+              - subject: "%{*}"
                 operator: contains
                 predicate: "kicks you"
             script: |
