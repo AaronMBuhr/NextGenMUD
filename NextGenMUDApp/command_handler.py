@@ -59,6 +59,8 @@ command_handlers = {
     "congratulate": lambda command, char, input: cmd_specific_emote(command, char, input),
     "bow": lambda command, char, input: cmd_specific_emote(command, char, input),
     "thank": lambda command, char, input: cmd_specific_emote(command, char, input),
+    "sing": lambda command, char, input: cmd_specific_emote(command, char, input),
+    "dance": lambda command, char, input: cmd_specific_emote(command, char, input),
 }
 
 
@@ -136,7 +138,7 @@ async def cmd_echo(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    await actor.send_text(CommTypes.DYNAMIC, f"You echo, \"{text}\"")
+    await actor.send_text(CommTypes.DYNAMIC, text)
 
 
 async def cmd_echoto(actor: Actor, input: str):
@@ -189,7 +191,7 @@ async def cmd_echoexcept(actor: Actor, input: str):
         await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
         return
     exclude = [ excludee ]
-    text = ' '.join(pieces[2:])
+    text = ' '.join(pieces[1:])
     msg = f"To everyone except {exclude[0].name_} you echo '{text}'."
     vars = { **{ 
         'a': actor.name_, 
@@ -264,6 +266,7 @@ async def cmd_emote(actor: Actor, input: str):
         'r': actor.pronoun_subject_,
         'R': actor.pronoun_object_,
         '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
@@ -273,16 +276,25 @@ async def cmd_emote(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
 
 
 EMOTE_MESSAGES = {
-    "kick": { 'actor': "You kick %t.", 'room': "%a kicks %t." , 'target': "%a kicks you."},
-    "kiss": { 'actor': "You kiss %t.", 'room': "%a kisses %t.", 'target': "%a kisses you." },
-    "lick": { 'actor': "You lick %t.", 'room': "%a licks %t.", 'target': "%a licks you." },
-    "congratulate": { 'actor': "You congratulate %t.", 'room': "%a congratulates %t." , 'target': "%a congratulates you."},
-    "bow": { 'actor': "You bow to %t.", 'room': "%a bows to %t.", 'target': "%a bows to you." },
-    "thank": { 'actor': "You thank %t.", 'room': "%a thanks %t.", 'target': "%a thanks you." },
+    "kick": { 'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a lets loose with a wild kick." },
+             'target' : { 'actor': "You kick %t.", 'room': "%a kicks %t." , 'target': "%a kicks you."} },
+    "kiss": { 'notarget' : { 'actor': 'You kiss the air.', 'room': '%a kisses the air.'},
+             'target': {'actor': "You kiss %t.", 'room': "%a kisses %t.", 'target': "%a kisses you." }},
+    "lick": { 'notarget': { 'actor': 'You lick the air.', 'room': '%a licks the air.'},
+             'target': {'actor': "You lick %t.", 'room': "%a licks %t.", 'target': "%a licks you." }},
+    "congratulate": { 'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a congratulates %Pself.'},
+                     'target' : { 'actor': "You congratulate %t.", 'room': "%a congratulates %t." , 'target': "%a congratulates you."}},
+    "bow": { 'notarget': { 'actor': 'You take a bow.', 'room': 'Makes a sweeping bow.'}, 
+            'target' : {'actor': "You bow to %t.", 'room': "%a bows to %t.", 'target': "%a bows to you." }},
+    "thank": { 'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a thanks everyone.' },
+              'target' : {'actor': "You thank %t.", 'room': "%a thanks %t.", 'target': "%a thanks you." }},
+    "sing": { 'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a sings %P heart out.' },
+             'target': {'actor': "You sing to %t.", 'room': "%a sings to %t.", 'target': "%a sings to you." }},
+    "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a dances a jig.' },
+                'target': {'actor': "You dance with %t.", 'room': "%a dances with %t.", 'target': "%a dances with you." }},
 }
 
 async def cmd_specific_emote(command: str, actor: Actor, input: str):
@@ -290,13 +302,6 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
     logger.debug(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
     pieces = split_preserving_quotes(input)
-    target = world.find_target_character(actor, pieces[0])
-    if target == None:
-        await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
-        return
-    actor_msg = EMOTE_MESSAGES[command]['actor']
-    room_msg = EMOTE_MESSAGES[command]['room']
-    target_msg = EMOTE_MESSAGES[command]['target']
     vars = { **{ 
         'a': actor.name_, 
         'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
@@ -306,24 +311,63 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
         'q': actor.pronoun_subject_,
         'Q': actor.pronoun_object_,
-        't': target.name_, 
-        'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
-        'r': target.pronoun_subject_,
-        'R': target.pronoun_object_,
-        '*': target_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
-    await target.echo(CommTypes.DYNAMIC, target_msg, vars)
-    vars['*'] = room_msg
+        't': actor.name_, 
+        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+        'r': actor.pronoun_subject_,
+        'R': actor.pronoun_object_,
+        '*': actor_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
+    if len(pieces) < 1:
+        actor_msg = EMOTE_MESSAGES[command]["notarget"]['actor']
+        room_msg = EMOTE_MESSAGES[command]["notarget"]['room']
+        target_msg = None
+        target = None
+    else:
+        target = world.find_target_character(actor, pieces[0])
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
+            return
+        actor_msg = EMOTE_MESSAGES[command]['actor']
+        room_msg = EMOTE_MESSAGES[command]['room']
+        target_msg = EMOTE_MESSAGES[command]['target']
+        vars = { **{ 
+            'a': actor.name_, 
+            'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+            'p': actor.pronoun_subject_,
+            'P': actor.pronoun_object_,
+            's': actor.name_, 
+            'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+            'q': actor.pronoun_subject_,
+            'Q': actor.pronoun_object_,
+            't': target.name_, 
+            'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
+            'r': target.pronoun_subject_,
+            'R': target.pronoun_object_,
+            '*': actor_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
+        await target.echo(CommTypes.DYNAMIC, target_msg, vars)
     if actor.location_room_:
+        vars = { **{ 
+            'a': actor.name_, 
+            'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+            'p': actor.pronoun_subject_,
+            'P': actor.pronoun_object_,
+            's': actor.name_, 
+            'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+            'q': actor.pronoun_subject_,
+            'Q': actor.pronoun_object_,
+            't': actor.name_, 
+            'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
+            'r': actor.pronoun_subject_,
+            'R': actor.pronoun_object_,
+            '*': room_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
         if actor.actor_type_ == ActorType.CHARACTER:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor, target])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
         elif actor.actor_type_ == ActorType.OBJECT:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor, target])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
         elif actor.actor_type_ == ActorType.ROOM:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, {room_msg}, vars, exceptions=[actor, target])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, {room_msg}, vars, exceptions=[actor] if target == None else [actor, target])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    vars['*'] = actor_msg
-    await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
 
 
 async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[Actor], dict], target_name: str):

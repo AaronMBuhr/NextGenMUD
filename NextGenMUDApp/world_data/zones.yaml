@@ -32,8 +32,10 @@ ZONES:
         description: >
           The second room where all new characters begin their adventures.
           
-          Exits: south
+          Exits: north, south
         exits:
+          north:
+            destination: mystical_glade
           south:
             destination: starting_room
         triggers:
@@ -52,16 +54,16 @@ ZONES:
           #       predicate: 4
           #   script: |
           #     echo Tick!
-          # - type: timer_tick
-          #   criteria:
-          #     - subject: "%{time_elapsed}"
-          #       operator: "numgte"
-          #       predicate: 4
-          #     - subject: "$random(1,100)"
-          #       operator: "numlte"
-          #       predicate: 25
-          #   script: |
-          #     echo Wildlife rustles in the underbrush.
+          - type: timer_tick
+            criteria:
+              - subject: "%{time_elapsed}"
+                operator: "numgte"
+                predicate: 4
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 25
+            script: |
+              echo Wildlife rustles in the underbrush.
           - type: catch_look
             criteria: 
               - subject: "%{*}"
@@ -70,3 +72,55 @@ ZONES:
             script: |
               echo You see a squirrel.
               echoexcept %{S} %{s} sees a squirrel.
+  # enchanted_forest:
+  #   name: Enchanted Forest
+  #   description: A mystical forest filled with ancient magic and wonder.
+  #   rooms:
+      mystical_glade:
+        name: Mystical Glade
+        description: >
+          A serene glade bathed in soft, ethereal light. Ancient trees with luminous leaves encircle the area, their branches creating a natural dome overhead. The air is filled with the gentle sound of a nearby stream and the occasional distant call of an exotic bird. 
+
+          Exits: south
+        exits:
+          south:
+            destination: starting_room_2
+        triggers:
+          - type: timer_tick
+            criteria: 
+              - subject: "%{time_elapsed}"
+                operator: "numgte"
+                predicate: 5
+            script: |
+              echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
+          - type: timer_tick
+            criteria:
+              - subject: "%{time_elapsed}"
+                operator: "numgte"
+                predicate: 10
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 30
+            script: |
+              echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
+          - type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "tree"
+            script: |
+              echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
+          - type: catch_any
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "sing"
+            script: |
+              echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "dance"
+            script: |
+              echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
