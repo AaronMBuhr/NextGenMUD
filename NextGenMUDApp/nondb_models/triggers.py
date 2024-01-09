@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from ..constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum
 import re
@@ -134,7 +135,7 @@ class TriggerCatchAny(Trigger):
     async def run(self, actor: 'Actor', text: str, vars: dict) -> None:
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
         vars = {**vars, 
-                **({ 'a': actor.name_, 'A': actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
+                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
                 **(actor_vars(actor, "a"))}
         logger.debug("evaluating")
         for crit in self.criteria_:

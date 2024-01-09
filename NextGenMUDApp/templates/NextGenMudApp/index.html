@@ -37,7 +37,9 @@
             if (data.text_type === "static") {
                 document.getElementById('staticText').value = data.text;
             } else if (data.text_type === "dynamic") {
-                document.getElementById('dynamicText').value += data.text + "\n";
+                var dynamicTextArea = document.getElementById('dynamicText');
+                dynamicTextArea.value += data.text + "\n";
+                dynamicTextArea.scrollTop = dynamicTextArea.scrollHeight;
             }
         }
 

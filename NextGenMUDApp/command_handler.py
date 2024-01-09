@@ -5,6 +5,7 @@ from custom_detail_logger import CustomDetailLogger
 from .nondb_models.actors import Actor, ActorType
 from .nondb_models import world
 import re
+from typing import Callable
 
 def actor_vars(actor: Actor, name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
@@ -65,19 +66,19 @@ async def process_command(actor: Actor, input: str, vars: dict = None):
     command = parts[0]
     if not command in command_handlers:
         logger.debug(f"Unknown command: {command}")
-        actor.send_text(CommTypes.DYNAMIC, "Unknown command")
+        await actor.send_text(CommTypes.DYNAMIC, "Unknown command")
     else:
         try:
             logger.debug(f"Evaluating command: {command}")
             await command_handlers[command](command, actor, ' '.join(parts[1:]))
         except KeyError:
             logger.error(f"KeyError processing command {command}")
-            actor.send_text(CommTypes.DYNAMIC, "Command failure.")
+            await actor.send_text(CommTypes.DYNAMIC, "Command failure.")
 
 
 async def cmd_say(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_say()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     text = input
     vars = { **{ 
         'a': actor.name_, 
@@ -93,7 +94,7 @@ async def cmd_say(actor: Actor, input: str):
         'r': actor.pronoun_subject_,
         'R': actor.pronoun_object_,
         '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
-    logger.debug("before echo")
+    await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"{actor.name_} says, \"{text}\"", vars, exceptions=[actor])
@@ -103,14 +104,11 @@ async def cmd_say(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    logger.debug("after echo, before send_text")
-    await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
-    logger.debug("after send_text")
 
 
 async def cmd_echo(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echo()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     text = input
     vars = { **{ 
         'a': actor.name_, 
@@ -135,22 +133,22 @@ async def cmd_echo(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    actor.send_text(CommTypes.DYNAMIC, f"You echo, \"{text}\"")
+    await actor.send_text(CommTypes.DYNAMIC, f"You echo, \"{text}\"")
 
 
 async def cmd_echoto(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echoto()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
-        actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
     if len(input) < 3:
-        actor.send_text(CommTypes.DYNAMIC, "Echo what?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
     logger.debug(f"finding target: {pieces[0]}")
     target = world.find_target_character(actor, pieces[0])
     logger.debug(f"target: {target}")
     if target == None:
-        actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
         return
     text = ' '.join(pieces[1:])
     vars = { **{ 
@@ -174,18 +172,18 @@ async def cmd_echoto(actor: Actor, input: str):
 
 async def cmd_echoexcept(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echoexcept()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
-        actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
         return
     if len(input) < 3:
-        actor.send_text(CommTypes.DYNAMIC, "Echo what?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
     logger.debug(f"finding excludee: {pieces[1]}")
     excludee = world.find_target_character(actor, pieces[1])
     logger.debug(f"excludee: {excludee}")
     if excludee == None:
-        actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
+        await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
         return
     exclude = [ excludee ]
     text = ' '.join(pieces[2:])
@@ -210,12 +208,12 @@ async def cmd_echoexcept(actor: Actor, input: str):
 
 async def cmd_tell(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_tell()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
-        actor.send_text(CommTypes.DYNAMIC, "Tell who?")
+        await actor.send_text(CommTypes.DYNAMIC, "Tell who?")
         return
     if len(input) < 3:
-        actor.send_text(CommTypes.DYNAMIC, "Tell what?")
+        await actor.send_text(CommTypes.DYNAMIC, "Tell what?")
     pieces = split_preserving_quotes(input)
     logger.debug(f"finding target: {pieces[0]}")
     target = world.find_target_character(actor, pieces[0])
@@ -247,7 +245,7 @@ async def cmd_tell(actor: Actor, input: str):
 
 async def cmd_emote(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
-    logger.debug(f"actor: {actor}, input: {input}")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
     text = input
     vars = { **{ 
         'a': actor.name_, 
@@ -272,7 +270,7 @@ async def cmd_emote(actor: Actor, input: str):
             await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
-    actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
+    await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
 
 
 EMOTE_MESSAGES = {
@@ -287,11 +285,11 @@ EMOTE_MESSAGES = {
 async def cmd_specific_emote(command: str, actor: Actor, input: str):
     # TODO:L: add additional logic for no args, for "me", for objects
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
-    logger.debug(f"command: {command}, actor: {actor}, input: {input}")
+    logger.debug(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
     pieces = split_preserving_quotes(input)
     target = world.find_target_character(actor, pieces[0])
     if target == None:
-        actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
+        await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
         return
     actor_msg = EMOTE_MESSAGES[command]['actor']
     room_msg = EMOTE_MESSAGES[command]['room']
@@ -324,27 +322,36 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
     vars['*'] = actor_msg
     await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
 
-async def cmd_setvar_helper(actor: Actor, input: str, target_dict: dict, target_name: str):
+
+async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[Actor], dict], target_name: str):
     # TODO:M: add targeting objects and rooms
+    logger = CustomDetailLogger(__name__, prefix="cmd_setvar_helper()> ")
+    logger.debug(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
     pieces = split_preserving_quotes(input)
-    if len(pieces) < 2:
-        actor.send_text(CommTypes.DYNAMIC, "Set temp var on what kind of target?")
+    if len(pieces) < 1:
+        logger.warn(f"({pieces}) Set {target_name} var on what kind of target?")
+        await actor.send_text(CommTypes.DYNAMIC, "Set temp var on what kind of target?")
         return
     if pieces[0].lower() != "char":
-        actor.send_text(CommTypes.DYNAMIC, "Only character targets allowed at the moment.")
+        logger.warn(f"({pieces}) Only character targets allowed at the moment.")
+        await actor.send_text(CommTypes.DYNAMIC, "Only character targets allowed at the moment.")
+        return
+    if len(pieces) < 2:
+        logger.warn(f"({pieces}) Set {target_name} var on whom?")
+        await actor.send_text(CommTypes.DYNAMIC, "Set temp var on whom?")
         return
     if len(pieces) < 3:
-        actor.send_text(CommTypes.DYNAMIC, "Set temp var on whom?")
+        logger.warn(f"({pieces}) Set which {target_name} var?")
+        await actor.send_text(CommTypes.DYNAMIC, "Set which temp var?")
         return
     if len(pieces) < 4:
-        actor.send_text(CommTypes.DYNAMIC, "Set which temp var?")
-        return
-    if len(pieces) < 5:
-        actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
+        logger.warn(f"({pieces}) Set {target_name} var to what?")
+        await actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
         return
     target = world.find_target_character(actor, pieces[1])
     if target == None:
-        actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
+        logger.warn(f"({pieces}) Could not find target.")
+        await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
         return
     var_value = ' '.join(pieces[3:])
     vars = { **{ 
@@ -361,12 +368,13 @@ async def cmd_setvar_helper(actor: Actor, input: str, target_dict: dict, target_
         'r': target.pronoun_subject_,
         'R': target.pronoun_object_,
         '*': var_value }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
+    logger.debug(f"target.name_: {target.name_}, {target_name} var: {pieces[2]}, var_value: {var_value}")
     var_value = replace_vars(var_value, vars)
-    target_dict[pieces[2]] = var_value
-    actor.send_text(CommTypes.DYNAMIC, f"Set {target_name} var {pieces[2]} on {target.name_} to {var_value}.")
+    target_dict_fn(target)[pieces[2]] = var_value
+    await actor.send_text(CommTypes.DYNAMIC, f"Set {target_name} var {pieces[2]} on {target.name_} to {var_value}.")
 
 async def cmd_settempvar(actor: Actor, input: str):
-    await cmd_setvar_helper(actor, input, actor.temp_variables_, "temp")
+    await cmd_setvar_helper(actor, input, lambda d : d.temp_variables_, "temp")
 
 async def cmd_setpermvar(actor: Actor, input: str):
-    await cmd_setvar_helper(actor, input, actor.perm_variables_, "perm")
+    await cmd_setvar_helper(actor, input, lambda d: d.perm_variables_, "perm")

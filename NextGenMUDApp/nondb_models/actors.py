@@ -36,6 +36,10 @@ class Actor:
         self.temp_variables_ = {}
         self.perm_variables_ = {}
 
+    @property
+    def rid(self):
+        return self.reference_number_ + "{" + self.id_ + "}"
+
     def to_dict(self):
         return {'actor_type': self.actor_type_.name, 'id': self.id_, 'name': self.name_, 'reference_number': self.reference_number_}
 
@@ -108,7 +112,7 @@ class Room(Actor):
             # 'characters': [c.to_dict() for c in self.characters_],
             # 'objects': [o.to_dict() for o in self.objects_],
         }
-
+    
     def __repr__(self):
         fields_dict = self.to_dict()
         fields_info = ', '.join([f"{key}={value}" for key, value in fields_dict.items()])

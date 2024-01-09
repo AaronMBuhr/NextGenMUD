@@ -19,9 +19,9 @@ ZONES:
                 operator: contains
                 predicate: "random"
             script: |
-              settempvar char $A starting_room_random $random(1,100)
-              echo The random number is %{a.starting_room_random}.
-              $if($numlte({a.starting_room_random},50), eq, true){
+              settempvar char %{S} starting_room_random $random(1,100)
+              echo The random number is $tempvar(%{S},starting_room_random).
+              $if($numlte($tempvar(%{S},starting_room_random),50), eq, true){
                 echo Less than or equal to 50.
               }
               else {
