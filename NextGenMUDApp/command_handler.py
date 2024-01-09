@@ -61,6 +61,7 @@ command_handlers = {
     "thank": lambda command, char, input: cmd_specific_emote(command, char, input),
     "sing": lambda command, char, input: cmd_specific_emote(command, char, input),
     "dance": lambda command, char, input: cmd_specific_emote(command, char, input),
+    "touch": lambda command, char, input: cmd_specific_emote(command, char, input),
 }
 
 
@@ -295,13 +296,29 @@ EMOTE_MESSAGES = {
              'target': {'actor': "You sing to %t.", 'room': "%a sings to %t.", 'target': "%a sings to you." }},
     "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a dances a jig.' },
                 'target': {'actor': "You dance with %t.", 'room': "%a dances with %t.", 'target': "%a dances with you." }},
-}
+                "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '%a touches %Pself.' },
+                'target': {'actor': "You touch %t.", 'room': "%a touches %t.", 'target': "%a touches you." }}
+    }
 
 async def cmd_specific_emote(command: str, actor: Actor, input: str):
     # TODO:L: add additional logic for no args, for "me", for objects
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
     logger.debug(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
     pieces = split_preserving_quotes(input)
+    if len(pieces) < 1:
+        actor_msg = EMOTE_MESSAGES[command]["notarget"]['actor']
+        room_msg = EMOTE_MESSAGES[command]["notarget"]['room']
+        target_msg = None
+        target = None
+    else:
+        target = world.find_target_character(actor, pieces[0])
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
+            return
+        actor_msg = EMOTE_MESSAGES[command]['actor']
+        room_msg = EMOTE_MESSAGES[command]['room']
+        target_msg = EMOTE_MESSAGES[command]['target']
+
     vars = { **{ 
         'a': actor.name_, 
         'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
@@ -317,19 +334,8 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         'R': actor.pronoun_object_,
         '*': actor_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
     await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
-    if len(pieces) < 1:
-        actor_msg = EMOTE_MESSAGES[command]["notarget"]['actor']
-        room_msg = EMOTE_MESSAGES[command]["notarget"]['room']
-        target_msg = None
-        target = None
-    else:
-        target = world.find_target_character(actor, pieces[0])
-        if target == None:
-            await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
-            return
-        actor_msg = EMOTE_MESSAGES[command]['actor']
-        room_msg = EMOTE_MESSAGES[command]['room']
-        target_msg = EMOTE_MESSAGES[command]['target']
+
+    if target:
         vars = { **{ 
             'a': actor.name_, 
             'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 

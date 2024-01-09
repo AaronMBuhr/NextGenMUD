@@ -35,7 +35,7 @@ ZONES:
           Exits: north, south
         exits:
           north:
-            destination: mystical_glade
+            destination: enchanted_forest.mystical_glade
           south:
             destination: starting_room
         triggers:
@@ -72,19 +72,26 @@ ZONES:
             script: |
               echo You see a squirrel.
               echoexcept %{S} %{s} sees a squirrel.
-  # enchanted_forest:
-  #   name: Enchanted Forest
-  #   description: A mystical forest filled with ancient magic and wonder.
-  #   rooms:
+  enchanted_forest:
+    name: Enchanted Forest
+    description: A mystical forest filled with ancient magic and wonder.
+    rooms:
       mystical_glade:
         name: Mystical Glade
         description: >
-          A serene glade bathed in soft, ethereal light. Ancient trees with luminous leaves encircle the area, their branches creating a natural dome overhead. The air is filled with the gentle sound of a nearby stream and the occasional distant call of an exotic bird. 
+          In a secluded corner of an ancient forest lies a mystical glade, a hidden
+          sanctuary bathed in a soft, ethereal light that seems to weave through the
+          air like a gentle mist. This enchanted clearing is encircled by venerable
+          trees of immense age, their trunks gnarled and thick, rising high into the
+          sky. Their branches, heavy with luminous leaves, intertwine above, creating
+          a natural dome that filters sunlight into a kaleidoscope of gentle greens and golds.
 
-          Exits: south
+          Exits: south, east
         exits:
           south:
-            destination: starting_room_2
+            destination: starting_zone.starting_room_2
+          east:
+            destination: crystal_cave
         triggers:
           - type: timer_tick
             criteria: 
@@ -124,3 +131,59 @@ ZONES:
                 predicate: "dance"
             script: |
               echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
+      crystal_cave:
+        name: Crystal Cave
+        description: >
+          Hidden within the Enchanted Forest lies the Crystal Cave, a mesmerizing subterranean wonder.
+          Upon entering, one is immediately enveloped by a kaleidoscope of light, as countless crystals
+          embedded in the walls and ceiling catch and refract the faintest of lights. These crystals
+          range in color from deep amethyst to the clearest diamond, creating a dazzling display that
+          seems almost otherworldly. The air inside is cool and carries a faint, mineral scent, echoing
+          with the soft, melodic dripping of water. Delicate crystal formations grow from the floor,
+          creating an intricate maze that leads deeper into the heart of the cave.
+
+          Exits: east
+        exits:
+          east:
+            destination: whispering_waterfall
+          # west:
+          #   destination: fairy_meadow
+        triggers:
+          - type: timer_tick
+            criteria:
+              - subject: "%{time_elapsed}"
+                operator: "numgte"
+                predicate: 6
+            script: |
+              echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
+          - type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "crystal"
+            script: |
+              echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "touch"
+            script: |
+              echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "sing"
+            script: |
+              echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
+          - type: timer_tick
+            criteria:
+              - subject: "%{time_elapsed}"
+                operator: "numgte"
+                predicate: 8
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 20
+            script: |
+              echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
