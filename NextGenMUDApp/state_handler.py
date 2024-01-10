@@ -22,8 +22,11 @@ async def start_connection(consumer: 'MyWebsocketConsumer'):
 
 async def load_in_character(connection: Connection):
     from .nondb_models.actors import Character
+    from .operating_state import operating_state
     logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
-    new_player = Character("test_player")
+    logger.debug("loading in character")
+    chardef = operating_state.world_definition_.find_character_definition("test_player")
+    new_player = Character.create_from_definition(chardef)
     new_player.connection_ = connection
     new_player.connection_.character = new_player
     new_player.name_ = "Test Player"
@@ -34,9 +37,9 @@ async def load_in_character(connection: Connection):
     # print(YamlDumper.to_yaml_compatible_str(operating_state.zones_))
     first_zone = operating_state.zones_[list(operating_state.zones_.keys())[0]]
     # print(YamlDumper.to_yaml_compatible_str(first_zone))
-    logger.debug(f"first_zone: {first_zone}")
+    logger.debug3(f"first_zone: {first_zone}")
     first_room = first_zone.rooms_[list(first_zone.rooms_.keys())[0]]
-    logger.debug(f"first_room: {first_room}")
+    logger.debug3(f"first_room: {first_room}")
     await arrive_room(new_player, first_room)
 
 

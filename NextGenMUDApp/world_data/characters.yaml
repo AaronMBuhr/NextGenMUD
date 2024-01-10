@@ -1,6 +1,39 @@
 CHARACTERS:
-  - zone: starting_zone
+
+  - zone: debug_zone
     characters:
+
+      - id: test_player
+        name: Test Player
+        description: >
+          A test player
+        pronoun_subject: he
+        pronoun_object_: him
+        pronoun_possessive: his
+        attributes:
+          strength: 10
+          dexterity: 10
+          constitution: 10
+          intelligence: 10
+          wisdom: 10
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 10
+        character_flags:
+          - pc
+        natural_attacks:
+          - attack_noun: punch
+            attack_verb: punches
+            potential_damage:
+            - damage_type: bludgeoning
+              damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 1d50
+        critical_chance: 0.05
+        critical_multiplier: 2
+
       - id: rabbit
         name: a rabbit
         description: >

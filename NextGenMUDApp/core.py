@@ -259,10 +259,13 @@ def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str) ->
 
     
 def get_dice_parts(dice_def: str) -> (int,int,int):
+    if type(dice_def) is int:
+        return (0,0,dice_def)
     parts = dice_def.split('d')
-    if len(parts) != 2:
-        raise ValueError(f"Invalid dice definition: {dice_def}")
     num_dice = to_int(parts[0])
+    if len(parts) != 2:
+        # raise ValueError(f"Invalid dice definition: {dice_def}")
+        return (0,0,num_dice)
     extra = parts[1].split('+')
     dice_size = to_int(extra[0])
     if len(extra) > 1:

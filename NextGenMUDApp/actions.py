@@ -12,6 +12,20 @@ def actor_vars(actor: Actor, name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
     return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
 
+
+async def do_look_room(actor: Actor, room: Room):
+    logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
+    # await actor.send_text(CommTypes.STATIC, room.description_)
+    msg = room.name_ + "\n" + room.description_
+    # TODO:M: handle batching multiples
+    for character in room.characters_:
+        if character != actor:
+            msg += "\n" + character.name_ + " is here."
+    logger.debug(f"Sending room description to actor for: {room.name_}")
+    await actor.send_text(CommTypes.STATIC, msg)
+
+    
+
 async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
     logger.debug(f"actor: {actor}, room: {room}, room_from: {room_from}")
@@ -25,9 +39,7 @@ async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     # await room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
     room_msg = f"{actor.name_} arrives."
     vars = set_vars(actor, actor, actor, room_msg)
-    logger.debug(f"Sending room description to actor for: {room.name_}")
-    # await actor.send_text(CommTypes.STATIC, room.description_)
-    await actor.send_text(CommTypes.STATIC, room.name_ + "\n" + room.description_)
+    await do_look_room(actor, actor.location_room_)
     await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor])
     # # TODO:L: figure out what direction "from" based upon back-path
     # actor.location_room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
@@ -103,7 +115,10 @@ async def start_fighting(subject: Actor, target: Actor):
 
 
 
-async def do_die(dying_actor: Actor, killer: Actor = None, other_killer = None):
+
+async def do_die(dying_actor: Actor, killer: Actor = None, other_killer: str = None):
+    # TODO:L: maybe do "x kills you"
+    logger = CustomDetailLogger(__name__, prefix="do_die()> ")
     msg = f"You die!"
     await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg))
 
@@ -112,26 +127,37 @@ async def do_die(dying_actor: Actor, killer: Actor = None, other_killer = None):
         await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg))
         msg = f"{killer.name_} kills {dying_actor.name_}!"
         await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                        set_vars(dying_actor, killer, dying_actor, msg))
+                                        set_vars(dying_actor, killer, dying_actor, msg), exceptions=[killer, dying_actor])
     if other_killer != None:
         if other_killer == "":
             msg = f"{dying_actor.name_} dies!"
             await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                            set_vars(dying_actor, None, dying_actor, msg))
+                                            set_vars(dying_actor, None, dying_actor, msg), exceptions=[dying_actor])
         else:
             msg = f"{other_killer} kills {dying_actor.name_}!"
             await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(dying_actor, None, dying_actor, msg),
                                             exceptions=[dying_actor])
     # TODO:M: handle corpses!
-    if operating_state.characters_fighting_.contains(dying_actor):
+    if dying_actor in operating_state.characters_fighting_:
         operating_state.characters_fighting_.remove(dying_actor)
-    dying_actor.fighting_whom_ = None
-    dying_actor.location_room_.remove_character(dying_actor)
-    dying_actor.hit_points_ = 0
+    if killer:
+        killer.fighting_whom_ = None
+        operating_state.characters_fighting_.remove(killer)
     for c in operating_state.characters_fighting_:
+        if killer and c.fighting_whom_ == killer:
+            start_fighting(killer, c)
         if c.fighting_whom_ == dying_actor:
             c.fighting_whom_ = None
+
+    dying_actor.fighting_whom_ = None
+    dying_actor.current_hit_points_ = 0
+    # TODO:M: remove ref?
+    room = dying_actor.location_room_
+    dying_actor.location_room_.remove_character(dying_actor)
+    for c in room.characters_:
+        logger.critical(f"{c.rid} is refreshing room")
+        do_look_room(c, room)
 
 
 async def do_damage(actor: Actor, target: Actor, damage: int, damage_type: DamageType):
@@ -145,7 +171,7 @@ async def do_damage(actor: Actor, target: Actor, damage: int, damage_type: Damag
     msg = f"You do {damage} {damage_type.word()} damage to {target.name_}!"
     await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
     msg = f"{actor.name_} does {damage} {damage_type.word()} damage to you!"
-    await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+    await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
     msg = f"{actor.name_} does {damage} {damage_type.word()} damage to {target.name_}!"
     await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                     set_vars(actor.location_room_, actor, target, msg),
@@ -156,32 +182,33 @@ async def do_damage(actor: Actor, target: Actor, damage: int, damage_type: Damag
 
 async def do_single_attack(actor: Actor, target: Actor, attack: AttackData) -> int:
     # TODO:M: figure out weapons
+    # TODO:L: deal with nouns and verbs correctly
     logger = CustomDetailLogger(__name__, prefix="do_single_attack()> ")
     logger.debug(f"actor: {actor.rid}, target: {target.rid}")
     if actor.actor_type_ != ActorType.CHARACTER:
         raise Exception("Actor must be of type CHARACTER to attack.")
     if target.actor_type_ != ActorType.CHARACTER:
         raise Exception("Target must be of type CHARACTER to attack.")
-    hit_modifier = actor.hit_chance_
+    hit_modifier = actor.hit_modifier_
     dodge_roll = target.dodge_dice_number_ * target.dodge_dice_size_ + target.dodge_modifier_
     hit_roll = random.randint(1, 100)
     if hit_roll + hit_modifier < dodge_roll:
         msg = f"You miss {target.name_} with {attack.attack_noun_}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
-        msg = f"{actor.name_} {"critically" if critical else ""} misses you with {attack.attack_noun_}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
-        msg = f"{actor.name_} {"critically" if critical else ""} misses {target.name_} with {attack.attack_noun_}!"
+        msg = f"{actor.name_} misses you with {attack.attack_noun_}!"
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+        msg = f"{actor.name_} misses {target.name_} with {attack.attack_noun_}!"
         await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.location_room_, actor, target, msg),
                                         exceptions=[actor, target])
         return -1 # a miss
     # is it a critical?
-    critical = random.random(1,100) < actor.critical_chance_
+    critical = random.randint(1,100) < actor.critical_chance_
     # it hit, figure out damage
     msg = f"You {"critically" if critical else ""} {attack.attack_verb_} {target.name_} with {attack.attack_noun_}!"
     await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
     msg = f"{actor.name_} {"critically" if critical else ""} {attack.attack_verb_}s you with {attack.attack_noun_}!"
-    await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+    await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
     msg = f"{actor.name_} {"critically" if critical else ""} {attack.attack_verb_}s {target.name_} with {attack.attack_noun_}!"
     await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                     set_vars(actor.location_room_, actor, target, msg),
@@ -191,18 +218,21 @@ async def do_single_attack(actor: Actor, target: Actor, attack: AttackData) -> i
         damage = dp.roll_damage()
         if critical:
             damage *= (100 + actor.critical_damage_bonus_) / 100
-        dmg_mult = dp.calc_susceptability(dp.damage_type_, [ target.damage_resistances_])
+        dmg_mult = dp.calc_susceptibility(dp.damage_type_, [ target.damage_resistances_])
         damage = damage * dmg_mult - target.damage_reduction_[dp.damage_type_]
-        do_damage(actor, target, damage, dp.damage_type_)
+        await do_damage(actor, target, damage, dp.damage_type_)
         total_damage += damage
     return total_damage
         
 
 
-    
-
-
 async def process_fighting():
+    logger = CustomDetailLogger(__name__, prefix="process_fighting()> ")
+    logger.debug3("beginning")
+    logger.debug3(f"num characters_fighting_: {len(operating_state.characters_fighting_)}")
     for c in operating_state.characters_fighting_:
+        logger.debug3(f"character: {c.rid} attacking, {len(c.natural_attacks_)} natural attacks)")
         for natural_attack in c.natural_attacks_:
-            await do_single_attack(c, c.fighting_whom_, natural_attack)
+            logger.debug3(f"natural_attack: {natural_attack.to_dict()}")
+            if c.fighting_whom_:
+                await do_single_attack(c, c.fighting_whom_, natural_attack)

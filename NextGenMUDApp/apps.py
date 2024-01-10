@@ -14,3 +14,19 @@ class NextGenMUDAppConfig(AppConfig):
         start_main_process()
 
 
+
+# ****************************************
+#             MAIN TO-DO LIST
+# ****************************************
+
+# HIGH priority
+# - handle "you die"
+        
+# MEDIUM priority
+# - handle capitalization
+# - add 'is here, fighting YOU" to room description
+                        
+# LOW priority
+# - handle possessive pronouns
+# - look room after something dies is not working
+        

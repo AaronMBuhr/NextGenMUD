@@ -44,9 +44,9 @@ async def main_game_loop():
             # print(trig.actor_)
             await trig.run(trig.actor_, "", {})
         if time.time() > last_fighting_tick + (Constants.GAME_TICK_SEC * Constants.TICKS_PER_ROUND):
-            # logger.debug3("fighting tick")
+            logger.debug3("fighting tick")
             last_fighting_tick = time.time()
-            handle_periodic_fighting_tick()
+            await handle_periodic_fighting_tick()
         # logger.debug3("sleeping")
         time.sleep(Constants.GAME_TICK_SEC)
 
@@ -54,9 +54,10 @@ async def main_game_loop():
 
 async def handle_periodic_fighting_tick():
     logger = CustomDetailLogger(__name__, prefix="handle_periodic_fighting_tick()> ")
+    logger.debug3("handling periodic fighting tick")
     # logger.set_detail_level(1)
     # logger.debug3("handling periodic fighting tick")
-    process_fighting()
+    await process_fighting()
 
 async def process_input(conn: Connection, input: str):
     logger = CustomDetailLogger(__name__, prefix="processInput()> ")

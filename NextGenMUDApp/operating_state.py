@@ -92,7 +92,8 @@ class OperatingState:
         logger.info("World prepared")
         
 
-def find_target_character(actor: Actor, target_name: str) -> Character:
+def find_target_character(actor: Actor, target_name: str, search_zone=False, search_world=False) -> Character:
+    # search_world automatically turns on search_zone
     if target_name[0] == Constants.REFERENCE_SYMBOL:
         return Actor.get_reference(target_name[1:])
             
@@ -126,16 +127,18 @@ def find_target_character(actor: Actor, target_name: str) -> Character:
     # Search in the current room
     add_candidates_from_room(start_room)
 
-    # If not found in the current room, search in the current zone
-    if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone_:
-        for room in start_room.zone_.rooms_.values():
-            add_candidates_from_room(room)
-
-    # If still not found, search across all zones
-    if len(candidates) < target_number:
-        for zone in operating_state.zones_.values():
-            for room in zone.rooms_.values():
+    if search_zone or search_world:
+        # If not found in the current room, search in the current zone
+        if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone_:
+            for room in start_room.zone_.rooms_.values():
                 add_candidates_from_room(room)
+
+    if search_world:
+        # If still not found, search across all zones
+        if len(candidates) < target_number:
+            for zone in operating_state.zones_.values():
+                for room in zone.rooms_.values():
+                    add_candidates_from_room(room)
 
     # Return the target character
     if 0 < target_number <= len(candidates):

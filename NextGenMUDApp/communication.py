@@ -42,8 +42,8 @@ class Connection:
         logger = CustomDetailLogger(__name__, prefix="Connection.send()> ")
         if isinstance(text_type, CommTypes):
             text_type = text_type.text
-        logger.debug(f"text_type: {text_type}")
-        logger.debug(f"text_data: {text_data}")
+        logger.debug3(f"text_type: {text_type}")
+        logger.debug3(f"text_data: {text_data}")
         await self.consumer_.send(text_data=json.dumps({
             'text_type': text_type,
             'text': text_data

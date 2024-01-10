@@ -1,5 +1,5 @@
 from .core import replace_vars
-from .actions import world_move
+from .actions import world_move, do_look_room, start_fighting
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
@@ -55,6 +55,8 @@ command_handlers = {
     "tell": lambda command, char, input: cmd_tell(char, input),
     "emote": lambda command, char,input: cmd_emote(char, input),
     "look": lambda command, char, input: cmd_look(char, input),
+    "attack": lambda command, char, input: cmd_attack(command, char, input),
+    "kill": lambda command, char, input: cmd_attack(command, char, input),
 
     # various emotes
     "kick": lambda command, char, input: cmd_specific_emote(command, char, input),
@@ -73,6 +75,9 @@ async def process_command(actor: Actor, input: str, vars: dict = None):
     try:
         logger = CustomDetailLogger(__name__, prefix="process_command()> ")
         logger.debug3(f"processing input for actor {actor.id_}: {input}")
+        if input.split() == "":
+            await actor.send_text(CommTypes.DYNAMIC, "Did you want to do something?")
+            return
         parts = split_preserving_quotes(input)
         command = parts[0]
         if not command in command_handlers:
@@ -181,7 +186,7 @@ async def cmd_tell(actor: Actor, input: str):
         await actor.send_text(CommTypes.DYNAMIC, "Tell what?")
     pieces = split_preserving_quotes(input)
     logger.debug3(f"finding target: {pieces[0]}")
-    target = find_target_character(actor, pieces[0])
+    target = find_target_character(actor, pieces[0], search_world=True)
     logger.debug3(f"target: {target}")
     if target == None:
         # actor.send_text(CommTypes.DYNAMIC, "Tell who?")
@@ -295,7 +300,7 @@ async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[
         logger.warn(f"({pieces}) Set {target_name} var to what?")
         await actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
         return
-    target = find_target_character(actor, pieces[1])
+    target = find_target_character(actor, pieces[1], search_world=True)
     if target == None:
         logger.warn(f"({pieces}) Could not find target.")
         await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
@@ -403,7 +408,7 @@ async def cmd_look(actor: Actor, input: str):
     pieces = input.split(' ')
     if input.strip() == "":
         await actor.send_text(CommTypes.DYNAMIC, "You look around.")
-        await actor.send_text(CommTypes.STATIC, room.name_ + "\n" + room.description_)
+        await do_look_room(actor, room)
         return
     found = False
     try:
@@ -438,12 +443,13 @@ async def cmd_spawn(actor: Actor, input: str):
     new_character.location_room_ = actor.location_room_
     new_character.location_room_.add_character(new_character)
     await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+    await do_look_room(actor, actor.location_room_)
 
 
 async def cmd_goto(actor: Actor, input: str):
     pieces = input.lower().split(' ')
     if pieces[0] == "char":
-        target = find_target_character(actor, ' '.join(pieces[1:]))
+        target = find_target_character(actor, ' '.join(pieces[1:]), search_world=True)
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, "couldn't find that character?")
             return
@@ -464,3 +470,12 @@ async def cmd_goto(actor: Actor, input: str):
 async def cmd_list(actor: Actor, input: str):
     await actor.send_text(CommTypes.DYNAMIC, "list not yet implemented")
 
+
+async def cmd_attack(command: str, actor: Actor, input: str):
+    target = find_target_character(actor, input)
+    if target == None:
+        await actor.send_text(CommTypes.DYNAMIC, "{command} whom?")
+        return
+    await start_fighting(actor, target)
+    # TODO:L: maybe some situations where target doesn't retaliate?
+    await start_fighting(target, actor)

@@ -24,6 +24,7 @@ class Actor:
         self.name_ = name
         self.pronoun_subject_ = "it"
         self.pronoun_object_ = "it"
+        self.pronoun_possessive = "its"
         self.location_room_ = None
         self.triggers_by_type_ = {}
         self.reference_number_ = None
@@ -236,7 +237,11 @@ class DamageResistances:
         if profile:
             self.profile_ = profile
         else:
-            self.profile_ = {loc: 1 for loc in EquipLocation}
+            self.profile_ = {loc: 1 for loc in DamageType}
+
+    def to_dict(self):
+        # return {EquipLocation[loc].name.lower(): dt.name.lower() for loc, dt in self.profile_.items()}
+        return repr(self.profile_)
 
 class PotentialDamage:
     def __init__(self, damage_type: DamageType, damage_dice_number: int, damage_dice_type: int, damage_dice_bonus: int):
@@ -249,6 +254,12 @@ class PotentialDamage:
         self.glancing_damage_ = (self.max_damage_ - self.min_damage_) * 0.20 + self.min_damage_
         self.powerful_damage_ = (self.max_damage_ - self.min_damage_) * 0.80 + self.min_damage_
 
+    def to_dict(self):
+        return {
+            "damage": f"{self.damage_dice_number_}d{self.damage_dice_type_}+{self.damage_dice_bonus_}",
+            "damage_type": self.damage_type_.name.lower()
+        }
+    
     def roll_damage(self, critical_chance: int = 0, critical_multiplier: int = 2):
         total_damage = 0
         for i in range(self.damage_dice_number_):
@@ -258,7 +269,9 @@ class PotentialDamage:
             total_damage *= critical_multiplier
         return total_damage
     
-    def calc_susceptability(self, damage_type: DamageType, damage_profile: List[DamageResistances]) -> float:
+    def calc_susceptibility(self, damage_type: DamageType, damage_profile: List[DamageResistances]) -> float:
+        logger = CustomDetailLogger(__name__, prefix="PotentialDamage.calc_susceptibility()> ")
+        logger.critical(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
         mult = 1
         for profile in damage_profile:
             mult *= profile.profile_[damage_type]
@@ -301,6 +314,13 @@ class AttackData():
         self.attack_noun_ = "something"
         self.attack_verb_ = "hits"
 
+    def to_dict(self):
+        return {
+            "potential_damage": [pd.to_dict() for pd in self.potential_damage_],
+            # "attack_noun": self.attack_noun_,
+            # "attack_verb": self.attack_verb_
+        }
+
 class Character(Actor):
     
     def __init__(self, id: str, name: str = "", create_reference=True):
@@ -325,12 +345,16 @@ class Character(Actor):
         self.hit_dice_ = 1
         self.hit_dice_size_ = 10
         self.hit_point_bonus_ = 0
-        self.hit_points_ = 0
+        self.max_hit_points_ = 1
+        self.current_hit_points_ = 1
 
 
     def from_yaml(self, yaml_data: str):
         self.name_ = yaml_data['name']
         self.description_ = yaml_data['description']
+        self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
+        self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
+        self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
         # need attributes
         # need classes
         hit_point_parts = get_dice_parts(yaml_data['hit_dice'])
@@ -350,7 +374,8 @@ class Character(Actor):
         # print(type(self.hit_dice_))
         # print(type(self.hit_dice_size_))
         # print(type(self.hit_point_bonus_))
-        self.hit_points = roll_dice(self.hit_dice_, self.hit_dice_size_, self.hit_point_bonus_)
+        self.max_hit_points_ = roll_dice(self.hit_dice_, self.hit_dice_size_, self.hit_point_bonus_)
+        self.current_hit_points_ = self.max_hit_points_
         self.hit_modifier_ = yaml_data['hit_modifier']
         dodge_parts = get_dice_parts(yaml_data['dodge_dice'])
         self.dodge_dice_number_, self.dodge_dice_size_, self.dodge_modifier_ = dodge_parts[0], dodge_parts[1], dodge_parts[2]
@@ -404,15 +429,17 @@ class Character(Actor):
 
     @classmethod
     def create_from_definition(cls, char_def: 'Character') -> 'Character':
-        new_char = Character(char_def.id_, char_def.name_)
         new_char = copy.deepcopy(char_def)
         if not new_char.reference_number_ or new_char.reference_number_ == char_def.reference_number_:
             new_char.create_reference()
-        new_char.hit_points_ = roll_dice(new_char.hit_dice_, new_char.hit_dice_size_, new_char.hit_point_bonus_)
+        new_char.max_hit_points_ = roll_dice(new_char.hit_dice_, new_char.hit_dice_size_, new_char.hit_point_bonus_)
+        new_char.current_hit_points_ = new_char.max_hit_points_
         new_char.inventory_ = []
         new_char.connection_ = None
         new_char.fighting_whom_ = None
         new_char.equipped_ = {loc: None for loc in EquipLocation}
+        print("**************************************** natural_attack")
+        print([ x.to_dict() for x in new_char.natural_attacks_])
         return new_char
 
 class Object(Actor):

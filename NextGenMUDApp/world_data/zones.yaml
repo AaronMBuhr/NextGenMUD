@@ -1,5 +1,5 @@
 ZONES:
-  starting_zone:
+  debug_zone:
     name: Starting Zone
     description: The place where all new characters begin their adventures.
     rooms:
@@ -27,13 +27,13 @@ ZONES:
               else {
                 echo Greater than 50.
               }
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 4
-            script: |
-              echo Tick!
+          # - type: timer_tick
+          #   criteria:
+          #     - subject: "%{time_elapsed}"
+          #       operator: "numgte"
+          #       predicate: 4
+          #   script: |
+          #     echo Tick!
       starting_room_2:
         name: Starting Room 2
         description: >
@@ -96,7 +96,7 @@ ZONES:
           Exits: south, east
         exits:
           south:
-            destination: starting_zone.starting_room_2
+            destination: debug_zone.starting_room_2
           east:
             destination: crystal_cave
         triggers:
