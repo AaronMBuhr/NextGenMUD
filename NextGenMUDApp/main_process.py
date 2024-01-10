@@ -39,7 +39,7 @@ async def main_game_loop():
                 logger.debug3(f"input: {input}")
                 await process_input(conn, input)
         for trig in TriggerTimerTick.timer_tick_triggers_: 
-            logger.critical(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id_}))")
+            logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id_}))")
             # print(trig.actor_.rid)
             # print(trig.actor_)
             await trig.run(trig.actor_, "", {})

@@ -34,7 +34,7 @@ class Actor:
 
     def create_reference(self) -> str:
         logger = CustomDetailLogger(__name__, prefix="Actor.create_reference()> ")
-        logger.critical(f"creating reference for {self.name_} ({self.id_})")
+        logger.debug3(f"creating reference for {self.name_} ({self.id_})")
         reference_prefix = self.actor_type_.name[0]  # First character of ActorType
         self.reference_number_ = reference_prefix + str(Actor.current_reference_num_)
         Actor.references_[self.reference_number_] = self
@@ -100,7 +100,7 @@ class Actor:
 
 class Room(Actor):
     
-    def __init__(self, id: str, zone=None, name: str = "", create_reference=True):
+    def __init__(self, id: str, zone=None, name: str = "", create_reference=False):
         super().__init__(ActorType.ROOM, id, name=name, create_reference=create_reference)
         self.exits_ = {}
         self.description_ = ""

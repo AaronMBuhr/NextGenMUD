@@ -29,19 +29,17 @@ class Zone:
         return self.__repr__()
 
 
-
-
 class WorldDefinition:
     def __init__(self) -> None:
         self.zones_ = {}
         self.characters_ = {}
         self.objects_ = {}
 
-def find_character_definition(self, character_id_or_name: str) -> Character:
-    if character_id_or_name in self.characters_:
-        return self.characters_[character_id_or_name]
-    for character in operating_state.world_definition_.characters_:
-        if character.name_.startswith(character_id_or_name):
-            return character
-    return None
+    def find_character_definition(self, character_id_or_name: str) -> Character:
+        if character_id_or_name in self.characters_:
+            return self.characters_[character_id_or_name]
+        for character in self.characters_:
+            if character.name_.startswith(character_id_or_name):
+                return character
+        return None
 

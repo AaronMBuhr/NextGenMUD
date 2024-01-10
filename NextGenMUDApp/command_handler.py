@@ -3,9 +3,9 @@ from .actions import world_move
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
-from .nondb_models.actors import Actor, ActorType
+from .nondb_models.actors import Actor, ActorType, Character
 from .nondb_models import world
-from .operating_state import operating_state, find_target_character
+from .operating_state import operating_state, find_target_character, find_target_room, find_all_characters
 import re
 from typing import Callable
 from yaml_dumper import YamlDumper
@@ -39,6 +39,8 @@ command_handlers = {
     "settempvar": lambda command, char, input: cmd_settempvar(char, input),
     "setpermvar": lambda command, char, input: cmd_setpermvar(char, input),
     "spawn": lambda command, char, input: cmd_spawn(char,input),
+    "goto": lambda command, char, input: cmd_goto(char, input),
+    "list": lambda command, char, input: cmd_list(char, input),
 
     # normal commands
     "north": lambda command, char, input: world_move(char, "north"),
@@ -427,9 +429,38 @@ async def cmd_look(actor: Actor, input: str):
 
 
 async def cmd_spawn(actor: Actor, input: str):
-    character_def = operating_state.character_defs_[input]
-    new_character = Actor.create_from_definition(character_def)
+    character_def = operating_state.world_definition_.find_character_definition(input)
+    if not character_def:
+        await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find a character definition for {input}.")
+        return
+    new_character = Character.create_from_definition(character_def)
     operating_state.characters_.append(new_character)
     new_character.location_room_ = actor.location_room_
-    await new_character.location_room_.add_character(new_character)
-    await actor.send_text(CommTypes.DYNAMIC, f"You spawn a {input}.")
+    new_character.location_room_.add_character(new_character)
+    await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+
+
+async def cmd_goto(actor: Actor, input: str):
+    pieces = input.lower().split(' ')
+    if pieces[0] == "char":
+        target = find_target_character(actor, ' '.join(pieces[1:]))
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, "couldn't find that character?")
+            return
+        actor.location_room_.remove_character(actor)
+        target.location_room_.add_character(actor)
+        await actor.send_text(CommTypes.DYNAMIC, f"You go to {target.rid}.")
+    elif pieces[0] == "room":
+        target_room = find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
+        if target_room == None:
+            await actor.send_text(CommTypes.DYNAMIC, "couldn't find that room?")
+            return
+        actor.location_room_.remove_character(actor)
+        target_room.add_character(actor)
+    else:
+        await actor.send_text(CommTypes.DYNAMIC, "goto where?")
+
+
+async def cmd_list(actor: Actor, input: str):
+    await actor.send_text(CommTypes.DYNAMIC, "list not yet implemented")
+

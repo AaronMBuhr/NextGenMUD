@@ -7,7 +7,7 @@ import sys
 import yaml
 from yaml_dumper import YamlDumper
 from .nondb_models.actors import Character, Actor, Room, Object
-from typing import List
+from typing import List, Dict
 import copy
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
@@ -86,7 +86,7 @@ class OperatingState:
                 # print(f"room_data: {room_data}")
                 for trig_type in room_data.triggers_by_type_:
                     for trig in room_data.triggers_by_type_[trig_type]:
-                        logger.critical("enabling trigger")
+                        logger.debug3("enabling trigger")
                         trig.enable()
 
         logger.info("World prepared")
@@ -183,6 +183,8 @@ def find_all_characters(actor: Actor, target_name: str) -> str:
 
 
 def find_target_room(actor: Actor, target_name: str, start_zone: Zone) -> str:
+    if target_name[0] == Constants.REFERENCE_SYMBOL:
+        return Actor.get_reference(' '.join(target_name[1:]))
     for room in start_zone.rooms_.values():
         if room.name_.startswith(target_name) or room.id_.startswith(target_name):
             return room

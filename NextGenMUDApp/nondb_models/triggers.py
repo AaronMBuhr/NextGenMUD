@@ -141,7 +141,7 @@ class Trigger:
         # while script := process_line(actor, script, vars):
         #     pass
         logger.debug3("executing run_script")
-        logger.critical(f"script: {self.script_}")
+        logger.debug3(f"script: {self.script_}")
         await run_script(actor, self.script_, vars)
 
 
@@ -183,7 +183,7 @@ class TriggerTimerTick(Trigger):
 
     def __init__(self, actor: 'Actor') -> None:
         logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
-        logger.critical(f"__init__ actor: {actor.id_}")
+        logger.debug3(f"__init__ actor: {actor.id_}")
         if not actor or actor == None:
             raise Exception("actor is None")
         super().__init__(TriggerType.TIMER_TICK, actor)
@@ -205,14 +205,14 @@ class TriggerTimerTick(Trigger):
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.run()> ")
         if self.disabled_:
-            logger.critical("disabled")
+            logger.debug3("disabled")
             return False
-        logger.critical(f"running, actor: {actor.name_} ({actor.rid}) text: {text}")
+        logger.debug3(f"running, actor: {actor.name_} ({actor.rid}) text: {text}")
         if not Actor.get_reference(actor.reference_number_):
             TriggerTimerTick.timer_tick_triggers_.remove(self)
-            logger.critical("actor no longer exists")
+            logger.debug3("actor no longer exists")
             return False
-        logger.critical(f"actor: {actor.rid}")
+        logger.debug3(f"actor: {actor.rid}")
         time_elapsed = time.time() - self.last_ticked_
         logger.debug3(f"time_elapsed: {time_elapsed}")
         vars = {**vars, 
@@ -226,9 +226,9 @@ class TriggerTimerTick(Trigger):
                 return False
         logger.debug3("executing script")
         self.last_ticked_ = time.time()
-        logger.critical(f"script: {self.script_}")
+        logger.debug3(f"script: {self.script_}")
         for c in actor.characters_:
-            logger.critical(c.rid)
+            logger.debug3(c.rid)
         await self.execute_trigger_script(actor, vars)
         return True
 
