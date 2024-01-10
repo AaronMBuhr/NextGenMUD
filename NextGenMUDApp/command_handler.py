@@ -5,11 +5,12 @@ from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from .nondb_models.actors import Actor, ActorType
 from .nondb_models import world
-from .operating_state import operating_state
+from .operating_state import operating_state, find_target_character
 import re
 from typing import Callable
 from yaml_dumper import YamlDumper
 import yaml
+from .core import set_vars
 
 def actor_vars(actor: Actor, name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
@@ -37,6 +38,7 @@ command_handlers = {
     "echoexcept": lambda command, char, input: cmd_echoexcept(char, input),
     "settempvar": lambda command, char, input: cmd_settempvar(char, input),
     "setpermvar": lambda command, char, input: cmd_setpermvar(char, input),
+    "spawn": lambda command, char, input: cmd_spawn(char,input),
 
     # normal commands
     "north": lambda command, char, input: world_move(char, "north"),
@@ -66,40 +68,31 @@ command_handlers = {
 
 
 async def process_command(actor: Actor, input: str, vars: dict = None):
-    logger = CustomDetailLogger(__name__, prefix="process_command()> ")
-    logger.debug(f"processing input for actor {actor.id_}: {input}")
-    parts = split_preserving_quotes(input)
-    command = parts[0]
-    if not command in command_handlers:
-        logger.debug(f"Unknown command: {command}")
-        await actor.send_text(CommTypes.DYNAMIC, "Unknown command")
-    else:
-        try:
-            logger.debug(f"Evaluating command: {command}")
-            await command_handlers[command](command, actor, ' '.join(parts[1:]))
-        except KeyError:
-            logger.error(f"KeyError processing command {command}")
-            await actor.send_text(CommTypes.DYNAMIC, "Command failure.")
+    try:
+        logger = CustomDetailLogger(__name__, prefix="process_command()> ")
+        logger.debug3(f"processing input for actor {actor.id_}: {input}")
+        parts = split_preserving_quotes(input)
+        command = parts[0]
+        if not command in command_handlers:
+            logger.debug3(f"Unknown command: {command}")
+            await actor.send_text(CommTypes.DYNAMIC, "Unknown command")
+        else:
+            try:
+                logger.debug3(f"Evaluating command: {command}")
+                await command_handlers[command](command, actor, ' '.join(parts[1:]))
+            except KeyError:
+                logger.error(f"KeyError processing command {command}")
+                await actor.send_text(CommTypes.DYNAMIC, "Command failure.")
+    except:
+        logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
+        raise
 
 
 async def cmd_say(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_say()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     text = input
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': actor.name_, 
-        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'r': actor.pronoun_subject_,
-        'R': actor.pronoun_object_,
-        '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    vars = set_vars(actor, actor, actor, text)
     await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
@@ -114,28 +107,18 @@ async def cmd_say(actor: Actor, input: str):
 
 async def cmd_echo(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echo()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     text = input
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': actor.name_, 
-        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'r': actor.pronoun_subject_,
-        'R': actor.pronoun_object_,
-        '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    vars = set_vars(actor, actor, actor, text)
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.OBJECT:
             await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.ROOM:
+            # print("***")
+            # print(text)
+            # print("***")
             await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
@@ -144,33 +127,20 @@ async def cmd_echo(actor: Actor, input: str):
 
 async def cmd_echoto(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echoto()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
         await actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
     if len(input) < 3:
         await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
-    logger.debug(f"finding target: {pieces[0]}")
-    target = world.find_target_character(actor, pieces[0])
-    logger.debug(f"target: {target}")
+    logger.debug3(f"finding target: {pieces[0]}")
+    target = find_target_character(actor, pieces[0])
+    logger.debug3(f"target: {target}")
     if target == None:
         await actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
         return
     text = ' '.join(pieces[1:])
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': target.name_, 
-        'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
-        'r': target.pronoun_subject_,
-        'R': target.pronoun_object_,
-        '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
+    vars = set_vars(actor, actor, target, text)
     msg = f"You echo '{text}' to {target.name_}."
     await target.echo(CommTypes.DYNAMIC, text, vars)
     await actor.send_text(CommTypes.DYNAMIC, msg)
@@ -178,95 +148,56 @@ async def cmd_echoto(actor: Actor, input: str):
 
 async def cmd_echoexcept(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_echoexcept()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
         await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
         return
     if len(input) < 3:
         await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
-    logger.debug(f"finding excludee: {pieces[1]}")
-    excludee = world.find_target_character(actor, pieces[1])
-    logger.debug(f"excludee: {excludee}")
+    logger.debug3(f"finding excludee: {pieces[1]}")
+    excludee = find_target_character(actor, pieces[1])
+    logger.debug3(f"excludee: {excludee}")
     if excludee == None:
         await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
         return
     exclude = [ excludee ]
     text = ' '.join(pieces[1:])
     msg = f"To everyone except {exclude[0].name_} you echo '{text}'."
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_,
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_,
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': exclude[0].name_, 
-        'T': Constants.REFERENCE_SYMBOL + exclude[0].reference_number_, 
-        'r': exclude[0].pronoun_subject_,
-        'R': exclude[0].pronoun_object_,
-        '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(exclude[0], "t")) }
+    vars = set_vars(actor, actor, exclude[0], msg)
     await actor.echo(CommTypes.DYNAMIC, text, vars, exceptions=exclude)
     await actor.send_text(CommTypes.DYNAMIC, msg)
 
 
 async def cmd_tell(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_tell()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     if len(input) < 2:
         await actor.send_text(CommTypes.DYNAMIC, "Tell who?")
         return
     if len(input) < 3:
         await actor.send_text(CommTypes.DYNAMIC, "Tell what?")
     pieces = split_preserving_quotes(input)
-    logger.debug(f"finding target: {pieces[0]}")
-    target = world.find_target_character(actor, pieces[0])
-    logger.debug(f"target: {target}")
+    logger.debug3(f"finding target: {pieces[0]}")
+    target = find_target_character(actor, pieces[0])
+    logger.debug3(f"target: {target}")
     if target == None:
         # actor.send_text(CommTypes.DYNAMIC, "Tell who?")
         # return
         raise Exception("Tell who?")
     text = ' '.join(pieces[1:])
     msg = f"{actor.name_} tells you '{text}'."
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_,
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_,
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': target.name_, 
-        'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
-        'r': target.pronoun_subject_,
-        'R': target.pronoun_object_,
-        '*': msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
-    logger.debug("sending message to actor")
+    vars = set_vars(actor, actor, target, msg)
+    logger.debug3("sending message to actor")
     await target.echo(CommTypes.DYNAMIC, msg)
     await actor.send_text(CommTypes.DYNAMIC, f"You tell {target.name_} '{text}'.")
 
 
 async def cmd_emote(actor: Actor, input: str):
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
     text = input
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': actor.name_, 
-        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'r': actor.pronoun_subject_,
-        'R': actor.pronoun_object_,
-        '*': text }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    vars = set_vars(actor, actor, actor, text)
     await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
@@ -303,7 +234,7 @@ EMOTE_MESSAGES = {
 async def cmd_specific_emote(command: str, actor: Actor, input: str):
     # TODO:L: add additional logic for no args, for "me", for objects
     logger = CustomDetailLogger(__name__, prefix="cmd_emote()> ")
-    logger.debug(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
+    logger.debug3(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
     pieces = split_preserving_quotes(input)
     if len(pieces) < 1:
         actor_msg = EMOTE_MESSAGES[command]["notarget"]['actor']
@@ -311,7 +242,7 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         target_msg = None
         target = None
     else:
-        target = world.find_target_character(actor, pieces[0])
+        target = find_target_character(actor, pieces[0])
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
             return
@@ -319,53 +250,14 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         room_msg = EMOTE_MESSAGES[command]['room']
         target_msg = EMOTE_MESSAGES[command]['target']
 
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': actor.name_, 
-        'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'r': actor.pronoun_subject_,
-        'R': actor.pronoun_object_,
-        '*': actor_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+    vars = set_vars(actor, actor, actor, actor_msg)
     await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
 
     if target:
-        vars = { **{ 
-            'a': actor.name_, 
-            'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-            'p': actor.pronoun_subject_,
-            'P': actor.pronoun_object_,
-            's': actor.name_, 
-            'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-            'q': actor.pronoun_subject_,
-            'Q': actor.pronoun_object_,
-            't': target.name_, 
-            'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
-            'r': target.pronoun_subject_,
-            'R': target.pronoun_object_,
-            '*': actor_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
+        vars = set_vars(actor, actor, target, target_msg)
         await target.echo(CommTypes.DYNAMIC, target_msg, vars)
     if actor.location_room_:
-        vars = { **{ 
-            'a': actor.name_, 
-            'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-            'p': actor.pronoun_subject_,
-            'P': actor.pronoun_object_,
-            's': actor.name_, 
-            'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-            'q': actor.pronoun_subject_,
-            'Q': actor.pronoun_object_,
-            't': actor.name_, 
-            'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-            'r': actor.pronoun_subject_,
-            'R': actor.pronoun_object_,
-            '*': room_msg }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+        vars = set_vars(actor, actor, actor, room_msg)
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
         elif actor.actor_type_ == ActorType.OBJECT:
@@ -379,7 +271,7 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
 async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[Actor], dict], target_name: str):
     # TODO:M: add targeting objects and rooms
     logger = CustomDetailLogger(__name__, prefix="cmd_setvar_helper()> ")
-    logger.debug(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
+    logger.debug3(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
     pieces = split_preserving_quotes(input)
     if len(pieces) < 1:
         logger.warn(f"({pieces}) Set {target_name} var on what kind of target?")
@@ -401,27 +293,14 @@ async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[
         logger.warn(f"({pieces}) Set {target_name} var to what?")
         await actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
         return
-    target = world.find_target_character(actor, pieces[1])
+    target = find_target_character(actor, pieces[1])
     if target == None:
         logger.warn(f"({pieces}) Could not find target.")
         await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
         return
     var_value = ' '.join(pieces[3:])
-    vars = { **{ 
-        'a': actor.name_, 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'p': actor.pronoun_subject_,
-        'P': actor.pronoun_object_,
-        's': actor.name_, 
-        'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-        'q': actor.pronoun_subject_,
-        'Q': actor.pronoun_object_,
-        't': target.name_, 
-        'T': Constants.REFERENCE_SYMBOL + target.reference_number_, 
-        'r': target.pronoun_subject_,
-        'R': target.pronoun_object_,
-        '*': var_value }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(target, "t")) }
-    logger.debug(f"target.name_: {target.name_}, {target_name} var: {pieces[2]}, var_value: {var_value}")
+    vars = set_vars(actor, actor, target, var_value)
+    logger.debug3(f"target.name_: {target.name_}, {target_name} var: {pieces[2]}, var_value: {var_value}")
     var_value = replace_vars(var_value, vars)
     target_dict_fn(target)[pieces[2]] = var_value
     await actor.send_text(CommTypes.DYNAMIC, f"Set {target_name} var {pieces[2]} on {target.name_} to {var_value}.")
@@ -487,7 +366,7 @@ async def cmd_show(actor: Actor, input: str):
         }
     elif pieces[0].lower() == "room":
         try:
-            room = world.find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
+            room = operating_state.find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
         except KeyError:
             await actor.send_text(CommTypes.DYNAMIC, f"room '{' '.join(pieces[1])} not found.")
             return
@@ -526,35 +405,31 @@ async def cmd_look(actor: Actor, input: str):
         return
     found = False
     try:
-        logger.debug(f"target: {input}")
-        logger.debug("Blah Looking for CATCH_LOOK triggers")
+        logger.debug3(f"target: {input}")
+        logger.debug3("Blah Looking for CATCH_LOOK triggers")
         # print(yaml.dump(room.triggers_by_type_))
-        print("**** should have dumped ****")
-        logger.debug(f"Still looking for CATCH_LOOK triggers {room.id_}")
-        logger.debug(f"heh 2 {room.triggers_by_type_.keys()}")
+        # print("**** should have dumped ****")
+        logger.debug3(f"Still looking for CATCH_LOOK triggers {room.id_}")
+        logger.debug3(f"heh 2 {room.triggers_by_type_.keys()}")
         for trig in room.triggers_by_type_[TriggerType.CATCH_LOOK]:
-            logger.debug(f"checking trigger for: {trig.criteria_[0].subject_}")
-            logger.debug("before trig.run")
-            vars = { **{ 
-                'a': actor.name_, 
-                'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-                'p': actor.pronoun_subject_,
-                'P': actor.pronoun_object_,
-                's': actor.name_, 
-                'S': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-                'q': actor.pronoun_subject_,
-                'Q': actor.pronoun_object_,
-                't': actor.name_, 
-                'T': Constants.REFERENCE_SYMBOL + actor.reference_number_, 
-                'r': actor.pronoun_subject_,
-                'R': actor.pronoun_object_,
-                '*': input }, **(actor_vars(actor, "a")), **(actor_vars(actor, "s")), **(actor_vars(actor, "t")) }
+            logger.debug3(f"checking trigger for: {trig.criteria_[0].subject_}")
+            logger.debug3("before trig.run")
+            vars = set_vars(actor, actor, actor, input)
             if await trig.run(actor, input, vars):
                 found = True
-            logger.debug("after trig.run")
-        logger.debug(f"done looking for CATCH_LOOK triggers {room.id_}")
+            logger.debug3("after trig.run")
+        logger.debug3(f"done looking for CATCH_LOOK triggers {room.id_}")
     except Exception as ex:
-        logger.debug(f"excepted looking for CATCH_LOOK triggers: {ex}")
+        logger.debug3(f"excepted looking for CATCH_LOOK triggers: {ex}")
         pass
     if not found:
         await actor.send_text(CommTypes.DYNAMIC, "You don't see that.")
+
+
+async def cmd_spawn(actor: Actor, input: str):
+    character_def = operating_state.character_defs_[input]
+    new_character = Actor.create_from_definition(character_def)
+    operating_state.characters_.append(new_character)
+    new_character.location_room_ = actor.location_room_
+    await new_character.location_room_.add_character(new_character)
+    await actor.send_text(CommTypes.DYNAMIC, f"You spawn a {input}.")

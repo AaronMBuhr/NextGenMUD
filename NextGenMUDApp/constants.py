@@ -1,3 +1,5 @@
 class Constants:
     REFERENCE_SYMBOL = '|'
     REFERENCE_SYMBOL_ESCAPE = '||'
+    GAME_TICK_SEC = 0.5
+    TICKS_PER_ROUND = 2

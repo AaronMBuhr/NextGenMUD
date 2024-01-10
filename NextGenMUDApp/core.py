@@ -29,24 +29,24 @@ class FlagBitmap:
 
 def replace_vars(script, vars: dict) -> str:
     logger = CustomDetailLogger(__name__, prefix="replace_vars()> ")
-    logger.debug("starting, script:")
-    print(script)
+    logger.debug3("starting, script:")
+    # print(script)
     if not type(script) is str:
-        logger.debug("not str")
+        logger.debug3("not str")
         return script
-    logger.debug("is str")
-    logger.debug(f"vars: {vars}")   
-    logger.debug(f"script in : {script}")
+    logger.debug3("is str")
+    logger.debug3(f"vars: {vars}")   
+    logger.debug3(f"script in : {script}")
     for var, value in vars.items():
-        # logger.debug('script.replace("%{"' + var + '"}, ' + value + 'if ' + value + ' is str else str(' + value + '))')
+        # logger.debug3('script.replace("%{"' + var + '"}, ' + value + 'if ' + value + ' is str else str(' + value + '))')
         script = script.replace("%{" + var + "}", value if value is str else str(value))
-    logger.debug(f"script out : {script}")
+    logger.debug3(f"script out : {script}")
     return script
 
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
     logger = CustomDetailLogger(__name__, prefix="evaluate_if_condition()> ")
-    logger.debug(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
+    logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
 
     if if_operator == 'contains':
         return if_predicate.lower() in if_subject.lower()
@@ -165,28 +165,28 @@ def split_string_honoring_parentheses(s):
 def evaluate_functions_in_line(line: str, vars: dict) -> str:
     from .scripts import get_tempvar, get_permvar
     logger = CustomDetailLogger(__name__, prefix="evaluate_functions_in_line()> ")
-    logger.debug(f"line: {line}")
+    logger.debug3(f"line: {line}")
     result_parts = []
     # Loop to find and replace all function calls in the line
     start = 0
     next = line.find('$')
     while next > -1:
         result_parts.append(line[start:next])
-        logger.debug(f"result_parts: {result_parts}")
+        logger.debug3(f"result_parts: {result_parts}")
         fn_start = next + 1
         fn_end = line.find('(', next + 1)
         func_name = line[fn_start:fn_end]
-        logger.debug("func_name: " + func_name)
+        logger.debug3("func_name: " + func_name)
         args_start = fn_end + 1
-        logger.debug(f"before find_matching_paren: {line[args_start:]}")
+        logger.debug3(f"before find_matching_paren: {line[args_start:]}")
         args_end = find_matching_parenthesis(line, args_start - 1)
-        logger.debug(f"args_start: {args_start}, args_end: {args_end}")
+        logger.debug3(f"args_start: {args_start}, args_end: {args_end}")
         args_str = line[args_start:args_end]
-        logger.debug("args_str: " + args_str)
+        logger.debug3("args_str: " + args_str)
         arg_parts = split_string_honoring_parentheses(args_str)
-        logger.debug(f"arg_parts: {arg_parts}")
+        logger.debug3(f"arg_parts: {arg_parts}")
         args = [evaluate_functions_in_line(ap, vars) for ap in arg_parts]
-        logger.debug(f"func_name: {func_name}, args: {args}")
+        logger.debug3(f"func_name: {func_name}, args: {args}")
         # Evaluate the function based on its name and arguments
         if func_name == 'name':
             # result = name(args[0], state)
@@ -216,16 +216,67 @@ def evaluate_functions_in_line(line: str, vars: dict) -> str:
         elif func_name == 'permvar':
             result = get_permvar(args[0], args[1])
         else:
-            logger.debug("Unknown function: " + func_name)
+            logger.debug3("Unknown function: " + func_name)
             result = 'UNKNOWN_FUNCTION'
 
         # Replace the function call in the line with the result
-        logger.debug(f"{func_name} result: {result}")
+        logger.debug3(f"{func_name} result: {result}")
         result_parts.append(result)
         start = args_end + 1
         next = line.find('$', start) 
 
     result_parts.append(line[start:])
     retval = ''.join(result_parts)
-    logger.debug("retval: " + retval)
+    logger.debug3("retval: " + retval)
     return retval
+
+
+def actor_vars(actor: 'Actor', name: str) -> dict:
+    # Using dictionary comprehension to prefix keys and combine dictionaries
+    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
+
+
+def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str) -> dict:
+    vars = { **{
+        'a': actor.name_ if actor else "", 
+        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_ if actor else "", 
+        'p': actor.pronoun_subject_ if actor else "",
+        'P': actor.pronoun_object_ if actor else "",
+        's': subject.name_ if subject else "", 
+        'S': Constants.REFERENCE_SYMBOL + subject.reference_number_ if subject else "", 
+        'q': subject.pronoun_subject_ if subject else "", 
+        'Q': subject.pronoun_object_ if subject else "", 
+        't': target.name_ if target else "",  
+        'T': Constants.REFERENCE_SYMBOL + target.reference_number_ if target else "", 
+        'r': target.pronoun_subject_ if target else "",
+        'R': target.pronoun_object_ if target else "",
+    '*': message }, 
+    **(actor_vars(actor, "a")), 
+    **(actor_vars(subject, "s") if subject else {}), 
+    **(actor_vars(target, "t") if target else {}) }
+
+    return vars
+
+    
+def get_dice_parts(dice_def: str) -> (int,int,int):
+    parts = dice_def.split('d')
+    if len(parts) != 2:
+        raise ValueError(f"Invalid dice definition: {dice_def}")
+    num_dice = to_int(parts[0])
+    extra = parts[1].split('+')
+    dice_size = to_int(extra[0])
+    if len(extra) > 1:
+        num_bonus = to_int(extra[1])
+    else:
+        num_bonus = 0
+    return (num_dice, dice_size, num_bonus)
+
+def roll_dice(num_dice: int, dice_size: int, dice_bonus: int) -> int:
+    # print(type(num_dice))
+    # print(type(dice_size))
+    # print(type(dice_bonus))
+    total = 0
+    for i in range(num_dice):
+        total += random.randint(1, dice_size)
+    total += dice_bonus
+    return total

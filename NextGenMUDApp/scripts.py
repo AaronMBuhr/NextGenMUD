@@ -9,11 +9,11 @@ from .core import evaluate_if_condition, replace_vars, to_int, evaluate_function
 
 async def run_script(actor: Actor, script: str, vars: dict):
     logger = CustomDetailLogger(__name__, prefix="run_script()> ")
-    logger.debug(f"actor.rid: {actor.rid}, script: {script}, vars: {vars}")
+    logger.debug3(f"actor.rid: {actor.rid}, script: {script}, vars: {vars}")
     script = replace_vars(script, vars).strip()
-    logger.debug(f"after replace_vars: {script}")
+    logger.debug3(f"after replace_vars: {script}")
     # while script := await process_line(actor, script, vars):
-    #     logger.debug(f"remaining: {script}")
+    #     logger.debug3(f"remaining: {script}")
     #     # pass
     while True:
         if script.startswith("$if("):
@@ -21,8 +21,8 @@ async def run_script(actor: Actor, script: str, vars: dict):
             condition = script[4:end_of_condition_pos]
             after_condition = script[end_of_condition_pos + 1:].strip()
             blocks = parse_blocks(after_condition)
-            logger.debug("condition: " + condition)
-            logger.debug("blocks: " + str(blocks))
+            logger.debug3("condition: " + condition)
+            logger.debug3("blocks: " + str(blocks))
             condition_parts = split_string_honoring_parentheses(condition)
             if_subject = evaluate_functions_in_line(condition_parts[0], vars)
             if_operator = evaluate_functions_in_line(condition_parts[1], vars)
@@ -31,7 +31,7 @@ async def run_script(actor: Actor, script: str, vars: dict):
             script = blocks['true_block'] if condition_result else blocks['false_block'] + '\n' + blocks['remainder']
         else:
             script = (await process_line(actor, script, vars)).strip()
-            logger.debug(f"remaining: {script}")
+            logger.debug3(f"remaining: {script}")
         script = script.strip()
         if not script:
             break
@@ -43,12 +43,12 @@ async def process_line(actor: Actor, script: str, vars: dict):
     # Process the first command or line
     end = script.find('\n') if '\n' in script else len(script)
     line = script[:end].strip()
-    logger.debug(f"line: {line}")
+    logger.debug3(f"line: {line}")
     remaining_script = script[end:].strip()
 
-    logger.debug(f"process_command on line: {line}")
+    logger.debug3(f"process_command on line: {line}")
     line = evaluate_functions_in_line(line, vars)
-    logger.debug(f"line after evaluate_functions_in_line(): {line}")
+    logger.debug3(f"line after evaluate_functions_in_line(): {line}")
     await command_handler.process_command(actor, line, vars)
 
     return remaining_script
@@ -57,7 +57,7 @@ async def process_line(actor: Actor, script: str, vars: dict):
 
 def evaluate_condition(actor: Actor, if_subject: str, if_operator: str, if_predicate: str, vars: dict) -> bool:
     logger = CustomDetailLogger(__name__, prefix="evaluate_condition()> ")
-    logger.debug(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
+    logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
     return evaluate_if_condition(if_subject, if_operator, if_predicate)
 
 

@@ -40,7 +40,7 @@ class TriggerCriteria:
 
     def from_dict(self, values: dict):
         # logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.from_dict()> ")
-        # logger.debug(f"values: {values}")
+        # logger.debug3(f"values: {values}")
         # print(values)
         self.subject_ = values['subject']
         self.operator_ = values['operator']
@@ -51,8 +51,8 @@ class TriggerCriteria:
     @abstractmethod
     def evaluate(self, vars: dict) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
-        logger.debug(f"vars: {vars}")
-        logger.debug(f"checking {self.subject_},{self.operator_},{self.predicate_}")
+        logger.debug3(f"vars: {vars}")
+        logger.debug3(f"checking {self.subject_},{self.operator_},{self.predicate_}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
         # predicate = execute_functions(replace_vars(self.predicate_, vars))
         if type(self.subject_) is str:
@@ -65,19 +65,19 @@ class TriggerCriteria:
             predicate = self.predicate_
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
-        logger.debug(f"checking calculated {subject},{self.operator_},{predicate}")
+        logger.debug3(f"checking calculated {subject},{self.operator_},{predicate}")
         result = evaluate_if_condition(subject, self.operator_, predicate)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
         # elif self.operator_.lower() == 'matches':
         #     return re.match(predicate, subject)
-        # logger.debug(f"returning False")
+        # logger.debug3(f"returning False")
         # return False
         return result
     
 class Trigger:
     
-    def __init__(self, trigger_type: TriggerType, actor: 'Actor') -> None:
+    def __init__(self, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
         if (isinstance(trigger_type, str)):
             self.trigger_type_ = TriggerType[trigger_type.upper()]
         else:
@@ -85,6 +85,7 @@ class Trigger:
         self.actor_ = actor
         self.criteria_ = []
         self.script_ = ""
+        self.disabled_ = disabled
 
     def to_dict(self):
         return {'trigger_type_': self.trigger_type_, 'criteria_': [ c.to_dict() for c in self.criteria_ ], 'script_': self.script_ }
@@ -107,13 +108,13 @@ class Trigger:
         if type(trigger_type) == str:
             trigger_type = TriggerType[trigger_type.upper()]
         if trigger_type == TriggerType.CATCH_ANY:
-            logger.debug("returning TriggerCatchAny")
+            logger.debug3("returning TriggerCatchAny")
             return TriggerCatchAny(actor)
         elif trigger_type == TriggerType.TIMER_TICK:
-            logger.debug("returning TriggerTimerTick")
+            logger.debug3("returning TriggerTimerTick")
             return TriggerTimerTick(actor)
         elif trigger_type == TriggerType.CATCH_LOOK:
-            logger.debug("returning TriggerCatchLook")
+            logger.debug3("returning TriggerCatchLook")
             return TriggerCatchLook(actor)
         # elif trigger_type == TriggerType.CATCH_TELL:
         #     return CatchTellTrigger()
@@ -124,16 +125,23 @@ class Trigger:
     async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
         raise Exception("Trigger.run() must be overridden.")
 
+    def enable(self):
+        self.disabled_ = False
+
+    def disable(self):
+        self.disabled_ = True
+
     async def execute_trigger_script(self, actor: 'Actor', vars: dict) -> None:
         from ..scripts import run_script
         logger = CustomDetailLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
         # for line in self.script_.splitlines():
-        #     logger.debug(f"running script line: {line}")
+        #     logger.debug3(f"running script line: {line}")
         #     await process_command(actor, line, vars)
         # script = self.script_
         # while script := process_line(actor, script, vars):
         #     pass
-        logger.debug("executing run_script")
+        logger.debug3("executing run_script")
+        logger.critical(f"script: {self.script_}")
         await run_script(actor, self.script_, vars)
 
 
@@ -156,14 +164,16 @@ class TriggerCatchAny(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
+        if self.disabled_:
+            return False
         vars = {**vars, 
                 **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
                 **(actor_vars(actor, "a"))}
-        logger.debug("evaluating")
+        logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars):
                 return False
-        logger.debug("executing script")
+        logger.debug3("executing script")
         await self.execute_trigger_script(actor, vars)
         return True
 
@@ -172,27 +182,53 @@ class TriggerTimerTick(Trigger):
     timer_tick_triggers_ = []
 
     def __init__(self, actor: 'Actor') -> None:
+        logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
+        logger.critical(f"__init__ actor: {actor.id_}")
+        if not actor or actor == None:
+            raise Exception("actor is None")
         super().__init__(TriggerType.TIMER_TICK, actor)
         self.last_ticked_ = 0
+
+    def to_dict(self):
+        return {'trigger_type_': self.trigger_type_, 'criteria_': [ c.to_dict() for c in self.criteria_ ], 'disabled_': self.disabled_, 'last_ticked_': self.last_ticked_ }
+
+    def enable(self):
+        super().enable()
         TriggerTimerTick.timer_tick_triggers_.append(self)
+        # print("trigger enabled: " + repr(self.to_dict()))
+
+    def disable(self):
+        super().disable()
+        TriggerTimerTick.timer_tick_triggers_.remove(self)    
 
     async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
         from ..nondb_models.actors import Actor
-        logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
+        logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.run()> ")
+        if self.disabled_:
+            logger.critical("disabled")
+            return False
+        logger.critical(f"running, actor: {actor.name_} ({actor.rid}) text: {text}")
         if not Actor.get_reference(actor.reference_number_):
             TriggerTimerTick.timer_tick_triggers_.remove(self)
+            logger.critical("actor no longer exists")
             return False
+        logger.critical(f"actor: {actor.rid}")
         time_elapsed = time.time() - self.last_ticked_
+        logger.debug3(f"time_elapsed: {time_elapsed}")
         vars = {**vars, 
                 **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
                 **(actor_vars(actor, "a"))}
         vars['time_elapsed'] = time_elapsed
-        logger.debug("evaluating")
+        logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars):
+                logger.debug3("criteria not met")
                 return False
-        logger.debug("executing script")
+        logger.debug3("executing script")
         self.last_ticked_ = time.time()
+        logger.critical(f"script: {self.script_}")
+        for c in actor.characters_:
+            logger.critical(c.rid)
         await self.execute_trigger_script(actor, vars)
         return True
 
@@ -204,15 +240,16 @@ class TriggerCatchLook(Trigger):
     async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchLook.run()> ")
-        logger.debug(f"text: {text}")
+        if self.disabled_:
+            return False
         vars = {**vars, 
                 **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
                 **(actor_vars(actor, "a"))}
-        logger.debug("evaluating")
+        logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars):
                 return False
-        logger.debug("executing script")
+        logger.debug3("executing script")
         await self.execute_trigger_script(actor, vars)
         return True
     

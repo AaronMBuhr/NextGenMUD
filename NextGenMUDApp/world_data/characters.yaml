@@ -12,9 +12,10 @@ CHARACTERS:
           intelligence: 2
           wisdom: 2
           charisma: 10
-        class: Fighter
-        level: 1
-        hit_points: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d4+1
         character_flags:
           - npc
         triggers:
@@ -26,4 +27,25 @@ CHARACTERS:
             script: |
               emote gets angry!
               attack %{A}
-
+          - type: catch_any
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "starts fighting you"
+            script: |
+              emote gets angry!
+              attack %{S}
+        damage_resistances:
+          bludgeoning: 2
+          unholy: 0
+          pyschic: 0.5
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bite
+            potential_damage:
+            - damage_type: piercing
+              damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 5d10+30
+        critical_chance: 0.05
+        critical_multiplier: 2
