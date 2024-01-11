@@ -19,5 +19,4 @@ OBJECTS:
               predicate: "drops you"
           script: |
             say "Pick me back up!"
-
         

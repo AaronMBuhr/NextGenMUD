@@ -476,8 +476,10 @@ class Character(Actor):
         new_char.connection_ = None
         new_char.fighting_whom_ = None
         new_char.equipped_ = {loc: None for loc in EquipLocation}
-        print("**************************************** natural_attack")
-        print([ x.to_dict() for x in new_char.natural_attacks_])
+        for trig_type, trig_data in new_char.triggers_by_type_.items():
+            for trig in trig_data:
+                trig.actor_ = new_char
+                trig.enable()
         return new_char
     
     def get_status_description(self):
@@ -583,6 +585,10 @@ class Object(Actor):
         new_obj = copy.deepcopy(obj_def)
         if not new_obj.reference_number_ or new_obj.reference_number_ == obj_def.reference_number_:
             new_obj.create_reference()
+        for trig_type, trig_data in new_obj.triggers_by_type_.items():
+            for trig in trig_data:
+                trig.actor_ = new_obj
+                trig.enable()
         return new_obj
     
     @classmethod
