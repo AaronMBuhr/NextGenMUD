@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..core import FlagBitmap, replace_vars, get_dice_parts, roll_dice
+from ..core import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags
 from custom_detail_logger import CustomDetailLogger
-from enum import Enum, auto
+from enum import Enum, auto, IntFlag
 import json
 from .triggers import TriggerType, Trigger
 import random
@@ -22,6 +22,7 @@ class Actor:
         self.actor_type_ = actor_type
         self.id_ = id
         self.name_ = name
+        self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
         self.pronoun_subject_ = "it"
         self.pronoun_object_ = "it"
         self.pronoun_possessive = "its"
@@ -182,6 +183,12 @@ class Room(Actor):
     def add_character(self, character: 'Character'):
         self.characters_.append(character)
 
+    def remove_object(self, obj: 'Object'):
+        self.objects_.remove(obj)
+
+    def add_object(self, obj: 'Object'):
+        self.objects_.append(obj)
+
 
 class EquipLocation(Enum):
     MAIN_HAND = 1
@@ -206,8 +213,33 @@ class EquipLocation(Enum):
     def word(self):
         return self.name.lower().replace("_", " ")
 
-class CharacterFlags(Enum):
-    IS_PC = 2^0
+
+# class DescriptionMixin:
+#     def describe(self):
+#         # Accessing a hypothetical descriptions dictionary
+#         return self._descriptions.get(self, "No description available")
+
+
+class GamePermissionFlags(DescriptiveFlags):
+    IS_ADMIN = 1
+    CAN_INSPECT = 2
+    CAN_MODIFY = 4
+
+    @staticmethod
+    def field_name(idx):
+        return ["is admin", "can inspect", "can modify"][idx]
+
+
+class CharacterFlags(DescriptiveFlags):
+    IS_PC = 2**0
+    IS_DEAD = 2**1
+
+    @staticmethod
+    def field_name(idx):
+        return ["is pc", "is dead"][idx]
+
+
+
 
 
 class DamageType(Enum):
@@ -230,6 +262,7 @@ class DamageType(Enum):
 
     def word(self):
         return self.name.lower()
+    
 
 
 class DamageResistances:
@@ -328,7 +361,7 @@ class Character(Actor):
         self.description_ = ""
         self.attributes_ = {}
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
-        self.inventory_: List[Object] = []
+        self.contents_: List[Object] = []
         self.character_flags_ = FlagBitmap()
         self.connection_: 'Connection' = None
         self.fighting_whom_: Character = None
@@ -347,6 +380,8 @@ class Character(Actor):
         self.hit_point_bonus_ = 0
         self.max_hit_points_ = 1
         self.current_hit_points_ = 1
+        self.game_permission_flags_ = FlagBitmap()
+        self.carrying_capacity_ = 100
 
 
     def from_yaml(self, yaml_data: str):
@@ -441,24 +476,170 @@ class Character(Actor):
         print("**************************************** natural_attack")
         print([ x.to_dict() for x in new_char.natural_attacks_])
         return new_char
+    
+    def get_status_description(self):
+        health_percent = self.current_hit_points_ * 100 / self.max_hit_points_
+        if health_percent < 10:
+            msg = "nearly dead"
+        elif health_percent < 25:
+            msg = "badly wounded"
+        elif health_percent < 50:
+            msg = "wounded"
+        elif health_percent < 75:
+            msg = "slightly wounded"
+        elif health_percent < 90:
+            msg = "in good health"
+        else:
+            msg = "in excellent health"
+        # TODO:L: added statuses for burning, poisoned, etc.
+
+    def add_object(self, obj: 'Object', force=False):
+        self.inventory_.append(obj)
+
+    def remove_object(self, obj: 'Object'):
+        self.inventory_.remove(obj)
+
+    def is_dead(self):
+        return self.current_hit_points_ <= 0
+
+
+class ObjectFlags(DescriptiveFlags):
+    IS_ARMOR = 2**0
+    IS_WEAPON = 2**1
+    IS_CONTAINER = 2**2
+    IS_CONTAINER_LOCKED = 2**3
+
+    @staticmethod
+    def field_name(idx):
+        return ["armor", "weapon", "container", "container-locked"][idx]
+
 
 class Object(Actor):
 
     def __init__(self, id: str, name: str = ""):
         super().__init__(ActorType.OBJECT, id, name)
         self.name_ = ""
-        self.location_inventory_ = None
-        self.location_container_ = None
-        self.attributes_ = {}
         self.object_flags_ = FlagBitmap()
-        self.damage_resistances_ = DamageResistances()
-        self.damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
         self.equip_location_: EquipLocation = None
         # note that location of LEFT_FINGER also allows RIGHT_FINGER
+        # for armor
+        self.damage_resistances_ = DamageResistances()
+        self.damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
+        # for weapons
+        self.damage_type_ = DamageType()
+        self.damage_dice_number_ = 0
+        self.damage_dice_size_ = 0
+        self.damage_bonus_ = 0
+        self.weight_ = 0
 
+    def to_dict(self):
+        return {
+            'id': self.id_,
+            'name': self.name_,
+            'container': self.container_.id_ if self.container_ else None,
+            'object_flags': self.object_flags_,
+            'equip_location': self.equip_location_.name.lower() if self.equip_location_ else None,
+            'damage_resistances': self.damage_resistances_.to_dict(),
+            'damage_reduction': self.damage_reduction_,
+            'damage_type': self.damage_type_.name.lower() if self.damage_type_ else None,
+            'damage_dice_number': self.damage_dice_number_,
+            'damage_dice_size': self.damage_dice_size_,
+            'damage_bonus': self.damage_bonus_,
+            'weight': self.weight_
+        }
+    
+    def from_yaml(self, yaml_data: str):
+        self.name_ = yaml_data['name']
+        self.description_ = yaml_data['description']
+        self.article_ = yaml_data['article'] if 'article' in yaml_data else "a" if self.name_[0].lower() in "aeiou" else "an" if self.name_ else ""
+        self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
+        self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
+        self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+        self.weight_ = yaml_data['weight']
+        self.object_flags_ = FlagBitmap(yaml_data['object_flags'])
+        if 'triggers' in yaml_data:
+            # print(f"triggers: {yaml_data['triggers']}")
+            # raise NotImplementedError("Triggers not implemented yet.")
+            # for trigger_type, trigger_info in yaml_data['triggers'].items():
+            #     # logger.debug3(f"loading trigger_type: {trigger_type}")
+            #     if not trigger_type in self.triggers_by_type_:
+            #         self.triggers_by_type_[trigger_type] = []
+            #     self.triggers_by_type_[trigger_type] += trigger_info
+            for trig in yaml_data['triggers']:
+                # logger.debug3(f"loading trigger_type: {trigger_type}")
+                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                if not new_trigger.trigger_type_ in self.triggers_by_type_:
+                    self.triggers_by_type_[new_trigger.trigger_type_] = []
+                self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
+    
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
         text = await super().echo(text_type, text, vars, exceptions)
         return True
+    
+    @classmethod
+    def create_from_definition(cls, obj_def: 'Object') -> 'Object':
+        new_obj = copy.deepcopy(obj_def)
+        if not new_obj.reference_number_ or new_obj.reference_number_ == obj_def.reference_number_:
+            new_obj.create_reference()
+        return new_obj
+    
+    @classmethod
+    def collapse_name_multiples(cls, objects: List['Object'], separator: str, minimum_qty=1):
+        if len(objects) == 0:
+            return ""
+        elif len(objects) == 1:
+            return f"{objects[0].article_} {objects[0].name_}"
+
+        multiples = {}
+        for obj in objects:
+            if obj.name_ in multiples:
+                multiples[obj.name_]["count"] += 1 
+            else:
+                multiples[obj.name_] = {"count": 1, "article": obj.article_}
+        
+        msg_parts = []
+        for name, info in multiples.items():
+            if info["count"] >= minimum_qty:
+                if info["count"] == 1:
+                    msg_parts.append(f"{info['article']} {name}")
+                else:
+                    msg_parts.append(f"{info['count']} {name}s")
+        return separator.join(msg_parts)
 
 
+
+
+class Container:
+    def __init__(self):
+        self.contents_: List[Object] = []
+        self.container_flags_ = FlagBitmap()
+
+    def add_object(self, obj: Object, force=False):
+        self.contents_.append(obj)
+
+    def remove_object(self, obj: Object):
+        self.contents_.remove(obj)
+
+
+class Corpse(Container):
+    def __init__(self, character: Character):
+        super().__init__()
+        self.character_ = character
+        self.name_ = f"{character.name_}'s corpse"
+        self.container_flags_.set(ObjectFlags.IS_CONTAINER)
+
+    def to_dict(self):
+        return {
+            'actor_type': self.actor_type_.name,
+            'rid': self.rid,
+            'name': self.name_,
+            'character': self.character_.to_dict(),
+            'contents': [obj.to_dict() for obj in self.contents_]
+        }
+    
+    def transfer_inventory(self):
+        for obj in self.character_.inventory_:
+            self.add_object(obj)
+            obj.location_room_ = self
+        self.character_.inventory_ = []

@@ -32,6 +32,9 @@ class TriggerCriteria:
     
     def to_dict(self):
         return {'subject_': self.subject_, 'operator_': self.operator_, 'predicate_': self.predicate_ }
+    
+    def shortdesc(self):
+        return f"{self.subject_},{self.operator_},{self.predicate_}"
 
     def __repr__(self):
         fields_dict = self.to_dict()
@@ -89,6 +92,9 @@ class Trigger:
 
     def to_dict(self):
         return {'trigger_type_': self.trigger_type_, 'criteria_': [ c.to_dict() for c in self.criteria_ ], 'script_': self.script_ }
+    
+    def shortdesc(self):
+        return f"{self.trigger_type_}: {';'.join([ c.shortdesc() for c in self.criteria_ ])}"
 
     def __repr__(self):
         fields_dict = self.to_dict()

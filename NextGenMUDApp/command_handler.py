@@ -1,33 +1,17 @@
-from .core import replace_vars
-from .actions import world_move, do_look_room, start_fighting
+from .core import replace_vars, firstcap
+from .actions import world_move, do_look_room, start_fighting, do_look_character, do_look_object
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
-from .nondb_models.actors import Actor, ActorType, Character
+from .nondb_models.actors import Actor, ActorType, Character, CharacterFlags, Object, ObjectFlags
 from .nondb_models import world
-from .operating_state import operating_state, find_target_character, find_target_room, find_all_characters
+from .operating_state import operating_state, OperatingState
 import re
-from typing import Callable
+from typing import Callable, List
 from yaml_dumper import YamlDumper
 import yaml
-from .core import set_vars
-
-def actor_vars(actor: Actor, name: str) -> dict:
-    # Using dictionary comprehension to prefix keys and combine dictionaries
-    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
-
-
-def split_preserving_quotes(text):
-    # Regular expression pattern:
-    # - Match and capture anything inside quotes (single or double) without the quotes
-    # - Or match sequences of non-whitespace characters
-    pattern = r'"([^"]*)"|\'([^\']*)\'|(\S+)'
-
-    # Find all matches of the pattern
-    matches = re.findall(pattern, text)
-
-    # Flatten the list of tuples, filter out empty strings
-    return [item for match in matches for item in match if item]
+from .core import set_vars, split_preserving_quotes, article_plus_name
+from num2words import num2words
 
 
 command_handlers = {
@@ -41,6 +25,7 @@ command_handlers = {
     "spawn": lambda command, char, input: cmd_spawn(char,input),
     "goto": lambda command, char, input: cmd_goto(char, input),
     "list": lambda command, char, input: cmd_list(char, input),
+    "at": lambda command, char, input: cmd_at(char, input),
 
     # normal commands
     "north": lambda command, char, input: world_move(char, "north"),
@@ -57,6 +42,11 @@ command_handlers = {
     "look": lambda command, char, input: cmd_look(char, input),
     "attack": lambda command, char, input: cmd_attack(command, char, input),
     "kill": lambda command, char, input: cmd_attack(command, char, input),
+    "inv": lambda command, char, input: cmd_inventory(char, input),
+    "inventory": lambda command, char, input: cmd_inventory(char, input),
+    "get": lambda command, char, input: cmd_get(char, input),
+    "drop": lambda command, char, input: cmd_drop(char, input),
+    "inspect": lambda command, char, input: cmd_inspect(char, input),
 
     # various emotes
     "kick": lambda command, char, input: cmd_specific_emote(command, char, input),
@@ -77,6 +67,9 @@ async def process_command(actor: Actor, input: str, vars: dict = None):
         logger.debug3(f"processing input for actor {actor.id_}: {input}")
         if input.split() == "":
             await actor.send_text(CommTypes.DYNAMIC, "Did you want to do something?")
+            return
+        if actor.actor_type_ == ActorType.CHARACTER and actor.is_dead():
+            await actor.send_text(CommTypes.DYNAMIC, "You are dead.  You can't do anything.")
             return
         parts = split_preserving_quotes(input)
         command = parts[0]
@@ -103,9 +96,9 @@ async def cmd_say(actor: Actor, input: str):
     await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
     if actor.location_room_:
         if actor.actor_type_ == ActorType.CHARACTER:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"{actor.name_} says, \"{text}\"", vars, exceptions=[actor])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, f"f{firstcap(actor.name_)} says, \"{text}\"", vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.OBJECT:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"{actor.name_} says, \"{text}\"", vars, exceptions=[actor])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, f"{firstcap(actor.name_)} says, \"{text}\"", vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.ROOM:
             await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
         else:
@@ -141,7 +134,7 @@ async def cmd_echoto(actor: Actor, input: str):
         await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
     logger.debug3(f"finding target: {pieces[0]}")
-    target = find_target_character(actor, pieces[0])
+    target = operating_state.find_target_character(actor, pieces[0])
     logger.debug3(f"target: {target}")
     if target == None:
         await actor.send_text(CommTypes.DYNAMIC, "Echo to whom?")
@@ -163,7 +156,7 @@ async def cmd_echoexcept(actor: Actor, input: str):
         await actor.send_text(CommTypes.DYNAMIC, "Echo what?")
     pieces = split_preserving_quotes(input)
     logger.debug3(f"finding excludee: {pieces[1]}")
-    excludee = find_target_character(actor, pieces[1])
+    excludee = operating_state.find_target_character(actor, pieces[1])
     logger.debug3(f"excludee: {excludee}")
     if excludee == None:
         await actor.send_text(CommTypes.DYNAMIC, "Echo except who?")
@@ -186,14 +179,14 @@ async def cmd_tell(actor: Actor, input: str):
         await actor.send_text(CommTypes.DYNAMIC, "Tell what?")
     pieces = split_preserving_quotes(input)
     logger.debug3(f"finding target: {pieces[0]}")
-    target = find_target_character(actor, pieces[0], search_world=True)
+    target = operating_state.find_target_character(actor, pieces[0], search_world=True)
     logger.debug3(f"target: {target}")
     if target == None:
         # actor.send_text(CommTypes.DYNAMIC, "Tell who?")
         # return
         raise Exception("Tell who?")
     text = ' '.join(pieces[1:])
-    msg = f"{actor.name_} tells you '{text}'."
+    msg = f"{firstcap(actor.name_)} tells you '{text}'."
     vars = set_vars(actor, actor, target, msg)
     logger.debug3("sending message to actor")
     await target.echo(CommTypes.DYNAMIC, msg)
@@ -210,9 +203,9 @@ async def cmd_emote(actor: Actor, input: str):
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.OBJECT:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         elif actor.actor_type_ == ActorType.ROOM:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
 
@@ -249,7 +242,7 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         target_msg = None
         target = None
     else:
-        target = find_target_character(actor, pieces[0])
+        target = operating_state.find_target_character(actor, pieces[0])
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
             return
@@ -268,9 +261,9 @@ async def cmd_specific_emote(command: str, actor: Actor, input: str):
         if actor.actor_type_ == ActorType.CHARACTER:
             await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
         elif actor.actor_type_ == ActorType.OBJECT:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor] if target == None else [actor, target])
         elif actor.actor_type_ == ActorType.ROOM:
-            await actor.location_room_.echo(CommTypes.DYNAMIC, {room_msg}, vars, exceptions=[actor] if target == None else [actor, target])
+            await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor] if target == None else [actor, target])
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
 
@@ -300,7 +293,7 @@ async def cmd_setvar_helper(actor: Actor, input: str, target_dict_fn: Callable[[
         logger.warn(f"({pieces}) Set {target_name} var to what?")
         await actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
         return
-    target = find_target_character(actor, pieces[1], search_world=True)
+    target = operating_state.find_target_character(actor, pieces[1], search_world=True)
     if target == None:
         logger.warn(f"({pieces}) Could not find target.")
         await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
@@ -411,6 +404,17 @@ async def cmd_look(actor: Actor, input: str):
         await do_look_room(actor, room)
         return
     found = False
+
+    # character?
+    target = operating_state.find_target_character(actor, input, search_zone=False, search_world=False)
+    if target:
+        await do_look_character(actor, target)
+        return
+    target = operating_state.find_target_object(actor.location_room_, input, None, search_world=False)
+    if target:
+        await do_look_object(actor, target)
+        return
+
     try:
         logger.debug3(f"target: {input}")
         logger.debug3("Blah Looking for CATCH_LOOK triggers")
@@ -434,22 +438,46 @@ async def cmd_look(actor: Actor, input: str):
 
 
 async def cmd_spawn(actor: Actor, input: str):
-    character_def = operating_state.world_definition_.find_character_definition(input)
-    if not character_def:
-        await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find a character definition for {input}.")
+    # TODO:L: what if an object in a container spawns something?
+    pieces = input.split(' ')
+    if len(pieces) < 1:
+        await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
         return
-    new_character = Character.create_from_definition(character_def)
-    operating_state.characters_.append(new_character)
-    new_character.location_room_ = actor.location_room_
-    new_character.location_room_.add_character(new_character)
-    await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
-    await do_look_room(actor, actor.location_room_)
+    if pieces[0].lower() == "char":
+        character_def = operating_state.world_definition_.find_character_definition(' '.join(pieces[1:]))
+        if not character_def:
+            await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find a character definition for {pieces[1:]}.")
+            return
+        new_character = Character.create_from_definition(character_def)
+        operating_state.characters_.append(new_character)
+        new_character.location_room_ = actor.location_room_
+        new_character.location_room_.add_character(new_character)
+        await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+        await do_look_room(actor, actor.location_room_)
+    elif pieces[0].lower() == "obj":
+        object_def = operating_state.world_definition_.find_object_definition(' '.join(pieces[1:]))
+        if not object_def:
+            await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find an object definition for {pieces[1:]}.")
+            return
+        new_object = Object.create_from_definition(object_def)
+        if actor.actor_type_ == ActorType.CHARACTER:
+            actor.add_object(new_object, True)
+        elif actor.actor_type_ == ActorType.OBJECT:
+            if actor.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
+                actor.add_object(new_object, True)
+            else:
+                actor.location_room_.add_object(new_object)
+        elif actor.actor_type_ == ActorType.ROOM:
+            actor.objects_.append(new_object)
+        await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+    else:
+        await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
 
 
 async def cmd_goto(actor: Actor, input: str):
     pieces = input.lower().split(' ')
     if pieces[0] == "char":
-        target = find_target_character(actor, ' '.join(pieces[1:]), search_world=True)
+        target = operating_state.find_target_character(actor, ' '.join(pieces[1:]), search_world=True)
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, "couldn't find that character?")
             return
@@ -457,7 +485,7 @@ async def cmd_goto(actor: Actor, input: str):
         target.location_room_.add_character(actor)
         await actor.send_text(CommTypes.DYNAMIC, f"You go to {target.rid}.")
     elif pieces[0] == "room":
-        target_room = find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
+        target_room = operating_state.find_target_room(actor, ' '.join(pieces[1:]), actor.location_room_.zone_)
         if target_room == None:
             await actor.send_text(CommTypes.DYNAMIC, "couldn't find that room?")
             return
@@ -472,10 +500,211 @@ async def cmd_list(actor: Actor, input: str):
 
 
 async def cmd_attack(command: str, actor: Actor, input: str):
-    target = find_target_character(actor, input)
+    target = operating_state.find_target_character(actor, input)
     if target == None:
         await actor.send_text(CommTypes.DYNAMIC, "{command} whom?")
         return
     await start_fighting(actor, target)
     # TODO:L: maybe some situations where target doesn't retaliate?
     await start_fighting(target, actor)
+
+
+async def cmd_inspect(command: str, actor: Actor, input: str):
+    # TODO:L: fighting who / fought by?
+    # TODO:H: classes
+    # TODO:H: inventory
+    # TODO:H: equipment
+    # TODO:M: dmg resist & reduct
+    # TODO:M: natural attacks
+    if input == "":
+        await actor.send_text(CommTypes.DYNAMIC, "inspect what?")
+        return
+    msg_parts = []
+    if input.strip().lower() == "me":
+        msg_parts.append("You inspect yourself.")
+        target = actor
+    else:
+        target = operating_state.find_target_character(actor, input)
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, "inspect what?")
+            return
+        msg_parts.append(f"You inspect {target.name_}.")
+    if target.actor_type_ == ActorType.CHARACTER:
+        if actor.game_permission_flags_.are_flags_set(CharacterFlags.IS_ADMIN):
+            msg_parts.append( 
+# IS_ADMIN
+f"""
+ID: {actor.id_} ({actor.reference_number_})""")
+        msg_parts.append(
+# ALWAYS
+f"""
+Name: {actor.name_}
+Description: {actor.description_}
+Health: {actor.get_status_description()}""")
+        if actor.game_permission_flags_.are_flags_set(CharacterFlags.IS_ADMIN):
+            msg_parts.append(
+# IS_ADMIN
+f"""
+Hit Points: {actor.current_hit_points_} / {actor.max_hit_points_}""")
+            if not target.character_flags_.is_flag_set(CharacterFlags.IS_PC):
+                msg_parts.append(f" ({target.hit_dice_}d{target.hit_dice_size_}+{target.hit_dice_modifier_})\n")
+            else: # PC
+                msg_parts.append("\n")
+            msg_parts.append(
+# IS_ADMIN
+f"""
+Location: {target.location_room_.name_} ({target.location_room_.id_})""")
+        else:
+            msg_parts.append(
+# NOT IS_ADMIN
+f"""
+Location: {target.location_room_.name_})""")
+
+        msg_parts.append(
+# ALWAYS
+f"""
+Hit Modifier: {target.hit_modifier_}  /  Critical Hit: {target.critical_chance_}% (Critical Damage: {target.critical_damage_multiplier_}x)
+Dodge Chance: {target.dodge_dice_number_}d{target.dodge_dice_size_}+{target.dodge_dice_modifier_} ({target.dodge_chance_}%)""")
+
+        if actor.game_permission_flags_.are_flags_set(CharacterFlags.IS_ADMIN):
+            msg_parts.append(
+# IS_ADMIN
+f"""
+Character Flags: {target.character_flags_.get_combined_description()}
+Triggers: 
+{"\n - ".join([f"{key}: {', '.join([ v.shortdesc() for v in values])}" for key, values in target.triggers_by_type_.items()])}
+Temp variables:
+{"\n".join([f"{key}: {value}" for key, value in target.temp_variables_.items()])}
+Permanent variables:
+{"\n".join([f"{key}: {value}" for key, value in target.perm_variables_.items()])}""")
+
+    await actor.send_text(CommTypes.DYNAMIC, "\n".join(msg_parts))        
+
+
+async def cmd_inventory(actor: Actor, input: str):
+    msg_parts = [ "You are carrying:"]
+    if actor.actor_type_ == ActorType.CHARACTER:
+        char: Character = actor
+        if len(actor.inventory_) == 0:
+            msg_parts.append(" nothing.")
+        else:
+            inv = Object.collapse_name_multiples(char.inventory_, "\n")
+        await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+    elif actor.actor_type_ == ActorType.OBJECT:
+        obj: Object = actor
+        if not obj.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
+            msg_parts.append(" nothing (you're not a container).")
+        else:
+            if len(obj.inventory_) == 0:
+                msg_parts.append(" nothing.")
+            else:
+                inv = Object.collapse_name_multiples(obj.inventory_, "\n")
+            await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+    else:
+        await actor.send_text(CommTypes.DYNAMIC, "You're not a character or object, so you can't have an inventory.")
+
+
+
+async def cmd_at(actor: Actor, input: str):
+    pieces = input.split(' ')
+    if len(pieces) < 1:
+        await actor.send_text(CommTypes.DYNAMIC, "At what?")
+        return
+    cmd = ' '.join(pieces[2:])
+    if pieces[0].lower() == "char":
+        target = operating_state.find_target_character(actor, pieces[1], search_world=True)
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, "couldn't find that character?")
+            return
+        target_room = target.location_room_
+    elif pieces[0].lower() == "room":
+        target_room = operating_state.find_target_room(actor, pieces[1], actor.location_room_.zone_)
+    elif pieces[0].lower() == "obj":
+        target = operating_state.find_target_object(actor, pieces[1], actor.location_room_.zone_, search_world=True)
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, "couldn't find that object?")
+            return
+        # TODO:L: what to do if in a container or corpse?
+        target_room = target.location_room_
+    await actor.send_text(CommTypes.DYNAMIC, f"Doing '{cmd}' at {target.rid} (room {target_room.rid})")
+    original_room = actor.location_room_
+    actor.location_room_.remove_character(actor)
+    target_room.add_character(actor)
+    await process_command(actor, cmd)
+    target_room.remove_character(actor)
+    original_room.add_character(actor)
+
+
+async def cmd_get(actor: Actor, input: str):
+    # TODO:M: handle all kinds of cases, like get from container, get from corpse
+    # TODO:M: add max carry weight
+    if input == "":
+        await actor.send_text(CommTypes.DYNAMIC, "Get what?")
+        return
+    pieces = input.split(' ')
+    if pieces[0].isnumeric():
+        qty = int(pieces[0])
+        item_name = ' '.join(pieces[1:])
+    else:
+        qty = 1
+        item_name = input
+    if actor.actor_type_ == ActorType.CHARACTER:
+        room = actor.location_room_
+        if room == None:
+            await actor.send_text(CommTypes.DYNAMIC, "You're not in a room.")
+            return
+        num_got = 0
+        for i in range(qty):
+            item = operating_state.find_target_object(room, item_name, None, search_world=False)
+            if item == None:
+                break
+            num_got += 1
+            room.remove_object(item)
+            actor.add_object(item)
+            prefix = item.article_
+        if num_got == 0:
+            await actor.send_text(CommTypes.DYNAMIC, f"You don't see any {item_name} here.")
+            return
+        if num_got > 1:
+            prefix = num2words(num_got)
+        await actor.send_text(CommTypes.DYNAMIC, f"You get {prefix} {item.name_}{'s' if num_got > 1 else ''}.")
+
+
+async def cmd_drop(actor: Actor, input: str):
+    if input == "":
+        await actor.send_text(CommTypes.DYNAMIC, "Drop what?")
+        return
+    if actor.actor_type_ == ActorType.CHARACTER:
+        room = actor.location_room_
+        if room == None:
+            await actor.send_text(CommTypes.DYNAMIC, "You're not in a room.")
+            return
+        item = operating_state.find_target_object(input, actor)
+        if item == None:
+            await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
+            return
+        actor.remove_object(item)
+        room.add_object(item)
+        msg = f"You drop {item.name_}."
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg))
+        msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} drops {article_plus_name(item.article_, item.name_)}."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), exceptions=[actor])
+    elif actor.actor_type_ == ActorType.OBJECT:
+        # TODO:L: what if in a container? to floor?
+        # TODO:L: want to drop from container to inv?
+        room = actor.location_room_
+        if room == None:
+            await actor.send_text(CommTypes.DYNAMIC, "You're not in a room.")
+            return
+        obj: Object = actor
+        if not obj.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
+            await actor.send_text(CommTypes.DYNAMIC, "You're not a container, so you can't drop anything.")
+            return
+        item = operating_state.find_target_object(input, actor)
+        if item == None:
+            await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
+            return
+        actor.remove_object(item)
+        room.add_object(item)
+        await actor.send_text(CommTypes.DYNAMIC, f"You drop {item.name_}.")
+

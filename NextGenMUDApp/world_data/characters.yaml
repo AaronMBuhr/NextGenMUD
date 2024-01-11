@@ -35,7 +35,8 @@ CHARACTERS:
         critical_multiplier: 2
 
       - id: rabbit
-        name: a rabbit
+        name: rabbit
+        article: a
         description: >
           A small, furry rabbit.
         attributes:

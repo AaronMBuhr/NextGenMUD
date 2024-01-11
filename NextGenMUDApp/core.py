@@ -1,7 +1,9 @@
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
+from enum import IntFlag
 import re
 import random
+from typing import Dict, List
 
 def to_int(v) -> int:
     if type(v) is int:
@@ -13,19 +15,6 @@ def to_int(v) -> int:
             return int(float(v))
     return int(v)
 
-
-class FlagBitmap:
-    def __init__(self):
-        self.flags = 0
-
-    def set_flag(self, flag):
-        self.flags |= flag
-
-    def clear_flag(self, flag):
-        self.flags &= ~flag
-
-    def is_flag_set(self, flag):
-        return bool(self.flags & flag)
 
 def replace_vars(script, vars: dict) -> str:
     logger = CustomDetailLogger(__name__, prefix="replace_vars()> ")
@@ -283,3 +272,64 @@ def roll_dice(num_dice: int, dice_size: int, dice_bonus: int) -> int:
         total += random.randint(1, dice_size)
     total += dice_bonus
     return total
+
+
+def firstcap(s: str) -> str:
+    return s[0].upper() + s[1:] if s else ""
+
+
+class FlagBitmap:
+    def __init__(self):
+        self.flags = 0
+
+    def set_flag(self, flag):
+        self.flags |= flag.value
+
+    def clear_flag(self, flag):
+        self.flags &= ~flag.value
+
+    def is_flag_set(self, flag):
+        return bool(self.flags & flag.value)
+
+    def are_flags_set(self, flags):
+        return self.flags & flags.value == flags.value
+
+
+class DescriptiveFlags(IntFlag):
+    @staticmethod
+    def field_name_safe(index: int) -> str:
+        try:
+            return DescriptiveFlags.field_name(index)
+        except IndexError:
+            return "unknown_flag"
+
+    def describe(self):
+        descriptions = [self.field_name_safe(flag.value - 1) for flag in type(self) if self & flag]
+        return ', '.join(descriptions)
+
+    # Placeholder for the field_name method. To be implemented in child classes.
+    @staticmethod
+    def field_name(idx):
+        raise NotImplementedError("This method should be implemented in child classes.")
+
+
+def article_plus_name(article: str, name: str):
+    return f"{article} {name}" if article else name
+
+
+def split_preserving_quotes(text):
+    # Regular expression pattern:
+    # - Match and capture anything inside quotes (single or double) without the quotes
+    # - Or match sequences of non-whitespace characters
+    pattern = r'"([^"]*)"|\'([^\']*)\'|(\S+)'
+
+    # Find all matches of the pattern
+    matches = re.findall(pattern, text)
+
+    # Flatten the list of tuples, filter out empty strings
+    return [item for match in matches for item in match if item]
+
+
+def actor_vars(actor: 'Actor', name: str) -> dict:
+    # Using dictionary comprehension to prefix keys and combine dictionaries
+    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}

@@ -24,9 +24,11 @@ class NextGenMUDAppConfig(AppConfig):
         
 # MEDIUM priority
 # - handle capitalization
-# - add 'is here, fighting YOU" to room description
+# - hp regen over time
+# - command abbrevs
+# - need an ON_SPAWN trigger
                         
 # LOW priority
 # - handle possessive pronouns
 # - look room after something dies is not working
-        
+# - add parry?        

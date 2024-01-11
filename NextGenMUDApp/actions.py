@@ -1,8 +1,8 @@
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from .communication import CommTypes
-from .core import set_vars
-from .nondb_models.actors import ActorType, Actor, Room, Character, FlagBitmap, AttackData, DamageType
+from .core import set_vars, firstcap, article_plus_name
+from .nondb_models.actors import ActorType, Actor, Room, Character, FlagBitmap, AttackData, DamageType, Corpse, Object, ObjectFlags
 from .operating_state import operating_state
 from .nondb_models.triggers import TriggerType
 import random
@@ -20,11 +20,35 @@ async def do_look_room(actor: Actor, room: Room):
     # TODO:M: handle batching multiples
     for character in room.characters_:
         if character != actor:
-            msg += "\n" + character.name_ + " is here."
+            logger.critical(f"character: {character.rid}")
+            if character.fighting_whom_:
+                if character.fighting_whom_ == actor:
+                    msg += "\n" + firstcap(character.name_) + " is here, fighting you!"
+                else:
+                    msg += "\n" + firstcap(character.name_) + " is here, fighting " + character.fighting_whom_.name_ + "!"
+            else:
+                msg += "\n" + firstcap(character.name_) + " is here."
     logger.debug(f"Sending room description to actor for: {room.name_}")
+    await actor.send_text(CommTypes.CLEARSTATIC, "")
     await actor.send_text(CommTypes.STATIC, msg)
 
     
+async def do_look_character(actor: Actor, target: Character):
+    logger = CustomDetailLogger(__name__, prefix="do_look_character()> ")
+    msg = firstcap(article_plus_name(target.article_, target.name_)) + "\n" + target.description_ + "\n" + f"firstcap({target.pronoun_subject_}) is {target.get_status_description()}"
+    await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg))
+
+
+async def do_look_object(actor: Actor, target: Object):
+    logger = CustomDetailLogger(__name__, prefix="do_look_object()> ")
+    msg_parts = [ firstcap(article_plus_name(target.article_, target.name_)), target.description_ ]
+    if target.object_flags_.is_set(ObjectFlags.IS_CONTAINER) and not target.object_flags_.is_set(ObjectFlags.IS_CONTAINER_LOCKED):
+        if len(target.contents_) == 0:
+            msg_parts.append(firstcap(target.pronoun_subject_) + " is empty.")
+        else:
+            msg_parts.append(firstcap(target.pronoun_subject_) + " contains:\n" + Object.collapse_name_multiples(target.contents_, "\n"))
+    await actor.echo(CommTypes.STATIC, '\n'.join(msg_parts), set_vars(actor, actor, target))
+
 
 async def arrive_room(actor: Actor, room: Room, room_from: Room = None):
     logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
@@ -56,7 +80,7 @@ async def world_move(actor: Actor, direction: str):
     if not direction in actor.location_room_.exits_:
         raise Exception(f"Location {actor.location_room_.id_} does not have an exit in direction {direction}")
     
-    actor.location_room_.echo("dynamic", f"{actor.name_} leaves {direction}", exceptions=[actor])
+    actor.location_room_.echo("dynamic", f"{firstcap(actor.name_)} leaves {direction}", exceptions=[actor])
     await actor.send_text("dynamic", f"You leave {direction}")
     old_room = actor.location_room_
     destination = actor.location_room_.exits_[direction]
@@ -104,9 +128,9 @@ async def start_fighting(subject: Actor, target: Actor):
     subject.fighting_whom_ = target
     msg = f"You start fighting {target.name_}!"
     await subject.echo(CommTypes.DYNAMIC, msg, set_vars(subject, subject, target, msg))
-    msg = f"{subject.name_} starts fighting you!"
+    msg = f"{firstcap(subject.name_)} starts fighting you!"
     await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, subject, target, msg))
-    msg = f"{subject.name_} starts fighting {target.name_}!"
+    msg = f"{firstcap(subject.name_)} starts fighting {target.name_}!"
     await subject.location_room_.echo(CommTypes.DYNAMIC, msg,
                                       set_vars(subject.location_room_, subject, target, msg),
                                       exceptions=[subject, target])
@@ -138,7 +162,6 @@ async def do_die(dying_actor: Actor, killer: Actor = None, other_killer: str = N
             await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(dying_actor, None, dying_actor, msg),
                                             exceptions=[dying_actor])
-    # TODO:M: handle corpses!
     if dying_actor in operating_state.characters_fighting_:
         operating_state.characters_fighting_.remove(dying_actor)
     if killer:
@@ -152,9 +175,10 @@ async def do_die(dying_actor: Actor, killer: Actor = None, other_killer: str = N
 
     dying_actor.fighting_whom_ = None
     dying_actor.current_hit_points_ = 0
-    # TODO:M: remove ref?
     room = dying_actor.location_room_
     dying_actor.location_room_.remove_character(dying_actor)
+    corpse = Corpse(dying_actor)
+    corpse.transfer_inventory()
     for c in room.characters_:
         logger.critical(f"{c.rid} is refreshing room")
         do_look_room(c, room)

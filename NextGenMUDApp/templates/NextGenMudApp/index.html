@@ -34,8 +34,15 @@
 
         function messageReceived(data) {
             console.log('Message received:', data);
+            if (data.text_type == "clearstatic") {
+                document.getElementById('staticText').value = "";
+            } else if (data.text_type == "cleardynamic") {
+                document.getElementById('dynamicText').value = "";
+            } else
             if (data.text_type === "static") {
-                document.getElementById('staticText').value = data.text;
+                var staticTextArea = document.getElementById('staticText');
+                staticTextArea.value += data.text + "\n";
+                staticTextArea.scrollTop = dynamicTextArea.scrollHeight;
             } else if (data.text_type === "dynamic") {
                 var dynamicTextArea = document.getElementById('dynamicText');
                 dynamicTextArea.value += data.text + "\n";
