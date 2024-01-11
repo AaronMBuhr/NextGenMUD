@@ -41,16 +41,15 @@ class OperatingState:
             new_zone.name_ = zone_info['name']
             # logger.debug(f"new_zone.name_: {new_zone.name_}")
             new_zone.description_ = zone_info['description']
-
+            self.world_definition_.zones_[zone_id] = new_zone
             logger.info(f"Loading rooms...")
             for room_id, room_info in zone_info['rooms'].items():
                 logger.info(f"Loading room_id: {room_id}")
-                new_room = Room(room_id)
+                new_room = Room(room_id, self.world_definition_.zones_[zone_id])
                 new_room.from_yaml(new_zone, room_info)
                 new_zone.rooms_[room_id] = new_room
             logger.info("Rooms loaded")
 
-            self.world_definition_.zones_[zone_id] = new_zone
         logger.info("Zones loaded")
         if self.world_definition_.zones_ == {}:
             raise Exception("No zones loaded.")
@@ -70,11 +69,28 @@ class OperatingState:
         #         self.world_definition_.characters_[ch.id_] = ch
         for zonedef in yaml_data["CHARACTERS"]:
             for chardef in zonedef["characters"]:
-                ch = Character(chardef["id"], zonedef["zone"])
+                ch = Character(chardef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
                 ch.from_yaml(chardef)
                 self.world_definition_.characters_[ch.id_] = ch
-
         logger.info("Characters loaded")
+
+        # Objects
+        logger.info("Loading objects...")
+        characters_file_path = os.path.join(settings.BASE_DIR, 'NextGenMUDApp', 'world_data', 'objects.yaml')
+        with open(characters_file_path, "r") as yf:
+            yaml_data = yaml.safe_load(yf)
+        # print(yaml_data)
+        # for charzone in yaml_data["ZONES"]:
+        #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
+        #         ch = Character(chardef["id"], charzone)
+        #         ch.from_yaml(chardef)
+        #         self.world_definition_.characters_[ch.id_] = ch
+        for zonedef in yaml_data["OBJECTS"]:
+            for objdef in zonedef["objects"]:
+                obj = Object(objdef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
+                obj.from_yaml(objdef)
+                self.world_definition_.objects_[obj.id_] = obj
+        logger.info("Objects loaded")
 
         logger.info("Preparing world...")
         # copy to operating data
@@ -202,22 +218,22 @@ class OperatingState:
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
         if actor:
-            for obj in actor.objects_:
+            for obj in actor.contents_:
                 if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
                     return obj
         if start_room:
-            for obj in start_room.objects_:
+            for obj in start_room.contents_:
                 if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
                     return obj
         if start_zone:
             for room in start_zone.rooms_.values():
-                for obj in room.objects_:
+                for obj in room.contents_:
                     if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
                         return obj
         if search_world:
             for zone in self.zones_.values():
                 for room in zone.rooms_.values():
-                    for obj in room.objects_:
+                    for obj in room.contents_:
                         if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
                             return obj
         return None

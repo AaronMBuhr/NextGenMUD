@@ -101,14 +101,16 @@ class Actor:
 
 
 class Room(Actor):
+    from .world import Zone
     
-    def __init__(self, id: str, zone=None, name: str = "", create_reference=False):
+    def __init__(self, id: str, zone: Zone, name: str = "", create_reference=False):
         super().__init__(ActorType.ROOM, id, name=name, create_reference=create_reference)
+        self.definition_zone_ = zone
         self.exits_ = {}
         self.description_ = ""
         self.zone_ = None
         self.characters_ = []
-        self.objects_ = []
+        self.contents_ = []
         self.location_room_ = self
         self.triggers_by_type_ = {}
 
@@ -184,10 +186,10 @@ class Room(Actor):
         self.characters_.append(character)
 
     def remove_object(self, obj: 'Object'):
-        self.objects_.remove(obj)
+        self.contents_.remove(obj)
 
     def add_object(self, obj: 'Object'):
-        self.objects_.append(obj)
+        self.contents_.append(obj)
 
 
 class EquipLocation(Enum):
@@ -356,8 +358,9 @@ class AttackData():
 
 class Character(Actor):
     
-    def __init__(self, id: str, name: str = "", create_reference=True):
+    def __init__(self, id: str, definition_zone: 'Zone', name: str = "", create_reference=True):
         super().__init__(ActorType.CHARACTER, id, name=name, create_reference=create_reference)
+        self.definition_zone_ = definition_zone
         self.description_ = ""
         self.attributes_ = {}
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
@@ -469,7 +472,7 @@ class Character(Actor):
             new_char.create_reference()
         new_char.max_hit_points_ = roll_dice(new_char.hit_dice_, new_char.hit_dice_size_, new_char.hit_point_bonus_)
         new_char.current_hit_points_ = new_char.max_hit_points_
-        new_char.inventory_ = []
+        new_char.contents_ = []
         new_char.connection_ = None
         new_char.fighting_whom_ = None
         new_char.equipped_ = {loc: None for loc in EquipLocation}
@@ -494,10 +497,10 @@ class Character(Actor):
         # TODO:L: added statuses for burning, poisoned, etc.
 
     def add_object(self, obj: 'Object', force=False):
-        self.inventory_.append(obj)
+        self.contents_.append(obj)
 
     def remove_object(self, obj: 'Object'):
-        self.inventory_.remove(obj)
+        self.contents_.remove(obj)
 
     def is_dead(self):
         return self.current_hit_points_ <= 0
@@ -515,18 +518,19 @@ class ObjectFlags(DescriptiveFlags):
 
 
 class Object(Actor):
-
-    def __init__(self, id: str, name: str = ""):
-        super().__init__(ActorType.OBJECT, id, name)
-        self.name_ = ""
+    def __init__(self, id: str, zone: 'Zone', name: str = "", create_reference=False):
+        super().__init__(ActorType.OBJECT, id, name=name, create_reference=create_reference)
+        self.definition_zone_ = zone
+        self.name_ = name
+        self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
+        self.zone_ = None
         self.object_flags_ = FlagBitmap()
-        self.equip_location_: EquipLocation = None
-        # note that location of LEFT_FINGER also allows RIGHT_FINGER
+        self.equip_locations_: List[EquipLocation] = []
         # for armor
         self.damage_resistances_ = DamageResistances()
         self.damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
         # for weapons
-        self.damage_type_ = DamageType()
+        self.damage_type_: DamageType = None
         self.damage_dice_number_ = 0
         self.damage_dice_size_ = 0
         self.damage_bonus_ = 0
@@ -536,9 +540,7 @@ class Object(Actor):
         return {
             'id': self.id_,
             'name': self.name_,
-            'container': self.container_.id_ if self.container_ else None,
-            'object_flags': self.object_flags_,
-            'equip_location': self.equip_location_.name.lower() if self.equip_location_ else None,
+            'equip_locations': [ loc.name.lower() for loc in self.equip_locations_ ],
             'damage_resistances': self.damage_resistances_.to_dict(),
             'damage_reduction': self.damage_reduction_,
             'damage_type': self.damage_type_.name.lower() if self.damage_type_ else None,
@@ -556,7 +558,6 @@ class Object(Actor):
         self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
         self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
         self.weight_ = yaml_data['weight']
-        self.object_flags_ = FlagBitmap(yaml_data['object_flags'])
         if 'triggers' in yaml_data:
             # print(f"triggers: {yaml_data['triggers']}")
             # raise NotImplementedError("Triggers not implemented yet.")
@@ -623,11 +624,16 @@ class Container:
 
 
 class Corpse(Container):
+
     def __init__(self, character: Character):
         super().__init__()
         self.character_ = character
         self.name_ = f"{character.name_}'s corpse"
         self.container_flags_.set(ObjectFlags.IS_CONTAINER)
+        self.definition_zone_ = None
+        self.location_room_ = character.location_room_
+        self.zone_ = character.zone_
+        self.weight_ = 10
 
     def to_dict(self):
         return {
@@ -639,7 +645,7 @@ class Corpse(Container):
         }
     
     def transfer_inventory(self):
-        for obj in self.character_.inventory_:
+        for obj in self.character_.contents_[:]:
+            self.character_.remove_object(obj)
             self.add_object(obj)
-            obj.location_room_ = self
-        self.character_.inventory_ = []
+            obj.location_room_ = self.character.location_room_

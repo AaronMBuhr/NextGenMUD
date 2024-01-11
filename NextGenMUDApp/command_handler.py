@@ -3,7 +3,7 @@ from .actions import world_move, do_look_room, start_fighting, do_look_character
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
-from .nondb_models.actors import Actor, ActorType, Character, CharacterFlags, Object, ObjectFlags
+from .nondb_models.actors import Actor, ActorType, Character, CharacterFlags, Object, ObjectFlags, Room
 from .nondb_models import world
 from .operating_state import operating_state, OperatingState
 import re
@@ -376,7 +376,7 @@ async def cmd_show(actor: Actor, input: str):
                 "name": room.name_,
                 "description": room.description_,
                 "characters": [character.id_ for character in room.characters_],
-                "objects": [object.id_ for object in room.objects_],
+                "objects": [object.id_ for object in room.contents_],
                 "triggers": {
                     trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
                         trigger.to_dict() for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type_.items()
@@ -439,11 +439,13 @@ async def cmd_look(actor: Actor, input: str):
 
 async def cmd_spawn(actor: Actor, input: str):
     # TODO:L: what if an object in a container spawns something?
+    logger = CustomDetailLogger(__name__, prefix="cmd_spawn()> ")
     pieces = input.split(' ')
     if len(pieces) < 1:
-        await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
+        await actor.send_text(CommTypes.DYNAMIC, "Spawn char or obj?")
         return
     if pieces[0].lower() == "char":
+        print("******** spawning char")
         character_def = operating_state.world_definition_.find_character_definition(' '.join(pieces[1:]))
         if not character_def:
             await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find a character definition for {pieces[1:]}.")
@@ -452,26 +454,47 @@ async def cmd_spawn(actor: Actor, input: str):
         operating_state.characters_.append(new_character)
         new_character.location_room_ = actor.location_room_
         new_character.location_room_.add_character(new_character)
+        logger.critical(f"new_character: {new_character} added to room {new_character.location_room_.rid}")
         await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
         await do_look_room(actor, actor.location_room_)
     elif pieces[0].lower() == "obj":
+        print("******** spawning obj")
         object_def = operating_state.world_definition_.find_object_definition(' '.join(pieces[1:]))
         if not object_def:
             await actor.send_text(CommTypes.DYNAMIC, f"Couldn't find an object definition for {pieces[1:]}.")
             return
         new_object = Object.create_from_definition(object_def)
+        logger.critical(f"new_object: {new_object}")
         if actor.actor_type_ == ActorType.CHARACTER:
+            logger.critical("adding to character")
             actor.add_object(new_object, True)
+            logger.critical(f"new_object: {new_object} added to character {actor}")
+            logger.critical(f"actor.contents_ length: {len(actor.contents_)}")
+            print(Object.collapse_name_multiples(actor.contents_, ","))
         elif actor.actor_type_ == ActorType.OBJECT:
             if actor.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
+                logger.critical("adding to container")
                 actor.add_object(new_object, True)
+                logger.critical(f"new_object: {new_object} added to container {actor}")
+                print(Object.collapse_name_multiples(actor.contents_, ","))
             else:
+                logger.critical("adding to room")
                 actor.location_room_.add_object(new_object)
+                logger.critical(f"new_object: {new_object} added to room {actor.location_room_}")
+                print(Object.collapse_name_multiples(actor.location_room_.contents_, ","))
         elif actor.actor_type_ == ActorType.ROOM:
-            actor.objects_.append(new_object)
-        await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+                logger.critical("adding to room")
+                actor.add_object(new_object)
+                logger.critical(f"new_object: {new_object} added to room {actor}")
+                print(Object.collapse_name_multiples(actor.contents_, ","))
+        else:
+            raise NotImplementedError(f"ActorType {actor.actor_type_} for object not implemented.")
     else:
         await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
+        return
+    print("***********************")
+    print(new_object)
+    await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_object.article_, new_object.name_)}.")
 
 
 async def cmd_goto(actor: Actor, input: str):
@@ -582,27 +605,35 @@ Permanent variables:
 
 
 async def cmd_inventory(actor: Actor, input: str):
-    msg_parts = [ "You are carrying:"]
+    logger = CustomDetailLogger(__name__, prefix="cmd_inventory()> ")
+    msg_parts = [ "You are carrying:\n"]
     if actor.actor_type_ == ActorType.CHARACTER:
-        char: Character = actor
-        if len(actor.inventory_) == 0:
+        logger.critical(f"char: {actor.rid}")
+        if len(actor.contents_) == 0:
             msg_parts.append(" nothing.")
         else:
-            inv = Object.collapse_name_multiples(char.inventory_, "\n")
+            msg_parts.append(Object.collapse_name_multiples(actor.contents_, "\n"))
         await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
     elif actor.actor_type_ == ActorType.OBJECT:
-        obj: Object = actor
-        if not obj.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
+        logger.critical(f"obj: {actor.rid}")
+        if not actor.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER):
             msg_parts.append(" nothing (you're not a container).")
         else:
-            if len(obj.inventory_) == 0:
+            if len(actor.contents_) == 0:
                 msg_parts.append(" nothing.")
             else:
-                inv = Object.collapse_name_multiples(obj.inventory_, "\n")
+                msg_parts.append(Object.collapse_name_multiples(actor.contents_, "\n"))
             await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+    elif actor.actor_type_ == ActorType.ROOM:
+        logger.critical(f"room: {actor.rid}")
+        room: Room = actor
+        if len(room.contents_) == 0:
+            msg_parts.append(" nothing.")
+        else:
+            msg_parts.append(Object.collapse_name_multiples(room.contents_, "\n"))
+        await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
     else:
-        await actor.send_text(CommTypes.DYNAMIC, "You're not a character or object, so you can't have an inventory.")
-
+        raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
 
 
 async def cmd_at(actor: Actor, input: str):
@@ -655,19 +686,24 @@ async def cmd_get(actor: Actor, input: str):
             return
         num_got = 0
         for i in range(qty):
-            item = operating_state.find_target_object(room, item_name, None, search_world=False)
+            item = operating_state.find_target_object(item_name, actor=None, start_room=room, search_world=False)
             if item == None:
                 break
             num_got += 1
             room.remove_object(item)
             actor.add_object(item)
-            prefix = item.article_
+            apn = article_plus_name(item.article_, item.name_)
         if num_got == 0:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't see any {item_name} here.")
             return
         if num_got > 1:
-            prefix = num2words(num_got)
-        await actor.send_text(CommTypes.DYNAMIC, f"You get {prefix} {item.name_}{'s' if num_got > 1 else ''}.")
+            apn = num2words(num_got) + " " + item.name_
+        msg = f"You get {apn}."
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
+        msg = f"{firstcap(actor.name_)} gets you."
+        await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
+        msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} gets {apn}."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor, item])
 
 
 async def cmd_drop(actor: Actor, input: str):
@@ -686,9 +722,11 @@ async def cmd_drop(actor: Actor, input: str):
         actor.remove_object(item)
         room.add_object(item)
         msg = f"You drop {item.name_}."
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg))
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
+        msg = f"{firstcap(actor.name_)} drops you."
+        await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
         msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} drops {article_plus_name(item.article_, item.name_)}."
-        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), exceptions=[actor])
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor])
     elif actor.actor_type_ == ActorType.OBJECT:
         # TODO:L: what if in a container? to floor?
         # TODO:L: want to drop from container to inv?

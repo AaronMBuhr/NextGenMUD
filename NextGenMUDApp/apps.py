@@ -21,7 +21,8 @@ class NextGenMUDAppConfig(AppConfig):
 
 # HIGH priority
 # - handle "you die"
-        
+# - get all
+                
 # MEDIUM priority
 # - handle capitalization
 # - hp regen over time

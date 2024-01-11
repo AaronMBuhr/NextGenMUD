@@ -16,21 +16,23 @@ def actor_vars(actor: Actor, name: str) -> dict:
 async def do_look_room(actor: Actor, room: Room):
     logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
     # await actor.send_text(CommTypes.STATIC, room.description_)
-    msg = room.name_ + "\n" + room.description_
+    msg_parts = [ room.name_ , room.description_ ]
     # TODO:M: handle batching multiples
     for character in room.characters_:
         if character != actor:
             logger.critical(f"character: {character.rid}")
             if character.fighting_whom_:
                 if character.fighting_whom_ == actor:
-                    msg += "\n" + firstcap(character.name_) + " is here, fighting you!"
+                    msg_parts.append(firstcap(character.name_) + " is here, fighting you!")
                 else:
-                    msg += "\n" + firstcap(character.name_) + " is here, fighting " + character.fighting_whom_.name_ + "!"
+                    msg_parts.append(firstcap(character.name_) + " is here, fighting " + character.fighting_whom_.name_ + "!")
             else:
-                msg += "\n" + firstcap(character.name_) + " is here."
+                msg_parts.append(firstcap(character.name_) + " is here.")
+    for object in room.contents_: 
+        msg_parts.append(firstcap(article_plus_name(object.article_, object.name_)) + " is here.")
     logger.debug(f"Sending room description to actor for: {room.name_}")
     await actor.send_text(CommTypes.CLEARSTATIC, "")
-    await actor.send_text(CommTypes.STATIC, msg)
+    await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts))
 
     
 async def do_look_character(actor: Actor, target: Character):

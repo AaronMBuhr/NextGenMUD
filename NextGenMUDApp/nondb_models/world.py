@@ -1,7 +1,6 @@
 from ..constants import Constants
 from enum import Enum
 import json
-from .actors import Actor, Character, Room, Object
 
 class Zone:
     def __init__(self, id):
@@ -35,7 +34,7 @@ class WorldDefinition:
         self.characters_ = {}
         self.objects_ = {}
 
-    def find_character_definition(self, character_id_or_name: str) -> Character:
+    def find_character_definition(self, character_id_or_name: str) -> 'Character':
         if character_id_or_name in self.characters_:
             return self.characters_[character_id_or_name]
         for character in self.characters_:
@@ -43,3 +42,11 @@ class WorldDefinition:
                 return character
         return None
 
+    def find_object_definition(self, object_id_or_name: str) -> 'Object':
+        if object_id_or_name in self.objects_:
+            return self.objects_[object_id_or_name]
+        for object in self.objects_:
+            if object_id_or_name.startswith(object_id_or_name):
+                return object
+        return None
+    
