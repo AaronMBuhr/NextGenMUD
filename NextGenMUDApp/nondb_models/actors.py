@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..utility import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags
+from ..utility import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags, article_plus_name
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto, IntFlag
 import json
@@ -126,7 +126,7 @@ class Room(Actor):
             # Convert complex objects to a serializable format, if necessary
             # 'zone': self.zone_.to_dict() if self.zone_ else None,
             # 'characters': [c.to_dict() for c in self.characters_],
-            # 'objects': [o.to_dict() for o in self.objects_],
+            # 'objects': [o.to_dict() for o in self.contents_],
         }
     
     def __repr__(self):
@@ -187,9 +187,11 @@ class Room(Actor):
 
     def remove_object(self, obj: 'Object'):
         self.contents_.remove(obj)
+        obj.in_actor_ = None
 
     def add_object(self, obj: 'Object'):
         self.contents_.append(obj)
+        obj.in_actor_ = self
 
 
 class EquipLocation(Enum):
@@ -408,6 +410,7 @@ class Character(Actor):
         self.definition_zone_ = definition_zone
         self.description_ = ""
         self.attributes_ = {}
+        self.contents_ = []
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
         self.contents_: List[Object] = []
         self.permanent_character_flags_ = FlagBitmap()
@@ -441,7 +444,8 @@ class Character(Actor):
 
     def from_yaml(self, yaml_data: str):
         self.name_ = yaml_data['name']
-        self.description_ = yaml_data['description']
+        self.article_ = yaml_data['article'] if 'article' in yaml_data else "a" if self.name_[0].lower() in "aeiou" else "an" if self.name_ else ""
+        self.description_ = yaml_data['description'] if 'description' in yaml_data else ''
         self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
         self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
         self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
@@ -549,13 +553,16 @@ class Character(Actor):
         else:
             msg = "in excellent health"
         # TODO:L: added statuses for burning, poisoned, etc.
+        return msg
 
     def add_object(self, obj: 'Object', force=False):
         self.contents_.append(obj)
+        obj.in_actor_ = self
         self.current_carrying_weight_ += obj.weight_
 
     def remove_object(self, obj: 'Object'):
         self.contents_.remove(obj)
+        obj.in_actor_ = None
         self.current_carrying_weight_ -= obj.weight_
 
     def is_dead(self):
@@ -601,6 +608,7 @@ class Object(Actor):
         self.name_ = name
         self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
         self.zone_ = None
+        self.in_actor_ = None
         self.object_flags_ = FlagBitmap()
         self.equip_locations_: List[EquipLocation] = []
         # for armor
@@ -674,9 +682,11 @@ class Object(Actor):
     
     def add_object(self, obj: 'Object', force=False):
         self.contents_.append(obj)
+        obj.in_actor_ = self
 
     def remove_object(self, obj: 'Object'):
         self.contents_.remove(obj)
+        obj.in_actor_ = None
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
@@ -721,14 +731,16 @@ class Object(Actor):
 
 class Corpse(Object):
 
-    def __init__(self, character: Character):
-        super().__init__()
+    def __init__(self, character: Character, room: Room):
+        id = character.id_ + "_corpse"
+        super().__init__(id, character.definition_zone_, name=f"{article_plus_name(character.article_, character.name_)}'s corpse", create_reference=True)
+        self.article_ = ""
+        self.description_ = f"The corpse of {character.name_} lies here. It makes you feel sad..."
         self.character_ = character
-        self.name_ = f"{character.name_}'s corpse"
-        self.container_flags_.set(ObjectFlags.IS_CONTAINER)
+        self.object_flags_.set_flag(ObjectFlags.IS_CONTAINER)
         self.definition_zone_ = None
-        self.location_room_ = character.location_room_
-        self.zone_ = character.zone_
+        self.location_room_ = room
+        self.zone_ = room.zone_
         self.weight_ = 10
 
     def to_dict(self):

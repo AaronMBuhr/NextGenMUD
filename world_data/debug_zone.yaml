@@ -1,12 +1,12 @@
 ZONES:
   debug_zone:
-    name: Starting Zone
-    description: The place where all new characters begin their adventures.
+    name: Debug Zone
+    description: The fundamental system zone.
     rooms:
       starting_room:
         name: Starting Room
         description: >
-          The room where all new characters begin their adventures.
+          The fundamental system starting room.
           
           Exits: north
         exits:
@@ -65,7 +65,7 @@ ZONES:
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
-                predicate: 4
+                predicate: 10
               - subject: "$random(1,100)"
                 operator: "numlte"
                 predicate: 25
@@ -101,7 +101,7 @@ CHARACTERS:
         class:
           Fighter:
             level: 1
-        hit_dice: 10
+        hit_dice: 100
         character_flags:
           - pc
         natural_attacks:

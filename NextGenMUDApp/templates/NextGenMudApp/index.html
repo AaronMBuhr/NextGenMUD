@@ -5,30 +5,55 @@
     <title>NextGenMUD</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #1a1a1a;
+            color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 10px;
+        }
         .text-box {
             width: 95%;
             margin: 10px auto;
             padding: 5px;
+            background-color: #3a3a3a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
         }
         #staticText, #dynamicText {
             height: 12em;
             overflow-y: scroll;
         }
         #inputText {
-            width: 80%;
-            display: inline-block;
+            width: 75%;
         }
         #submitButton {
-            display: inline-block;
+            width: 20%;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        #submitButton:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to NextGenMUD</h1>
-    <textarea id="staticText" class="text-box" readonly></textarea>
-    <textarea id="dynamicText" class="text-box" readonly></textarea>
-    <textarea id="inputText" class="text-box"></textarea>
-    <button id="submitButton">Submit</button>
+    <div class="container">
+        <h1>Welcome to NextGenMUD</h1>
+        <textarea id="staticText" class="text-box" readonly></textarea>
+        <textarea id="dynamicText" class="text-box" readonly></textarea>
+        <textarea id="inputText" class="text-box"></textarea>
+        <button id="submitButton">Submit</button>
+    </div>
 
     <script type="text/javascript">
 
@@ -99,5 +124,6 @@
     });
 
 </script>
+
 </body>
 </html>
