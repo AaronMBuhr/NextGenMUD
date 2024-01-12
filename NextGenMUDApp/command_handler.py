@@ -752,6 +752,7 @@ class CommandHandler():
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
             msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} gets {apn}."
             await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor, item])
+            await CoreActions.do_look_room(actor, room)
 
 
     @classmethod
