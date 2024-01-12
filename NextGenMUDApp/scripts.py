@@ -53,7 +53,8 @@ class ScriptHandler:
         logger.debug3(f"process_command on line: {line}")
         line = evaluate_functions_in_line(line, vars)
         logger.debug3(f"line after evaluate_functions_in_line(): {line}")
-        await CommandHandler.process_command(actor, line, vars)
+        logger.critical(f"should process command on line: {line}")
+        # await CommandHandler.process_command(actor, line, vars)
 
         return remaining_script
 

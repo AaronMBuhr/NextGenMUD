@@ -352,7 +352,7 @@ class CommandHandler():
                     "name": room.name_,
     #                "description": room.description_,
                     "characters": [character.id_ for character in room.characters_],
-                    "objects": [object.id_ for object in room.objects_],
+                    "objects": [object.id_ for object in room.contents_],
                     "triggers": {
                         trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
                             {
@@ -378,6 +378,28 @@ class CommandHandler():
                     "temp_variables": a.temp_variables_,
                     "perm_variables": a.perm_variables_,
                 } for a in Actor.references_.values() if a.actor_type_ == ActorType.CHARACTER
+            }
+        elif pieces[0].lower() == "objects":
+            answer["OBJECTS"] = {
+                a.id_ : {
+                    "id": a.id_,
+                    "name": a.name_,
+                    "description": a.description_,
+                    "location": a.location_room_.id_ if a.location_room_ else None,
+                    "temp_variables": a.temp_variables_,
+                    "perm_variables": a.perm_variables_,
+                } for a in Actor.references_.values() if a.actor_type_ == ActorType.OBJECT and a.location_room_ is not None
+            }
+        elif pieces[0].lower() == "carried":
+            answer["OBJECTS"] = {
+                a.id_ : {
+                    "id": a.id_,
+                    "name": a.name_,
+                    "description": a.description_,
+                    "inside": f"{article_plus_name(a.article_, a.in_actor_.name_)} ({a.in_actor_.rid})" if a.in_actor_ else None,
+                    "temp_variables": a.temp_variables_,
+                    "perm_variables": a.perm_variables_,
+                } for a in Actor.references_.values() if a.actor_type_ == ActorType.OBJECT and a.in_actor_ is not None
             }
         elif pieces[0].lower() == "room":
             try:
@@ -423,12 +445,17 @@ class CommandHandler():
         found = False
 
         # character?
+        logger.critical("looking for characters")
         target = cls.game_state.find_target_character(actor, input, search_zone=False, search_world=False)
         if target:
+            logger.critical("found character")
             await CoreActions.do_look_character(actor, target)
             return
-        target = cls.game_state.find_target_object(actor.location_room_, input, None, search_world=False)
+        # object?
+        logger.critical("looking for objects")
+        target = cls.game_state.find_target_object(input, actor.location_room_, None, search_world=False)
         if target:
+            logger.critical("found object")
             await CoreActions.do_look_object(actor, target)
             return
 
@@ -472,7 +499,7 @@ class CommandHandler():
             new_character.location_room_ = actor.location_room_
             new_character.location_room_.add_character(new_character)
             logger.critical(f"new_character: {new_character} added to room {new_character.location_room_.rid}")
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_character.name_}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_character.article_, new_character.name_)}.")
             await CoreActions.do_look_room(actor, actor.location_room_)
         elif pieces[0].lower() == "obj":
             object_def = cls.game_state.world_definition_.find_object_definition(' '.join(pieces[1:]))
@@ -745,10 +772,12 @@ class CommandHandler():
             room.add_object(item)
             msg = f"You drop {item.name_}."
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
+            await CoreActions.do_look_room(actor, room)
             msg = f"{firstcap(actor.name_)} drops you."
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
             msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} drops {article_plus_name(item.article_, item.name_)}."
             await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor])
+            await CoreActions.do_look_room(actor, room)
         elif actor.actor_type_ == ActorType.OBJECT:
             # TODO:L: what if in a container? to floor?
             # TODO:L: want to drop from container to inv?

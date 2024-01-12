@@ -24,14 +24,14 @@ ZONES:
             criteria: 
               - subject: "%{time_elapsed}"
                 operator: "numgte"
-                predicate: 5
+                predicate: 12
             script: |
               echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
           - type: timer_tick
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
-                predicate: 10
+                predicate: 12
               - subject: "$random(1,100)"
                 operator: "numlte"
                 predicate: 30
@@ -80,7 +80,7 @@ ZONES:
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
-                predicate: 6
+                predicate: 12
             script: |
               echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
           - type: catch_look
@@ -108,7 +108,7 @@ ZONES:
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
-                predicate: 8
+                predicate: 12
               - subject: "$random(1,100)"
                 operator: "numlte"
                 predicate: 20
@@ -168,4 +168,3 @@ CHARACTERS:
         dodge_dice: 5d10+30
         critical_chance: 0.05
         critical_multiplier: 2
-        

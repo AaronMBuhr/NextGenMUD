@@ -13,6 +13,7 @@ from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
 import fnmatch
 from .config import Config, default_app_config
+from .utility import article_plus_name
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
 
 class LiveGameStateContextManager:
@@ -33,12 +34,12 @@ class LiveGameStateContextManager:
 
 
 def find_yaml_files(directory):
-    print(f"------------------ {directory}")
+    # print(f"------------------ {directory}")
     for root, dirs, files in os.walk(directory):
-        print("***************")
-        print(root,dirs,files)
+        # print("***************")
+        # print(root,dirs,files)
         for file in files:
-            print(file)
+            # print(file)
             if fnmatch.fnmatch(file, '*.yaml') or fnmatch.fnmatch(file, '*.yml'):
                 yield os.path.join(root, file)
 
@@ -177,8 +178,13 @@ class ComprehensiveGameState:
         # Helper function to add candidates from a room
         def add_candidates_from_room(room):
             for char in room.characters_:
-                if char.name_.startswith(target_name) or char.id_.startswith(target_name):
+                if char.id_.startswith(target_name):
                     candidates.append(char)
+                else:
+                    name_pieces = char.name_.split(' ')
+                    for piece in name_pieces:
+                        if piece.startswith(target_name):
+                            candidates.append(char)
 
         # Search in the current room
         add_candidates_from_room(start_room)
@@ -221,8 +227,14 @@ class ComprehensiveGameState:
         # Helper function to add matching characters from a room
         def add_matching_characters_from_room(room):
             for char in room.characters_:
-                if char.name_.startswith(target_name) or char.id_.startswith(target_name):
-                    matching_characters.append(f"{char.name_} {room.name_}")
+                if char.id_.startswith(target_name):
+                    matching_characters.append(f"{article_plus_name(char.article_, char.name_, cap=True)} in {room.name_}")
+                else:
+                    name_pieces = char.name_.split(' ')
+                    for piece in name_pieces:
+                        if piece.startswith(target_name):
+                            matching_characters.append(f"{article_plus_name(char.article_, char.name_, cap=True)} in {room.name_}")
+                            break
 
         # Search in the current room
         add_matching_characters_from_room(start_room)
@@ -249,32 +261,42 @@ class ComprehensiveGameState:
                 return room
         for zone in self.zones_:
             for room in zone.rooms_.values():
-                if room.name_.startswith(target_name) or room.id_.startswith(target_name):
+                if room.id_.startswith(target_name):
                     return room
+                for pieces in room.name_.split(' '):
+                    if pieces.startswith(target_name):
+                        return room
         return None
     
 
     def find_target_object(self, target_name: str, actor: Actor = None, start_room: Room = None, start_zone: Zone = None, search_world=False) -> Object:
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
+        def check_object(obj) -> bool:
+            if obj.id_.startswith(target_name):
+                return True
+            for pieces in obj.name_.split(' '):
+                if pieces.startswith(target_name):
+                    return True
+            return False
         if actor:
             for obj in actor.contents_:
-                if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
+                if check_object(obj):
                     return obj
         if start_room:
             for obj in start_room.contents_:
-                if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
+                if check_object(obj):
                     return obj
         if start_zone:
             for room in start_zone.rooms_.values():
                 for obj in room.contents_:
-                    if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
+                    if check_object(obj):
                         return obj
         if search_world:
             for zone in self.zones_.values():
                 for room in zone.rooms_.values():
                     for obj in room.contents_:
-                        if obj.name_.startswith(target_name) or obj.id_.startswith(target_name):
+                        if check_object(obj):
                             return obj
         return None
 

@@ -313,8 +313,11 @@ class DescriptiveFlags(IntFlag):
         raise NotImplementedError("This method should be implemented in child classes.")
 
 
-def article_plus_name(article: str, name: str):
-    return f"{article} {name}" if article else name
+def article_plus_name(article: str, name: str, cap: bool=False):
+    if cap:
+        return firstcap(article_plus_name(article, name)) if article != None and article != "" else firstcap(name)
+    else:
+        return f"{article} {name}" if article != None and article != "" else name
 
 
 def split_preserving_quotes(text):
