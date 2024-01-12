@@ -19,6 +19,8 @@ class ScriptHandler:
         #     logger.debug3(f"remaining: {script}")
         #     # pass
         while True:
+            # print("*********** run_script")
+            # print(script)
             if script.startswith("$if("):
                 end_of_condition_pos = find_matching_parenthesis(script, 3)
                 condition = script[4:end_of_condition_pos]
@@ -36,6 +38,10 @@ class ScriptHandler:
                 script = (await cls.process_line(actor, script, vars)).strip()
                 logger.debug3(f"remaining: {script}")
             script = script.strip()
+            # print("----------------")
+            # print("******* script done")
+            # print(script)
+            # raise Exception("run_script break")
             if not script:
                 break
 

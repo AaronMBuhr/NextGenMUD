@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..utility import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags, article_plus_name
+from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, DescriptiveFlags
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto, IntFlag
 import json
@@ -237,8 +237,8 @@ class GamePermissionFlags(DescriptiveFlags):
     CAN_INSPECT = 2
     CAN_MODIFY = 4
 
-    @staticmethod
-    def field_name(idx):
+    @classmethod
+    def field_name(cls, idx):
         return ["is admin", "can inspect", "can modify"][idx]
 
 
@@ -247,9 +247,9 @@ class CharacterFlags(DescriptiveFlags):
     IS_DEAD = 2**1
     CAN_DUAL_WIELD = 2**2
 
-    @staticmethod
-    def field_name(idx):
-        return ["is pc", "is dead"][idx]
+    @classmethod
+    def field_name(cls, idx):
+        return ["is pc", "is dead", "can dual wield"][idx]
 
 
 
@@ -413,8 +413,8 @@ class Character(Actor):
         self.contents_ = []
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
         self.contents_: List[Object] = []
-        self.permanent_character_flags_ = FlagBitmap()
-        self.temporary_character_flags_ = FlagBitmap()
+        self.permanent_character_flags_ = CharacterFlags(0)
+        self.temporary_character_flags_ = CharacterFlags(0)
         self.status_effects_ = []
         self.connection_: 'Connection' = None
         self.fighting_whom_: Character = None
@@ -429,13 +429,13 @@ class Character(Actor):
         self.dodge_dice_size_: int = 50
         self.dodge_modifier_: int = 0
         self.critical_chance_: int = 0
-        self.critical_multiplier: int = 100
+        self.critical_multiplier_: int = 100
         self.hit_dice_ = 1
         self.hit_dice_size_ = 10
         self.hit_point_bonus_ = 0
         self.max_hit_points_ = 1
         self.current_hit_points_ = 1
-        self.game_permission_flags_ = FlagBitmap()
+        self.game_permission_flags_ = GamePermissionFlags(0)
         self.max_carrying_capacity_ = 100
         self.current_carrying_weight_ = 0
         self.num_main_hand_attacks_ = 1
@@ -443,12 +443,24 @@ class Character(Actor):
 
 
     def from_yaml(self, yaml_data: str):
+        logger = CustomDetailLogger(__name__, prefix="Character.from_yaml()> ")
+        # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
+        # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
         self.name_ = yaml_data['name']
         self.article_ = yaml_data['article'] if 'article' in yaml_data else "a" if self.name_[0].lower() in "aeiou" else "an" if self.name_ else ""
         self.description_ = yaml_data['description'] if 'description' in yaml_data else ''
         self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
         self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
         self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+        # if 'character_flags' in yaml_data:
+        #     for flag in yaml_data['character_flags']:
+        #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])
+        if 'character_flags' in yaml_data:
+            for flag in yaml_data['character_flags']:
+                try:
+                    self.permanent_character_flags_ = self.permanent_character_flags_.add_flag_name(flag)
+                except KeyError as e:
+                    logger.error(f"Error: {flag.upper()} is not a valid CharacterFlag. Details: {e}")
         # need attributes
         # need classes
         hit_point_parts = get_dice_parts(yaml_data['hit_dice'])
@@ -474,29 +486,33 @@ class Character(Actor):
         dodge_parts = get_dice_parts(yaml_data['dodge_dice'])
         self.dodge_dice_number_, self.dodge_dice_size_, self.dodge_modifier_ = dodge_parts[0], dodge_parts[1], dodge_parts[2]
         self.critical_chance_ = yaml_data['critical_chance']
-        self.critical_multiplier = yaml_data['critical_multiplier']
+        self.critical_multiplier_ = yaml_data['critical_multiplier']
         if 'triggers' in yaml_data:
             for trig in yaml_data['triggers']:
+                logger.debug(f"got trigger for {self.name_}: {trig}")
                 # logger.debug3(f"loading trigger_type: {trigger_type}")
                 new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
                 if not new_trigger.trigger_type_ in self.triggers_by_type_:
                     self.triggers_by_type_[new_trigger.trigger_type_] = []
                 self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
-
-        if 'triggers' in yaml_data:
-            # print(f"triggers: {yaml_data['triggers']}")
-            # raise NotImplementedError("Triggers not implemented yet.")
-            # for trigger_type, trigger_info in yaml_data['triggers'].items():
-            #     # logger.debug3(f"loading trigger_type: {trigger_type}")
-            #     if not trigger_type in self.triggers_by_type_:
-            #         self.triggers_by_type_[trigger_type] = []
-            #     self.triggers_by_type_[trigger_type] += trigger_info
-            for trig in yaml_data['triggers']:
-                # logger.debug3(f"loading trigger_type: {trigger_type}")
-                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                if not new_trigger.trigger_type_ in self.triggers_by_type_:
-                    self.triggers_by_type_[new_trigger.trigger_type_] = []
-                self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
+        # unnecessary?
+        # if 'triggers' in yaml_data:
+        #     # print(f"triggers: {yaml_data['triggers']}")
+        #     # raise NotImplementedError("Triggers not implemented yet.")
+        #     # for trigger_type, trigger_info in yaml_data['triggers'].items():
+        #     #     # logger.debug3(f"loading trigger_type: {trigger_type}")
+        #     #     if not trigger_type in self.triggers_by_type_:
+        #     #         self.triggers_by_type_[trigger_type] = []
+        #     #     self.triggers_by_type_[trigger_type] += trigger_info
+        #     logger.critical(f"def triggers first: {self.triggers_by_type_}")
+        #     for trig in yaml_data['triggers']:
+        #         logger.critical("in for loop for trigger")
+        #         # logger.debug3(f"loading trigger_type: {trigger_type}")
+        #         new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+        #         if not new_trigger.trigger_type_ in self.triggers_by_type_:
+        #             self.triggers_by_type_[new_trigger.trigger_type_] = []
+        #         self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
+        #     logger.critical(f"def triggers: {self.triggers_by_type_}")
 
 
     async def send_text(self, text_type: CommTypes, text: str) -> bool:
@@ -523,7 +539,10 @@ class Character(Actor):
 
     @classmethod
     def create_from_definition(cls, char_def: 'Character') -> 'Character':
+        logger = CustomDetailLogger(__name__, prefix="Character.create_from_definition()> ")
+        logger.critical(f"char def triggers: {char_def.triggers_by_type_}")
         new_char = copy.deepcopy(char_def)
+        logger.critical(f"new_char triggers: {char_def.triggers_by_type_}")
         if not new_char.reference_number_ or new_char.reference_number_ == char_def.reference_number_:
             new_char.create_reference()
         new_char.max_hit_points_ = roll_dice(new_char.hit_dice_, new_char.hit_dice_size_, new_char.hit_point_bonus_)
@@ -534,6 +553,7 @@ class Character(Actor):
         new_char.equipped_ = {loc: None for loc in EquipLocation}
         for trig_type, trig_data in new_char.triggers_by_type_.items():
             for trig in trig_data:
+                logger.debug(f"enabling trigger: {trig.to_dict()}")
                 trig.actor_ = new_char
                 trig.enable()
         return new_char
@@ -600,8 +620,8 @@ class ObjectFlags(DescriptiveFlags):
     IS_CONTAINER = 2**2
     IS_CONTAINER_LOCKED = 2**3
 
-    @staticmethod
-    def field_name(idx):
+    @classmethod
+    def field_name(cls, idx):
         return ["armor", "weapon", "container", "container-locked"][idx]
 
 
@@ -613,7 +633,7 @@ class Object(Actor):
         self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
         self.zone_: 'Zone' = None
         self.in_actor_: Actor = None
-        self.object_flags_ = FlagBitmap()
+        self.object_flags_ = ObjectFlags(0)
         self.equipped_location_: EquipLocation = None
         self.equip_locations_: List[EquipLocation] = []
         # for armor

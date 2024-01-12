@@ -61,24 +61,24 @@ ZONES:
           #       predicate: 4
           #   script: |
           #     echo Tick!
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 10
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 25
-            script: |
-              echo Wildlife rustles in the underbrush.
-          - type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "squirrel"
-            script: |
-              echo You see a squirrel.
-              echoexcept %{S} %{s} sees a squirrel.
+          # - type: timer_tick
+          #   criteria:
+          #     - subject: "%{time_elapsed}"
+          #       operator: "numgte"
+          #       predicate: 10
+          #     - subject: "$random(1,100)"
+          #       operator: "numlte"
+          #       predicate: 25
+          #   script: |
+          #     echo Wildlife rustles in the underbrush.
+          # - type: catch_look
+          #   criteria: 
+          #     - subject: "%{*}"
+          #       operator: contains
+          #       predicate: "squirrel"
+          #   script: |
+          #     echo You see a squirrel.
+          #     echoexcept %{S} %{s} sees a squirrel.
 
 CHARACTERS:
   - zone: debug_zone
@@ -103,7 +103,7 @@ CHARACTERS:
             level: 1
         hit_dice: 100
         character_flags:
-          - pc
+          - is_pc
         natural_attacks:
           - attack_noun: punch
             attack_verb: punches
@@ -112,6 +112,54 @@ CHARACTERS:
               damage_dice: 1d4+1
         hit_modifier: 0
         dodge_dice: 1d50
+        critical_chance: 0.05
+        critical_multiplier: 2
+
+      - id: rabbit
+        name: rabbit
+        article: a
+        description: >
+          A small, furry rabbit.
+        attributes:
+          strength: 2
+          dexterity: 14
+          constitution: 3
+          intelligence: 2
+          wisdom: 2
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d4+1
+        triggers:
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "kicks you"
+            script: |
+              emote gets angry!
+              lick %{A}
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "starts fighting you"
+            script: |
+              emote gets angry!
+              kick %{S}
+        damage_resistances:
+          bludgeoning: 2
+          unholy: 0
+          pyschic: 0.5
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bite
+            potential_damage:
+            - damage_type: piercing
+              damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 5d10+30
         critical_chance: 0.05
         critical_multiplier: 2
 
