@@ -4,10 +4,23 @@ from custom_detail_logger import CustomDetailLogger
 import json
 from . import state_handler
 
+# class MyWebsocketConsumerStateHandlerInterface:
+#     @classmethod
+#     async def start_connection(self, consumer: 'MyWebsocketConsumer'):
+#         pass
+
+#     @classmethod
+#     def remove_character(self, connection: 'Connection'):
+#         pass
+
 class MyWebsocketConsumer(AsyncWebsocketConsumer):
+
+    game_state = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from .comprehensive_game_state import ComprehensiveGameState, live_game_state
+        MyWebsocketConsumer.game_state = live_game_state 
         self.input_queue_ = deque()
 
     @property
@@ -23,13 +36,13 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
             'text_type': 'dynamic',
             'text': 'Incoming connection'
         }))
-        await state_handler.start_connection(self)
+        await MyWebsocketConsumer.game_state.start_connection(self)
         logger.debug("character loaded")
 
     async def disconnect(self, close_code):
         logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
         logger.debug("disconnecting and removing character")
-        state_handler.remove_character(self)
+        await MyWebsocketConsumer.game_state.remove_character(self)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)

@@ -1,84 +1,4 @@
 ZONES:
-  debug_zone:
-    name: Starting Zone
-    description: The place where all new characters begin their adventures.
-    rooms:
-      starting_room:
-        name: Starting Room
-        description: >
-          The room where all new characters begin their adventures.
-          
-          Exits: north
-        exits:
-          north:
-            destination: starting_room_2
-        triggers:
-          - type: catch_any
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "random"
-            script: |
-              settempvar char %{S} starting_room_random $random(1,100)
-              echo The random number is $tempvar(%{S},starting_room_random).
-              $if($numlte($tempvar(%{S},starting_room_random),50), eq, true){
-                echo Less than or equal to 50.
-              }
-              else {
-                echo Greater than 50.
-              }
-          # - type: timer_tick
-          #   criteria:
-          #     - subject: "%{time_elapsed}"
-          #       operator: "numgte"
-          #       predicate: 4
-          #   script: |
-          #     echo Tick!
-      starting_room_2:
-        name: Starting Room 2
-        description: >
-          The second room where all new characters begin their adventures.
-          
-          Exits: north, south
-        exits:
-          north:
-            destination: enchanted_forest.mystical_glade
-          south:
-            destination: starting_room
-        triggers:
-          - type: catch_any
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "arrives."
-            script: |
-              echoto %{S} You trip as you enter.
-              echoexcept %{S} %{s} trips as %{q} enters.
-          # - type: timer_tick
-          #   criteria: 
-          #     - subject: "%{time_elapsed}"
-          #       operator: "numgte"
-          #       predicate: 4
-          #   script: |
-          #     echo Tick!
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 4
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 25
-            script: |
-              echo Wildlife rustles in the underbrush.
-          - type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "squirrel"
-            script: |
-              echo You see a squirrel.
-              echoexcept %{S} %{s} sees a squirrel.
   enchanted_forest:
     name: Enchanted Forest
     description: A mystical forest filled with ancient magic and wonder.
@@ -194,3 +114,58 @@ ZONES:
                 predicate: 20
             script: |
               echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
+
+CHARACTERS:
+  - zone: debug_zone
+    characters:
+
+      - id: rabbit
+        name: rabbit
+        article: a
+        description: >
+          A small, furry rabbit.
+        attributes:
+          strength: 2
+          dexterity: 14
+          constitution: 3
+          intelligence: 2
+          wisdom: 2
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d4+1
+        character_flags:
+          - npc
+        triggers:
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "kicks you"
+            script: |
+              emote gets angry!
+              attack %{A}
+          - type: catch_any
+            criteria:
+              - subject: "%{*}"
+                operator: contains
+                predicate: "starts fighting you"
+            script: |
+              emote gets angry!
+              attack %{S}
+        damage_resistances:
+          bludgeoning: 2
+          unholy: 0
+          pyschic: 0.5
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bite
+            potential_damage:
+            - damage_type: piercing
+              damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 5d10+30
+        critical_chance: 0.05
+        critical_multiplier: 2
+        

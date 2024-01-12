@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..core import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags
+from ..utility import FlagBitmap, replace_vars, get_dice_parts, roll_dice, DescriptiveFlags
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto, IntFlag
 import json
@@ -210,10 +210,18 @@ class EquipLocation(Enum):
     BODY = 15
     BACK = 16
     EYES = 17
-    TAIL = 18
 
     def word(self):
         return self.name.lower().replace("_", " ")
+    
+    def string_to_enum(equip_location_string):
+        try:
+            # Replace spaces with underscores and convert to uppercase
+            enum_key = equip_location_string.replace(' ', '_').upper()
+            # Find the enum member
+            return EquipLocation[enum_key]
+        except KeyError:
+            return None
 
 
 # class DescriptionMixin:
@@ -235,6 +243,7 @@ class GamePermissionFlags(DescriptiveFlags):
 class CharacterFlags(DescriptiveFlags):
     IS_PC = 2**0
     IS_DEAD = 2**1
+    CAN_DUAL_WIELD = 2**2
 
     @staticmethod
     def field_name(idx):
@@ -265,6 +274,15 @@ class DamageType(Enum):
     def word(self):
         return self.name.lower()
     
+    def verb(self):
+        return ['slashes','pierces','bludgeons','burns','freezes','shocks',
+                'corrodes','poisons','diseases','burns','corrupts','zaps',
+                'mentally crushes','crushes','corrupts','burns'][self.value - 1]
+    def noun(self):
+        return ['slash','pierce','bludgeon','burn','freeze','shock',
+                'corrode','poison','disease','burn','corrupt','zap',
+                'mental crush','crush','corrupt','burn'][self.value - 1]
+    
 
 
 class DamageResistances:
@@ -276,6 +294,28 @@ class DamageResistances:
 
     def to_dict(self):
         # return {EquipLocation[loc].name.lower(): dt.name.lower() for loc, dt in self.profile_.items()}
+        return repr(self.profile_)
+
+    def set(self, damage_type: DamageType, amount: float):
+        self.profile_[damage_type] = amount
+   
+    def get(self, damage_type: DamageType):
+        return self.profile_[damage_type]
+
+class DamageReduction:
+    def __init__(self, profile=None):
+        if profile:
+            self.profile_ = profile
+        else:
+            self.profile_ = {loc: 0 for loc in DamageType}
+
+    def set(self, damage_type: DamageType, amount: float):
+        self.profile_[damage_type] = amount
+   
+    def get(self, damage_type: DamageType):
+        return self.profile_[damage_type]
+
+    def to_dict(self):
         return repr(self.profile_)
 
 class PotentialDamage:
@@ -344,10 +384,15 @@ class CharacterClass:
 
 
 class AttackData():
-    def __init__(self):
+    def __init__(self, damage_type: DamageType = None, damage_amount: str = None, damage_num_dice=None, damage_dice_size=None, damage_bonus=None,noun=None, verb=None):
         self.potential_damage_: List[PotentialDamage()] = []
-        self.attack_noun_ = "something"
-        self.attack_verb_ = "hits"
+        if damage_type and damage_amount:
+            damage_parts = get_dice_parts(damage_amount)
+            self.potential_damage_.append(PotentialDamage(damage_type, damage_parts[0], damage_parts[1], damage_parts[2]))
+        elif damage_type and damage_num_dice and damage_dice_size and damage_bonus:
+            self.potential_damage_.append(PotentialDamage(damage_type, damage_num_dice, damage_dice_size, damage_bonus))
+        self.attack_noun_ = noun or "something"
+        self.attack_verb_ = verb or "hits"
 
     def to_dict(self):
         return {
@@ -365,12 +410,16 @@ class Character(Actor):
         self.attributes_ = {}
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
         self.contents_: List[Object] = []
-        self.character_flags_ = FlagBitmap()
+        self.permanent_character_flags_ = FlagBitmap()
+        self.temporary_character_flags_ = FlagBitmap()
+        self.status_effects_ = []
         self.connection_: 'Connection' = None
         self.fighting_whom_: Character = None
         self.equipped_: Dict[EquipLocation, Object] = {loc: None for loc in EquipLocation}
         self.damage_resistances_ = DamageResistances()
+        self.current_damage_resistances_ = DamageResistances()
         self.damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
+        self.current_damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
         self.natural_attacks_: List[AttackData] = []
         self.hit_modifier_: int = 80
         self.dodge_dice_number_: int = 1
@@ -384,7 +433,10 @@ class Character(Actor):
         self.max_hit_points_ = 1
         self.current_hit_points_ = 1
         self.game_permission_flags_ = FlagBitmap()
-        self.carrying_capacity_ = 100
+        self.max_carrying_capacity_ = 100
+        self.current_carrying_weight_ = 0
+        self.num_main_hand_attacks_ = 1
+        self.num_off_hand_attacks_ = 0
 
 
     def from_yaml(self, yaml_data: str):
@@ -500,13 +552,36 @@ class Character(Actor):
 
     def add_object(self, obj: 'Object', force=False):
         self.contents_.append(obj)
+        self.current_carrying_weight_ += obj.weight_
 
     def remove_object(self, obj: 'Object'):
         self.contents_.remove(obj)
+        self.current_carrying_weight_ -= obj.weight_
 
     def is_dead(self):
         return self.current_hit_points_ <= 0
+    
+    def equip_item(self, equip_location: EquipLocation, item: 'Object'):
+        if equip_location in self.equipped_:
+            raise Exception("equip_location already in self.equipped_")
+        self.equipped_[equip_location] = item
+        self.calculate_damage_resistance()
 
+    def unequip_location(self, equip_location: EquipLocation) -> 'Object':
+        if equip_location not in self.equipped_:
+            raise Exception("equip_location not in self.equipped_")
+        item = self.equipped_[equip_location]
+        self.equipped_[equip_location] = None
+        self.calculate_damage_resistance()
+        return item
+
+    def calculate_damage_resistance(self):
+        self.current_damage_resistances_ = copy.deepcopy(self.damage_resistances_)
+        for item in self.equipped_.values():
+            if item:
+                for dt, mult in item.damage_resistances_.profile_.items():
+                    self.current_damage_resistances_.profile_[dt] = self.current_damage_resistances_.profile_[dt] * mult
+        # TODO:M: add status effects
 
 class ObjectFlags(DescriptiveFlags):
     IS_ARMOR = 2**0
@@ -530,13 +605,17 @@ class Object(Actor):
         self.equip_locations_: List[EquipLocation] = []
         # for armor
         self.damage_resistances_ = DamageResistances()
-        self.damage_reduction_: Dict[DamageType, int] = {dt: 0 for dt in DamageType}
+        self.damage_reduction_ = DamageReduction()
         # for weapons
         self.damage_type_: DamageType = None
-        self.damage_dice_number_ = 0
+        self.damage_num_dice_ = 0
         self.damage_dice_size_ = 0
         self.damage_bonus_ = 0
+        self.dodge_penalty_ = 0
         self.weight_ = 0
+        self.value_ = 0
+        self.contents_: List[Object] = []
+
 
     def to_dict(self):
         return {
@@ -546,7 +625,7 @@ class Object(Actor):
             'damage_resistances': self.damage_resistances_.to_dict(),
             'damage_reduction': self.damage_reduction_,
             'damage_type': self.damage_type_.name.lower() if self.damage_type_ else None,
-            'damage_dice_number': self.damage_dice_number_,
+            'damage_dice_number': self.damage_num_dice_,
             'damage_dice_size': self.damage_dice_size_,
             'damage_bonus': self.damage_bonus_,
             'weight': self.weight_
@@ -560,6 +639,24 @@ class Object(Actor):
         self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
         self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
         self.weight_ = yaml_data['weight']
+        self.value_ = yaml_data['value']
+        if 'equip_locations' in yaml_data:
+            for el in yaml_data['equip_locations']:
+                self.equip_locations_.append(EquipLocation.string_to_enum(el))
+        if 'damage_type' in yaml_data:
+            self.damage_type_ = DamageType[yaml_data['damage_type'].upper()] if 'damage_type' in yaml_data else None
+            dmg_parts = get_dice_parts(yaml_data['damage'])
+            self.damage_num_dice_ = dmg_parts[0]
+            self.damage_dice_size_ = dmg_parts[1]
+            self.damage_bonus_ = dmg_parts[2]
+        self.dodge_penalty_ = yaml_data['dodge_penalty'] if 'dodge_penalty' in yaml_data else 0
+        if 'damage_resistances' in yaml_data:
+            for dt, mult in yaml_data['damage_resistances'].items():
+                self.damage_resistances_.set(DamageType[dt.upper()], mult)
+        if 'damage_reduction' in yaml_data:
+            for dt, amount in yaml_data['damage_reduction'].items():
+                self.damage_reduction_.set(DamageType[dt.upper()], amount)
+
         if 'triggers' in yaml_data:
             # print(f"triggers: {yaml_data['triggers']}")
             # raise NotImplementedError("Triggers not implemented yet.")
@@ -575,6 +672,12 @@ class Object(Actor):
                     self.triggers_by_type_[new_trigger.trigger_type_] = []
                 self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
     
+    def add_object(self, obj: 'Object', force=False):
+        self.contents_.append(obj)
+
+    def remove_object(self, obj: 'Object'):
+        self.contents_.remove(obj)
+
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
         text = await super().echo(text_type, text, vars, exceptions)
@@ -616,20 +719,7 @@ class Object(Actor):
 
 
 
-
-class Container:
-    def __init__(self):
-        self.contents_: List[Object] = []
-        self.container_flags_ = FlagBitmap()
-
-    def add_object(self, obj: Object, force=False):
-        self.contents_.append(obj)
-
-    def remove_object(self, obj: Object):
-        self.contents_.remove(obj)
-
-
-class Corpse(Container):
+class Corpse(Object):
 
     def __init__(self, character: Character):
         super().__init__()

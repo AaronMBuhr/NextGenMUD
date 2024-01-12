@@ -1,7 +1,7 @@
 
 from django.apps import AppConfig
-from .main_process import start_main_process
-from .operating_state import operating_state
+from .main_process import MainProcess
+from .comprehensive_game_state import live_game_state
 
 class NextGenMUDAppConfig(AppConfig):
     name = 'NextGenMUDApp'
@@ -10,8 +10,8 @@ class NextGenMUDAppConfig(AppConfig):
         # # Import and start your background task here
         # from . import background_tasks
         # background_tasks.start_my_task()
-        operating_state.Initialize()
-        start_main_process()
+        live_game_state.Initialize()
+        MainProcess.start_main_process()
 
 
 
@@ -33,3 +33,4 @@ class NextGenMUDAppConfig(AppConfig):
 # - handle possessive pronouns
 # - look room after something dies is not working
 # - add parry?        
+# - combine equip & carry weight

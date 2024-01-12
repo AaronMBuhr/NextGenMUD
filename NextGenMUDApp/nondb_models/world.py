@@ -37,7 +37,10 @@ class WorldDefinition:
     def find_character_definition(self, character_id_or_name: str) -> 'Character':
         if character_id_or_name in self.characters_:
             return self.characters_[character_id_or_name]
+        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+        print(type(self.characters_))
         for character in self.characters_:
+            print(type(character))
             if character.name_.startswith(character_id_or_name):
                 return character
         return None

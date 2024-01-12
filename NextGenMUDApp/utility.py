@@ -152,7 +152,7 @@ def split_string_honoring_parentheses(s):
 
 
 def evaluate_functions_in_line(line: str, vars: dict) -> str:
-    from .scripts import get_tempvar, get_permvar
+    from .scripts import ScriptHandler
     logger = CustomDetailLogger(__name__, prefix="evaluate_functions_in_line()> ")
     logger.debug3(f"line: {line}")
     result_parts = []
@@ -201,9 +201,9 @@ def evaluate_functions_in_line(line: str, vars: dict) -> str:
         elif func_name == 'random':
             result = str(random.randint(to_int(args[0]), to_int(args[1])))
         elif func_name == 'tempvar':
-            result = get_tempvar(args[0], args[1])
+            result = ScriptHandler.get_tempvar(args[0], args[1])
         elif func_name == 'permvar':
-            result = get_permvar(args[0], args[1])
+            result = ScriptHandler.get_permvar(args[0], args[1])
         else:
             logger.debug3("Unknown function: " + func_name)
             result = 'UNKNOWN_FUNCTION'
@@ -333,3 +333,4 @@ def split_preserving_quotes(text):
 def actor_vars(actor: 'Actor', name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
     return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
+

@@ -4,7 +4,7 @@ from custom_detail_logger import CustomDetailLogger
 from enum import Enum
 import re
 import time
-from ..core import evaluate_if_condition, replace_vars, evaluate_functions_in_line
+from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
 
 def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
@@ -81,6 +81,7 @@ class TriggerCriteria:
 class Trigger:
     
     def __init__(self, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
+        from ..scripts import ScriptHandler
         if (isinstance(trigger_type, str)):
             self.trigger_type_ = TriggerType[trigger_type.upper()]
         else:
@@ -89,6 +90,7 @@ class Trigger:
         self.criteria_ = []
         self.script_ = ""
         self.disabled_ = disabled
+        self.script_handler_ = ScriptHandler
 
     def to_dict(self):
         return {'trigger_type_': self.trigger_type_, 'criteria_': [ c.to_dict() for c in self.criteria_ ], 'script_': self.script_ }
@@ -138,7 +140,6 @@ class Trigger:
         self.disabled_ = True
 
     async def execute_trigger_script(self, actor: 'Actor', vars: dict) -> None:
-        from ..scripts import run_script
         logger = CustomDetailLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
         # for line in self.script_.splitlines():
         #     logger.debug3(f"running script line: {line}")
@@ -148,7 +149,7 @@ class Trigger:
         #     pass
         logger.debug3("executing run_script")
         logger.debug3(f"script: {self.script_}")
-        await run_script(actor, self.script_, vars)
+        await self.script_handler_.run_script(actor, self.script_, vars)
 
 
 
