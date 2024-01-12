@@ -48,8 +48,12 @@ class WorldDefinition:
     def find_object_definition(self, object_id_or_name: str) -> 'Object':
         if object_id_or_name in self.objects_:
             return self.objects_[object_id_or_name]
-        for object in self.objects_:
-            if object_id_or_name.startswith(object_id_or_name):
+        for object_id, object in self.objects_.items():
+            if object.id_.startswith(object_id_or_name):
                 return object
+            pieces = object.name_.split()
+            for piece in pieces:
+                if piece.startswith(object_id_or_name):
+                    return object
         return None
     
