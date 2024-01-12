@@ -6,7 +6,7 @@ import os
 import sys
 import yaml
 from yaml_dumper import YamlDumper
-from .nondb_models.actors import Character, Actor, Room, Object
+from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation
 from typing import List, Dict
 import copy
 from .nondb_models.world import WorldDefinition, Zone
@@ -103,7 +103,7 @@ class ComprehensiveGameState:
                         for chardef in zonedef["characters"]:
                             ch = Character(chardef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
                             ch.from_yaml(chardef)
-                            logger.critical(f"loaded character: {ch.id_}")
+                            logger.debug(f"loaded character: {ch.id_}")
                             self.world_definition_.characters_[ch.id_] = ch
                     logger.debug("Characters loaded")
 
@@ -269,16 +269,24 @@ class ComprehensiveGameState:
         return None
     
 
-    def find_target_object(self, target_name: str, actor: Actor = None, start_room: Room = None, start_zone: Zone = None, search_world=False) -> Object:
+    def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
+                           start_room: Room = None, start_zone: Zone = None, search_world=False) -> Object:
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
         def check_object(obj) -> bool:
+            logger = CustomDetailLogger(__name__, prefix="find_target_object.check_object()> ")
             if obj.id_.startswith(target_name):
                 return True
             for pieces in obj.name_.split(' '):
+                logger.debug(f"pieces: {pieces} ? {target_name}")
                 if pieces.startswith(target_name):
                     return True
             return False
+        if equipped:
+            for obj in equipped.values():
+                print(obj)
+                if check_object(obj):
+                    return obj
         if actor:
             for obj in actor.contents_:
                 if check_object(obj):
@@ -335,6 +343,7 @@ class ComprehensiveGameState:
         logger.debug3(f"first_zone: {first_zone}")
         first_room = first_zone.rooms_[list(first_zone.rooms_.keys())[0]]
         logger.debug3(f"first_room: {first_room}")
+        logger.info(f"New player arriving: {new_player.name_}")
         await CoreActions.arrive_room(new_player, first_room)
 
 

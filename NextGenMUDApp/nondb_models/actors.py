@@ -348,7 +348,7 @@ class PotentialDamage:
     
     def calc_susceptibility(self, damage_type: DamageType, damage_profile: List[DamageResistances]) -> float:
         logger = CustomDetailLogger(__name__, prefix="PotentialDamage.calc_susceptibility()> ")
-        logger.critical(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
+        logger.debug(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
         mult = 1
         for profile in damage_profile:
             mult *= profile.profile_[damage_type]
@@ -569,8 +569,10 @@ class Character(Actor):
         return self.current_hit_points_ <= 0
     
     def equip_item(self, equip_location: EquipLocation, item: 'Object'):
-        if equip_location in self.equipped_:
+        if self.equipped_[equip_location] != None:
             raise Exception("equip_location already in self.equipped_")
+        item.equipped_location_ = equip_location
+        item.in_actor_ = self
         self.equipped_[equip_location] = item
         self.calculate_damage_resistance()
 
@@ -578,6 +580,8 @@ class Character(Actor):
         if equip_location not in self.equipped_:
             raise Exception("equip_location not in self.equipped_")
         item = self.equipped_[equip_location]
+        item.equip_location_ = None
+        item.in_actor_ = None
         self.equipped_[equip_location] = None
         self.calculate_damage_resistance()
         return item
@@ -604,24 +608,25 @@ class ObjectFlags(DescriptiveFlags):
 class Object(Actor):
     def __init__(self, id: str, zone: 'Zone', name: str = "", create_reference=False):
         super().__init__(ActorType.OBJECT, id, name=name, create_reference=create_reference)
-        self.definition_zone_ = zone
-        self.name_ = name
+        self.definition_zone_: 'Zone' = zone
+        self.name_: str = name
         self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
-        self.zone_ = None
-        self.in_actor_ = None
+        self.zone_: 'Zone' = None
+        self.in_actor_: Actor = None
         self.object_flags_ = FlagBitmap()
+        self.equipped_location_: EquipLocation = None
         self.equip_locations_: List[EquipLocation] = []
         # for armor
         self.damage_resistances_ = DamageResistances()
         self.damage_reduction_ = DamageReduction()
         # for weapons
         self.damage_type_: DamageType = None
-        self.damage_num_dice_ = 0
-        self.damage_dice_size_ = 0
-        self.damage_bonus_ = 0
-        self.dodge_penalty_ = 0
-        self.weight_ = 0
-        self.value_ = 0
+        self.damage_num_dice_:int = 0
+        self.damage_dice_size_:int = 0
+        self.damage_bonus_:int = 0
+        self.dodge_penalty_:int = 0
+        self.weight_:int = 0
+        self.value_:int = 0
         self.contents_: List[Object] = []
 
 

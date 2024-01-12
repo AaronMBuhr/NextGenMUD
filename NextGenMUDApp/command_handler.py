@@ -12,6 +12,7 @@ from yaml_dumper import YamlDumper
 import yaml
 from .utility import set_vars, split_preserving_quotes, article_plus_name
 from num2words import num2words
+import itertools
 
 class CommandHandler():
     game_state: ComprehensiveGameState = live_game_state
@@ -453,7 +454,9 @@ class CommandHandler():
             return
         # object?
         logger.critical("looking for objects")
-        target = cls.game_state.find_target_object(input, actor.location_room_, None, search_world=False)
+        target = cls.game_state.find_target_object(target_name=input, actor=None, equipped=None,
+                                            start_room=actor.location_room_, start_zone=None, search_world=False)
+
         if target:
             logger.critical("found object")
             await CoreActions.do_look_object(actor, target)
@@ -698,7 +701,9 @@ class CommandHandler():
         elif pieces[0].lower() == "room":
             target_room = cls.game_state.find_target_room(actor, pieces[1], actor.location_room_.zone_)
         elif pieces[0].lower() == "obj":
-            target = cls.game_state.find_target_object(actor, pieces[1], actor.location_room_.zone_, search_world=True)
+            target = cls.game_state.find_target_object(target_name=pieces[1], actor=None, equipped=None,
+                                            start_room=None, start_zone=actor.location_room_.zone_, search_world=False)
+
             if target == None:
                 await actor.send_text(CommTypes.DYNAMIC, "couldn't find that object?")
                 return
@@ -734,7 +739,8 @@ class CommandHandler():
                 return
             num_got = 0
             for i in range(qty):
-                item = cls.game_state.find_target_object(item_name, actor=None, start_room=room, search_world=False)
+                item = cls.game_state.find_target_object(target_name=item_name, actor=None, equipped=None,
+                                                         start_room=room, start_zone=None, search_world=False)
                 if item == None:
                     break
                 num_got += 1
@@ -801,6 +807,51 @@ class CommandHandler():
 
     @classmethod
     async def cmd_equip(cls, actor: Actor, input: str):
+
+        logger = CustomDetailLogger(__name__, prefix="cmd_unequip()> ")
+
+        def parse_equip_command(command, cls, actor):
+            words = command.lower().split()
+            original_words = list(words)  # Keep a copy of the original words for later use
+
+            # Identify if an equip location is specified
+            specified_location = None
+            for location in EquipLocation:
+                if location.name.lower().replace('_', ' ') in command:
+                    specified_location = location
+                    for loc_word in location.name.lower().split('_'):
+                        words.remove(loc_word)
+                    break
+
+            # Try to find a matching object without considering the equip location
+            for i in range(1, len(words) + 1):
+                for combo in itertools.combinations(words, i):
+                    item_name = ' '.join(combo)
+                    target_object = cls.game_state.find_target_object(item_name, actor)
+                    if target_object:
+                        return specified_location, target_object
+
+            # If no match found and a location was specified, try including the location in the search
+            if specified_location:
+                for i in range(1, len(original_words) + 1):
+                    for combo in itertools.combinations(original_words, i):
+                        item_name = ' '.join(combo)
+                        target_object = cls.game_state.find_target_object(item_name, actor)
+                        if target_object:
+                            return specified_location, target_object
+
+            # No matching object found
+            return None
+
+            # # Example usage
+            # command = "equip main hand sword"
+            # result = parse_equip_command(command, cls, actor)
+            # if result:
+            #     equip_location, target_object = result
+            #     # Equip the object, using the specified equip location
+            # else:
+            #     # Handle invalid command
+
         if actor.actor_type_ != ActorType.CHARACTER:
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can equip things.")
             return
@@ -808,68 +859,162 @@ class CommandHandler():
             # await actor.send_text(CommTypes.DYNAMIC, "Equip what?")
             await cls.cmd_equip_list(actor, input)
             return
-        pieces = input.split(' ')
-        obj_name = pieces[0]
-        equip_location_name = ' '.join(pieces[1:])
-        equip_location = EquipLocation.string_to_enum(equip_location_name)
-        if equip_location == None:
-            await actor.send_text(CommTypes.DYNAMIC, f"Equip where?")
+        # equip_location = EquipLocation.string_to_enum(equip_location_name)
+        result = parse_equip_command(input, cls, actor)
+        if result:
+            equip_location, target_object = result
+            # Equip the object, using the specified equip location
+        else:
+            # Handle invalid command
+            await actor.send_text(CommTypes.DYNAMIC, f"Equip what?")
             return
-        item = cls.game_state.find_target_object(input, actor)
-        if item == None:
+        if target_object == None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
             return
-        if actor.equip_location_[equip_location] != None:
+        if equip_location == None:
+            if target_object.equip_locations_ == None or len(target_object.equip_locations_) == 0:
+                await actor.send_text(CommTypes.DYNAMIC, f"You can't equip that.")
+                return
+            for loc in target_object.equip_locations_:
+                if actor.equipped_[loc] == None:
+                    equip_location = loc
+                    break
+            if equip_location == None:
+                await actor.send_text(CommTypes.DYNAMIC, "There's not an open spot for it.")
+                return
+        if target_object == None:
+            await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
+            return
+        if actor.equipped_[equip_location] != None:
             await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped there.")
             return
-        if not item.object_flags_.is_flag_set(ObjectFlags.IS_EQUIPABLE):
-            await actor.send_text(CommTypes.DYNAMIC, f"You can't equip that.")
-            return
-        if not equip_location in item.equip_locations_:
-            await actor.send_text(CommTypes.DYNAMIC, f"You can't equip that there.")
-            return
-        if equip_location == EquipLocation.BOTH_HANDS:
-            if actor.equip_location_[EquipLocation.RIGHT_HAND] != None:
-                await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your right hand.")
+        if target_object.object_flags_.is_flag_set(ObjectFlags.IS_WEAPON):
+            if equip_location not in [EquipLocation.MAIN_HAND, EquipLocation.OFF_HAND, EquipLocation.BOTH_HANDS]:
+                await actor.send_text(CommTypes.DYNAMIC, "You can't equip that there.")
                 return
-            if actor.equip_location_[EquipLocation.LEFT_HAND] != None:
-                await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your left hand.")
+        if target_object.object_flags_.is_flag_set(ObjectFlags.IS_ARMOR):
+            if equip_location not in [
+    EquipLocation.HEAD,
+    EquipLocation.NECK,
+    EquipLocation.SHOULDERS,
+    EquipLocation.ARMS,
+    EquipLocation.WRISTS,
+    EquipLocation.HANDS,
+    EquipLocation.LEFT_FINGER,
+    EquipLocation.RIGHT_FINGER,
+    EquipLocation.WAIST,
+    EquipLocation.LEGS,
+    EquipLocation.FEET,
+    EquipLocation.BODY,
+    EquipLocation.BACK,
+    EquipLocation.EYES]:
+                await actor.send_text(CommTypes.DYNAMIC, "You can't equip that there.")
+                return
+        if equip_location == EquipLocation.BOTH_HANDS:
+            if actor.equip_location_[EquipLocation.MAIN_HAND] != None:
+                await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your main hand.")
+                return
+            if actor.equip_location_[EquipLocation.OFF_HAND] != None:
+                await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your off hand.")
                 return
         if equip_location == EquipLocation.OFF_HAND:
             if not actor.character_flags_.is_flag_set(CharacterFlags.CAN_DUAL_WIELD):
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't dual wield.")
                 return
-        actor.remove_object(item)
-        actor.equip(equip_location, item)
-        msg = f"You equip {item.name_}."
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
+        actor.remove_object(target_object)
+        actor.equip_item(equip_location, target_object)
+        msg = f"You equip {target_object.name_}."
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg))
         msg = f"{firstcap(actor.name_)} equips you."
-        await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg))
-        msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} equips {article_plus_name(item.article_, item.name_)}."
-        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor])
+        await target_object.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg))
+        msg = f"{firstcap(article_plus_name(actor.article_,actor.name_))} equips {article_plus_name(target_object.article_, target_object.name_)}."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), exceptions=[actor])
 
 
     @classmethod
     async def cmd_unequip(cls, actor: Actor, input: str):
+
+        def parse_equip_command(command, cls, actor):
+            logger = CustomDetailLogger(__name__, prefix="cmd_unequip.parse_equip_command()> ")
+            words = command.lower().split()
+            original_words = list(words)  # Keep a copy of the original words for later use
+
+            # Identify if an equip location is specified
+            specified_location = None
+            
+            for location in EquipLocation:
+                if location.name.lower().replace('_', ' ') in command:
+                    specified_location = location
+                    for loc_word in location.name.lower().split('_'):
+                        words.remove(loc_word)
+                    break
+
+            # see if it's equipped
+            for i in range(1, len(words) + 1):
+                for combo in itertools.combinations(words, i):
+                    item_name = ' '.join(combo)
+                    logger.critical("searching actor equipped for " + item_name)
+                    target_object = cls.game_state.find_target_object(item_name, actor=None,equipped=actor.equipped_)
+                    if target_object:
+                        logger.critical("found " + item_name + "at " + target_object.equipped_location_.word())
+                        return target_object.equipped_location_, target_object
+            logger.critical("didn't find it equipped")
+
+            # Try to find a matching object without considering the equip location
+            for i in range(1, len(words) + 1):
+                for combo in itertools.combinations(words, i):
+                    item_name = ' '.join(combo)
+                    target_object = cls.game_state.find_target_object(item_name, actor)
+                    if target_object:
+                        return specified_location, target_object
+
+            # If no match found and a location was specified, try including the location in the search
+            if specified_location:
+                for i in range(1, len(original_words) + 1):
+                    for combo in itertools.combinations(original_words, i):
+                        item_name = ' '.join(combo)
+                        target_object = cls.game_state.find_target_object(item_name, actor)
+                        if target_object:
+                            return specified_location, target_object
+
+            # No matching object found
+            return None
+
         if actor.actor_type_ != ActorType.CHARACTER:
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can unequip things.")
             return
         if input == "":
             await actor.send_text(CommTypes.DYNAMIC, "Unequip what?")
             return
-        pieces = input.split(' ')
-        # first check by location
-        equip_location_name = ' '.join(pieces[0:])
-        equip_location = EquipLocation.string_to_enum(equip_location_name)
-        if equip_location == None:
-            for loc, obj in actor.equipped_:
-                if obj.name_.lower().startswith(input.lower()):
-                    equip_location = loc
-                    break
+        if "main hand" in input.lower():
+            specified_location = EquipLocation.MAIN_HAND
+            target_object = actor.equipped_[EquipLocation.MAIN_HAND]
+            if target_object == None:
+                await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
+                return
+        elif "off hand" in input.lower():
+            specified_location = EquipLocation.OFF_HAND
+            target_object = actor.equipped_[EquipLocation.OFF_HAND]
+            if target_object == None:
+                await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
+                return
+        elif "both hands" in input.lower():
+            specified_location = EquipLocation.BOTH_HANDS
+            target_object = actor.equipped_[EquipLocation.BOTH_HANDS]
+            if target_object == None:
+                await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
+                return
+        result = parse_equip_command(input, cls, actor)
+        if result:
+            equip_location, target_object = result
+        else:
+            # Handle invalid command
+            await actor.send_text(CommTypes.DYNAMIC, f"Unequip what?")
+            return
         if equip_location == None:
             await actor.send_text(CommTypes.DYNAMIC, f"Unequip what or where?")
             return
-        item = actor.equip_location_[equip_location]
+        item = actor.equipped_[equip_location]
         if item == None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
             return
@@ -890,8 +1035,8 @@ class CommandHandler():
             return
         msg_parts = [ "You are equipped with:\n"]
         for loc in EquipLocation:
-            if actor.equip_location_[loc] != None:
-                msg_parts.append(f"{loc.name}: {actor.equip_location_[loc].name_}\n")
+            if actor.equipped_[loc] != None:
+                msg_parts.append(f"{loc.name}: {article_plus_name(actor.equipped_[loc].article_, actor.equipped_[loc].name_)}\n")
             else:
                 msg_parts.append(f"{loc.name}: nothing\n")
         await actor.send_text(CommTypes.STATIC, "".join(msg_parts))

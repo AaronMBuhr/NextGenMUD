@@ -120,6 +120,7 @@ OBJECTS:
     objects:
       - id: rusty_sword
         name: rusty sword
+        article: a
         description: A rusty sword.
         equip_location:
           - main_hand
