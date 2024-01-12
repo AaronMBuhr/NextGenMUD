@@ -1,170 +1,170 @@
-ZONES:
-  enchanted_forest:
-    name: Enchanted Forest
-    description: A mystical forest filled with ancient magic and wonder.
-    rooms:
-      mystical_glade:
-        name: Mystical Glade
-        description: >
-          In a secluded corner of an ancient forest lies a mystical glade, a hidden
-          sanctuary bathed in a soft, ethereal light that seems to weave through the
-          air like a gentle mist. This enchanted clearing is encircled by venerable
-          trees of immense age, their trunks gnarled and thick, rising high into the
-          sky. Their branches, heavy with luminous leaves, intertwine above, creating
-          a natural dome that filters sunlight into a kaleidoscope of gentle greens and golds.
+# ZONES:
+#   enchanted_forest:
+#     name: Enchanted Forest
+#     description: A mystical forest filled with ancient magic and wonder.
+#     rooms:
+#       mystical_glade:
+#         name: Mystical Glade
+#         description: >
+#           In a secluded corner of an ancient forest lies a mystical glade, a hidden
+#           sanctuary bathed in a soft, ethereal light that seems to weave through the
+#           air like a gentle mist. This enchanted clearing is encircled by venerable
+#           trees of immense age, their trunks gnarled and thick, rising high into the
+#           sky. Their branches, heavy with luminous leaves, intertwine above, creating
+#           a natural dome that filters sunlight into a kaleidoscope of gentle greens and golds.
 
-          Exits: south, east
-        exits:
-          south:
-            destination: debug_zone.starting_room_2
-          east:
-            destination: crystal_cave
-        triggers:
-          - type: timer_tick
-            criteria: 
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 12
-            script: |
-              echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 12
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 30
-            script: |
-              echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
-          - type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "tree"
-            script: |
-              echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
-          - type: catch_any
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "sing"
-            script: |
-              echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
-          - type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "dance"
-            script: |
-              echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
-      crystal_cave:
-        name: Crystal Cave
-        description: >
-          Hidden within the Enchanted Forest lies the Crystal Cave, a mesmerizing subterranean wonder.
-          Upon entering, one is immediately enveloped by a kaleidoscope of light, as countless crystals
-          embedded in the walls and ceiling catch and refract the faintest of lights. These crystals
-          range in color from deep amethyst to the clearest diamond, creating a dazzling display that
-          seems almost otherworldly. The air inside is cool and carries a faint, mineral scent, echoing
-          with the soft, melodic dripping of water. Delicate crystal formations grow from the floor,
-          creating an intricate maze that leads deeper into the heart of the cave.
+#           Exits: south, east
+#         exits:
+#           south:
+#             destination: debug_zone.starting_room_2
+#           east:
+#             destination: crystal_cave
+#         triggers:
+#           - type: timer_tick
+#             criteria: 
+#               - subject: "%{time_elapsed}"
+#                 operator: "numgte"
+#                 predicate: 12
+#             script: |
+#               echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
+#           - type: timer_tick
+#             criteria:
+#               - subject: "%{time_elapsed}"
+#                 operator: "numgte"
+#                 predicate: 12
+#               - subject: "$random(1,100)"
+#                 operator: "numlte"
+#                 predicate: 30
+#             script: |
+#               echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
+#           - type: catch_look
+#             criteria: 
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "tree"
+#             script: |
+#               echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
+#           - type: catch_any
+#             criteria: 
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "sing"
+#             script: |
+#               echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
+#           - type: catch_any
+#             criteria:
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "dance"
+#             script: |
+#               echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
+#       crystal_cave:
+#         name: Crystal Cave
+#         description: >
+#           Hidden within the Enchanted Forest lies the Crystal Cave, a mesmerizing subterranean wonder.
+#           Upon entering, one is immediately enveloped by a kaleidoscope of light, as countless crystals
+#           embedded in the walls and ceiling catch and refract the faintest of lights. These crystals
+#           range in color from deep amethyst to the clearest diamond, creating a dazzling display that
+#           seems almost otherworldly. The air inside is cool and carries a faint, mineral scent, echoing
+#           with the soft, melodic dripping of water. Delicate crystal formations grow from the floor,
+#           creating an intricate maze that leads deeper into the heart of the cave.
 
-          Exits: east
-        exits:
-          east:
-            destination: whispering_waterfall
-          # west:
-          #   destination: fairy_meadow
-        triggers:
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 12
-            script: |
-              echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
-          - type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "crystal"
-            script: |
-              echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
-          - type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "touch"
-            script: |
-              echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
-          - type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "sing"
-            script: |
-              echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
-          - type: timer_tick
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 12
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 20
-            script: |
-              echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
+#           Exits: east
+#         exits:
+#           east:
+#             destination: whispering_waterfall
+#           # west:
+#           #   destination: fairy_meadow
+#         triggers:
+#           - type: timer_tick
+#             criteria:
+#               - subject: "%{time_elapsed}"
+#                 operator: "numgte"
+#                 predicate: 12
+#             script: |
+#               echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
+#           - type: catch_look
+#             criteria: 
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "crystal"
+#             script: |
+#               echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
+#           - type: catch_any
+#             criteria:
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "touch"
+#             script: |
+#               echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
+#           - type: catch_any
+#             criteria:
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "sing"
+#             script: |
+#               echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
+#           - type: timer_tick
+#             criteria:
+#               - subject: "%{time_elapsed}"
+#                 operator: "numgte"
+#                 predicate: 12
+#               - subject: "$random(1,100)"
+#                 operator: "numlte"
+#                 predicate: 20
+#             script: |
+#               echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
 
-CHARACTERS:
-  - zone: debug_zone
-    characters:
+# CHARACTERS:
+#   - zone: enchanted_forest
+#     characters:
 
-      - id: rabbit
-        name: rabbit
-        article: a
-        description: >
-          A small, furry rabbit.
-        attributes:
-          strength: 2
-          dexterity: 14
-          constitution: 3
-          intelligence: 2
-          wisdom: 2
-          charisma: 10
-        class:
-          Fighter:
-            level: 1
-        hit_dice: 1d4+1
-        character_flags:
-          - npc
-        triggers:
-          - type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "kicks you"
-            script: |
-              emote gets angry!
-              attack %{A}
-          - type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "starts fighting you"
-            script: |
-              emote gets angry!
-              attack %{S}
-        damage_resistances:
-          bludgeoning: 2
-          unholy: 0
-          pyschic: 0.5
-        natural_attacks:
-          - attack_noun: bite
-            attack_verb: bite
-            potential_damage:
-            - damage_type: piercing
-              damage_dice: 1d4+1
-        hit_modifier: 0
-        dodge_dice: 5d10+30
-        critical_chance: 0.05
-        critical_multiplier: 2
+#       - id: rabbit
+#         name: rabbit
+#         article: a
+#         description: >
+#           A small, furry rabbit.
+#         attributes:
+#           strength: 2
+#           dexterity: 14
+#           constitution: 3
+#           intelligence: 2
+#           wisdom: 2
+#           charisma: 10
+#         class:
+#           Fighter:
+#             level: 1
+#         hit_dice: 1d4+1
+#         character_flags:
+#           - npc
+#         triggers:
+#           - type: catch_any
+#             criteria:
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "kicks you"
+#             script: |
+#               emote gets angry!
+#               attack %{A}
+#           - type: catch_any
+#             criteria:
+#               - subject: "%{*}"
+#                 operator: contains
+#                 predicate: "starts fighting you"
+#             script: |
+#               emote gets angry!
+#               attack %{S}
+#         damage_resistances:
+#           bludgeoning: 2
+#           unholy: 0
+#           pyschic: 0.5
+#         natural_attacks:
+#           - attack_noun: bite
+#             attack_verb: bite
+#             potential_damage:
+#             - damage_type: piercing
+#               damage_dice: 1d4+1
+#         hit_modifier: 0
+#         dodge_dice: 5d10+30
+#         critical_chance: 0.05
+#         critical_multiplier: 2

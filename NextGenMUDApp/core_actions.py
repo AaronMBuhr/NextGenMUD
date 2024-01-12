@@ -16,15 +16,15 @@ class CoreActions:
     @classmethod
     async def do_look_room(cls, actor: Actor, room: Room):
         logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
-        logger.critical("starting")
+        logger.debug("starting")
         # await actor.send_text(CommTypes.STATIC, room.description_)
-        logger.critical("room parts")
+        logger.debug("room parts")
         msg_parts = [ room.name_ , room.description_ ]
         # TODO:M: handle batching multiples
-        logger.critical("characters")
+        logger.debug("characters")
         for character in room.characters_:
             if character != actor:
-                logger.critical(f"character: {character.rid}")
+                logger.debug(f"character: {character.rid}")
                 if character.fighting_whom_:
                     if character.fighting_whom_ == actor:
                         msg_parts.append(firstcap(article_plus_name(character.article_, character.name_)) + " is here, fighting you!")
@@ -34,10 +34,10 @@ class CoreActions:
                     print("character.article: " + character.article_)
                     print("character.name: " + character.name_)
                     msg_parts.append(firstcap(article_plus_name(character.article_, character.name_)) + " is here.")
-        logger.critical("objects")
+        logger.debug("objects")
         for object in room.contents_: 
             msg_parts.append(firstcap(article_plus_name(object.article_, object.name_)) + " is here.")
-        logger.critical(f"Sending room description to actor for: {room.name_}")
+        logger.debug(f"Sending room description to actor for: {room.name_}")
         await actor.send_text(CommTypes.CLEARSTATIC, "")
         await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts))
 
@@ -53,7 +53,7 @@ class CoreActions:
     async def do_look_object(cls, actor: Actor, target: Object):
         logger = CustomDetailLogger(__name__, prefix="do_look_object()> ")
         msg_parts = [ target.description_ ]
-        if target.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER) and not target.object_flags_.is_flag_set(ObjectFlags.IS_CONTAINER_LOCKED):
+        if target.object_flags_.are_flags_set(ObjectFlags.IS_CONTAINER) and not target.object_flags_.are_flags_set(ObjectFlags.IS_CONTAINER_LOCKED):
             if len(target.contents_) == 0:
                 msg_parts.append(firstcap(target.pronoun_subject_) + " is empty.")
             else:
@@ -198,14 +198,14 @@ class CoreActions:
         corpse.transfer_inventory()
         room.add_object(corpse)
         for c in room.characters_:
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
-            logger.critical(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
+            logger.debug(f"{c.rid} is refreshing room")
             await cls.do_look_room(c, room)
 
 

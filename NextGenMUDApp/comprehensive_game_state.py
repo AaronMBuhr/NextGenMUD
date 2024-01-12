@@ -6,7 +6,7 @@ import os
 import sys
 import yaml
 from yaml_dumper import YamlDumper
-from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation
+from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation, GamePermissionFlags
 from typing import List, Dict
 import copy
 from .nondb_models.world import WorldDefinition, Zone
@@ -71,59 +71,63 @@ class ComprehensiveGameState:
             with open(yaml_file, "r") as yf:
                 yaml_data = yaml.safe_load(yf)
                 file_found = True
+            if yaml_data == None:
+                logger.warning(f"YAML file {yaml_file} is empty.")
+                continue
+            # try:
+            if 'ZONES' in yaml_data:
+                logger.debug("Loading zones...")
+                for zone_id, zone_info in yaml_data['ZONES'].items():
+                    logger.info(f"Loading zone_id: {zone_id}")
+                    new_zone = Zone(zone_id)
+                    new_zone.name_ = zone_info['name']
+                    # logger.debug(f"new_zone.name_: {new_zone.name_}")
+                    new_zone.description_ = zone_info['description']
+                    self.world_definition_.zones_[zone_id] = new_zone
+                    logger.debug(f"Loading rooms...")
+                    for room_id, room_info in zone_info['rooms'].items():
+                        logger.debug2(f"Loading room_id: {room_id}")
+                        new_room = Room(room_id, self.world_definition_.zones_[zone_id])
+                        new_room.from_yaml(new_zone, room_info)
+                        new_zone.rooms_[room_id] = new_room
+                    logger.debug("Rooms loaded")
+                logger.debug("Zones loaded")
 
-            try:
-                if 'ZONES' in yaml_data:
-                    logger.debug("Loading zones...")
-                    for zone_id, zone_info in yaml_data['ZONES'].items():
-                        logger.info(f"Loading zone_id: {zone_id}")
-                        new_zone = Zone(zone_id)
-                        new_zone.name_ = zone_info['name']
-                        # logger.debug(f"new_zone.name_: {new_zone.name_}")
-                        new_zone.description_ = zone_info['description']
-                        self.world_definition_.zones_[zone_id] = new_zone
-                        logger.debug(f"Loading rooms...")
-                        for room_id, room_info in zone_info['rooms'].items():
-                            logger.debug2(f"Loading room_id: {room_id}")
-                            new_room = Room(room_id, self.world_definition_.zones_[zone_id])
-                            new_room.from_yaml(new_zone, room_info)
-                            new_zone.rooms_[room_id] = new_room
-                        logger.debug("Rooms loaded")
-                    logger.debug("Zones loaded")
+            if "CHARACTERS" in yaml_data:
+                logger.debug("Loading characters...")
+                # print(yaml_data)
+                # for charzone in yaml_data["ZONES"]:
+                #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
+                #         ch = Character(chardef["id"], charzone)
+                #         ch.from_yaml(chardef)
+                #         self.world_definition_.characters_[ch.id_] = ch
+                for zonedef in yaml_data["CHARACTERS"]:
+                    for chardef in zonedef["characters"]:
+                        ch = Character(chardef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
+                        ch.from_yaml(chardef)
+                        ch.game_permission_flags_ = ch.game_permission_flags_.add_flags(GamePermissionFlags.IS_ADMIN)
+                        logger.debug(f"loaded character: {ch.id_}")
+                        self.world_definition_.characters_[ch.id_] = ch
 
-                if "CHARACTERS" in yaml_data:
-                    logger.debug("Loading characters...")
-                    # print(yaml_data)
-                    # for charzone in yaml_data["ZONES"]:
-                    #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
-                    #         ch = Character(chardef["id"], charzone)
-                    #         ch.from_yaml(chardef)
-                    #         self.world_definition_.characters_[ch.id_] = ch
-                    for zonedef in yaml_data["CHARACTERS"]:
-                        for chardef in zonedef["characters"]:
-                            ch = Character(chardef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
-                            ch.from_yaml(chardef)
-                            logger.debug(f"loaded character: {ch.id_}")
-                            self.world_definition_.characters_[ch.id_] = ch
-                    logger.debug("Characters loaded")
+                logger.debug("Characters loaded")
 
-                if "OBJECTS" in yaml_data:
-                    # Objects
-                    logger.debug("Loading objects...")
-                    # print(yaml_data)
-                    # for charzone in yaml_data["ZONES"]:
-                    #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
-                    #         ch = Character(chardef["id"], charzone)
-                    #         ch.from_yaml(chardef)
-                    #         self.world_definition_.characters_[ch.id_] = ch
-                    for zonedef in yaml_data["OBJECTS"]:
-                        for objdef in zonedef["objects"]:
-                            obj = Object(objdef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
-                            obj.from_yaml(objdef)
-                            self.world_definition_.objects_[obj.id_] = obj
-                    logger.debug("Objects loaded")
-            except Exception as e:
-                logger.error(f"Error loading yaml file {yaml_file}: {e}")
+            if "OBJECTS" in yaml_data:
+                # Objects
+                logger.debug("Loading objects...")
+                # print(yaml_data)
+                # for charzone in yaml_data["ZONES"]:
+                #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
+                #         ch = Character(chardef["id"], charzone)
+                #         ch.from_yaml(chardef)
+                #         self.world_definition_.characters_[ch.id_] = ch
+                for zonedef in yaml_data["OBJECTS"]:
+                    for objdef in zonedef["objects"]:
+                        obj = Object(objdef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
+                        obj.from_yaml(objdef)
+                        self.world_definition_.objects_[obj.id_] = obj
+                logger.debug("Objects loaded")
+            # except Exception as e:
+            #     logger.error(f"Error loading yaml file {yaml_file}: {e}")
 
         if not file_found:
             raise Exception(f"No world files found in {self.app_config.WORLD_DATA_DIR}.")
@@ -329,6 +333,8 @@ class ComprehensiveGameState:
         logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
         logger.debug("loading in character")
         chardef = self.world_definition_.find_character_definition("test_player")
+        if not chardef:
+            raise Exception("Character definition for 'test_player' not found.")
         new_player = Character.create_from_definition(chardef)
         new_player.connection_ = connection
         new_player.connection_.character = new_player

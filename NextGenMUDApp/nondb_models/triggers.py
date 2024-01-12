@@ -79,6 +79,7 @@ class TriggerCriteria:
         return result
     
 class Trigger:
+
     
     def __init__(self, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
         from ..scripts import ScriptHandler
@@ -147,8 +148,8 @@ class Trigger:
         # script = self.script_
         # while script := process_line(actor, script, vars):
         #     pass
-        logger.debug3("executing run_script")
-        logger.debug3(f"script: {self.script_}")
+        logger.critical("executing execute_trigger_script")
+        logger.critical(f"script: {self.script_}")
         await self.script_handler_.run_script(actor, self.script_, vars)
 
 
@@ -180,7 +181,10 @@ class TriggerCatchAny(Trigger):
         for crit in self.criteria_:
             if not crit.evaluate(vars):
                 return False
-        logger.debug3("executing script")
+        # logger.debug3("executing script")
+        # logger.critical("*********************")
+        # logger.critical(self.script_)
+        # logger.critical("*********************")
         await self.execute_trigger_script(actor, vars)
         return True
 

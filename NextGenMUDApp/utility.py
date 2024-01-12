@@ -278,39 +278,108 @@ def firstcap(s: str) -> str:
     return s[0].upper() + s[1:] if s else ""
 
 
-class FlagBitmap:
-    def __init__(self):
-        self.flags = 0
+# class FlagBitmap:
+#     def __init__(self):
+#         self.flags = 0
 
-    def set_flag(self, flag):
-        self.flags |= flag.value
+#     def set_flag(self, flag):
+#         self.flags |= flag
 
-    def clear_flag(self, flag):
-        self.flags &= ~flag.value
+#     def clear_flag(self, flag):
+#         self.flags &= ~flag
 
-    def is_flag_set(self, flag):
-        return bool(self.flags & flag.value)
+#     def is_flag_set(self, flag):
+#         return bool(self.flags & flag)
 
-    def are_flags_set(self, flags):
-        return self.flags & flags.value == flags.value
+#     def are_flags_set(self, flags):
+#         return self.flags & flags == flags
 
+
+# class DescriptiveFlags(FlagBitmap):
+#     @staticmethod
+#     def field_name_safe(index: int) -> str:
+#         try:
+#             return DescriptiveFlags.field_name(index)
+#         except IndexError:
+#             return "unknown_flag"
+
+#     def describe(self):
+#         descriptions = [self.field_name_safe(flag.value - 1) for flag in type(self) if self & flag]
+#         return ', '.join(descriptions)
+
+#     # Placeholder for the field_name method. To be implemented in child classes.
+#     @staticmethod
+#     def field_name(idx):
+#         raise NotImplementedError("This method should be implemented in child classes.")
 
 class DescriptiveFlags(IntFlag):
-    @staticmethod
-    def field_name_safe(index: int) -> str:
+
+    def __init__(self, value=0, *args, **kwargs):
+        super().__init__(value)
+
+    @classmethod
+    def field_name_safe(cls, index: int) -> str:
         try:
-            return DescriptiveFlags.field_name(index)
+            return cls.field_name(index)
         except IndexError:
             return "unknown_flag"
 
-    def describe(self):
-        descriptions = [self.field_name_safe(flag.value - 1) for flag in type(self) if self & flag]
-        return ', '.join(descriptions)
+    @classmethod
+    def field_name(cls, index: int):
+        raise NotImplementedError("This method should be overridden in a child class")
 
-    # Placeholder for the field_name method. To be implemented in child classes.
-    @staticmethod
-    def field_name(idx):
-        raise NotImplementedError("This method should be implemented in child classes.")
+    def to_comma_separated(self):
+        # Generate a comma-separated list of descriptions for all enabled flags
+        return ', '.join(self.field_name_safe(flag.value.bit_length() - 1) for flag in self.__class__ if flag in self)
+
+
+    def add_flags(self, flags):
+        # Add one or more flags
+        if isinstance(flags, self.__class__):
+            return self | flags
+        elif isinstance(flags, int):
+            return self.__class__(self.value | flags)
+        else:
+            raise ValueError("Invalid flag or flag combination")
+
+    def minus_flags(self, flags):
+        # Remove one or more flags
+        if isinstance(flags, self.__class__):
+            return self & ~flags
+        elif isinstance(flags, int):
+            return self.__class__(self.value & ~flags)
+        else:
+            raise ValueError("Invalid flag or flag combination")
+
+    def add_flag_name(self, flag_name):
+        # Add a flag by its name
+        flag_name = flag_name.upper().replace(" ", "_")  # Convert to the expected enum name format
+        if flag_name in self.__class__.__members__:
+            flag = self.__class__.__members__[flag_name]
+            return self.add_flags(flag)
+        else:
+            raise ValueError(f"Invalid flag name: {flag_name}")
+
+
+    def are_flags_set(self, flags):
+        # Check if each flag in a bitwise OR combination is set
+        if isinstance(flags, self.__class__):
+            for flag in self.__class__:
+                if flags & flag and not self & flag:
+                    return False
+            return True
+        else:
+            raise ValueError("Invalid flag or flag combination")
+
+    def are_flags_list_set(self, *flags):
+        # Check if multiple specified flags are all set
+        for flag in flags:
+            if not isinstance(flag, self.__class__):
+                raise ValueError(f"Invalid flag: {flag}")
+            if not self & flag == flag:
+                return False
+        return True
+
 
 
 def article_plus_name(article: str, name: str, cap: bool=False):
