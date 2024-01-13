@@ -34,3 +34,6 @@ class NextGenMUDAppConfig(AppConfig):
 # - look room after something dies is not working
 # - add parry?        
 # - combine equip & carry weight
+# - instead of set_vars dupes, just change '*'
+# - make room say be "You hear" or something
+# - process_command command stack funky
