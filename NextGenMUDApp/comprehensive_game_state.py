@@ -282,7 +282,7 @@ class ComprehensiveGameState:
             if obj.id_.startswith(target_name):
                 return True
             for pieces in obj.name_.split(' '):
-                logger.debug(f"pieces: {pieces} ? {target_name}")
+                logger.debug3(f"pieces: {pieces} ? {target_name}")
                 if pieces.startswith(target_name):
                     return True
             return False

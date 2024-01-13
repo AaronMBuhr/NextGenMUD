@@ -15,13 +15,13 @@ ZONES:
         triggers:
           - type: catch_any
             criteria: 
-              - subject: "%{*}"
+              - subject: "%*%"
                 operator: contains
                 predicate: "random"
             script: |
-              settempvar char %{S} starting_room_random $random(1,100)
-              echo The random number is $tempvar(%{S},starting_room_random).
-              $if($numlte($tempvar(%{S},starting_room_random),50), eq, true){
+              settempvar char %S% starting_room_random $random(1,100)
+              echo The random number is $tempvar(%S%,starting_room_random).
+              $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
                 echo Less than or equal to 50.
               }
               else {
@@ -29,7 +29,7 @@ ZONES:
               }
           # - type: timer_tick
           #   criteria:
-          #     - subject: "%{time_elapsed}"
+          #     - subject: "%time_elapsed%"
           #       operator: "numgte"
           #       predicate: 4
           #   script: |
@@ -48,22 +48,22 @@ ZONES:
         triggers:
           - type: catch_any
             criteria: 
-              - subject: "%{*}"
+              - subject: "%*%"
                 operator: contains
                 predicate: "arrives."
             script: |
-              echoto %{S} You trip as you enter.
-              echoexcept %{S} %{s} trips as %{q} enters.
+              echoto %S% You trip as you enter.
+              echoexcept %S% %S% trips as %q% enters.
           # - type: timer_tick
           #   criteria: 
-          #     - subject: "%{time_elapsed}"
+          #     - subject: "%time_elapsed%"
           #       operator: "numgte"
           #       predicate: 4
           #   script: |
           #     echo Tick!
           # - type: timer_tick
           #   criteria:
-          #     - subject: "%{time_elapsed}"
+          #     - subject: "%time_elapsed%"
           #       operator: "numgte"
           #       predicate: 10
           #     - subject: "$random(1,100)"
@@ -73,12 +73,12 @@ ZONES:
           #     echo Wildlife rustles in the underbrush.
           # - type: catch_look
           #   criteria: 
-          #     - subject: "%{*}"
+          #     - subject: "%*%"
           #       operator: contains
           #       predicate: "squirrel"
           #   script: |
           #     echo You see a squirrel.
-          #     echoexcept %{S} %{s} sees a squirrel.
+          #     echoexcept %S% %S% sees a squirrel.
 
 CHARACTERS:
   - zone: debug_zone
@@ -134,20 +134,20 @@ CHARACTERS:
         triggers:
           - type: catch_any
             criteria:
-              - subject: "%{*}"
+              - subject: "%*%"
                 operator: contains
                 predicate: "kicks you"
             script: |
               emote gets angry!
-              lick %{A}
+              lick %S%
           - type: catch_any
             criteria:
-              - subject: "%{*}"
+              - subject: "%*%"
                 operator: contains
                 predicate: "starts fighting you"
             script: |
               emote gets angry!
-              kick %{S}
+              kick %S%
         damage_resistances:
           bludgeoning: 2
           unholy: 0
@@ -185,7 +185,7 @@ OBJECTS:
         triggers:
         - type: catch_any
           criteria:
-            - subject: "%{*}"
+            - subject: "%*%"
               operator: contains
               predicate: "drops you"
           script: |

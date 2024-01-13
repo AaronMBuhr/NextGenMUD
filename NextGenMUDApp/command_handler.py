@@ -13,6 +13,7 @@ import yaml
 from .utility import set_vars, split_preserving_quotes, article_plus_name
 from num2words import num2words
 import itertools
+import logging
 
 class CommandHandler():
     game_state: ComprehensiveGameState = live_game_state
@@ -30,6 +31,9 @@ class CommandHandler():
         "goto": lambda command, char, input: CommandHandler.cmd_goto(char, input),
         "list": lambda command, char, input: CommandHandler.cmd_list(char, input),
         "at": lambda command, char, input: CommandHandler.cmd_at(char, input),
+        "setloglevel": lambda command, char, input: CommandHandler.cmd_setloglevel(char, input),
+        "setlogfilter": lambda command, char, input: CommandHandler.cmd_setlogfilter(char, input),
+        "getlogfilter": lambda command, char, input: CommandHandler.cmd_getlogfilter(char, input),
 
         # normal commands
         "north": lambda command, char, input: CoreActions.world_move(char, "north"),
@@ -110,15 +114,20 @@ class CommandHandler():
         text = input
         vars = set_vars(actor, actor, actor, text)
         await actor.send_text(CommTypes.DYNAMIC, f"You say, \"{text}\"")
-        if actor.location_room_:
+        room = actor.location_room_ if actor.location_room_ else actor.in_actor_.location_room_
+        if room:
             if actor.actor_type_ == ActorType.CHARACTER:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, f"f{firstcap(actor.name_)} says, \"{text}\"", vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, f"f{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor])
             elif actor.actor_type_ == ActorType.OBJECT:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, f"{firstcap(actor.name_)} says, \"{text}\"", vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor])
             elif actor.actor_type_ == ActorType.ROOM:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, {text}, vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
+        else:
+            actor.send_text(CommTypes.DYNAMIC, "You have no location room.")
+            logger.error(f"Actor {actor.rid} has no location room.")
+
 
     @classmethod
     async def cmd_echo(cls, actor: Actor, input: str):
@@ -231,24 +240,24 @@ class CommandHandler():
 
 
     EMOTE_MESSAGES = {
-        "kick": { 'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a lets loose with a wild kick." },
-                'target' : { 'actor': "You kick %t.", 'room': "%a kicks %t." , 'target': "%a kicks you."} },
-        "kiss": { 'notarget' : { 'actor': 'You kiss the air.', 'room': '%a kisses the air.'},
-                'target': {'actor': "You kiss %t.", 'room': "%a kisses %t.", 'target': "%a kisses you." }},
-        "lick": { 'notarget': { 'actor': 'You lick the air.', 'room': '%a licks the air.'},
-                'target': {'actor': "You lick %t.", 'room': "%a licks %t.", 'target': "%a licks you." }},
-        "congratulate": { 'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a congratulates %Pself.'},
-                        'target' : { 'actor': "You congratulate %t.", 'room': "%a congratulates %t." , 'target': "%a congratulates you."}},
+        "kick": { 'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a% lets loose with a wild kick." },
+                'target' : { 'actor': "You kick %t%.", 'room': "%a% kicks %t%." , 'target': "%a% kicks you."} },
+        "kiss": { 'notarget' : { 'actor': 'You kiss the air.', 'room': '%a% kisses the air.'},
+                'target': {'actor': "You kiss %t%.", 'room': "%a% kisses %t%.", 'target': "%a% kisses you." }},
+        "lick": { 'notarget': { 'actor': 'You lick the air.', 'room': '%a% licks the air.'},
+                'target': {'actor': "You lick %t%.", 'room': "%s% licks %t%.", 'target': "%s% licks you." }},
+        "congratulate": { 'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a% congratulates %{P}self.'},
+                        'target' : { 'actor': "You congratulate %t%.", 'room': "%a% congratulates %t%." , 'target': "%a% congratulates you."}},
         "bow": { 'notarget': { 'actor': 'You take a bow.', 'room': 'Makes a sweeping bow.'}, 
-                'target' : {'actor': "You bow to %t.", 'room': "%a bows to %t.", 'target': "%a bows to you." }},
-        "thank": { 'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a thanks everyone.' },
-                'target' : {'actor': "You thank %t.", 'room': "%a thanks %t.", 'target': "%a thanks you." }},
-        "sing": { 'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a sings %P heart out.' },
-                'target': {'actor': "You sing to %t.", 'room': "%a sings to %t.", 'target': "%a sings to you." }},
-        "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a dances a jig.' },
-                    'target': {'actor': "You dance with %t.", 'room': "%a dances with %t.", 'target': "%a dances with you." }},
-                    "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '%a touches %Pself.' },
-                    'target': {'actor': "You touch %t.", 'room': "%a touches %t.", 'target': "%a touches you." }}
+                'target' : {'actor': "You bow to %t%.", 'room': "%a% bows to %t%.", 'target': "%a% bows to you." }},
+        "thank": { 'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a% thanks everyone.' },
+                'target' : {'actor': "You thank %t%.", 'room': "%a% thanks %t%.", 'target': "%a% thanks you." }},
+        "sing": { 'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a% sings %P% heart out.' },
+                'target': {'actor': "You sing to %t%.", 'room': "%a% sings to %t%.", 'target': "%a% sings to you." }},
+        "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a% dances a jig.' },
+                    'target': {'actor': "You dance with %t%.", 'room': "%a% dances with %t%.", 'target': "%a% dances with you." }},
+                    "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '%a% touches %P%self.' },
+                    'target': {'actor': "You touch %t%.", 'room': "%a% touches %t%.", 'target': "%a% touches you." }}
         }
 
     @classmethod
@@ -258,13 +267,16 @@ class CommandHandler():
         logger.critical(f"command: {command}, actor.rid: {actor.rid}, input: {input}")
         pieces = split_preserving_quotes(input)
         if len(pieces) < 1:
+            logger.critical("no pieces")
             actor_msg = cls.EMOTE_MESSAGES[command]["notarget"]['actor']
             room_msg = cls.EMOTE_MESSAGES[command]["notarget"]['room']
             target_msg = None
             target = None
         else:
+            logger.critical(f"finding target: actor={actor.rid} target={pieces[0]}")
             target = cls.game_state.find_target_character(actor, pieces[0])
             if target == None:
+                logger.critical("can't find target")
                 await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
                 return
             actor_msg = cls.EMOTE_MESSAGES[command]['target']['actor']
@@ -272,20 +284,21 @@ class CommandHandler():
             target_msg = cls.EMOTE_MESSAGES[command]['target']['target']
             logger.critical(f"actor_msg: {actor_msg}, room_msg: {room_msg}, target_msg: {target_msg}")
 
-        vars = set_vars(actor, actor, actor, actor_msg)
-        await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
-
         if target:
-            vars = set_vars(actor, actor, target, target_msg)
+            vars = set_vars(actor, actor, target, actor_msg)
+            await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
             await target.echo(CommTypes.DYNAMIC, target_msg, vars)
+        else:
+            target = actor
+            vars = set_vars(actor, actor, actor, actor_msg)
+            await actor.echo(CommTypes.DYNAMIC, actor_msg, vars)
         if actor.location_room_:
-            vars = set_vars(actor, actor, actor, room_msg)
             if actor.actor_type_ == ActorType.CHARACTER:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {room_msg}", vars, exceptions=[actor] if target == None else [actor, target])
+                await actor.location_room_.echo(CommTypes.DYNAMIC, "... " + room_msg, vars, exceptions=([actor] if target == None else [actor, target]))
             elif actor.actor_type_ == ActorType.OBJECT:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor] if target == None else [actor, target])
+                await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=([actor] if target == None else [actor, target]))
             elif actor.actor_type_ == ActorType.ROOM:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor] if target == None else [actor, target])
+                await actor.location_room_.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=([actor] if target == None else [actor, target]))
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
 
@@ -526,23 +539,23 @@ class CommandHandler():
                 actor.add_object(new_object, True)
                 logger.debug(f"new_object: {new_object} added to character {actor}")
                 logger.debug(f"actor.contents_ length: {len(actor.contents_)}")
-                print(Object.collapse_name_multiples(actor.contents_, ","))
+                # print(Object.collapse_name_multiples(actor.contents_, ","))
             elif actor.actor_type_ == ActorType.OBJECT:
                 if actor.object_flags_.are_flags_set(ObjectFlags.IS_CONTAINER):
                     logger.debug("adding to container")
                     actor.add_object(new_object, True)
                     logger.debug(f"new_object: {new_object} added to container {actor}")
-                    print(Object.collapse_name_multiples(actor.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.contents_, ","))
                 else:
                     logger.debug("adding to room")
                     actor.location_room_.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor.location_room_}")
-                    print(Object.collapse_name_multiples(actor.location_room_.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.location_room_.contents_, ","))
             elif actor.actor_type_ == ActorType.ROOM:
                     logger.debug("adding to room")
                     actor.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor}")
-                    print(Object.collapse_name_multiples(actor.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.contents_, ","))
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type_} for object not implemented.")
             await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_object.article_, new_object.name_)}.")
@@ -1051,4 +1064,56 @@ class CommandHandler():
             else:
                 msg_parts.append(f"{loc.name}: nothing\n")
         await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+
+
+    @classmethod
+    async def cmd_setloglevel(cls, actor: Actor, input: str):
+        loglevels = {
+            "debug": logging.DEBUG,
+            "debug1": logging.DEBUG,
+            "debug2": logging.DEBUG,
+            "debug3": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR,
+            "critical": logging.CRITICAL,        }
+        pieces = input.split(' ')
+        if len(pieces) < 1 or pieces[0].lower() not in loglevels:
+            await actor.send_text(CommTypes.DYNAMIC, "Set log to what?")
+            return
+        logger = CustomDetailLogger(__name__, prefix="cmd_setloglevel()> ")
+        filter = logger.get_allowed_prefixes()
+        logger.set_allowed_prefixes()
+        logger.critical(f"set log level to {pieces[0]}")
+        logger.setLevel(loglevels[pieces[0].lower()])
+        logger.set_allowed_prefixes(filter)
+        await actor.send_text(CommTypes.DYNAMIC, f"Set log level to {pieces[0]}.")
+
+
+    @classmethod
+    async def cmd_setlogfilter(cls, actor: Actor, input: str):
+        pieces = input.split(' ')
+        if len(pieces) < 1:
+            await actor.send_text(CommTypes.DYNAMIC, "Set logfilter to what?")
+            return
+        logger = CustomDetailLogger(__name__, prefix="cmd_setlogfilter()> ")
+        logger.set_allowed_prefixes()
+        if pieces[0].lower() == "all":
+            logger.set_allowed_prefixes("")
+            await actor.send_text(CommTypes.DYNAMIC, f"Set logfilter to all.")
+            return
+        elif pieces[0].lower() == "none":
+            logger.set_allowed_prefixes(None)
+            await actor.send_text(CommTypes.DYNAMIC, f"Set logfilter to none.")
+            return
+        logger.critical(f"set logfilter to {','.join(pieces)}")
+        logger.set_allowed_prefixes(pieces)
+        await actor.send_text(CommTypes.DYNAMIC, f"Set logfilter to {','.join(pieces)}.")
+        await actor.send_text(CommTypes.DYNAMIC, f"Logfilter is {','.join(logger.get_allowed_prefixes())}.")
+    
+
+    @classmethod
+    async def cmd_getlogfilter(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_getlogfilter()> ")
+        await actor.send_text(CommTypes.DYNAMIC, f"Logfilter is {','.join(logger.get_allowed_prefixes())}.")
 
