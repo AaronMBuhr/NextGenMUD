@@ -31,8 +31,8 @@ class CoreActions:
                     else:
                         msg_parts.append(firstcap(article_plus_name(character.article_,character.name_)) + " is here, fighting " + character.fighting_whom_.name_ + "!")
                 else:
-                    print("character.article: " + character.article_)
-                    print("character.name: " + character.name_)
+                    # print("character.article: " + character.article_)
+                    # print("character.name: " + character.name_)
                     msg_parts.append(firstcap(article_plus_name(character.article_, character.name_)) + " is here.")
         logger.debug("objects")
         for object in room.contents_: 

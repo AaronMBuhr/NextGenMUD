@@ -79,23 +79,25 @@ class Actor:
     async def send_text(self, text_type: CommTypes, text: str):
         pass
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
+                   exceptions: List['Actor'] = None, already_substituted: bool =False) -> bool:
+        # note that you probably want to run this last in the child class implementation
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
-        logger.debug3("running")
-        logger.debug3(f"text: {text}")
-        logger.debug3(f"vars: {vars}")
-        if vars:
+        logger.critical("running")
+        logger.critical(f"text before: {text}")
+        logger.critical(f"vars: {vars}")
+        if not already_substituted:
             text = replace_vars(text, vars)
-        logger.debug3(f"formatted text: {text}")
+        logger.critical(f"text after: {text}")
         # check room triggers
         if exceptions and self in exceptions:
             return False
-        logger.debug3(f"triggers:\n{self.triggers_by_type_}")
+        logger.critical(f"triggers:\n{self.triggers_by_type_}")
         for trigger_type in [ TriggerType.CATCH_ANY ]:
             if trigger_type in self.triggers_by_type_:
-                logger.debug3(f"checking trigger_type: {trigger_type}")
+                logger.critical(f"checking trigger_type: {trigger_type}")
                 for trigger in self.triggers_by_type_[trigger_type]:
-                    logger.debug3(f"checking trigger: {trigger.to_dict()}")
+                    logger.critical(f"checking trigger: {trigger.to_dict()}")
                     await trigger.run(self, text, vars)
         return True
 
@@ -162,13 +164,15 @@ class Room(Actor):
                 self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
 
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
+                   exceptions: List['Actor'] =None, already_substituted: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
-        logger.debug3("running super, text: " + text)
-        await super().echo(text_type, text, vars, exceptions)
         if text == False:
             raise Exception("text False")
-        logger.debug3("ran super, text: " + text)
+        logger.critical("text before " + text)
+        if not already_substituted:
+            text = replace_vars(text, vars)
+        logger.critical("text after " + text)
         logger.debug3(f"checking characters: {self.characters_}")
         # if len(self.characters_) > 0:
         #     raise Exception("we found a character!")
@@ -176,7 +180,9 @@ class Room(Actor):
             logger.debug3(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
                 logger.debug3(f"sending '{text}' to {c.name_}")
-                await c.echo(text_type, text, vars, exceptions)
+                await c.echo(text_type, text, vars, exceptions, already_substituted=True)
+        logger.debug3("running super, text: " + text)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True)
         return True
 
     def remove_character(self, character: 'Character'):
@@ -527,15 +533,22 @@ class Character(Actor):
             logger.debug3("no connection")
             return False
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
+                   exceptions: List['Actor'] = None, already_substituted: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
-        logger.debug3("running super")
-        await super().echo(text_type, text, vars, exceptions)
+        logger.critical("text before " + text)
+        if not already_substituted:
+            text = replace_vars(text, vars)
+        logger.critical("text after " + text)
         if exceptions and self in exceptions:
-            return False
-        logger.debug3("sending text")
-        await self.send_text(text_type, text)
-        return True
+            retval = False
+        else:
+            retval = True
+            logger.critical("sending text: " + text)
+            await self.send_text(text_type, text)
+        logger.debug3("running super")
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True)
+        return retval
 
     @classmethod
     def create_from_definition(cls, char_def: 'Character') -> 'Character':
@@ -713,10 +726,14 @@ class Object(Actor):
         self.contents_.remove(obj)
         obj.in_actor_ = None
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, exceptions=None) -> bool:
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
+                   exceptions: List['Actor'] = None, already_substituted:bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
-        text = await super().echo(text_type, text, vars, exceptions)
-        return True
+        logger.critical("text before " + text)
+        if not already_substituted:
+            text = replace_vars(text, vars)
+        logger.critical("text after " + text)
+        return await super().echo(text_type, text, vars, exceptions)
     
     @classmethod
     def create_from_definition(cls, obj_def: 'Object') -> 'Object':
@@ -762,7 +779,7 @@ class Corpse(Object):
         self.article_ = ""
         self.description_ = f"The corpse of {character.name_} lies here. It makes you feel sad..."
         self.character_ = character
-        self.object_flags_.set_flag(ObjectFlags.IS_CONTAINER)
+        self.object_flags_.add_flags(ObjectFlags.IS_CONTAINER)
         self.definition_zone_ = None
         self.location_room_ = room
         self.zone_ = room.zone_

@@ -15,22 +15,32 @@ def to_int(v) -> int:
             return int(float(v))
     return int(v)
 
+# Module-level variable for the compiled regex
+variable_replacement_regex = re.compile(r"%(?!\d)[A-Za-z*#$]+%(?<!\d)")
+
+def replace_match(match, vars):
+    # Extract the variable name and replace with the corresponding value from vars
+    var_name = match.group()[1:-1]  # Remove the surrounding % signs
+    return str(vars.get(var_name, match.group()))  # Replace with value from vars, or keep original if not found
 
 def replace_vars(script, vars: dict) -> str:
     logger = CustomDetailLogger(__name__, prefix="replace_vars()> ")
     logger.debug3("starting, script:")
-    # print(script)
-    if not type(script) is str:
+    
+    if not isinstance(script, str):
         logger.debug3("not str")
         return script
+
     logger.debug3("is str")
-    logger.debug3(f"vars: {vars}")   
-    logger.debug3(f"script in : {script}")
-    for var, value in vars.items():
-        # logger.debug3('script.replace("%{"' + var + '"}, ' + value + 'if ' + value + ' is str else str(' + value + '))')
-        script = script.replace("%{" + var + "}", value if value is str else str(value))
-    logger.debug3(f"script out : {script}")
+    logger.critical(f"vars: {vars}")   
+    logger.critical(f"script in : {script}")
+
+    # Use the compiled regex for replacement
+    script = variable_replacement_regex.sub(lambda match: replace_match(match, vars), script)
+
+    logger.critical(f"script out : {script}")
     return script
+
 
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:

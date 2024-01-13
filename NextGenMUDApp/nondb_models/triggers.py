@@ -54,8 +54,8 @@ class TriggerCriteria:
     @abstractmethod
     def evaluate(self, vars: dict) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
-        logger.debug3(f"vars: {vars}")
-        logger.debug3(f"checking {self.subject_},{self.operator_},{self.predicate_}")
+        logger.critical(f"vars: {vars}")
+        logger.critical(f"checking {self.subject_},{self.operator_},{self.predicate_}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
         # predicate = execute_functions(replace_vars(self.predicate_, vars))
         if type(self.subject_) is str:
@@ -68,7 +68,7 @@ class TriggerCriteria:
             predicate = self.predicate_
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
-        logger.debug3(f"checking calculated {subject},{self.operator_},{predicate}")
+        logger.critical(f"checking calculated {subject},{self.operator_},{predicate}")
         result = evaluate_if_condition(subject, self.operator_, predicate)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
@@ -177,14 +177,13 @@ class TriggerCatchAny(Trigger):
         vars = {**vars, 
                 **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
                 **(actor_vars(actor, "a"))}
-        logger.debug3("evaluating")
+        logger.critical("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars):
+                logger.critical("criteria not met")
                 return False
-        # logger.debug3("executing script")
-        # logger.critical("*********************")
-        # logger.critical(self.script_)
-        # logger.critical("*********************")
+        logger.critical("executing script")
+        logger.critical(f"script: {self.script_}")
         await self.execute_trigger_script(actor, vars)
         return True
 
