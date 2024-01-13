@@ -80,7 +80,8 @@ class Actor:
         pass
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
-                   exceptions: List['Actor'] = None, already_substituted: bool =False) -> bool:
+                   exceptions: List['Actor'] = None, already_substituted: bool = False,
+                   skip_triggers: bool = False) -> bool:
         # note that you probably want to run this last in the child class implementation
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
         logger.critical("running")
@@ -92,13 +93,16 @@ class Actor:
         # check room triggers
         if exceptions and self in exceptions:
             return False
-        logger.critical(f"triggers:\n{self.triggers_by_type_}")
-        for trigger_type in [ TriggerType.CATCH_ANY ]:
-            if trigger_type in self.triggers_by_type_:
-                logger.critical(f"checking trigger_type: {trigger_type}")
-                for trigger in self.triggers_by_type_[trigger_type]:
-                    logger.critical(f"checking trigger: {trigger.to_dict()}")
-                    await trigger.run(self, text, vars)
+        if skip_triggers:
+            logger.critical("skipping triggers")
+        else:
+            logger.critical(f"triggers:\n{self.triggers_by_type_}")
+            for trigger_type in [ TriggerType.CATCH_ANY ]:
+                if trigger_type in self.triggers_by_type_:
+                    logger.critical(f"checking trigger_type: {trigger_type}")
+                    for trigger in self.triggers_by_type_[trigger_type]:
+                        logger.critical(f"checking trigger: {trigger.to_dict()}")
+                        await trigger.run(self, text, vars)
         return True
 
 
@@ -165,7 +169,8 @@ class Room(Actor):
 
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
-                   exceptions: List['Actor'] =None, already_substituted: bool = False) -> bool:
+                   exceptions: List['Actor'] =None, already_substituted: bool = False,
+                   skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
         if text == False:
             raise Exception("text False")
@@ -180,9 +185,9 @@ class Room(Actor):
             logger.debug3(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
                 logger.debug3(f"sending '{text}' to {c.name_}")
-                await c.echo(text_type, text, vars, exceptions, already_substituted=True)
+                await c.echo(text_type, text, vars, exceptions, already_substituted=True,skip_triggers=skip_triggers)
         logger.debug3("running super, text: " + text)
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True, skip_triggers=skip_triggers)
         return True
 
     def remove_character(self, character: 'Character'):
@@ -534,7 +539,8 @@ class Character(Actor):
             return False
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
-                   exceptions: List['Actor'] = None, already_substituted: bool = False) -> bool:
+                   exceptions: List['Actor'] = None, already_substituted: bool = False,
+                   skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
@@ -547,7 +553,7 @@ class Character(Actor):
             logger.critical("sending text: " + text)
             await self.send_text(text_type, text)
         logger.debug3("running super")
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True, skip_triggers=skip_triggers)
         return retval
 
     @classmethod
@@ -727,13 +733,14 @@ class Object(Actor):
         obj.in_actor_ = None
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
-                   exceptions: List['Actor'] = None, already_substituted:bool = False) -> bool:
+                   exceptions: List['Actor'] = None, already_substituted:bool = False,
+                   skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
             text = replace_vars(text, vars)
         logger.critical("text after " + text)
-        return await super().echo(text_type, text, vars, exceptions)
+        return await super().echo(text_type, text, vars, exceptions, skip_triggers=skip_triggers)
     
     @classmethod
     def create_from_definition(cls, obj_def: 'Object') -> 'Object':

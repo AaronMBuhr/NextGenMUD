@@ -14,6 +14,7 @@ from .utility import set_vars, split_preserving_quotes, article_plus_name
 from num2words import num2words
 import itertools
 import logging
+from .nondb_models.triggers import TriggerType
 
 class CommandHandler():
     game_state: ComprehensiveGameState = live_game_state
@@ -45,6 +46,7 @@ class CommandHandler():
         "west": lambda command, char, input: CoreActions.world_move(char, "west"),
         "w": lambda command, char, input: CoreActions.world_move(char, "west"),
         "say": lambda command, char, input: CommandHandler.cmd_say(char, input),
+        "sayto": lambda command, char, input: CommandHandler.cmd_sayto(char, input),
         "tell": lambda command, char, input: CommandHandler.cmd_tell(char, input),
         "emote": lambda command, char,input: CommandHandler.cmd_emote(char, input),
         "look": lambda command, char, input: CommandHandler.cmd_look(char, input),
@@ -78,9 +80,14 @@ class CommandHandler():
         if actor.reference_number_ is None:
             raise Exception(f"Actor {actor.id_} has no reference number.")
         if actor.rid in cls.executing_actors:
-            logger.Error(f"Actor {actor.id_} is already executing a command.")
+            for ch in cls.executing_actors:
+                logger.critical(f"executing_actors: {ch}")
+            logger.error(f"Actor {actor.id_} is already executing a command, can't '{input}'.")
+        logger.critical(f"pushing {actor.rid} ({input}) onto executing_actors")
         cls.executing_actors[actor.rid] = input
         msg = None
+        for ch in cls.executing_actors:
+            logger.critical(f"executing_actors 1: {ch}")
         try:
             if input.split() == "":
                 msg = "Did you want to do something?"
@@ -99,12 +106,22 @@ class CommandHandler():
                     except KeyError:
                         logger.error(f"KeyError processing command {command}")
                         msg = "Command failure."
+                        raise
         except:
             logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
             raise
+        # logger.critical(f"len(executing_actors) 2: {len(cls.executing_actors)}")
+        # for ch in cls.executing_actors:
+        #     logger.critical(f"executing_actors 2: {ch}")
         if msg:
             await actor.send_text(CommTypes.DYNAMIC, msg)
-        del cls.executing_actors[actor.rid]
+        if not actor.rid in cls.executing_actors:
+            logger.warning(f"actor {actor.rid} not in executing_actors")
+            # logger.critical(f"len(executing_actors) 3: {len(cls.executing_actors)}")
+            # for ch in cls.executing_actors:
+            #     logger.critical(f"executing_actors 3: {ch}")
+        else:
+            del cls.executing_actors[actor.rid]
 
 
     @classmethod
@@ -117,17 +134,62 @@ class CommandHandler():
         room = actor.location_room_ if actor.location_room_ else actor.in_actor_.location_room_
         if room:
             if actor.actor_type_ == ActorType.CHARACTER:
-                await room.echo(CommTypes.DYNAMIC, f"f{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor], skip_triggers=True)
             elif actor.actor_type_ == ActorType.OBJECT:
-                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} says, \"{text}\"", vars, exceptions=[actor], skip_triggers=True)
             elif actor.actor_type_ == ActorType.ROOM:
-                await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
+                await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor], skip_triggers=True)
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type_} not implemented.")
+            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type_:
+                for trig in room.triggers_by_type_[TriggerType.CATCH_SAY]:
+                    await trig.run(room, text, vars)
+            for ch in room.characters_:
+                if ch != actor and TriggerType.CATCH_SAY in ch.triggers_by_type_:
+                    for trig in ch.triggers_by_type_[TriggerType.CATCH_SAY]:
+                        await trig.run(ch, text, vars)
         else:
             actor.send_text(CommTypes.DYNAMIC, "You have no location room.")
             logger.error(f"Actor {actor.rid} has no location room.")
 
+    @classmethod
+    async def cmd_sayto(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_sayto()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        if len(input) < 2:
+            await actor.send_text(CommTypes.DYNAMIC, "Say to whom?")
+            return
+        if len(input) < 3:
+            await actor.send_text(CommTypes.DYNAMIC, "Say what?")
+        pieces = split_preserving_quotes(input)
+        logger.debug3(f"finding target: {pieces[0]}")
+        target = cls.game_state.find_target_character(actor, pieces[0])
+        logger.debug3(f"target: {target}")
+        if target == None:
+            await actor.send_text(CommTypes.DYNAMIC, "Say to whom?")
+            return
+        text = ' '.join(pieces[1:])
+        msg = f"You say to {target.name_}, \"{text}\""
+        vars = set_vars(actor, actor, target, msg)
+        await actor.send_text(CommTypes.DYNAMIC, f"You say to {target.name_}, \"{text}\"")
+        msg = f"{article_plus_name(actor.article_,actor.name_, cap=True)} says to you, \"{text}\""
+        vars = set_vars(actor, actor, target, msg)
+        await target.echo(CommTypes.DYNAMIC, msg, vars)
+        room = actor.location_room_ if actor.location_room_ else actor.in_actor_.location_room_
+        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type_:
+            for trig in target.triggers_by_type_[TriggerType.CATCH_SAY]:
+                await trig.run(target, text, vars)
+        if room:
+            msg = f"{article_plus_name(actor.article_,actor.name_, cap=True)} says to {target.name_}, \"{text}\""
+            vars = set_vars(actor, actor, target, msg)
+            await actor.location_room_.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target])
+            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type_:
+                for trig in room.triggers_by_type_[TriggerType.CATCH_SAY]:
+                    await trig.run(room, text, vars)
+            for ch in room.characters_:
+                if ch != actor and ch != target and TriggerType.CATCH_SAY in ch.triggers_by_type_:
+                    for trig in ch.triggers_by_type_[TriggerType.CATCH_SAY]:
+                        await trig.run(ch, text, vars)
 
     @classmethod
     async def cmd_echo(cls, actor: Actor, input: str):
@@ -230,7 +292,10 @@ class CommandHandler():
         await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
         if actor.location_room_:
             if actor.actor_type_ == ActorType.CHARACTER:
-                await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
+                if actor.permanent_character_flags_.are_flags_set(CharacterFlags.IS_PC):
+                    await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
+                else:
+                    await actor.location_room_.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} {text}", vars, exceptions=[actor])
             elif actor.actor_type_ == ActorType.OBJECT:
                 await actor.location_room_.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor])
             elif actor.actor_type_ == ActorType.ROOM:
@@ -240,24 +305,64 @@ class CommandHandler():
 
 
     EMOTE_MESSAGES = {
-        "kick": { 'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a% lets loose with a wild kick." },
-                'target' : { 'actor': "You kick %t%.", 'room': "%a% kicks %t%." , 'target': "%a% kicks you."} },
-        "kiss": { 'notarget' : { 'actor': 'You kiss the air.', 'room': '%a% kisses the air.'},
-                'target': {'actor': "You kiss %t%.", 'room': "%a% kisses %t%.", 'target': "%a% kisses you." }},
-        "lick": { 'notarget': { 'actor': 'You lick the air.', 'room': '%a% licks the air.'},
-                'target': {'actor': "You lick %t%.", 'room': "%s% licks %t%.", 'target': "%s% licks you." }},
-        "congratulate": { 'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a% congratulates %{P}self.'},
-                        'target' : { 'actor': "You congratulate %t%.", 'room': "%a% congratulates %t%." , 'target': "%a% congratulates you."}},
-        "bow": { 'notarget': { 'actor': 'You take a bow.', 'room': 'Makes a sweeping bow.'}, 
-                'target' : {'actor': "You bow to %t%.", 'room': "%a% bows to %t%.", 'target': "%a% bows to you." }},
-        "thank": { 'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a% thanks everyone.' },
-                'target' : {'actor': "You thank %t%.", 'room': "%a% thanks %t%.", 'target': "%a% thanks you." }},
-        "sing": { 'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a% sings %P% heart out.' },
-                'target': {'actor': "You sing to %t%.", 'room': "%a% sings to %t%.", 'target': "%a% sings to you." }},
+        "kick": {   'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a% lets loose with a wild kick." },
+                    'target' : { 'actor': "You kick %t%.", 'room': "%a% kicks %t%." , 'target': "%a% kicks you."} },
+        "kiss": {   'notarget' : { 'actor': 'You kiss the air.', 'room': '%a% kisses the air.'},
+                    'target': {'actor': "You kiss %t%.", 'room': "%a% kisses %t%.", 'target': "%a% kisses you." }},
+        "lick": {   'notarget': { 'actor': 'You lick the air.', 'room': '%a% licks the air.'},
+                    'target': {'actor': "You lick %t%.", 'room': "%s% licks %t%.", 'target': "%s% licks you." }},
+        "congratulate": {   'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a% congratulates %{P}self.'},
+                            'target' : { 'actor': "You congratulate %t%.", 'room': "%a% congratulates %t%." , 'target': "%a% congratulates you."}},
+        "bow": {    'notarget': { 'actor': 'You take a bow.', 'room': 'Makes a sweeping bow.'}, 
+                    'target' : {'actor': "You bow to %t%.", 'room': "%a% bows to %t%.", 'target': "%a% bows to you." }},
+        "thank": {  'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a% thanks everyone.' },
+                    'target' : {'actor': "You thank %t%.", 'room': "%a% thanks %t%.", 'target': "%a% thanks you." }},
+        "sing": {   'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a% sings %P% heart out.' },
+                    'target': {'actor': "You sing to %t%.", 'room': "%a% sings to %t%.", 'target': "%a% sings to you." }},
         "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a% dances a jig.' },
                     'target': {'actor': "You dance with %t%.", 'room': "%a% dances with %t%.", 'target': "%a% dances with you." }},
                     "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '%a% touches %P%self.' },
-                    'target': {'actor': "You touch %t%.", 'room': "%a% touches %t%.", 'target': "%a% touches you." }}
+                    'target': {'actor': "You touch %t%.", 'room': "%a% touches %t%.", 'target': "%a% touches you." }},
+        "wink": {   'notarget': {'actor': 'You wink mischievously.', 'room': '%a% winks mischievously.'},
+                    'target': {'actor': "You wink at %t%.", 'room': "%a% winks at %t%.", 'target': "%a% winks at you."} },
+        "laugh": {  'notarget': {'actor': 'You burst into laughter.', 'room': '%a% bursts into laughter.'},
+                    'target': {'actor': "You laugh with %t%.", 'room': "%a% laughs with %t%.", 'target': "%a% laughs with you."} },
+        "sigh":  {  'notarget': {'actor': 'You sigh deeply.', 'room': '%a% sighs deeply.'},
+                    'target': {'actor': "You sigh at %t%.", 'room': "%a% sighs at %t%.", 'target': "%a% sighs at you."} },
+        "nod": {    'notarget': {'actor': 'You nod thoughtfully.', 'room': '%a% nods thoughtfully.'},
+                    'target': {'actor': "You nod at %t%.", 'room': "%a% nods at %t%.", 'target': "%a% nods at you."} },
+        "shrug": {  'notarget': {'actor': 'You shrug indifferently.', 'room': '%a% shrugs indifferently.'},
+                    'target': {'actor': "You shrug at %t%.", 'room': "%a% shrugs at %t%.", 'target': "%a% shrugs at you."} },
+        "cheer": {  'notarget': {'actor': 'You cheer loudly.', 'room': '%a% cheers loudly.'},
+                    'target': {'actor': "You cheer for %t%.", 'room': "%a% cheers for %t%.", 'target': "%a% cheers for you."} },
+        "frown": {  'notarget': {'actor': 'You frown deeply.', 'room': '%a% frowns deeply.'},
+                    'target': {'actor': "You frown at %t%.", 'room': "%a% frowns at %t%.", 'target': "%a% frowns at you."} },
+        "wave": {   'notarget': {'actor': 'You wave at no one in particular.', 'room': '%a% waves at no one in particular.'},
+                    'target': {'actor': "You wave at %t%.", 'room': "%a% waves at %t%.", 'target': "%a% waves at you."} },
+        "clap": {   'notarget': {'actor': 'You clap your hands.', 'room': '%a% claps %P% hands.'},
+                    'target': {'actor': "You clap for %t%.", 'room': "%a% claps for %t%.", 'target': "%a% claps for you."} },
+        "gaze": {   'notarget': {'actor': 'You gaze into the distance.', 'room': '%a% gazes into the distance.'},
+                    'target': {'actor': "You gaze at %t%.", 'room': "%a% gazes at %t%.", 'target': "%a% gazes at you."} },
+        "smile": {
+            'notarget': {'actor': 'You smile warmly.', 'room': '%a% smiles warmly.'},
+            'target': {'actor': "You smile at %t%.", 'room': "%a% smiles at %t%.", 'target': "%a% smiles at you."}
+        },
+        "glare": {
+            'notarget': {'actor': 'You glare into the distance.', 'room': '%a% glares into the distance.'},
+            'target': {'actor': "You glare at %t%.", 'room': "%a% glares at %t%.", 'target': "%a% glares at you."}
+        },
+        "cry": {
+            'notarget': {'actor': 'Tears well up in your eyes.', 'room': '%a% starts to cry.'},
+            'target': {'actor': "You cry on %t%'s shoulder.", 'room': "%a% cries on %t%'s shoulder.", 'target': "%a% cries on your shoulder."}
+        },
+        "yawn": {
+            'notarget': {'actor': 'You yawn loudly.', 'room': '%a% yawns loudly.'},
+            'target': {'actor': "You yawn at %t%.", 'room': "%a% yawns at %t%.", 'target': "%a% yawns at you."}
+        },
+        "think": {
+            'notarget': {'actor': 'You look thoughtful.', 'room': '%a% looks thoughtful.'},
+            'target': {'actor': "You ponder %t%.", 'room': "%a% ponders %t%.", 'target': "%a% ponders about you."}
+        }
         }
 
     @classmethod
@@ -268,8 +373,8 @@ class CommandHandler():
         pieces = split_preserving_quotes(input)
         if len(pieces) < 1:
             logger.critical("no pieces")
-            actor_msg = cls.EMOTE_MESSAGES[command]["notarget"]['actor']
-            room_msg = cls.EMOTE_MESSAGES[command]["notarget"]['room']
+            actor_msg = firstcap(cls.EMOTE_MESSAGES[command]["notarget"]['actor'])
+            room_msg = firstcap(cls.EMOTE_MESSAGES[command]["notarget"]['room'])
             target_msg = None
             target = None
         else:
@@ -279,9 +384,9 @@ class CommandHandler():
                 logger.critical("can't find target")
                 await actor.send_text(CommTypes.DYNAMIC, f"{command} whom?")
                 return
-            actor_msg = cls.EMOTE_MESSAGES[command]['target']['actor']
-            room_msg = cls.EMOTE_MESSAGES[command]['target']['room']
-            target_msg = cls.EMOTE_MESSAGES[command]['target']['target']
+            actor_msg = firstcap(cls.EMOTE_MESSAGES[command]['target']['actor'])
+            room_msg = firstcap(cls.EMOTE_MESSAGES[command]['target']['room'])
+            target_msg = firstcap(cls.EMOTE_MESSAGES[command]['target']['target'])
             logger.critical(f"actor_msg: {actor_msg}, room_msg: {room_msg}, target_msg: {target_msg}")
 
         if target:

@@ -125,6 +125,9 @@ class Trigger:
         elif trigger_type == TriggerType.CATCH_LOOK:
             logger.debug3("returning TriggerCatchLook")
             return TriggerCatchLook(actor)
+        elif trigger_type == TriggerType.CATCH_SAY:
+            logger.debug3("returning TriggerCatchSay")
+            return TriggerCatchSay(actor)
         # elif trigger_type == TriggerType.CATCH_TELL:
         #     return CatchTellTrigger()
         else:
@@ -263,3 +266,23 @@ class TriggerCatchLook(Trigger):
         await self.execute_trigger_script(actor, vars)
         return True
     
+
+class TriggerCatchSay(Trigger):
+    def __init__(self, actor: 'Actor') -> None:
+        super().__init__(TriggerType.CATCH_SAY, actor)
+
+    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = CustomDetailLogger(__name__, prefix="TriggerCatchSay.run()> ")
+        if self.disabled_:
+            return False
+        vars = {**vars, 
+                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
+                **(actor_vars(actor, "a"))}
+        logger.debug3("evaluating")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars):
+                return False
+        logger.debug3("executing script")
+        await self.execute_trigger_script(actor, vars)
+        return True

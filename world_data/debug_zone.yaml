@@ -13,7 +13,7 @@ ZONES:
           north:
             destination: starting_room_2
         triggers:
-          - type: catch_any
+          - type: catch_say
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -86,6 +86,7 @@ CHARACTERS:
 
       - id: test_player
         name: Test Player
+        article: ""
         description: >
           A test player
         pronoun_subject: he
@@ -138,7 +139,7 @@ CHARACTERS:
                 operator: contains
                 predicate: "kicks you"
             script: |
-              emote gets angry!
+              emote dodges your kick!
               lick %S%
           - type: catch_any
             criteria:
@@ -148,6 +149,13 @@ CHARACTERS:
             script: |
               emote gets angry!
               kick %S%
+          - type: catch_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "hello"
+            script: |
+              emote squeaks a greeting.
         damage_resistances:
           bludgeoning: 2
           unholy: 0
