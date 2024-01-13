@@ -35,6 +35,8 @@ class CommandHandler():
         "setloglevel": lambda command, char, input: CommandHandler.cmd_setloglevel(char, input),
         "setlogfilter": lambda command, char, input: CommandHandler.cmd_setlogfilter(char, input),
         "getlogfilter": lambda command, char, input: CommandHandler.cmd_getlogfilter(char, input),
+        "deltempvar": lambda command, char, input: CommandHandler.cmd_delvar(command, char, input),
+        "delpermvar": lambda command, char, input: CommandHandler.cmd_delvar(command, char, input),
 
         # normal commands
         "north": lambda command, char, input: CoreActions.world_move(char, "north"),
@@ -1222,3 +1224,31 @@ class CommandHandler():
         logger = CustomDetailLogger(__name__, prefix="cmd_getlogfilter()> ")
         await actor.send_text(CommTypes.DYNAMIC, f"Logfilter is {','.join(logger.get_allowed_prefixes())}.")
 
+
+    @classmethod
+    async def cmd_delvar(cls, command: str, actor: Actor, input: str):
+        pieces = input.split(' ')
+        if len(pieces) < 1:
+            await actor.send_text(CommTypes.DYNAMIC, "Delete which var?")
+            return
+        if pieces[0].lower() == "temp":
+            if len(pieces) < 2:
+                await actor.send_text(CommTypes.DYNAMIC, "Delete which temp var?")
+                return
+            if pieces[1] in actor.temp_variables_:
+                del actor.temp_variables_[pieces[1]]
+                await actor.send_text(CommTypes.DYNAMIC, f"Deleted temp variable {pieces[1]}.")
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, f"Temp variable {pieces[1]} not found.")
+        elif pieces[0].lower() == "perm":
+            if len(pieces) < 2:
+                await actor.send_text(CommTypes.DYNAMIC, "Delete which perm var?")
+                return
+            if pieces[1] in actor.perm_variables_:
+                del actor.perm_variables_[pieces[1]]
+                await actor.send_text(CommTypes.DYNAMIC, f"Deleted perm variable {pieces[1]}.")
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, f"Perm variable {pieces[1]} not found.")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, f"Delete what?")
+            
