@@ -154,6 +154,7 @@ class ComprehensiveGameState:
     
 
     def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False) -> Character:
+        logger = CustomDetailLogger(__name__, prefix="find_target_character()> ")
         # search_world automatically turns on search_zone
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
@@ -175,7 +176,10 @@ class ComprehensiveGameState:
         if '#' in target_name:
             parts = target_name.split('#')
             target_name = parts[0]
-            target_number = int(parts[1])
+            try:
+                target_number = int(parts[1])
+            except:
+                return None
 
         candidates = []
 
@@ -207,6 +211,7 @@ class ComprehensiveGameState:
                         add_candidates_from_room(room)
 
         # Return the target character
+        logger.critical(f"candidates: {candidates}")
         if 0 < target_number <= len(candidates):
             return candidates[target_number - 1]
 
@@ -275,6 +280,8 @@ class ComprehensiveGameState:
 
     def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
                            start_room: Room = None, start_zone: Zone = None, search_world=False) -> Object:
+        logger = CustomDetailLogger(__name__, prefix="find_target_object()> ")
+
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
         def check_object(obj) -> bool:
@@ -286,30 +293,47 @@ class ComprehensiveGameState:
                 if pieces.startswith(target_name):
                     return True
             return False
+
+        target_number = 1
+        if '#' in target_name:
+            parts = target_name.split('#')
+            target_name = parts[0]
+            try:
+                target_number = int(parts[1])
+            except:
+                return None
+
+        candidates: List[Object] = []
+
         if equipped:
             for obj in equipped.values():
                 print(obj)
                 if check_object(obj):
-                    return obj
+                    candidates.append(obj)
         if actor:
             for obj in actor.contents_:
                 if check_object(obj):
-                    return obj
+                    candidates.append(obj)
         if start_room:
             for obj in start_room.contents_:
                 if check_object(obj):
-                    return obj
+                    candidates.append(obj)
         if start_zone:
             for room in start_zone.rooms_.values():
                 for obj in room.contents_:
                     if check_object(obj):
-                        return obj
+                        candidates.append(obj)
         if search_world:
             for zone in self.zones_.values():
                 for room in zone.rooms_.values():
                     for obj in room.contents_:
                         if check_object(obj):
-                            return obj
+                            candidates.append(obj)
+        
+        # Return the target object
+        logger.critical(f"candidates: {candidates}")
+        if 0 < target_number <= len(candidates):
+            return candidates[target_number - 1]
         return None
 
 

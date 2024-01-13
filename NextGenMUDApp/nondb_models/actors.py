@@ -397,18 +397,32 @@ class CharacterClass:
 
 
 class AttackData():
-    def __init__(self, damage_type: DamageType = None, damage_amount: str = None, damage_num_dice=None, damage_dice_size=None, damage_bonus=None,noun=None, verb=None):
+    def __init__(self, 
+                 damage_type: DamageType = None, 
+                 damage_amount: str = None, 
+                 damage_num_dice=None, 
+                 damage_dice_size=None, 
+                 damage_bonus=None, 
+                 attack_bonus=0, 
+                 attack_noun=None, 
+                 attack_verb=None
+                 ):
+        logger = CustomDetailLogger(__name__, prefix="AttackData.__init__()> ")
         self.potential_damage_: List[PotentialDamage()] = []
         if damage_type and damage_amount:
             damage_parts = get_dice_parts(damage_amount)
             self.potential_damage_.append(PotentialDamage(damage_type, damage_parts[0], damage_parts[1], damage_parts[2]))
-        elif damage_type and damage_num_dice and damage_dice_size and damage_bonus:
-            self.potential_damage_.append(PotentialDamage(damage_type, damage_num_dice, damage_dice_size, damage_bonus))
-        self.attack_noun_ = noun or "something"
-        self.attack_verb_ = verb or "hits"
+        elif damage_type and ((damage_num_dice and damage_dice_size) or damage_bonus):
+            self.potential_damage_.append(PotentialDamage(damage_type, damage_num_dice or 0, damage_dice_size or 0, damage_bonus or 0))
+        else:
+            logger.error("AttackData() called without damage_type and damage_amount or damage_type and damage_num_dice and damage_dice_size or damage_bonus")
+        self.attack_noun_ = attack_noun or "something"
+        self.attack_verb_ = attack_verb or "hits"
+        self.attack_bonus = attack_bonus
 
     def to_dict(self):
         return {
+            "attack_bonus": self.attack_bonus,
             "potential_damage": [pd.to_dict() for pd in self.potential_damage_],
             # "attack_noun": self.attack_noun_,
             # "attack_verb": self.attack_verb_
@@ -659,6 +673,7 @@ class Object(Actor):
         self.damage_resistances_ = DamageResistances()
         self.damage_reduction_ = DamageReduction()
         # for weapons
+        self.attack_bonus_: int = 0
         self.damage_type_: DamageType = None
         self.damage_num_dice_:int = 0
         self.damage_dice_size_:int = 0
@@ -695,6 +710,8 @@ class Object(Actor):
         if 'equip_locations' in yaml_data:
             for el in yaml_data['equip_locations']:
                 self.equip_locations_.append(EquipLocation.string_to_enum(el))
+        if 'attack_bonus' in yaml_data:
+            self.attack_bonus_ = yaml_data['attack_bonus']
         if 'damage_type' in yaml_data:
             self.damage_type_ = DamageType[yaml_data['damage_type'].upper()] if 'damage_type' in yaml_data else None
             dmg_parts = get_dice_parts(yaml_data['damage'])

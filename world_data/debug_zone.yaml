@@ -116,60 +116,60 @@ CHARACTERS:
         critical_chance: 0.05
         critical_multiplier: 2
 
-      - id: rabbit
-        name: rabbit
-        article: a
-        description: >
-          A small, furry rabbit.
-        attributes:
-          strength: 2
-          dexterity: 14
-          constitution: 3
-          intelligence: 2
-          wisdom: 2
-          charisma: 10
-        class:
-          Fighter:
-            level: 1
-        hit_dice: 1d4+1
-        triggers:
-          - type: catch_any
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "kicks you"
-            script: |
-              emote dodges your kick!
-              lick %S%
-          - type: catch_any
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "starts fighting you"
-            script: |
-              emote gets angry!
-              kick %S%
-          - type: catch_say
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "hello"
-            script: |
-              emote squeaks a greeting.
-        damage_resistances:
-          bludgeoning: 2
-          unholy: 0
-          pyschic: 0.5
-        natural_attacks:
-          - attack_noun: bite
-            attack_verb: bite
-            potential_damage:
-            - damage_type: piercing
-              damage_dice: 1d4+1
-        hit_modifier: 0
-        dodge_dice: 5d10+30
-        critical_chance: 0.05
-        critical_multiplier: 2
+      # - id: rabbit
+      #   name: rabbit
+      #   article: a
+      #   description: >
+      #     A small, furry rabbit.
+      #   attributes:
+      #     strength: 2
+      #     dexterity: 14
+      #     constitution: 3
+      #     intelligence: 2
+      #     wisdom: 2
+      #     charisma: 10
+      #   class:
+      #     Fighter:
+      #       level: 1
+      #   hit_dice: 1d4+1
+      #   triggers:
+      #     - type: catch_any
+      #       criteria:
+      #         - subject: "%*%"
+      #           operator: contains
+      #           predicate: "kicks you"
+      #       script: |
+      #         emote dodges your kick!
+      #         lick %S%
+      #     - type: catch_any
+      #       criteria:
+      #         - subject: "%*%"
+      #           operator: contains
+      #           predicate: "starts fighting you"
+      #       script: |
+      #         emote gets angry!
+      #         kick %S%
+      #     - type: catch_say
+      #       criteria:
+      #         - subject: "%*%"
+      #           operator: contains
+      #           predicate: "hello"
+      #       script: |
+      #         emote squeaks a greeting.
+      #   damage_resistances:
+      #     bludgeoning: 2
+      #     unholy: 0
+      #     pyschic: 0.5
+      #   natural_attacks:
+      #     - attack_noun: bite
+      #       attack_verb: bite
+      #       potential_damage:
+      #       - damage_type: piercing
+      #         damage_dice: 1d4+1
+      #   hit_modifier: 0
+      #   dodge_dice: 5d10+30
+      #   critical_chance: 0.05
+      #   critical_multiplier: 2
 
 OBJECTS:
   - zone: debug_zone

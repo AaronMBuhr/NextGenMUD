@@ -6,17 +6,21 @@ import random
 from typing import Dict, List
 
 def to_int(v) -> int:
-    if type(v) is int:
-        return v
-    if type(v) is str:
-        if v == "":
-            return 0
-        else:
-            return int(float(v))
-    return int(v)
+    try:
+        if type(v) is int:
+            return v
+        if type(v) is str:
+            if v == "":
+                return 0
+            else:
+                return int(float(v))
+        return int(v)
+    except:
+        return -1
 
 # Module-level variable for the compiled regex
-variable_replacement_regex = re.compile(r"%(?!\d)[A-Za-z*#$]+%(?<!\d)")
+# variable_replacement_regex = re.compile(r"%(?!\d)[A-Za-z*#$]+%(?<!\d)")
+variable_replacement_regex = re.compile(r"%[A-Za-z_*#$][A-Za-z_*#$0-9]*%")
 
 def replace_match(match, vars):
     # Extract the variable name and replace with the corresponding value from vars
@@ -45,7 +49,7 @@ def replace_vars(script, vars: dict) -> str:
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
     logger = CustomDetailLogger(__name__, prefix="evaluate_if_condition()> ")
-    logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
+    logger.critical(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
 
     if if_operator == 'contains':
         return if_predicate.lower() in if_subject.lower()
@@ -273,7 +277,7 @@ def get_dice_parts(dice_def: str) -> (int,int,int):
         num_bonus = 0
     return (num_dice, dice_size, num_bonus)
 
-def roll_dice(num_dice: int, dice_size: int, dice_bonus: int) -> int:
+def roll_dice(num_dice: int, dice_size: int, dice_bonus: int = 0) -> int:
     # print(type(num_dice))
     # print(type(dice_size))
     # print(type(dice_bonus))

@@ -1,7 +1,7 @@
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from .communication import CommTypes
-from .utility import set_vars, firstcap, article_plus_name
+from .utility import set_vars, firstcap, article_plus_name, roll_dice
 from .nondb_models.actors import ActorType, Actor, Room, Character, \
      AttackData, DamageType, Corpse, Object, ObjectFlags, EquipLocation
 from .nondb_models.triggers import TriggerType
@@ -236,15 +236,18 @@ class CoreActions:
         # TODO:M: figure out weapons
         # TODO:L: deal with nouns and verbs correctly
         logger = CustomDetailLogger(__name__, prefix="do_single_attack()> ")
-        logger.debug(f"actor: {actor.rid}, target: {target.rid}")
+        logger.critical(f"actor: {actor.rid}, target: {target.rid}")
+        logger.critical(f"attackdata: {attack.to_dict()}")
         if actor.actor_type_ != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to attack.")
         if target.actor_type_ != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to attack.")
-        hit_modifier = actor.hit_modifier_
-        dodge_roll = target.dodge_dice_number_ * target.dodge_dice_size_ + target.dodge_modifier_
+        hit_modifier = actor.hit_modifier_ + attack.attack_bonus
+        logger.critical(f"dodge_dice_number_: {target.dodge_dice_number_}, dodge_dice_size_: {target.dodge_dice_size_}, dodge_modifier_: {target.dodge_modifier_}")
+        dodge_roll = roll_dice(target.dodge_dice_number_, target.dodge_dice_size_) + target.dodge_modifier_
         hit_roll = random.randint(1, 100)
         if hit_roll + hit_modifier < dodge_roll:
+            logger.critical(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
             msg = f"You miss {article_plus_name(target.article_, target.name_)} with {attack.attack_noun_}!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
             msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} misses you with {attack.attack_noun_}!"
@@ -256,6 +259,7 @@ class CoreActions:
             return -1 # a miss
         # is it a critical?
         critical = random.randint(1,100) < actor.critical_chance_
+        logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
         msg = f"You {"critically" if critical else ""} {attack.attack_verb_} {article_plus_name(target.article_, target.name_)} with {attack.attack_noun_}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
@@ -266,6 +270,8 @@ class CoreActions:
                                         set_vars(actor.location_room_, actor, target, msg),
                                         exceptions=[actor, target])
         total_damage = 0
+        if len(attack.potential_damage_) == 0:
+            logger.warning(f"no damage types in attack by {actor.rid}: {attack.to_dict()}")
         for dp in attack.potential_damage_:
             damage = dp.roll_damage()
             if critical:
@@ -274,6 +280,8 @@ class CoreActions:
             damage = damage * dmg_mult - target.damage_reduction_.get(dp.damage_type_)
             await cls.do_damage(actor, target, damage, dp.damage_type_)
             total_damage += damage
+            logger.critical(f"did {damage} {dp.damage_type_.word()} damage to {target.rid}")
+        logger.critical(f"total damage: {total_damage}")
         return total_damage
             
 
@@ -288,27 +296,45 @@ class CoreActions:
             if c.equipped_[EquipLocation.MAIN_HAND] != None \
             or c.equipped_[EquipLocation.BOTH_HANDS] != None:
                 num_attacks = c.num_main_hand_attacks_
-                hands = "both hands" if c.equipped_[EquipLocation.BOTH_HANDS] != None else "main hand"
-                weapon = c.equipped[EquipLocation.BOTH_HANDS] or c.equipped_[EquipLocation.MAIN_HAND]
-                logger.debug3(f"character: {c.rid} attacking, {num_attacks} with {weapon.name_} in {hands})")
+                if c.equipped_[EquipLocation.BOTH_HANDS] != None:
+                    hands = "both hands"
+                    weapon = c.equipped_[EquipLocation.BOTH_HANDS]
+                else:
+                    hands = "main hand"
+                    weapon = c.equipped_[EquipLocation.MAIN_HAND]
+                logger.critical(f"character: {c.rid} attacking {num_attacks}x with {weapon.name_} in {hands})")
+                logger.critical(f"weapon: +{weapon.attack_bonus_} {weapon.damage_type_}: {weapon.damage_num_dice_}d{weapon.damage_dice_size_} +{weapon.damage_bonus_}")
                 for n in range(num_attacks):
-                    attack_data = AttackData(damage_type=weapon.damage_type_, damage_num_dice=weapon.damage_num_dice_, 
-                                            damage_dice_size=weapon.damage_dice_size_, damage_modifier=weapon.damage_modifier_, 
-                                            attack_verb=weapon.DamageType.verb(weapon.damage_type), attack_noun=DamageType.noun(weapon.damage_type))
+                    attack_data = AttackData(
+                        damage_type=weapon.damage_type_, 
+                        damage_num_dice=weapon.damage_num_dice_, 
+                        damage_dice_size=weapon.damage_dice_size_, 
+                        damage_bonus=weapon.damage_bonus_, 
+                        attack_verb=weapon.damage_type_.verb(), 
+                        attack_noun=weapon.damage_type_.noun(),
+                        attack_bonus=weapon.attack_bonus_
+                        )
+                    logger.critical(f"attack_data: {attack_data.to_dict()}")
                     total_dmg += await cls.do_single_attack(c, c.fighting_whom_, attack_data)
             if c.equipped_[EquipLocation.OFF_HAND] != None:
                 num_attacks = c.num_off_hand_attacks_
                 weapon = c.equipped[EquipLocation.OFF_HAND]
-                logger.debug3(f"character: {c.rid} attacking, {num_attacks} with {weapon.name_} in off hand)")
+                logger.critical(f"character: {c.rid} attacking, {num_attacks} with {weapon.name_} in off hand)")
                 for n in range(num_attacks):
-                    attack_data = AttackData(damage_type=weapon.damage_type_, damage_num_dice=weapon.damage_num_dice_, 
-                                            damage_dice_size=weapon.damage_dice_size_, damage_modifier=weapon.damage_modifier_, 
-                                            attack_verb=weapon.DamageType.verb(weapon.damage_type), attack_noun=DamageType.noun(weapon.damage_type))
+                    attack_data = AttackData(
+                        damage_type=weapon.damage_type_, 
+                        damage_num_dice=weapon.damage_num_dice_, 
+                        damage_dice_size=weapon.damage_dice_size_,
+                        damage_bonus=weapon.damage_modifier_, 
+                        attack_verb=weapon.DamageType.verb(weapon.damage_type), 
+                        attack_noun=DamageType.noun(weapon.damage_type),
+                        attack_bonus=weapon.attack_bonus_
+                        )
                     total_dmg += await cls.do_single_attack(c, c.fighting_whom_, attack_data)
             if not c.equipped_[EquipLocation.MAIN_HAND] and not c.equipped_[EquipLocation.BOTH_HANDS] and not c.equipped_[EquipLocation.OFF_HAND]:        
-                logger.debug3(f"character: {c.rid} attacking, {len(c.natural_attacks_)} natural attacks)")
+                logger.critical(f"character: {c.rid} attacking, {len(c.natural_attacks_)} natural attacks)")
                 for natural_attack in c.natural_attacks_:
-                    logger.debug3(f"natural_attack: {natural_attack.to_dict()}")
+                    logger.critical(f"natural_attack: {natural_attack.to_dict()}")
                     if c.fighting_whom_:
                         total_dmg += await cls.do_single_attack(c, c.fighting_whom_, natural_attack)
             if total_dmg > 0 and c.fighting_whom_ != None:
