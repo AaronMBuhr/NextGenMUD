@@ -67,7 +67,7 @@
             if (data.text_type === "static") {
                 var staticTextArea = document.getElementById('staticText');
                 staticTextArea.value += data.text + "\n";
-                staticTextArea.scrollTop = dynamicTextArea.scrollHeight;
+                staticTextArea.scrollTop = staticTextArea.scrollHeight;
             } else if (data.text_type === "dynamic") {
                 var dynamicTextArea = document.getElementById('dynamicText');
                 dynamicTextArea.value += data.text + "\n";
