@@ -1,0 +1,719 @@
+ZONES:
+  enchanted_forest:
+    name: Enchanted Forest
+    description: A mystical forest filled with ancient magic and wonder.
+    rooms:
+      mystical_glade:
+        name: Mystical Glade
+        description: 'In a secluded corner of an ancient forest lies a mystical glade,
+          a hidden sanctuary bathed in a soft, ethereal light that seems to weave
+          through the air like a gentle mist. This enchanted clearing is encircled
+          by venerable trees of immense age, their trunks gnarled and thick, rising
+          high into the sky. Their branches, heavy with luminous leaves, intertwine
+          above, creating a natural dome that filters sunlight into a kaleidoscope
+          of gentle greens and golds.
+
+          Exits: south, east
+
+          '
+        exits:
+          south:
+            destination: debug_zone.starting_room_2
+          east:
+            destination: crystal_cave
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 12
+          script: 'echo A gentle breeze whispers through the leaves, carrying a hint
+            of magic in the air.
+
+            '
+        - type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 12
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: 'echo You notice a faint shimmering in the air, as if the very
+            atmosphere of the glade is alive with enchantment.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: tree
+          script: 'echo The tree you look at seems ancient and wise, its bark glowing
+            faintly with runic symbols.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: sing
+          script: 'echo Your singing seems to harmonize with the natural sounds of
+            the forest, creating a beautiful melody.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: dance
+          script: 'echo As you dance, the leaves around you seem to sway in rhythm,
+            as if joining in your joy.
+
+            '
+      crystal_cave:
+        name: Crystal Cave
+        description: 'Hidden within the Enchanted Forest lies the Crystal Cave, a
+          mesmerizing subterranean wonder. Upon entering, one is immediately enveloped
+          by a kaleidoscope of light, as countless crystals embedded in the walls
+          and ceiling catch and refract the faintest of lights. These crystals range
+          in color from deep amethyst to the clearest diamond, creating a dazzling
+          display that seems almost otherworldly. The air inside is cool and carries
+          a faint, mineral scent, echoing with the soft, melodic dripping of water.
+          Delicate crystal formations grow from the floor, creating an intricate
+          maze that leads deeper into the heart of the cave.
+
+          Exits: east
+
+          '
+        exits:
+          east:
+            destination: whispering_waterfall
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 12
+          script: 'echo Softly glowing crystals pulsate gently, casting dancing lights
+            across the cave walls.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: crystal
+          script: 'echo As you gaze at the crystal, it sparkles brilliantly, momentarily
+            capturing a rainbow within its facets.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: touch
+          script: 'echo As your fingers brush against the crystal, it emits a soft,
+            harmonious tone, resonating through the cave.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: sing
+          script: 'echo Your voice echoes in the cave, harmonizing with the subtle
+            symphony of the crystals, creating an enchanting melody.
+
+            '
+        - type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 12
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 20
+          script: 'echo A faint breeze stirs the air, causing the crystals to tinkle
+            softly, like chimes in a gentle wind.
+
+            '
+      whispering_waterfall:
+        name: Whispering Waterfall
+        description: 'Nestled deep in the Enchanted Forest lies the Whispering Waterfall,
+          a magical spectacle of nature. Water cascades over ancient, moss-covered
+          rocks, creating a serene melody that whispers secrets of old. The mist
+          from the falls forms ethereal rainbows, adding a mystical aura to the scene.
+          Surrounding the waterfall are lush ferns and vibrant wildflowers that sway
+          gently in the water''s mist, creating a tranquil, otherworldly oasis. The
+          air here is fresh and invigorating, tinged with the scent of damp earth
+          and blossoming flora.
+
+          Exits: east, west
+
+          '
+        exits:
+          east:
+            destination: fairy_meadow
+          west:
+            destination: twilight_thicket
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 10
+          script: 'echo The waterfall''s whispers intensify, recounting ancient tales
+            lost to time.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: rainbow
+          script: 'echo Mesmerized by the rainbow, you feel a deep connection to
+            the waterfall''s mystical energy.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: water
+          script: 'echo Drawn to the water''s edge, you sense the pure, revitalizing
+            energy of the cascading falls.
+
+            '
+      fairy_meadow:
+        name: Fairy Meadow
+        description: 'In the heart of the Enchanted Forest, Fairy Meadow is a wonderland
+          of vibrant colors and enchanting light. By day, the meadow is a tapestry
+          of wildflowers, with their sweet fragrance permeating the air. As night
+          falls, the meadow transforms as countless fairy lights emerge, twinkling
+          like stars scattered on the earth. The atmosphere here is charged with
+          magic, every flower and blade of grass seemingly alive with energy. It''s
+          a place where the mundane meets the magical, and visitors often feel a
+          sense of joy and wonder.
+
+          Exits: north, south
+
+          '
+        exits:
+          north:
+            destination: whispering_waterfall
+          south:
+            destination: enchanted_glade
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 15
+          script: 'echo The air shimmers as mischievous fairies play hide and seek
+            among the flowers, their laughter ringing like tiny bells.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: flower
+          script: 'echo Gazing at a particularly bright flower, you catch a fleeting
+            glimpse of a fairy darting behind its petals.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: fairy
+          script: 'echo A curious fairy pauses in its flight to regard you, its wings
+            a blur of iridescent color, before flitting away.
+
+            '
+      twilight_thicket:
+        name: Twilight Thicket
+        description: 'Twilight Thicket, a realm of perpetual dusk, lies on the outskirts
+          of the Enchanted Forest. Here, the light is always soft and dim, filtering
+          through the dense canopy in gentle beams. The undergrowth is thick and
+          full of mystery, with strange, luminous fungi dotting the forest floor.
+          Sounds are muffled in this part of the forest, as if the very air is reluctant
+          to disturb the peace. The thicket feels timeless, a place where hours pass
+          like minutes, enveloping visitors in its tranquil embrace.
+
+          Exits: east, north
+
+          '
+        exits:
+          east:
+            destination: moonlit_clearing
+          north:
+            destination: whispering_waterfall
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 20
+          script: 'echo As the twilight deepens, the shadows dance and play, creating
+            a mesmerizing, ever-changing pattern on the forest floor.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: shadow
+          script: 'echo Focusing on the shadows, you feel a sense of ancient mysteries
+            surrounding you, as if the thicket guards old secrets.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: twilight
+          script: 'echo The essence of twilight here is palpable, its magic weaving
+            through the air, casting a spell of serene calmness.
+
+            '
+      moonlit_clearing:
+        name: Moonlit Clearing
+        description: 'The Moonlit Clearing is a serene, open space, bathed in the
+          gentle glow of a perpetual full moon, even during the day. The moonlight
+          casts a silvery sheen over everything, making the clearing sparkle with
+          a surreal, dreamlike quality. Soft, lush grass carpets the ground, inviting
+          visitors to sit and gaze at the stars visible through the clear night sky.
+          The edges of the clearing are bordered by tall, whispering trees that seem
+          to guard this sacred space. The air here is cool and crisp, carrying the
+          faint scent of jasmine and night-blooming flowers.
+
+          Exits: south, west
+
+          '
+        exits:
+          south:
+            destination: twilight_thicket
+          west:
+            destination: enchanted_glade
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 30
+          script: 'echo A gentle breeze rustles the leaves, making the moonlight
+            dance and play across the clearing in a mesmerizing pattern.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: moon
+          script: 'echo Looking up at the moon, you feel a profound sense of peace
+            and connection to the wider universe.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: star
+          script: 'echo The stars above twinkle brightly, each one telling its own
+            ancient story in the tapestry of the night sky.
+
+            '
+      echo_pond:
+        name: Echo Pond
+        description: 'Echo Pond is a small, secluded body of water nestled within
+          the Enchanted Forest. The pond''s surface is so clear and still it mirrors
+          the sky and surrounding foliage perfectly, creating an almost surreal symmetry.
+          The unique acoustics of the area mean that even the slightest sound is
+          echoed back, imbuing the pond with a mystical, auditory magic. The banks
+          of the pond are soft with moss and dotted with delicate, colorful wildflowers.
+          Dragonflies skim the water''s surface, and occasionally, a fish leaps,
+          creating ripples that disrupt the perfect reflection.
+
+          Exits: north, east
+
+          '
+        exits:
+          north:
+            destination: moonlit_clearing
+          east:
+            destination: silver_stream
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 5
+          script: 'echo The soft echo of a distant bird''s song creates a harmonious
+            melody that resonates around the pond.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: water
+          script: 'echo Peering into the water, you see not only your reflection
+            but a glimpse into a world as tranquil and mysterious as the pond itself.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: echo
+          script: 'echo Your words are softly echoed back to you, as if the pond
+            itself is listening and responding to your presence.
+
+            '
+      ancient_oak:
+        name: Ancient Oak
+        description: 'The Ancient Oak stands majestically in the heart of the Enchanted
+          Forest, its massive trunk and sprawling branches a testament to its centuries-old
+          existence. The bark is gnarled and etched with patterns that seem to tell
+          a story of time itself. A small, mysterious door in the trunk suggests
+          a hidden world within. The air around the oak is heavy with the scent of
+          earth and wood, and the rustling of its leaves sounds like ancient whispers.
+          This majestic tree is a natural guardian of the forest, inspiring awe and
+          reverence in all who gaze upon it.
+
+          Exits: southeast, southwest
+
+          '
+        exits:
+          southeast:
+            destination: verdant_valley
+          southwest:
+            destination: frosty_glen
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 10
+          script: 'echo A sense of ancient wisdom seems to emanate from the oak,
+            its presence grounding and profound.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: door
+          script: 'echo As you examine the door, you feel a pull towards it, as if
+            it''s inviting you to discover its secrets.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: tree
+          script: 'echo The tree seems to hum with a quiet energy, its life force
+            palpable in the peaceful surroundings.
+
+            '
+      whispering_pines:
+        name: Whispering Pines
+        description: 'The Whispering Pines is a serene grove of tall pine trees,
+          their needles creating a soft, whispering sound as the wind blows through
+          them. The ground is carpeted with a thick layer of fragrant pine needles,
+          softening footsteps and adding to the tranquil ambiance. Sunlight filters
+          through the canopy, casting dappled shadows on the forest floor. The air
+          is crisp and invigorating, filled with the resinous scent of pine. This
+          grove feels like a sanctuary, offering peace and a deep connection with
+          nature.
+
+          Exits: northeast, northwest
+
+          '
+        exits:
+          northeast:
+            destination: echo_pond
+          northwest:
+            destination: ancient_oak
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 15
+          script: 'echo The gentle whispering of the pines intensifies, as if they
+            are sharing age-old secrets of the forest.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: pine
+          script: 'echo Observing the pines closely, you feel enveloped by their
+            ancient presence, standing as silent witnesses to time.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: wind
+          script: 'echo The wind''s caress through the pines brings a sense of calm
+            and clarity, as if it''s sweeping away all worries.
+
+            '
+      silver_stream:
+        name: Silver Stream
+        description: 'Silver Stream is a gently flowing watercourse that traverses
+          the Enchanted Forest, its waters sparkling like liquid silver under the
+          sunlight. The stream''s banks are lined with smooth stones and lush greenery,
+          creating a picturesque setting. The sound of the flowing water is soothing,
+          offering a melody that speaks of tranquility and timelessness. Small fish
+          can be seen darting in the clear water, and occasionally, a bird dips down
+          to skim the surface. This stream is a haven for wildlife and a peaceful
+          retreat for all who visit.
+
+          Exits: southwest, southeast
+
+          '
+        exits:
+          southwest:
+            destination: echo_pond
+          southeast:
+            destination: luminescent_lake
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 20
+          script: 'echo The gentle murmur of the stream creates a harmonious backdrop,
+            its sounds soothing your mind and spirit.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: water
+          script: 'echo Gazing into the water, you are captivated by the stream''s
+            serene flow, its rhythm like a meditative chant.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: fish
+          script: 'echo A flash of silver catches your eye as a fish leaps, creating
+            ripples that spread across the stream''s surface.
+
+            '
+      enchanted_glade:
+        name: Enchanted Glade
+        description: 'The Enchanted Glade is a magical clearing, alive with an ethereal
+          light that seems to emanate from every leaf and blade of grass. The light
+          shifts and changes, casting a soft glow that gives the glade a dreamlike
+          quality. Flowers of all colors bloom in abundance here, their petals shimmering
+          as if sprinkled with fairy dust. The air is filled with the gentle music
+          of nature, a symphony of bird songs, rustling leaves, and the distant trickle
+          of a stream. This glade is a place of beauty and serenity, a reminder of
+          the magic that lies hidden in the natural world.
+
+          Exits: north, east
+
+          '
+        exits:
+          north:
+            destination: fairy_meadow
+          east:
+            destination: moonlit_clearing
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 5
+          script: 'echo The ethereal light in the glade pulses gently, as if breathing
+            with the life of the forest.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: flower
+          script: 'echo As you gaze at the flowers, their colors seem to brighten,
+            responding to your attention with a vibrant display.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: light
+          script: 'echo The light around you dances in mesmerizing patterns, creating
+            a feeling of deep connection with the enchanted surroundings.
+
+            '
+      golden_grove:
+        name: Golden Grove
+        description: 'The Golden Grove is a breathtaking sight, especially during
+          the golden hours of dawn and dusk. Each tree in the grove has leaves that
+          shimmer with a golden hue, casting a warm, inviting light throughout the
+          area. The ground is carpeted with fallen golden leaves, creating a soft,
+          rustling blanket that crunches underfoot. The atmosphere in the grove is
+          one of tranquility and timelessness, as if the grove itself is basking
+          in eternal autumn. Sunbeams filter through the canopy, enhancing the golden
+          glow and creating a serene, almost mystical environment.
+
+          Exits: south, west
+
+          '
+        exits:
+          south:
+            destination: sunbeam_clearing
+          west:
+            destination: enchanted_glade
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 10
+          script: 'echo The golden leaves rustle softly in the breeze, their shimmering
+            surfaces reflecting the light in a dazzling display.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: leaf
+          script: 'echo As you pick up a golden leaf, its texture and the intricate
+            patterns etched upon it captivate your senses.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: sunbeam
+          script: 'echo A sunbeam pierces the canopy, bathing you in a warm, golden
+            light that uplifts your spirit.
+
+            '
+      misty_copse:
+        name: Misty Copse
+        description: 'The Misty Copse is a small, secluded area within the Enchanted
+          Forest, perpetually shrouded in a gentle, mystical mist. This mist softens
+          the sounds and sights, creating a sense of seclusion and introspection.
+          The trees here are old and wise, their trunks covered in moss and their
+          branches heavy with the weight of time. Small beams of light occasionally
+          break through the mist, illuminating the copse in a soft, ethereal glow.
+          The air is cool and fresh, carrying with it the scent of damp earth and
+          ancient wood.
+
+          Exits: northeast, southeast
+
+          '
+        exits:
+          northeast:
+            destination: frosty_glen
+          southeast:
+            destination: verdant_valley
+        triggers:
+        - type: timer_tick
+          criteria:
+          - subject: '%{time_elapsed}'
+            operator: numgte
+            predicate: 15
+          script: 'echo The mist swirls around you, its tendrils caressing the landscape
+            and adding an air of mystery to the copse.
+
+            '
+        - type: catch_look
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: mist
+          script: 'echo Peering into the mist, you feel a sense of timelessness,
+            as if the copse exists in a world apart from the rest.
+
+            '
+        - type: catch_any
+          criteria:
+          - subject: '%{*}'
+            operator: contains
+            predicate: tree
+          script: 'echo The trees loom out of the mist, their ancient forms whispering
+            stories of the forest''s past.
+
+            '
+CHARACTERS:
+- zone: enchanted_forest
+  characters:
+  - id: rabbit
+    name: rabbit
+    article: a
+    description: 'A small, furry rabbit.
+
+      '
+    attributes:
+      strength: 2
+      dexterity: 14
+      constitution: 3
+      intelligence: 2
+      wisdom: 2
+      charisma: 10
+    class:
+      Fighter:
+        level: 1
+    hit_dice: 1d4+1
+    triggers:
+    - type: catch_any
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: kicks you
+      script: 'emote dodges your kick!
+
+        lick %S%
+
+        '
+    - type: catch_any
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: starts fighting you
+      script: 'emote gets angry!
+
+        kick %S%
+
+        '
+    - type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: hello
+      script: 'emote squeaks a greeting.
+
+        '
+    damage_resistances:
+      bludgeoning: 2
+      unholy: 0
+      pyschic: 0.5
+    natural_attacks:
+    - attack_noun: bite
+      attack_verb: bite
+      potential_damage:
+      - damage_type: piercing
+        damage_dice: 1d4+1
+    hit_modifier: 0
+    dodge_dice: 5d10+30
+    critical_chance: 0.05
+    critical_multiplier: 2
+

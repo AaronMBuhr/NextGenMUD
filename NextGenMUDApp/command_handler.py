@@ -3,7 +3,9 @@ from .core_actions import CoreActions
 from .communication import CommTypes
 from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
-from .nondb_models.actors import Actor, ActorType, Character, CharacterFlags, Object, ObjectFlags, Room, EquipLocation, GamePermissionFlags
+from .nondb_models.actors import Actor, ActorType, Character, PermanentCharacterFlags, Object, ObjectFlags, \
+    Room, EquipLocation, GamePermissionFlags, TemporaryCharacterFlags, CharacterStateForcedSitting, \
+    CharacterStateForcedSleeping
 from .nondb_models import world
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 import re
@@ -35,8 +37,8 @@ class CommandHandler():
         "setloglevel": lambda command, char, input: CommandHandler.cmd_setloglevel(char, input),
         "setlogfilter": lambda command, char, input: CommandHandler.cmd_setlogfilter(char, input),
         "getlogfilter": lambda command, char, input: CommandHandler.cmd_getlogfilter(char, input),
-        "deltempvar": lambda command, char, input: CommandHandler.cmd_delvar(command, char, input),
-        "delpermvar": lambda command, char, input: CommandHandler.cmd_delvar(command, char, input),
+        "deltempvar": lambda command, char, input: CommandHandler.cmd_deltempvar(char, input),
+        "delpermvar": lambda command, char, input: CommandHandler.cmd_delpermvar(char, input),
 
         # normal commands
         "north": lambda command, char, input: CoreActions.world_move(char, "north"),
@@ -61,17 +63,11 @@ class CommandHandler():
         "inspect": lambda command, char, input: CommandHandler.cmd_inspect(char, input),
         "equip": lambda command, char, input: CommandHandler.cmd_equip(char, input),
         "unequip": lambda command, char, input: CommandHandler.cmd_unequip(char, input),
+        "stand": lambda command, char, input: CommandHandler.cmd_stand(char, input),
+        "sit": lambda command, char, input: CommandHandler.cmd_sit(char, input),
+        "sleep": lambda command, char, input: CommandHandler.cmd_sleep(char, input),
 
-        # various emotes
-        "kick": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "kiss": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "lick": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "congratulate": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "bow": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "thank": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "sing": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "dance": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
-        "touch": lambda command, char, input: CommandHandler.cmd_specific_emote(command, char, input),
+        # various emotes are in the EMOTE_MESSAGES dict below
     }
 
 
@@ -95,16 +91,31 @@ class CommandHandler():
                 msg = "Did you want to do something?"
             elif actor.actor_type_ == ActorType.CHARACTER and actor.is_dead():
                 msg = "You are dead.  You can't do anything."
+            elif actor.actor_type == ActorType.CHARACTER \
+                and actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING) \
+                and not input.startswith("stand"):
+                msg = "You can't do that while you're sleeping."
+            elif actor.actor_type_ == ActorType.CHARACTER \
+                and actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+                and not input.startswith("stand"):
+                msg = "You can't do that while you're sitting."
+            elif actor.actor_type_ == ActorType.CHARACTER \
+                and actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_STUNNED):
+                msg = "You are stunned!"
             else:
                 parts = split_preserving_quotes(input)
                 command = parts[0]
-                if not command in cls.command_handlers:
+                emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
+                if not command in cls.command_handlers and emote_command == None:
                     logger.debug3(f"Unknown command: {command}")
                     msg = "Unknown command"
                 else:
                     try:
                         logger.critical(f"Evaluating command: {command}")
-                        await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
+                        if emote_command:
+                            await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
+                        else:
+                            await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
                     except KeyError:
                         logger.error(f"KeyError processing command {command}")
                         msg = "Command failure."
@@ -115,8 +126,11 @@ class CommandHandler():
         # logger.critical(f"len(executing_actors) 2: {len(cls.executing_actors)}")
         # for ch in cls.executing_actors:
         #     logger.critical(f"executing_actors 2: {ch}")
-        if msg:
+        if msg and actor.connection_:
             await actor.send_text(CommTypes.DYNAMIC, msg)
+        else:
+            set_vars(actor, actor, actor, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars)
         if not actor.rid in cls.executing_actors:
             logger.warning(f"actor {actor.rid} not in executing_actors")
             # logger.critical(f"len(executing_actors) 3: {len(cls.executing_actors)}")
@@ -294,7 +308,7 @@ class CommandHandler():
         await actor.send_text(CommTypes.DYNAMIC, f"You emote, \"{text}\"")
         if actor.location_room_:
             if actor.actor_type_ == ActorType.CHARACTER:
-                if actor.permanent_character_flags_.are_flags_set(CharacterFlags.IS_PC):
+                if actor.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
                     await actor.location_room_.echo(CommTypes.DYNAMIC, f"... {actor.name_} {text}", vars, exceptions=[actor])
                 else:
                     await actor.location_room_.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article_, actor.name_, cap=True)} {text}", vars, exceptions=[actor])
@@ -748,7 +762,7 @@ class CommandHandler():
     # IS_ADMIN
     f"""
     Hit Points: {actor.current_hit_points_} / {actor.max_hit_points_}""")
-                if not target.permanent_character_flags_.are_flags_set(CharacterFlags.IS_PC):
+                if not target.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
                     msg_parts.append(f" ({target.hit_dice_}d{target.hit_dice_size_}+{target.hit_modifier_})\n")
                 else: # PC
                     msg_parts.append("\n")
@@ -1049,9 +1063,12 @@ class CommandHandler():
                 await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your off hand.")
                 return
         if equip_location == EquipLocation.OFF_HAND:
-            if not actor.character_flags_.are_flags_set(CharacterFlags.CAN_DUAL_WIELD):
+            if not actor.character_flags_.are_flags_set(PermanentCharacterFlags.CAN_DUAL_WIELD):
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't dual wield.")
                 return
+        if actor.fighting_whom_ != None:
+            await actor.send_text(CommTypes.DYNAMIC, f"You can't equip things while fighting.")
+            return
         actor.remove_object(target_object)
         actor.equip_item(equip_location, target_object)
         msg = f"You equip {target_object.name_}."
@@ -1226,29 +1243,93 @@ class CommandHandler():
 
 
     @classmethod
-    async def cmd_delvar(cls, command: str, actor: Actor, input: str):
-        pieces = input.split(' ')
+    async def cmd_delvar_helper(cls, actor: Actor, input: str, target_dict_fn: Callable[[Actor], dict], target_name: str):
+        # TODO:M: add targeting objects and rooms
+        logger = CustomDetailLogger(__name__, prefix="cmd_delvar_helper()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
+        pieces = split_preserving_quotes(input)
         if len(pieces) < 1:
-            await actor.send_text(CommTypes.DYNAMIC, "Delete which var?")
+            logger.warn(f"({pieces}) Delete {target_name} var on what kind of target?")
+            await actor.send_text(CommTypes.DYNAMIC, f"Delete {target_name} var on what kind of target?")
             return
-        if pieces[0].lower() == "temp":
-            if len(pieces) < 2:
-                await actor.send_text(CommTypes.DYNAMIC, "Delete which temp var?")
-                return
-            if pieces[1] in actor.temp_variables_:
-                del actor.temp_variables_[pieces[1]]
-                await actor.send_text(CommTypes.DYNAMIC, f"Deleted temp variable {pieces[1]}.")
-            else:
-                await actor.send_text(CommTypes.DYNAMIC, f"Temp variable {pieces[1]} not found.")
-        elif pieces[0].lower() == "perm":
-            if len(pieces) < 2:
-                await actor.send_text(CommTypes.DYNAMIC, "Delete which perm var?")
-                return
-            if pieces[1] in actor.perm_variables_:
-                del actor.perm_variables_[pieces[1]]
-                await actor.send_text(CommTypes.DYNAMIC, f"Deleted perm variable {pieces[1]}.")
-            else:
-                await actor.send_text(CommTypes.DYNAMIC, f"Perm variable {pieces[1]} not found.")
-        else:
-            await actor.send_text(CommTypes.DYNAMIC, f"Delete what?")
+        if pieces[0].lower() != "char":
+            logger.warn(f"({pieces}) Only character targets allowed at the moment.")
+            await actor.send_text(CommTypes.DYNAMIC, "Only character targets allowed at the moment.")
+            return
+        if len(pieces) < 2:
+            logger.warn(f"({pieces}) Delete {target_name} var on whom?")
+            await actor.send_text(CommTypes.DYNAMIC, f"Delete {target_name} var on whom?")
+            return
+        if len(pieces) < 3:
+            logger.warn(f"({pieces}) Delete which {target_name} var?")
+            await actor.send_text(CommTypes.DYNAMIC, "Delete which temp var?")
+            return
+        target = cls.game_state.find_target_character(actor, pieces[1], search_world=True)
+        if target == None:
+            logger.warn(f"({pieces}) Could not find target.")
+            await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
+            return
+        logger.debug3(f"target.name_: {target.name_}, {target_name} delete var: {pieces[2]}")
+        del target_dict_fn(target)[pieces[2]]
+        await actor.send_text(CommTypes.DYNAMIC, f"Deleted {target_name} var {pieces[2]} on {target.name_}")
+
+
+    @classmethod
+    async def cmd_deltempvar(cls, actor: Actor, input: str):
+        await cls.cmd_delvar_helper(actor, input, lambda d : d.temp_variables_, "temp")
+
+    @classmethod
+    async def cmd_delpermvar(cls, actor: Actor, input: str):
+        await cls.cmd_delvar_helper(actor, input, lambda d : d.perm_variables_, "perm")
+
+    @classmethod
+    async def cmd_stand(cls, actor: Actor, input: str):
+        if actor.actor_type_ != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can stand.")
+            return
+        if not actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+            and not actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING):
+            await actor.send_text(CommTypes.DYNAMIC, "You're already standing.")
+            return
+        
+        if any(actor.get_character_states_by_type(CharacterStateForcedSitting))\
+               or any(actor.get_character_states_by_type(CharacterStateForcedSleeping)):
+            msg = f"You can't stand up right now."
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg))
+
+        await actor.send_text(CommTypes.DYNAMIC, "You stand up.")
+        msg = f"{firstcap(actor.name_)} stands up."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg), exceptions=[actor])
+        actor.temporary_character_flags_.remove_flags(TemporaryCharacterFlags.IS_SLEEPING | TemporaryCharacterFlags.IS_SITTING)
+    
+    @classmethod
+    async def cmd_sit(cls, actor: Actor, input: str):
+        if actor.actor_type_ != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can sit.")
+            return
+        if actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING):
+            await actor.send_text(CommTypes.DYNAMIC, "You're already sitting.")
+            return
+        if any(actor.get_character_states_by_type(CharacterStateForcedSleeping)):
+            msg = f"You can't stand up right now."
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg))
+
+        await actor.send_text(CommTypes.DYNAMIC, "You stand up.")
+        msg = f"{firstcap(actor.name_)} stands up."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg), exceptions=[actor])
+        actor.temporary_character_flags_.remove_flags(TemporaryCharacterFlags.IS_SLEEPING | TemporaryCharacterFlags.IS_SITTING)
+        
+    @classmethod
+    async def cmd_sleep(cls, actor: Actor, input: str):
+        if actor.actor_type_ != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can sleep.")
+            return
+        if actor.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING):
+            await actor.send_text(CommTypes.DYNAMIC, "You're already sleeping.")
+            return
             
+        await actor.send_text(CommTypes.DYNAMIC, "You doze off.")
+        msg = f"{firstcap(actor.name_)} falls asleep."
+        await actor.location_room_.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg), exceptions=[actor])
+        actor.temporary_character_flags_.remove_flags(TemporaryCharacterFlags.IS_SITTING)
+        actor.temporary_character_flags_.add_flags(TemporaryCharacterFlags.IS_SLEEPING)

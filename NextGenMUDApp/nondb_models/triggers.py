@@ -5,6 +5,7 @@ from enum import Enum
 import re
 import time
 from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
+from ..game_state_interface import GameStateInterface
 
 def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
@@ -52,18 +53,18 @@ class TriggerCriteria:
         # print(self.to_dict())
 
     @abstractmethod
-    def evaluate(self, vars: dict) -> bool:
+    def evaluate(self, vars: dict, game_state: GameStateInterface) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
         logger.critical(f"vars: {vars}")
         logger.critical(f"checking {self.subject_},{self.operator_},{self.predicate_}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
         # predicate = execute_functions(replace_vars(self.predicate_, vars))
         if type(self.subject_) is str:
-            subject = evaluate_functions_in_line(replace_vars(self.subject_, vars), vars)
+            subject = evaluate_functions_in_line(replace_vars(self.subject_, vars), vars, game_state)
         else:
             subject = self.subject_
         if type(self.predicate_) is str:
-            predicate = evaluate_functions_in_line(replace_vars(self.predicate_, vars), vars)
+            predicate = evaluate_functions_in_line(replace_vars(self.predicate_, vars), vars, game_state)
         else:
             predicate = self.predicate_
         # if self.subject_ == subject:
@@ -134,7 +135,7 @@ class Trigger:
             raise Exception(f"Unknown trigger type: {trigger_type}")
 
     @abstractmethod
-    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface=None) -> bool:
         raise Exception("Trigger.run() must be overridden.")
 
     def enable(self):
@@ -143,7 +144,7 @@ class Trigger:
     def disable(self):
         self.disabled_ = True
 
-    async def execute_trigger_script(self, actor: 'Actor', vars: dict) -> None:
+    async def execute_trigger_script(self, actor: 'Actor', vars: dict, game_state: GameStateInterface = None) -> None:
         logger = CustomDetailLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
         # for line in self.script_.splitlines():
         #     logger.debug3(f"running script line: {line}")
@@ -153,7 +154,7 @@ class Trigger:
         #     pass
         logger.critical("executing execute_trigger_script")
         logger.critical(f"script: {self.script_}")
-        await self.script_handler_.run_script(actor, self.script_, vars)
+        await self.script_handler_.run_script(actor, self.script_, vars, game_state)
 
 
 
@@ -173,7 +174,7 @@ class TriggerCatchAny(Trigger):
     def __init__(self, actor: 'Actor') -> None:
         super().__init__(TriggerType.CATCH_ANY, actor)
 
-    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
         if self.disabled_:
             return False
@@ -182,12 +183,12 @@ class TriggerCatchAny(Trigger):
                 **(actor_vars(actor, "a"))}
         logger.critical("evaluating")
         for crit in self.criteria_:
-            if not crit.evaluate(vars):
+            if not crit.evaluate(vars, game_state):
                 logger.critical("criteria not met")
                 return False
         logger.critical("executing script")
         logger.critical(f"script: {self.script_}")
-        await self.execute_trigger_script(actor, vars)
+        await self.execute_trigger_script(actor, vars, game_state)
         return True
 
 
@@ -214,7 +215,7 @@ class TriggerTimerTick(Trigger):
         super().disable()
         TriggerTimerTick.timer_tick_triggers_.remove(self)    
 
-    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.run()> ")
         if self.disabled_:
@@ -234,7 +235,7 @@ class TriggerTimerTick(Trigger):
         vars['time_elapsed'] = time_elapsed
         logger.debug3("evaluating")
         for crit in self.criteria_:
-            if not crit.evaluate(vars):
+            if not crit.evaluate(vars, game_state):
                 logger.debug3("criteria not met")
                 return False
         logger.debug3("executing script")
@@ -242,7 +243,7 @@ class TriggerTimerTick(Trigger):
         logger.debug3(f"script: {self.script_}")
         for c in actor.characters_:
             logger.debug3(c.rid)
-        await self.execute_trigger_script(actor, vars)
+        await self.execute_trigger_script(actor, vars, game_state)
         return True
 
 class TriggerCatchLook(Trigger):
@@ -250,7 +251,7 @@ class TriggerCatchLook(Trigger):
     def __init__(self, actor: 'Actor') -> None:
         super().__init__(TriggerType.CATCH_LOOK, actor)
 
-    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchLook.run()> ")
         if self.disabled_:
@@ -260,10 +261,10 @@ class TriggerCatchLook(Trigger):
                 **(actor_vars(actor, "a"))}
         logger.debug3("evaluating")
         for crit in self.criteria_:
-            if not crit.evaluate(vars):
+            if not crit.evaluate(vars, game_state):
                 return False
         logger.debug3("executing script")
-        await self.execute_trigger_script(actor, vars)
+        await self.execute_trigger_script(actor, vars, game_state)
         return True
     
 
@@ -271,7 +272,7 @@ class TriggerCatchSay(Trigger):
     def __init__(self, actor: 'Actor') -> None:
         super().__init__(TriggerType.CATCH_SAY, actor)
 
-    async def run(self, actor: 'Actor', text: str, vars: dict) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchSay.run()> ")
         if self.disabled_:
@@ -281,8 +282,8 @@ class TriggerCatchSay(Trigger):
                 **(actor_vars(actor, "a"))}
         logger.debug3("evaluating")
         for crit in self.criteria_:
-            if not crit.evaluate(vars):
+            if not crit.evaluate(vars, game_state):
                 return False
         logger.debug3("executing script")
-        await self.execute_trigger_script(actor, vars)
+        await self.execute_trigger_script(actor, vars, game_state)
         return True

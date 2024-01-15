@@ -27,6 +27,7 @@ ZONES:
               else {
                 echo Greater than 50.
               }
+              deltempvar char %S% starting_room_random
           # - type: timer_tick
           #   criteria:
           #     - subject: "%time_elapsed%"
@@ -54,31 +55,47 @@ ZONES:
             script: |
               echoto %S% You trip as you enter.
               echoexcept %S% %S% trips as %q% enters.
-          # - type: timer_tick
-          #   criteria: 
-          #     - subject: "%time_elapsed%"
-          #       operator: "numgte"
-          #       predicate: 4
-          #   script: |
-          #     echo Tick!
-          # - type: timer_tick
-          #   criteria:
-          #     - subject: "%time_elapsed%"
-          #       operator: "numgte"
-          #       predicate: 10
-          #     - subject: "$random(1,100)"
-          #       operator: "numlte"
-          #       predicate: 25
-          #   script: |
-          #     echo Wildlife rustles in the underbrush.
-          # - type: catch_look
-          #   criteria: 
-          #     - subject: "%*%"
-          #       operator: contains
-          #       predicate: "squirrel"
-          #   script: |
-          #     echo You see a squirrel.
-          #     echoexcept %S% %S% sees a squirrel.
+          - type: catch_say
+            criteria: 
+              - subject: "%*%"
+                operator: contains
+                predicate: "random"
+            script: |
+              settempvar char %S% starting_room_random $random(1,100)
+              echo The random number is $tempvar(%S%,starting_room_random).
+              $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
+                echo Less than or equal to 50.
+              }
+              else {
+                echo Greater than 50.
+              }
+              deltempvar char %S% starting_room_random
+          - type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 10
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 25
+            script: |
+              echo Wildlife rustles in the underbrush.
+          - type: catch_look
+            criteria: 
+              - subject: "%*%"
+                operator: contains
+                predicate: "squirrel"
+            script: |
+              echoto %S% You see a squirrel.
+              echoexcept %S% %s% sees a squirrel.
+          - type: catch_say
+            criteria: 
+              - subject: "%*%"
+                operator: true
+                predicate: ""
+            script: |
+              echoto %S% Your voice sounds strangely muffled.
+              echoexcept %S% %s% says something, but it sounds muffled.
 
 CHARACTERS:
   - zone: debug_zone

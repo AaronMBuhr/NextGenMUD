@@ -3,7 +3,8 @@ from custom_detail_logger import CustomDetailLogger
 from .communication import CommTypes
 from .utility import set_vars, firstcap, article_plus_name, roll_dice
 from .nondb_models.actors import ActorType, Actor, Room, Character, \
-     AttackData, DamageType, Corpse, Object, ObjectFlags, EquipLocation
+     AttackData, DamageType, Corpse, Object, ObjectFlags, EquipLocation, \
+     CharacterFlags
 from .nondb_models.triggers import TriggerType
 import random
 from .config import Config, default_app_config
@@ -39,14 +40,14 @@ class CoreActions:
             msg_parts.append(firstcap(article_plus_name(object.article_, object.name_)) + " is here.")
         logger.debug(f"Sending room description to actor for: {room.name_}")
         await actor.send_text(CommTypes.CLEARSTATIC, "")
-        await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts))
+        await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts), game_state=cls.game_state_)
 
         
     @classmethod
     async def do_look_character(cls, actor: Actor, target: Character):
         logger = CustomDetailLogger(__name__, prefix="do_look_character()> ")
         msg = firstcap(target.description_) + "\n" + f"{firstcap(target.pronoun_subject_)} is {target.get_status_description()}"
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg))
+        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
 
 
     @classmethod
@@ -59,7 +60,7 @@ class CoreActions:
             else:
                 msg_parts.append(firstcap(target.pronoun_subject_) + " contains:\n" + Object.collapse_name_multiples(target.contents_, "\n"))
         msg = '\n'.join(msg_parts)
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg))
+        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
 
 
     @classmethod
@@ -77,7 +78,7 @@ class CoreActions:
         room_msg = f"{actor.name_} arrives."
         vars = set_vars(actor, actor, actor, room_msg)
         await cls.do_look_room(actor, actor.location_room_)
-        await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor])
+        await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor], game_state=cls.game_state_)
         # # TODO:L: figure out what direction "from" based upon back-path
         # actor.location_room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
 
@@ -94,7 +95,7 @@ class CoreActions:
         if not direction in actor.location_room_.exits_:
             raise Exception(f"Location {actor.location_room_.id_} does not have an exit in direction {direction}")
         
-        actor.location_room_.echo("dynamic", f"{firstcap(actor.name_)} leaves {direction}", exceptions=[actor])
+        actor.location_room_.echo("dynamic", f"{firstcap(actor.name_)} leaves {direction}", exceptions=[actor], game_state=cls.game_state_)
         await actor.send_text("dynamic", f"You leave {direction}")
         old_room = actor.location_room_
         destination = actor.location_room_.exits_[direction]
@@ -143,13 +144,13 @@ class CoreActions:
             raise Exception("Target must be of type CHARACTER to start fighting.")
         subject.fighting_whom_ = target
         msg = f"You start fighting {article_plus_name(target.article_, target.name_)}!"
-        await subject.echo(CommTypes.DYNAMIC, msg, set_vars(subject, subject, target, msg))
+        await subject.echo(CommTypes.DYNAMIC, msg, set_vars(subject, subject, target, msg), game_state=cls.game_state_)
         msg = f"{article_plus_name(subject.article_, subject.name_, cap=True)} starts fighting you!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, subject, target, msg))
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, subject, target, msg), game_state=cls.game_state_)
         msg = f"{article_plus_name(subject.article_, subject.name_, cap=True)} starts fighting {target.name_}!"
         await subject.location_room_.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(subject.location_room_, subject, target, msg),
-                                        exceptions=[subject, target])
+                                        exceptions=[subject, target], game_state=cls.game_state_)
         cls.game_state.characters_fighting_.append(subject)
 
 
@@ -161,24 +162,25 @@ class CoreActions:
         # TODO:L: maybe do "x kills you"
         logger = CustomDetailLogger(__name__, prefix="do_die()> ")
         msg = f"You die!"
-        await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg))
+        await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg), game_state=cls.game_state_)
 
         if killer:
             msg = f"You kill {article_plus_name(dying_actor.article_, dying_actor.name_)}!"
-            await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg))
+            await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg), game_state=cls.game_state_)
             msg = f"{killer.name_} kills {article_plus_name(dying_actor.article_, dying_actor.name_)}!"
             await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                            set_vars(dying_actor, killer, dying_actor, msg), exceptions=[killer, dying_actor])
+                                            set_vars(dying_actor, killer, dying_actor, msg), exceptions=[killer, dying_actor], 
+                                            game_state=cls.game_state_)
         if other_killer != None:
             if other_killer == "":
                 msg = f"{article_plus_name(dying_actor.article_, dying_actor.name_, cap=True)} dies!"
                 await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                                set_vars(dying_actor, None, dying_actor, msg), exceptions=[dying_actor])
+                                                set_vars(dying_actor, None, dying_actor, msg), exceptions=[dying_actor], game_state=cls.game_state_)
             else:
                 msg = f"{other_killer} kills {article_plus_name(dying_actor.article_, dying_actor.name_)}!"
                 await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(dying_actor, None, dying_actor, msg),
-                                                exceptions=[dying_actor])
+                                                exceptions=[dying_actor], game_state=cls.game_state_)
         if dying_actor in cls.game_state.characters_fighting_:
             cls.game_state.characters_fighting_.remove(dying_actor)
         if killer:
@@ -219,14 +221,14 @@ class CoreActions:
             raise Exception("Target must be of type CHARACTER to do damage.")
         target.current_hit_points_ -= damage
         msg = f"You do {damage} {damage_type.word()} damage to {article_plus_name(target.article_, target.name_)}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
         msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} does {damage} {damage_type.word()} damage to you!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
         msg = (f"{article_plus_name(actor.article_, actor.name_, cap=True)} does "
             f"{damage} {damage_type.word()} damage to {article_plus_name(target.article_, target.name_)}!")
         await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.location_room_, actor, target, msg),
-                                        exceptions=[actor, target])
+                                        exceptions=[actor, target], game_state=cls.game_state_)
         if target.current_hit_points_ <= 0:
             await cls.do_die(target, actor)
 
@@ -249,26 +251,26 @@ class CoreActions:
         if hit_roll + hit_modifier < dodge_roll:
             logger.critical(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
             msg = f"You miss {article_plus_name(target.article_, target.name_)} with {attack.attack_noun_}!"
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
             msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} misses you with {attack.attack_noun_}!"
-            await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+            await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
             msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} misses {target.name_} with {attack.attack_noun_}!"
             await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(actor.location_room_, actor, target, msg),
-                                            exceptions=[actor, target])
+                                            exceptions=[actor, target], game_state=cls.game_state_)
             return -1 # a miss
         # is it a critical?
         critical = random.randint(1,100) < actor.critical_chance_
         logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
         msg = f"You {"critically" if critical else ""} {attack.attack_verb_} {article_plus_name(target.article_, target.name_)} with {attack.attack_noun_}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
         msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} {"critically" if critical else ""} {attack.attack_verb_}s you with {attack.attack_noun_}!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg))
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
         msg = f"{article_plus_name(actor.article_, actor.name_, cap=True)} {"critically" if critical else ""} {attack.attack_verb_}s {target.name_} with {attack.attack_noun_}!"
         await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.location_room_, actor, target, msg),
-                                        exceptions=[actor, target])
+                                        exceptions=[actor, target], game_state=cls.game_state_)
         total_damage = 0
         if len(attack.potential_damage_) == 0:
             logger.warning(f"no damage types in attack by {actor.rid}: {attack.to_dict()}")
@@ -340,10 +342,44 @@ class CoreActions:
             if total_dmg > 0 and c.fighting_whom_ != None:
                 status_desc = c.fighting_whom_.get_status_description()
                 msg = f"{article_plus_name(c.fighting_whom_.article_, c.fighting_whom_.name_, cap=True)} is {status_desc}"
-                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, c.fighting_whom_, msg))
+                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, c.fighting_whom_, msg), game_state=cls.game_state_)
                 msg = f"You are {status_desc}"
-                await c.fighting_whom_.echo(CommTypes.DYNAMIC, msg, set_vars(c.fighting_whom_, c, c.fighting_whom_, msg))
+                await c.fighting_whom_.echo(CommTypes.DYNAMIC, msg, set_vars(c.fighting_whom_, c, c.fighting_whom_, msg), game_state=cls.game_state_)
                 msg = f"{article_plus_name(c.article_, c.name_, cap=True)} is {status_desc}"
                 await c.location_room_.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(c.location_room_, c, c.fighting_whom_, msg),
-                                            exceptions=[c, c.fighting_whom_])
+                                            exceptions=[c, c.fighting_whom_], game_state=cls.game_state_)
+
+    @classmethod
+    async def do_aggro(cls, actor: Actor):
+        logger = CustomDetailLogger(__name__, prefix="do_aggro()> ")
+        logger.debug(f"actor: {actor}")
+        if actor.actor_type_ != ActorType.CHARACTER:
+            raise Exception("Actor must be of type CHARACTER to aggro.")
+        if actor.temporary_character_flags_.are_flags_set(CharacterFlags.IS_SITTING):
+            msg = "You can't aggro while sitting!"
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            return
+        elif actor.temporary_character_flags_.are_flags_set(CharacterFlags.IS_SLEEPING):
+            msg = "You can't aggro while sleeping!"
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            return
+        elif actor.temporary_character_flags_.are_flags_set(CharacterFlags.IS_STUNNED):
+            msg = "You can't aggro while stunned!"
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            return
+        for c in actor.location_room_.characters_:
+            if c != actor and c.actor_type_ == ActorType.CHARACTER:
+                msg = "You attack {article_plus_name(c.article_, c.name_)}!"
+                set_vars(actor, actor, c, msg)
+                actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                msg = "{article_plus_name(actor.article_, actor.name_, cap=True)} attacks you!"
+                set_vars(actor, actor, c, msg)
+                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                msg = "{article_plus_name(actor.article_, actor.name_, cap=True)} attacks {article_plus_name(c.article_, c.name_)}!"
+                set_vars(actor, actor, c, msg)
+                actor.location_room_.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls.game_state_)
+                await cls.start_fighting(actor, c)
+                await cls.start_fighting(c, actor)
+                return
+            

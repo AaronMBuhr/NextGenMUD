@@ -33,7 +33,7 @@ class ScriptHandler:
                 if_operator = evaluate_functions_in_line(condition_parts[1], vars)
                 if_predicate = evaluate_functions_in_line(condition_parts[2], vars)
                 condition_result = cls.evaluate_condition(actor, if_subject, if_operator, if_predicate, vars)
-                script = blocks['true_block'] if condition_result else blocks['false_block'] + '\n' + blocks['remainder']
+                script = (blocks['true_block'] if condition_result else blocks['false_block']) + '\n' + blocks['remainder']
             else:
                 script = (await cls.process_line(actor, script, vars)).strip()
                 logger.debug3(f"remaining: {script}")

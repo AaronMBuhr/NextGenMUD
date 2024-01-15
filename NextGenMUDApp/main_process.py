@@ -12,7 +12,7 @@ from .core_actions import CoreActions
 
 
 class MainProcess:
-    game_state: ComprehensiveGameState = live_game_state
+    game_state_: ComprehensiveGameState = live_game_state
 
     @classmethod
     def start_main_process(cls):
@@ -38,7 +38,8 @@ class MainProcess:
         logger.debug3("Game loop started")
         last_fighting_tick = time.time()
         while True:
-            for conn in cls.game_state.connections_:
+            start_tick_time = time.time()
+            for conn in cls.game_state_.connections_:
                 logger.debug3("processing input queue")
                 if len(conn.input_queue) > 0:
                     input = conn.input_queue.popleft()
@@ -54,7 +55,12 @@ class MainProcess:
                 last_fighting_tick = time.time()
                 await cls.handle_periodic_fighting_tick()
             # logger.debug3("sleeping")
-            time.sleep(Constants.GAME_TICK_SEC)
+            time_taken = time.time() - start_tick_time
+            sleep_time = Constants.GAME_TICK_SEC - time_taken
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            # TODO:H: hit point recovery
+            cls.game_state_.world_clock_tick_ += 1
 
 
     @classmethod

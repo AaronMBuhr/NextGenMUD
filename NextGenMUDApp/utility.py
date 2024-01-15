@@ -1,9 +1,10 @@
-from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from enum import IntFlag
 import re
 import random
 from typing import Dict, List
+from .constants import Constants
+from .game_state_interface import GameStateInterface
 
 def to_int(v) -> int:
     try:
@@ -46,31 +47,32 @@ def replace_vars(script, vars: dict) -> str:
     return script
 
 
+IF_CONDITIONS = {
+    "eq": lambda a,b,c: a == b,
+    "numeq": lambda a,b,c: to_int(a) == to_int(b),
+    "numneq": lambda a,b,c: to_int(a) != to_int(b),
+    "numgt": lambda a,b,c: to_int(a) > to_int(b),
+    "numlt": lambda a,b,c: to_int(a) < to_int(b),
+    "numgte": lambda a,b,c: to_int(a) >= to_int(b),
+    "numlte": lambda a,b,c: to_int(a) <= to_int(b),
+    "between": lambda a,b,c: to_int(a) <= to_int(b) <= to_int(c),
+    "contains": lambda a,b,c: b.lower() in a.lower(),
+    "matches": lambda a,b,c: re.match(b, a),
+    "true": lambda a,b,c: True,
+    "false": lambda a,b,c: False,
+
+}
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
     logger = CustomDetailLogger(__name__, prefix="evaluate_if_condition()> ")
     logger.critical(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
 
-    if if_operator == 'contains':
-        return if_predicate.lower() in if_subject.lower()
-    elif if_operator == 'eq':
-        return if_subject.lower().strip() == if_predicate.lower().strip()
-    elif if_operator == "numeq":
-        return to_int(if_subject) == to_int(if_predicate)
-    elif if_operator == "numneq":
-        return to_int(if_subject) != to_int(if_predicate)
-    elif if_operator == "numgt":
-        return to_int(if_subject) > to_int(if_predicate)
-    elif if_operator == "numlt":
-        return to_int(if_subject) < to_int(if_predicate)
-    elif if_operator == "numgte":
-        return to_int(if_subject) >= to_int(if_predicate)
-    elif if_operator == "numlte":
-        return to_int(if_subject) <= to_int(if_predicate)
-    elif if_operator == 'contains':
-        return if_predicate.lower() in if_subject.lower()
-    elif if_operator == 'matches':
-        return re.match(if_predicate, if_subject)
+    if if_operator in IF_CONDITIONS:
+        try:
+            return IF_CONDITIONS[if_operator](if_subject, if_predicate, None)
+        except Exception as e:
+            logger.warning(f"Exception: {e} when evaluating condition: {if_subject} {if_operator} {if_predicate}")
+            return False
     else:
         raise NotImplementedError(f"evaluate_condition() does not support operator {if_operator}")
 
@@ -164,8 +166,54 @@ def split_string_honoring_parentheses(s):
     return parts
 
 
+SCRIPT_FUNCTIONS = {
+    "cap" : lambda a,b,c,gs: firstcap(a),
+    "name" : lambda a,b,c,gs: a.name_,
+    "equipped" : lambda a,b,c,gs: gs.find_target_character(a).equip_location_[to_int(b)],
+    "numeq" : lambda a,b,c,gs: "true" if to_int(a) == to_int(b) else "false",
+    "numneq" : lambda a,b,c,gs: "true" if to_int(a) != to_int(b) else "false",
+    "numgt" : lambda a,b,c,gs: "true" if to_int(a) > to_int(b) else "false",
+    "numlt" : lambda a,b,c,gs: "true" if to_int(a) < to_int(b) else "false",
+    "numgte" : lambda a,b,c,gs: "true" if to_int(a) >= to_int(b) else "false",
+    "numlte" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) else "false",
+    "between" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) <= to_int(c) else "false",
+    "random" : lambda a,b,c,gs: str(random.randint(to_int(a), to_int(b))),
+    "tempvar" : lambda a,b,c,gs: gs.get_tempvar(a, b),
+    "permvar" : lambda a,b,c,gs: gs.get_permvar(a, b),
+    "hasiteminv": lambda a,b,c,gs: does_char_have_item_inv(a, b, gs),
+    "hasitemeq": lambda a,b,c,gs: does_char_have_item_equipped(a, b, gs),
+    "hasitem" : lambda a,b,c,gs: does_char_have_item_anywhere(a, b, gs),
 
-def evaluate_functions_in_line(line: str, vars: dict) -> str:
+}
+
+# TODO:M: make these handle containers
+
+def does_char_have_item_inv(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+    if game_state == None:
+        return False
+    char = game_state.find_target_character(char_name_or_id)
+    return False if char == None else game_state.find_target_object(item_name_or_id, char) != None
+
+def does_char_have_item_equipped(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+    if game_state == None:
+        return False
+    char = game_state.find_target_character(char_name_or_id)
+    return False if char == None else game_state.find_target_object(item_name_or_id, None, char.equipped_) != None
+
+def does_char_have_item_anywhere(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+    if game_state == None:
+        return False
+    return does_char_have_item_inv(char_name_or_id, item_name_or_id, game_state) \
+        or does_char_have_item_equipped(char_name_or_id, item_name_or_id, game_state)
+
+def try_get(lst: [], idx: int, default=None):
+    try:
+        return lst[idx]
+    except IndexError:
+        return default
+
+
+def evaluate_functions_in_line(line: str, vars: dict, ComprehensiveGameState game_state) -> str:
     from .scripts import ScriptHandler
     logger = CustomDetailLogger(__name__, prefix="evaluate_functions_in_line()> ")
     logger.debug3(f"line: {line}")
@@ -191,33 +239,15 @@ def evaluate_functions_in_line(line: str, vars: dict) -> str:
         args = [evaluate_functions_in_line(ap, vars) for ap in arg_parts]
         logger.debug3(f"func_name: {func_name}, args: {args}")
         # Evaluate the function based on its name and arguments
-        if func_name == 'name':
-            # result = name(args[0], state)
-            raise NotImplementedError("name() function not implemented")
-        elif func_name == 'equipped':
-            # result = equipped(args[0], args[1], state)
-            raise NotImplementedError("equipped() function not implemented")
-        # Add more functions here as needed
-        elif func_name == "numeq":
-            result = "true" if to_int(args[0]) == to_int(args[1]) else "false"
-        elif func_name == "numneq":
-            result = "true" if to_int(args[0]) != to_int(args[1]) else "false"
-        elif func_name == "numgt":
-            result = "true" if to_int(args[0]) > to_int(args[1]) else "false"
-        elif func_name == "numlt":
-            result = "true" if to_int(args[0]) < to_int(args[1]) else "false"
-        elif func_name == "numgte":
-            result = "true" if to_int(args[0]) >= to_int(args[1]) else "false"
-        elif func_name == "numlte":
-            result = "true" if to_int(args[0]) <= to_int(args[1]) else "false"
-        elif func_name == 'between':
-            result = "true" if to_int(args[0]) <= to_int(args[1]) <= to_int(args[2]) else "false"
-        elif func_name == 'random':
-            result = str(random.randint(to_int(args[0]), to_int(args[1])))
-        elif func_name == 'tempvar':
-            result = ScriptHandler.get_tempvar(args[0], args[1])
-        elif func_name == 'permvar':
-            result = ScriptHandler.get_permvar(args[0], args[1])
+        if func_name in SCRIPT_FUNCTIONS:
+            try:
+                arg1 = args[0] if len(args) > 0 else ""
+                arg2 = args[1] if len(args) > 1 else ""
+                arg3 = args[2] if len(args) > 2 else ""
+                result = SCRIPT_FUNCTIONS[func_name](arg1, arg2, arg3, game_state)
+            except Exception as e:
+                logger.warning(f"Exception: {e} when processing line: {line}")
+                result = 'FUNCTION_ERROR: ' + str(e)
         else:
             logger.debug3("Unknown function: " + func_name)
             result = 'UNKNOWN_FUNCTION'
@@ -332,19 +362,19 @@ class DescriptiveFlags(IntFlag):
         super().__init__(value)
 
     @classmethod
-    def field_name_safe(cls, index: int) -> str:
+    def field_name(cls, index: int) -> str:
         try:
             return cls.field_name(index)
         except IndexError:
             return "unknown_flag"
 
     @classmethod
-    def field_name(cls, index: int):
+    def field_name_unsafe(cls, index: int):
         raise NotImplementedError("This method should be overridden in a child class")
 
     def to_comma_separated(self):
         # Generate a comma-separated list of descriptions for all enabled flags
-        return ', '.join(self.field_name_safe(flag.value.bit_length() - 1) for flag in self.__class__ if flag in self)
+        return ', '.join(self.field_name(flag.value.bit_length() - 1) for flag in self.__class__ if flag in self)
 
 
     def add_flags(self, flags):
@@ -356,7 +386,7 @@ class DescriptiveFlags(IntFlag):
         else:
             raise ValueError("Invalid flag or flag combination")
 
-    def minus_flags(self, flags):
+    def remove_flags(self, flags):
         # Remove one or more flags
         if isinstance(flags, self.__class__):
             return self & ~flags
@@ -393,6 +423,13 @@ class DescriptiveFlags(IntFlag):
             if not self & flag == flag:
                 return False
         return True
+    
+    def get_flags_set(self):
+        set_flags = []
+        for flag in self.__class__:
+            if self & flag == flag:
+                set_flags.append(flag)
+        return set_flags
 
 
 

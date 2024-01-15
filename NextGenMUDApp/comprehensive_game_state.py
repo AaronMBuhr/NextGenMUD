@@ -54,6 +54,8 @@ class ComprehensiveGameState:
         self.connections_ : List[Connection] = []
         self.characters_fighting_ : List[Character] = []
         self.zones_ = {}
+        self.world_clock_tick_ = 0
+        self.scheduled_actions_ = {}
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
@@ -158,6 +160,8 @@ class ComprehensiveGameState:
         # search_world automatically turns on search_zone
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
+        if target_name[0].lower() == 'me':
+            return actor
                 
         # Determine the starting point
         start_room = None
@@ -265,6 +269,8 @@ class ComprehensiveGameState:
     def find_target_room(self, actor: Actor, target_name: str, start_zone: Zone) -> Room:
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
+        if target_name[0].lower() == 'me':
+            return actor
         for room in start_zone.rooms_.values():
             if room.name_.startswith(target_name) or room.id_.startswith(target_name):
                 return room
@@ -284,6 +290,9 @@ class ComprehensiveGameState:
 
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
+        if target_name[0].lower() == 'me':
+            return actor
+
         def check_object(obj) -> bool:
             logger = CustomDetailLogger(__name__, prefix="find_target_object.check_object()> ")
             if obj.id_.startswith(target_name):
@@ -335,8 +344,9 @@ class ComprehensiveGameState:
         if 0 < target_number <= len(candidates):
             return candidates[target_number - 1]
         return None
+    
 
-
+    
     async def start_connection(self, consumer: 'MyWebsocketConsumer'):
         logger = CustomDetailLogger(__name__, prefix="startConnection()> ")
         logger.debug("init new connection")
