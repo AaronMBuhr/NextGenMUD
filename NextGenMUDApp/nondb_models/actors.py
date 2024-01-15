@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..communication import CommTypes
-from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, DescriptiveFlags
+from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, DescriptiveFlags, set_vars
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto, IntFlag
 import json
@@ -8,6 +8,7 @@ from .triggers import TriggerType, Trigger
 import random
 from typing import Dict, List
 import copy
+from .game_state_interface import GameStateInterface
 
 class ActorType(Enum):
     CHARACTER = 1
@@ -81,7 +82,7 @@ class Actor:
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
-                   skip_triggers: bool = False) -> bool:
+                   game_state: GameStateInterface = None, skip_triggers: bool = False) -> bool:
         # note that you probably want to run this last in the child class implementation
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
         logger.critical("running")
@@ -102,8 +103,18 @@ class Actor:
                     logger.critical(f"checking trigger_type: {trigger_type}")
                     for trigger in self.triggers_by_type_[trigger_type]:
                         logger.critical(f"checking trigger: {trigger.to_dict()}")
-                        await trigger.run(self, text, vars)
+                        await trigger.run(self, text, vars, game_state)
         return True
+
+
+class RoomFlags(DescriptiveFlags):
+    DARK = 2**0
+    NO_MOB = 2**1
+    INDOORS = 2**2
+    NO_MAGIC = 2**3
+    NO_SUMMON = 2**4
+    FLIGHT_NEEDED = 2**5
+    UNDERWATER = 2**6
 
 
 class Room(Actor):
@@ -170,7 +181,7 @@ class Room(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] =None, already_substituted: bool = False,
-                   skip_triggers: bool = False) -> bool:
+                   game_state: GameStateInterface = None, skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
         if text == False:
             raise Exception("text False")
@@ -185,9 +196,9 @@ class Room(Actor):
             logger.debug3(f"checking character {c.name_}")
             if exceptions is None or c not in exceptions:
                 logger.debug3(f"sending '{text}' to {c.name_}")
-                await c.echo(text_type, text, vars, exceptions, already_substituted=True,skip_triggers=skip_triggers)
+                await c.echo(text_type, text, vars, exceptions, already_substituted=True,game_state=game_state, skip_triggers=skip_triggers)
         logger.debug3("running super, text: " + text)
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True, skip_triggers=skip_triggers)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
         return True
 
     def remove_character(self, character: 'Character'):
@@ -253,17 +264,424 @@ class GamePermissionFlags(DescriptiveFlags):
         return ["is admin", "can inspect", "can modify"][idx]
 
 
-class CharacterFlags(DescriptiveFlags):
+class PermanentCharacterFlags(DescriptiveFlags):
     IS_PC = 2**0
-    IS_DEAD = 2**1
+    IS_AGGRESSIVE = 2**1
     CAN_DUAL_WIELD = 2**2
 
     @classmethod
-    def field_name(cls, idx):
-        return ["is pc", "is dead", "can dual wield"][idx]
+    def field_name_unsafe(cls, idx):
+        return ["is pc", "can dual wield"][idx]
+
+
+class TemporaryCharacterFlags(DescriptiveFlags):
+    IS_DEAD = 2**0
+    IS_SITTING = 2**1
+    IS_SLEEPING = 2**2
+    IS_STUNNED = 2**3
+    IS_DISARMED = 2**4
+    HIDDEN = 2**5
+
+    @classmethod
+    def field_name_unsafe(cls, idx):
+        return ["is dead", "is sitting", "is sleeping", "is stunned"][idx]
+
+
+class ActorState:
+
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, vars=None,tick_created=None):
+        self.actor_: Actor = actor
+        self.source_actor_: Actor = source_actor
+        self.state_type_name_: str = state_type_name
+        self.tick_created_: int = tick_created
+        self.tick_started_: int = None
+        self.tick_ending_: int = None
+        self.last_tick_acted_: int = None
+        self.next_tick_: int = None
+        self.tick_period_: int = 0
+        self.character_flags_affected_: TemporaryCharacterFlags = TemporaryCharacterFlags(0)
+        self.affect_amount_: int = 0
+        self.duration_remaining_: int = 0
+        self.vars = vars
+        self.game_state: GameStateInterface = game_state
+
+    def to_dict(self):
+        return {
+            'class': self.__class__.__name__,
+            'actor': self.actor_.rid,
+            'tick_created': self.tick_created_,
+            'tick_started': self.tick_started_,
+            'tick_ending': self.tick_ending_,
+            'last_tick_acted': self.last_tick_acted_,
+            'next_tick': self.next_tick_,
+            'tick_period': self.tick_period_
+        }
+    
+    @abstractmethod
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        """
+        Returns the next tick that the state should be applied.
+        end_tick = 0 means it's indefinite
+        """
+        self.tick_started_ = start_tick
+        self.tick_ending_ = end_tick
+        self.next_tick_ = start_tick + self.tick_period_
+        self.last_tick_acted_ = start_tick
+        self.duration_remaining_ = self.tick_ending_ - self.tick_started_
+        self.actor_.apply_state(self)
+        return self.next_tick_
+
+    @abstractmethod
+    def remove_state(self, force=False) -> bool:
+        """
+        Returns True if the state was removed, False if it was not removed.
+        """
+        pass
+
+    def does_affect_flag(self, flag: TemporaryCharacterFlags) -> bool:
+        """
+        Returns True if the state affects the given flag, False if it does not.
+        """
+        return self.character_flags_affected_.are_flags_set(flag)
+    
+    def perform_tick(self, tick_num: int) -> bool:
+        self.duration_remaining_ = max(self.start_tick_ - tick_num, 0)
+        self.last_tick_acted_ = tick_num
+        if self.tick_ending_ != 0 and tick_num >= self.tick_ending_:
+            self.remove_state()
+        return True
+    
+    @abstractmethod
+    def get_affect_amount(self):
+        return self.affect_amount_
+
+
+class CharacterStateForcedSitting(ActorState):
+    from .. import CoreActions
+    from ..command_handler import process_command
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None,
+                 state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.character_flags_affected_.add_flags(TemporaryCharacterFlags.IS_SITTING)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        if retval is not None:
+            if self.source_actor:
+                msg = f"You knock %%t onto the ground."
+                vars = set_vars(self.source_actor_, self.source_actor_, self.actor_, msg)
+                self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} knocks you onto the ground."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} knocks %t% onto the ground."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, source_actor], game_state=cls.game_state_)
+            self.actor_.temporary_character_flags_.add_flags(TemporaryCharacterFlags.IS_SITTING)
+        return retval
+
+
+    def remove_state(self, force=False) -> bool:
+        if not force and any([s for s in self.actor_.current_states_ if s is not self and s.does_affect_flag(TemporaryCharacterFlags.IS_SITTING)]):
+            return False
+        retval = super().remove_state(force)
+        if retval:
+            self.actor_.remove_state(self)
+        msg = "The dizziness wears off, you feel steady enough to stand again."
+        set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+        msg = "%t% looks steady enough to stand again."
+        set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        self.actor_.location_room_.echo(CommTypes.DYNAMIC, msg, vars exceptions=[source_actor], game_state=cls.game_state_)
+        if self.actor_type_ == ActorType.CHARACTER and self.location_room_ \
+            and not self.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+            process_command(self.actor_, "stand")
+        if self.location_room_ \
+            and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+            and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING) \
+            and not self.actor_.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+            CoreActions.do_aggro(self.actor_)
+
+        return retval
+
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+
+class CharacterStateForcedSleeping(ActorState):
+    from .. import CoreActions
+    from ..command_handler import process_command
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.character_flags_affected_.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        if retval is not None:
+            self.actor_.temporary_character_flags_.remove_flags(TemporaryCharacterFlags.IS_SITTING)
+            self.actor_.temporary_character_flags_.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
+            if self.source_actor:
+                msg = f"You put %t% to sleep."
+                vars = set_vars(self.source_actor_, self.source_actor_, self.actor_, msg)
+                self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} puts you to sleep."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} puts %t% to sleep."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor], game_state=cls.game_state_)
+        return retval
 
 
 
+    def remove_state(self, force=False) -> bool:
+        if not force and any([s for s in self.actor_.current_states_ if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+            return False
+        retval = super().remove_state(force)
+        if retval is not None:
+            msg = "You don't feel sleepy anymore."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = "%t% doesn't look sleepy anymore."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.location_room_.echo(CommTypes.DYNAMIC, msg, vars exceptions=[source_actor], game_state=cls.game_state_)
+            if self.actor_type_ == ActorType.CHARACTER and self.location_room_ \
+                and not self.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+                process_command(self.actor_, "stand")
+            if self.location_room_ \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING) \
+                and not self.actor_.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+            CoreActions.do_aggro(self.actor_)
+        return retval
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+
+class CharacterStateStunned(ActorState):
+    from .. import CoreActions
+    from ..command_handler import process_command
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.character_flags_affected_.add_flags(TemporaryCharacterFlags.IS_STUNNED)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        if retval is not None:
+            self.actor_.add_flag(TemporaryCharacterFlags.IS_STUNNED)
+            if self.source_actor:
+                msg = f"You stun %t%."
+                vars = set_vars(self.source_actor_, self.source_actor_, self.actor_, msg)
+                self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} stuns you."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg, game_state=cls.game_state_)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} stuns %t%."
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor], game_state=cls.game_state_)
+        return retval
+
+    def remove_state(self, force=False) -> bool:
+        if not force and any([s for s in self.actor_.current_states_ if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+            return False
+        retval = super().remove_state(force)
+        if retval is not None:
+            msg = "You shake off the stun."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = "%t% shakes off the stun."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.location_room_.echo(CommTypes.DYNAMIC, msg, vars exceptions=[source_actor], game_state=cls.game_state_)
+            if self.actor_type_ == ActorType.CHARACTER and self.location_room_ \
+                and not self.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+                process_command(self.actor_, "stand")
+            if self.location_room_ \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING) \
+                and not self.actor_.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+            CoreActions.do_aggro(self.actor_)
+        return retval
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+
+class CharacterStateHitPenalty(ActorState):
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, affect_amount:int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.affect_amount_ = affect_amount
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        # not gonna say anything for a hit penalty
+        # if retval is not None:
+        #     if self.source_actor:
+        #         msg = f"You stun %t%."
+        #         vars = set_vars(self.source_actor_, self.source_actor_, self.actor_, msg)
+        #         self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars)
+        #     msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} stuns you."
+        #     vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        #     self.actor_.echo(CommTypes.DYNAMIC, msg, vars)
+        #     msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} stuns %t%."
+        #     vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        #     self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor])
+        return retval
+
+    def remove_state(self) -> bool:
+        return super().remove_state()
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+class CharacterStateDisarmed(ActorState):
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        if not retval is None:
+            self.vars = {}
+            mhw = self.vars["main hand weapon"] = self.actor_.equipment_[EquipLocation.MAIN_HAND]
+            ohw = self.vars["off hand weapon"] = self.actor_.equipment_[EquipLocation.OFF_HAND]
+            bhw = self.vars["both hands weapon"] = self.actor_.equipment_[EquipLocation.BOTH_HANDS]
+            self.vars["main hand weapon"] = mhw
+            self.vars["off hand weapon"] = ohw
+            self.vars["both hands weapon"] = bhw
+            if mhw == None and ohw == None and bhw == None:
+                msg = "They aren't using any weapons."
+                set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+                self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                return
+            if mhw:
+                self.actor_.unequip_location(EquipLocation.MAIN_HAND)
+                self.actor_.add_object(mhw)
+            if ohw:
+                self.actor_.unequip_location(EquipLocation.OFF_HAND)
+                self.actor_.add_object(ohw)
+            if bhw:
+                self.actor_.unequip_location(EquipLocation.BOTH_HANDS)
+                self.actor_.add_object(bhw)
+            
+            self.temporary_character_flags_.add_flags(TemporaryCharacterFlags.IS_DISARMED)
+            msg = f"You disarm %%t!"
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg, game_state=cls.game_state_)
+            self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} disarms you!"
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} disarms %t%!"
+            vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor])
+        return retval
+    
+
+    def remove_state(self, force=True) -> bool:
+        if not force and any([s for s in self.actor_.current_states_ if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+            return False
+        mhw = self.vars["mhw"]
+        ohw = self.vars["ohw"]
+        bhw = self.vars["bhw"]
+        if mhw and self.equipped_location_[EquipLocation.MAIN_HAND] is None:
+            self.actor_.remove_object(mhw)
+            self.actor_.equip_object(mhw)
+        if ohw and self.equip_location_[EquipLocation.OFF_HAND] is None:
+            self.actor_.remove_object(ohw)
+            self.actor_.equip_object(ohw)
+        if bhw and self.equip_location_[EquipLocation.BOTH_HANDS] is None:
+            self.actor_.remove_object(bhw)
+            self.actor_.equip_object(bhw)
+        retval = super().remove_state(force)
+        if retval is not None:
+            self.temporary_character_flags_.remove_flag(TemporaryCharacterFlags.IS_DISARMED)
+            self.actor_.remove_state(self)
+            msg = "You ready your weapons again."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+            msg = "$cap(%t%) readies %R% weapons again."
+            set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+            self.actor_.location_room_.echo(CommTypes.DYNAMIC, msg, vars exceptions=[source_actor], game_state=cls.game_state_)
+            if self.actor_type_ == ActorType.CHARACTER and self.location_room_ \
+                and not self.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+                process_command(self.actor_, "stand")
+            if self.location_room_ \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SITTING) \
+                and not self.actor_.temporary_character_flags_.are_flags_set(TemporaryCharacterFlags.IS_SLEEPING) \
+                and not self.actor_.permanent_character_flags_.are_flags_set(PermanentCharacterFlags.IS_PC):
+            CoreActions.do_aggro(self.actor_)
+        return retval
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+class CharacterStateDodgePenalty(ActorState):
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, affect_amount:int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.affect_amount_ = affect_amount
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not duration_ticks and not end_tick:
+            raise Exception("duration and end_tick are both None")
+        if duration_ticks and end_tick:
+            raise Exception("duration and end_tick are both set")   
+        if duration_ticks:
+            end_tick = start_tick + duration_ticks
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        # not gonna say anything for a dodge penalty
+        # if retval is not None:
+        #     if self.source_actor:
+        #         msg = f"You stun %t%."
+        #         vars = set_vars(self.source_actor_, self.source_actor_, self.actor_, msg)
+        #         self.source_actor_.echo(CommTypes.DYNAMIC, msg, vars)
+        #     msg = f"{article_plus_name(self.source_actor_.article_, self.source_actor_.name_, cap=True)} stuns you."
+        #     vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        #     self.actor_.echo(CommTypes.DYNAMIC, msg, vars)
+        #     msg = f"{article_plus_name(self.source_actor.article_, self.source_actor_.name_)} stuns %t%."
+        #     vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
+        #     self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor])
+        return retval
+
+    def remove_state(self) -> bool:
+        return super().remove_state()
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
+
+    def remove_state(self) -> bool:
+        return True
+        
+    def perform_tick(self, tick_num: int) -> bool:
+        return super().perform_tick(tick_num)
 
 
 class DamageType(Enum):
@@ -428,6 +846,46 @@ class AttackData():
             # "attack_verb": self.attack_verb_
         }
 
+
+class CharacterClass(DescriptiveFlags):
+    FIGHTER = 1
+    ROGUE = 2
+    MAGE = 4
+    CLERIC = 8
+
+    @classmethod
+    def field_name(cls, idx):
+        return ["fighter", "rogue", "mage", "cleric"][idx]
+
+class CharacterSkill():
+    def __init__(self, character_class: CharacterClass, skill_number: int, skill_level: int=0):
+        self.character_class_ = character_class
+        self.skill_number_ = skill_number
+        self.skill_level_ = skill_level
+
+    def set_skill_level(self, skill_level: int):
+        self.skill_level_ = skill_level
+
+    def get_skill_level(self):
+        return self.skill_level_
+    
+    def add_points(self, points: int):
+        self.skill_level_ += points
+
+
+class CharacterAttributes(Enum):
+    STRENGTH = 1
+    DEXTERITY = 2
+    CONSTITUTION = 3
+    INTELLIGENCE = 4
+    WISDOM = 5
+    CHARISMA = 6
+
+    def word(self):
+        return self.name.lower()
+    def __str__(self):
+        return self.name.replace("_", " ").title()
+
 class Character(Actor):
     
     def __init__(self, id: str, definition_zone: 'Zone', name: str = "", create_reference=True):
@@ -437,10 +895,11 @@ class Character(Actor):
         self.attributes_ = {}
         self.contents_ = []
         self.classes_: Dict[CharacterClassType, CharacterClass] = {}
+        self.levels_ = Dict[CharacterClassType, int] = {}
         self.contents_: List[Object] = []
-        self.permanent_character_flags_ = CharacterFlags(0)
-        self.temporary_character_flags_ = CharacterFlags(0)
-        self.status_effects_ = []
+        self.permanent_character_flags_ = PermanentCharacterFlags(0)
+        self.temporary_character_flags_ = TemporaryCharacterFlags(0)
+        self.current_states_ = []
         self.connection_: 'Connection' = None
         self.fighting_whom_: Character = None
         self.equipped_: Dict[EquipLocation, Object] = {loc: None for loc in EquipLocation}
@@ -465,6 +924,7 @@ class Character(Actor):
         self.current_carrying_weight_ = 0
         self.num_main_hand_attacks_ = 1
         self.num_off_hand_attacks_ = 0
+        self.skills_by_class_: Dict[CharacterClassType, List[CharacterSkill]] = {}
 
 
     def from_yaml(self, yaml_data: str):
@@ -554,7 +1014,7 @@ class Character(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
-                   skip_triggers: bool = False) -> bool:
+                   game_state: cls.game_state_, skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
@@ -567,7 +1027,7 @@ class Character(Actor):
             logger.critical("sending text: " + text)
             await self.send_text(text_type, text)
         logger.debug3("running super")
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True, skip_triggers=skip_triggers)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=cls.game_state_, skip_triggers=skip_triggers)
         return retval
 
     @classmethod
@@ -646,6 +1106,38 @@ class Character(Actor):
                 for dt, mult in item.damage_resistances_.profile_.items():
                     self.current_damage_resistances_.profile_[dt] = self.current_damage_resistances_.profile_[dt] * mult
         # TODO:M: add status effects
+                    
+    # def get_character_states_flags(self, flags: TemporaryCharacterFlags) -> List[ActorState]:
+    #     states = []
+    #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_DEAD):
+    #         states.append("dead")
+    #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_SITTING):
+    #         states.append("sitting")
+    #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_SLEEPING):
+    #         states.append("sleeping")
+    #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_STUNNED):
+    #         states.append("stunned")
+    #     return states
+    
+    def get_character_states_by_flag(self, flags: TemporaryCharacterFlags) -> List[ActorState]:
+        return [s for s in self.current_states_ if s.does_affect_flag(flags)]
+    
+    def get_character_states_by_type(self, cls) -> List[ActorState]:
+        return [state for state in self.current_states_ if isinstance(state, cls)]
+
+
+    def add_state(self, state: ActorState) -> bool:
+        self.current_states_.append(state)
+        return True
+
+    def remove_state(self, state: ActorState) -> bool:
+        self.current_states_.remove(state)
+        return True
+
+    def total_levels(self):
+        return sum(self.levels_.values())
+    
+   
 
 class ObjectFlags(DescriptiveFlags):
     IS_ARMOR = 2**0
@@ -751,13 +1243,13 @@ class Object(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted:bool = False,
-                   skip_triggers: bool = False) -> bool:
+                   game_state=cls.game_state_, skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
             text = replace_vars(text, vars)
         logger.critical("text after " + text)
-        return await super().echo(text_type, text, vars, exceptions, skip_triggers=skip_triggers)
+        return await super().echo(text_type, text, vars, exceptions, game_state=game_state, skip_triggers=skip_triggers)
     
     @classmethod
     def create_from_definition(cls, obj_def: 'Object') -> 'Object':
@@ -823,3 +1315,6 @@ class Corpse(Object):
             self.character_.remove_object(obj)
             self.add_object(obj)
             obj.location_room_ = self.character.location_room_
+
+
+
