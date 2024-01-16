@@ -1,5 +1,6 @@
 from custom_detail_logger import CustomDetailLogger
 from .command_handler import CommandHandler
+from .command_handler_interface import CommandHandlerInterface
 from .constants import Constants
 from .nondb_models.actors import Actor
 from .nondb_models.characters import Character
@@ -63,7 +64,7 @@ class ScriptHandler:
         line = evaluate_functions_in_line(line, vars, cls.game_state)
         logger.debug3(f"line after evaluate_functions_in_line(): {line}")
         logger.critical(f"should process command on line: {line}")
-        await CommandHandler.process_command(actor, line, vars)
+        await CommandHandlerInterface.get_instance().process_command(actor, line, vars)
 
         return remaining_script
 

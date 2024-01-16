@@ -81,6 +81,10 @@ class Actor(ActorInterface):
     async def send_text(self, text_type: CommTypes, text: str):
         pass
 
+    def actor_vars(self, name: str) -> dict:
+        # Using dictionary comprehension to prefix keys and combine dictionaries
+        return {f"{name}.{key}": value for d in [self.temp_variables, self.perm_variables] for key, value in d.items()}
+
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
                    game_state: 'GameStateInterface' = None, skip_triggers: bool = False) -> bool:

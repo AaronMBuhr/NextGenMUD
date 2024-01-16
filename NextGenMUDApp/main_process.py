@@ -8,11 +8,11 @@ from .nondb_models.triggers import TriggerTimerTick
 import time
 from .constants import Constants
 import logging
-from .core_actions import CoreActions
+from .core_actions_interface import CoreActionsInterface
 
 
 class MainProcess:
-    game_state_: ComprehensiveGameState = live_game_state
+    _game_state: ComprehensiveGameState = live_game_state
 
     @classmethod
     def start_main_process(cls):
@@ -39,7 +39,7 @@ class MainProcess:
         last_fighting_tick = time.time()
         while True:
             start_tick_time = time.time()
-            for conn in cls.game_state_.connections_:
+            for conn in cls._game_state.connections_:
                 logger.debug3("processing input queue")
                 if len(conn.input_queue) > 0:
                     input = conn.input_queue.popleft()
@@ -49,7 +49,7 @@ class MainProcess:
                 logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
                 # print(trig.actor_.rid)
                 # print(trig.actor_)
-                await trig.run(trig.actor_, "", {}, cls.game_state_)
+                await trig.run(trig.actor_, "", {}, cls._game_state)
             if time.time() > last_fighting_tick + (Constants.GAME_TICK_SEC * Constants.TICKS_PER_ROUND):
                 logger.debug3("fighting tick")
                 last_fighting_tick = time.time()
@@ -57,11 +57,11 @@ class MainProcess:
             # logger.debug3("sleeping")
             time_taken = time.time() - start_tick_time
             sleep_time = Constants.GAME_TICK_SEC - time_taken
-            cls.game_state.process_scheduled_actions(cls.game_state_.world_clock_tick)
+            cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
             if sleep_time > 0:
                 time.sleep(sleep_time)
             # TODO:H: hit point recovery
-            cls.game_state_.world_clock_tick += 1
+            cls._game_state.world_clock_tick += 1
 
 
     @classmethod
@@ -70,7 +70,7 @@ class MainProcess:
         logger.debug3("handling periodic fighting tick")
         # logger.set_detail_level(1)
         # logger.debug3("handling periodic fighting tick")
-        await CoreActions.process_fighting()
+        await CoreActionsInterface.get_instance().process_fighting()
 
 
     @classmethod
