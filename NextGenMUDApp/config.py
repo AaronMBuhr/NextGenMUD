@@ -1,6 +1,6 @@
 from django.conf import settings
 import yaml
-
+from .constants import Constants
 
 class Config:
     WORLD_DATA_DIR: str = "world_data"
@@ -16,6 +16,7 @@ class Config:
             for key, value in config_values.items():
                 if hasattr(self, key):
                     setattr(self, key, value)
+            Constants.load_from_dict(config_values)
 
     def validate(self):
         if self.WORLD_DATA_DIR is None or self.WORLD_DATA_DIR.strip() == '':
