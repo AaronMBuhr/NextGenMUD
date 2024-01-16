@@ -58,6 +58,11 @@ ZONES:
                 predicate: "dance"
             script: |
               echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
+        characters:
+          - id: rabbit
+            quantity: 3
+            respawn time min: 30
+            respawn time max: 90
       crystal_cave:
         name: Crystal Cave
         description: >
@@ -568,3 +573,5 @@ CHARACTERS:
         dodge_dice: 5d10+30
         critical_chance: 0.05
         critical_multiplier: 2
+        experience_points: 10
+

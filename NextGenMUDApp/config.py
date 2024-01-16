@@ -1,11 +1,11 @@
 from django.conf import settings
 import yaml
-from .constants import Constants
 
 class Config:
     WORLD_DATA_DIR: str = "world_data"
 
     def load_from_yaml(self, file_path=None):
+        from .constants import Constants
         if file_path is None:
             file_path = f"{settings.NEXTGENMUDAPP_CONFIG_FILE}"
 

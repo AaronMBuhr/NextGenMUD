@@ -1,7 +1,10 @@
 from custom_detail_logger import CustomDetailLogger
 from .command_handler import CommandHandler
 from .constants import Constants
-from .nondb_models.actors import Actor, Character, Room, Object
+from .nondb_models.actors import Actor
+from .nondb_models.characters import Character
+from .nondb_models.objects import Object
+from .nondb_models.rooms import Room
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 from .utility import evaluate_if_condition, replace_vars, to_int, evaluate_functions_in_line, find_matching_parenthesis, split_string_honoring_parentheses, parse_blocks
 
@@ -57,7 +60,7 @@ class ScriptHandler:
         remaining_script = script[end:].strip()
 
         logger.debug3(f"process_command on line: {line}")
-        line = evaluate_functions_in_line(line, vars)
+        line = evaluate_functions_in_line(line, vars, cls.game_state)
         logger.debug3(f"line after evaluate_functions_in_line(): {line}")
         logger.critical(f"should process command on line: {line}")
         await CommandHandler.process_command(actor, line, vars)

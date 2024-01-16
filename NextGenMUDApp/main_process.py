@@ -46,7 +46,7 @@ class MainProcess:
                     logger.debug3(f"input: {input}")
                     await cls.process_input(conn, input)
             for trig in TriggerTimerTick.timer_tick_triggers_: 
-                logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id_}))")
+                logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
                 # print(trig.actor_.rid)
                 # print(trig.actor_)
                 await trig.run(trig.actor_, "", {}, cls.game_state_)
@@ -57,11 +57,11 @@ class MainProcess:
             # logger.debug3("sleeping")
             time_taken = time.time() - start_tick_time
             sleep_time = Constants.GAME_TICK_SEC - time_taken
-            cls.game_state.process_scheduled_actions(cls.game_state_.world_clock_tick_)
+            cls.game_state.process_scheduled_actions(cls.game_state_.world_clock_tick)
             if sleep_time > 0:
                 time.sleep(sleep_time)
             # TODO:H: hit point recovery
-            cls.game_state_.world_clock_tick_ += 1
+            cls.game_state_.world_clock_tick += 1
 
 
     @classmethod
