@@ -5,7 +5,7 @@ from enum import Enum
 import re
 import time
 from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
-from ..game_state_interface import GameStateInterface
+from ..interfaces import GameStateInterface
 
 def execute_functions(text: str) -> str:
     # TODO: handle various functions such as $name()
