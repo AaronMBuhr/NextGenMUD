@@ -1,20 +1,23 @@
+import copy
+import fnmatch
 from custom_detail_logger import CustomDetailLogger
 from django.conf import settings
 import json
-from .communication import Connection
 import os
-import sys
+from typing import List, Dict
 import yaml
 from yaml_dumper import YamlDumper
-from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation, GamePermissionFlags
-from typing import List, Dict
-import copy
+from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation, GamePermissionFlags, \
+    TemporaryCharacterFlags, PermanentCharacterFlags, CharacterStateStealthed
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
-import fnmatch
+from .communication import Connection
 from .config import Config, default_app_config
 from .utility import article_plus_name
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
+from .game_state_interface import GameStateInterface, ScheduledAction
+from .nondb_models.world import Zone
+
 
 class LiveGameStateContextManager:
     def __init__(self, **live_game_states):
@@ -56,6 +59,7 @@ class ComprehensiveGameState:
         self.zones_ = {}
         self.world_clock_tick_ = 0
         self.scheduled_actions_ = {}
+        self.xp_progression_ = []
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
@@ -65,6 +69,8 @@ class ComprehensiveGameState:
         logger = CustomDetailLogger(__name__, prefix="Initialize()> ")
 
         self.world_definition_.zones_ = {}
+
+        self.xp_progression_ = self.app_config.XP_PROGRESSION
 
         file_found = False
         logger.info(f"Loading world files (*.yaml) from [{self.app_config.WORLD_DATA_DIR}]...")
@@ -187,15 +193,32 @@ class ComprehensiveGameState:
 
         candidates = []
 
+        def can_see(char: Character, target: Character) -> bool:
+            if char == target:
+                return True
+            if target.has_temp_flags(TemporaryCharacterFlags.INVISIBLE) \
+            or target.has_perm_flags(PermanentCharacterFlags.INVISIBLE):
+                if not char.has_temp_flags(TemporaryCharacterFlags.SEE_INVISIBLE) \
+                and not char.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE):
+                    return False
+            if target.has_temp_flag(TemporaryCharacterFlags.IS_STEALTHED):
+                stealth_states = [s for s in target.get_states() if isinstance(s) == CharacterStateStealthed]
+                if len(stealth_states) == 0:
+                    # TODO:L: this probably should log an error message
+                    return False
+                if not char in stealth_states[0].vars_['seen_by']:
+                    return False
+            return True
+
         # Helper function to add candidates from a room
-        def add_candidates_from_room(room):
+        def add_candidates_from_room(actor, room):
             for char in room.characters_:
-                if char.id_.startswith(target_name):
+                if char.id_.startswith(target_name) and can_see(char, actor):
                     candidates.append(char)
                 else:
                     name_pieces = char.name_.split(' ')
                     for piece in name_pieces:
-                        if piece.startswith(target_name):
+                        if piece.startswith(target_name) and can_see(char, actor):
                             candidates.append(char)
 
         # Search in the current room
@@ -223,6 +246,7 @@ class ComprehensiveGameState:
 
 
     def find_all_characters(self, actor: Actor, target_name: str) -> str:
+        # TODO:L: should we limit these to can-see?
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
@@ -397,6 +421,24 @@ class ComprehensiveGameState:
 
     def remove_character(self, connection: Connection):
         self.players_.remove(connection.character)
-    
+
+
+    def add_scheduled_action(self, scheduled_tick: int, actor: Actor, name: str, vars: Dict[str, str], func: callable = None):
+        logger = CustomDetailLogger(__name__, prefix="add_scheduled_task()> ")
+        action = ScheduledAction(actor, name, vars, func)
+        if not scheduled_tick in self.scheduled_actions_:
+            self.scheduled_actions_[scheduled_tick] = []
+        self.scheduled_actions_[scheduled_tick].append(action)
+
+    def perform_scheduled_actions(self, tick: int):
+        logger = CustomDetailLogger(__name__, prefix="perform_scheduled_actions()> ")
+        if tick in self.scheduled_actions_:
+            for action in self.scheduled_actions_[tick]:
+                if action.actor_ and Actor.is_deleted_(action.actor_):
+                    action.actor_ = None
+                    continue
+                logger.debug(f"performing scheduled action {action.name_}")
+                action.run()
+            del self.scheduled_actions_[tick]
 
 live_game_state = ComprehensiveGameState()

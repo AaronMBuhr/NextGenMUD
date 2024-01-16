@@ -26,12 +26,13 @@ class Actor:
         self.article_ = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
         self.pronoun_subject_ = "it"
         self.pronoun_object_ = "it"
-        self.pronoun_possessive = "its"
+        self.pronoun_possessive_ = "its"
         self.location_room_ = None
         self.triggers_by_type_ = {}
         self.reference_number_ = None
         self.temp_variables_ = {}
         self.perm_variables_ = {}
+        self.is_deleted_ = False
         if create_reference:
             self.create_reference()
 
@@ -105,6 +106,13 @@ class Actor:
                         logger.critical(f"checking trigger: {trigger.to_dict()}")
                         await trigger.run(self, text, vars, game_state)
         return True
+    
+    def mark_deleted(self):
+        self.is_deleted_ = True
+
+    @classmethod
+    def is_deleted_(cls, actor: 'Actor'):
+        return actor.is_deleted_
 
 
 class RoomFlags(DescriptiveFlags):
@@ -268,6 +276,8 @@ class PermanentCharacterFlags(DescriptiveFlags):
     IS_PC = 2**0
     IS_AGGRESSIVE = 2**1
     CAN_DUAL_WIELD = 2**2
+    IS_INVISIBLE = 2**3
+    SEE_INVISIBLE = 2**4
 
     @classmethod
     def field_name_unsafe(cls, idx):
@@ -280,11 +290,74 @@ class TemporaryCharacterFlags(DescriptiveFlags):
     IS_SLEEPING = 2**2
     IS_STUNNED = 2**3
     IS_DISARMED = 2**4
-    HIDDEN = 2**5
+    IS_STEALTHED = 2**5
+    IS_HIDDEN = 2**6
+    SEE_INVISIBLE = 2**7
+    IS_INVISIBLE = 2**8
 
     @classmethod
     def field_name_unsafe(cls, idx):
         return ["is dead", "is sitting", "is sleeping", "is stunned"][idx]
+
+    
+class Cooldown:
+    def __init__(self, actor: Actor, cooldown_name: str, game_state: GameStateInterface,
+                 cooldown_source=None, cooldown_vars: Dict=None, cooldown_end_fn: callable=None):
+        self.cooldown_source_ = cooldown_source
+        self.cooldown_name_ = cooldown_name
+        self.actor_: Actor = actor
+        self.cooldown_vars: Dict = cooldown_vars
+        self.cooldown_start_tick_: int = 0
+        self.cooldown_end_tick_: int = 0
+        self.cooldown_duration: int = 0
+        self.cooldown_end_fn_ = cooldown_end_fn
+        self.game_state_ = game_state
+
+    @classmethod
+    def has_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return any([c for c in cooldowns if c.cooldown_source_ == (cooldown_source or c.cooldown_source) \
+                    and c.cooldown_name_ == (cooldown_name or c.cooldown_name)])
+    
+    @classmethod
+    def current_cooldowns(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return [c for c in cooldowns if c.cooldown_source_ == (cooldown_source or c.cooldown_source) \
+                    and c.cooldown_name_ == (cooldown_name or c.cooldown_name)]
+    
+    @classmethod
+    def last_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return max([c for c in Cooldown.current_cooldowns(cooldowns, cooldown_source, cooldown_name)],
+                   key=lambda c: c.cooldown_end_tick_)
+    
+    def start(self, current_tick: int, cooldown_duration_ticks: int = None, cooldown_end_tick: int = None) -> bool:
+        self.cooldown_start_tick_ = current_tick
+        if cooldown_duration_ticks:
+            self.cooldown_duration_ = cooldown_duration_ticks
+            self.cooldown_end_tick_ = current_tick + cooldown_duration_ticks
+        else:
+            self.cooldown_end_tick_ = cooldown_end_tick
+            self.cooldown_duration_ = cooldown_end_tick - current_tick
+        return True
+
+    def to_dict(self):
+        return {
+            'actor': self.actor_.rid,
+            'cooldown_source': self.cooldown_source_,
+            'cooldown_name': self.cooldown_name_,
+            'cooldown_start_tick': self.cooldown_start_tick_,
+            'cooldown_end_tick': self.cooldown_end_tick_,
+            'cooldown_duration': self.cooldown_end_tick_ - self.cooldown_start_tick_
+        }
+
+    def cooldown_finished(self, current_tick: int) -> bool:
+        return current_tick >= self.cooldown_end_tick_
+    
+    def ticks_remaining(self, current_tick: int) -> int:
+        return max(self.cooldown_end_tick_ - current_tick, 0)
+
+    def end_cooldown(self) -> bool:
+        if self.cooldown_end_fn_:
+            self.cooldown_end_fn_(self)
+        return True
 
 
 class ActorState:
@@ -670,18 +743,32 @@ class CharacterStateDodgePenalty(ActorState):
         #     vars = set_vars(self.actor_, self.source_actor_, self.actor_, msg)
         #     self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars exceptions=[actor, source_actor])
         return retval
-
+    
     def remove_state(self) -> bool:
         return super().remove_state()
         
     def perform_tick(self, tick_num: int) -> bool:
         return super().perform_tick(tick_num)
 
+
+class CharacterStateStealthed(ActorState):
+    def __init__(self, actor: Actor, game_state: GameStateInterface, source_actor: Actor=None, state_type_name=None, affect_amount:int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.affect_amount_ = affect_amount
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        self.actor.TemporaryCharacterFlags_.add_flags(TemporaryCharacterFlags.IS_STEALTHED)
+        self.vars = { "seen_by": [] }
+        retval = super().apply_state(start_tick, duration_ticks=None, end_tick=end_tick)
+        return retval
+    
     def remove_state(self) -> bool:
-        return True
+        self.actor.TemporaryCharacterFlags_.remove_flags(TemporaryCharacterFlags.IS_STEALTHED)
+        return super().remove_state()
         
     def perform_tick(self, tick_num: int) -> bool:
         return super().perform_tick(tick_num)
+    
 
 
 class DamageType(Enum):
@@ -803,15 +890,7 @@ class PotentialDamage:
         else:
             return "whacks"
 
-class CharacterClassType(Enum):
-    WARRIOR = 1
-    MAGE = 2
-    CLERIC = 3
-    ROGUE = 4
 
-class CharacterClass:
-    def __init__(self, character_class_type: CharacterClassType, level: int = 1):
-        self.level_ = level
 
 
 class AttackData():
@@ -847,30 +926,53 @@ class AttackData():
         }
 
 
-class CharacterClass(DescriptiveFlags):
+class CharacterClassRole(DescriptiveFlags):
     FIGHTER = 1
     ROGUE = 2
     MAGE = 4
     CLERIC = 8
 
+    _name_to_value = {
+        "fighter": FIGHTER,
+        "rogue": ROGUE,
+        "mage": MAGE,
+        "cleric": CLERIC
+    }
+
     @classmethod
-    def field_name(cls, idx):
-        return ["fighter", "rogue", "mage", "cleric"][idx]
+    def field_name(cls, value):
+        for name, val in cls._name_to_value.items():
+            if value == val:
+                return name
+        raise ValueError(f"Unknown class value: {value}")
+
+    @classmethod
+    def from_field_name(cls, name):
+        return cls._name_to_value.get(name.lower(), None)
 
 class CharacterSkill():
-    def __init__(self, character_class: CharacterClass, skill_number: int, skill_level: int=0):
-        self.character_class_ = character_class
-        self.skill_number_ = skill_number
-        self.skill_level_ = skill_level
+    def __init__(self, character_class: CharacterClassRole, skill_number: int, skill_level: int=0):
+        self.character_class = character_class
+        self.skill_number = skill_number
+        self.skill_level = skill_level
 
     def set_skill_level(self, skill_level: int):
-        self.skill_level_ = skill_level
+        self.skill_level = skill_level
 
     def get_skill_level(self):
-        return self.skill_level_
+        return self.skill_level
     
     def add_points(self, points: int):
-        self.skill_level_ += points
+        self.skill_level += points
+
+
+    
+
+class CharacterClass:
+
+    def __init__(self, role: CharacterClassRole):
+        self.role_ = role
+
 
 
 class CharacterAttributes(Enum):
@@ -894,7 +996,7 @@ class Character(Actor):
         self.description_ = ""
         self.attributes_ = {}
         self.contents_ = []
-        self.classes_: Dict[CharacterClassType, CharacterClass] = {}
+        self.classes_: Dict[CharacterClassType, CharacterClassRole] = {}
         self.levels_ = Dict[CharacterClassType, int] = {}
         self.contents_: List[Object] = []
         self.permanent_character_flags_ = PermanentCharacterFlags(0)
@@ -925,6 +1027,8 @@ class Character(Actor):
         self.num_main_hand_attacks_ = 1
         self.num_off_hand_attacks_ = 0
         self.skills_by_class_: Dict[CharacterClassType, List[CharacterSkill]] = {}
+        self.cooldowns_ = List[Cooldown] = []
+        self.skill_points_available_: int = 0
 
 
     def from_yaml(self, yaml_data: str):
@@ -999,7 +1103,14 @@ class Character(Actor):
         #         self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
         #     logger.critical(f"def triggers: {self.triggers_by_type_}")
 
-
+    @property
+    def art_name(self):
+        return article_plus_name(self.article_, self.name_)
+    
+    @property
+    def art_name_cap(self):
+        return article_plus_name(self.article_, self.name_, cap=True)
+    
     async def send_text(self, text_type: CommTypes, text: str) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.sendText()> ")
         logger.debug3(f"sendText: {text}")
@@ -1014,7 +1125,7 @@ class Character(Actor):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
-                   game_state: cls.game_state_, skip_triggers: bool = False) -> bool:
+                   game_state: 'ComprehensiveGameState' = None, skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
@@ -1027,7 +1138,7 @@ class Character(Actor):
             logger.critical("sending text: " + text)
             await self.send_text(text_type, text)
         logger.debug3("running super")
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=cls.game_state_, skip_triggers=skip_triggers)
+        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
         return retval
 
     @classmethod
@@ -1137,7 +1248,58 @@ class Character(Actor):
     def total_levels(self):
         return sum(self.levels_.values())
     
-   
+    def has_cooldown(self, cooldown_source=None, cooldown_name: str = None):
+        return Cooldown.has_cooldown(self, cooldown_source, cooldown_name)
+    
+    def add_cooldown(self, cooldown: Cooldown):
+        self.cooldowns_.append(cooldown)
+
+    def remove_cooldown(self, cooldown: Cooldown):
+        self.cooldowns_.remove(cooldown)
+
+    def current_cooldowns(self, cooldown_source=None, cooldown_name: str = None):
+        return Cooldown.current_cooldowns(self, cooldown_source, cooldown_name)
+    
+    def last_cooldown(self, cooldown_source=None, cooldown_name: str=None):
+        return Cooldown.last_cooldown(self, cooldown_source, cooldown_name)
+
+    def get_states(self):
+        return self.current_states_
+    
+    def has_temp_flags(self, flags: TemporaryCharacterFlags) -> bool:
+        return self.temporary_character_flags_.are_flags_set(flags)
+
+    def has_perm_flags(self, flags: PermanentCharacterFlags) -> bool:
+        return self.permanent_character_flags_.are_flags_set(flags)
+    
+    def has_game_flags(self, flags: GamePermissionFlags) -> bool:
+        return self.game_permission_flags_.are_flags_set(flags)
+    
+    def add_temp_flags(self, flags: TemporaryCharacterFlags) -> bool:
+        self.temporary_character_flags_.add_flags(flags)
+        return True
+    
+    def add_perm_flags(self, flags: PermanentCharacterFlags) -> bool:
+        self.permanent_character_flags_.add_flags(flags)
+        return True
+    
+    def add_game_flags(self, flags: GamePermissionFlags) -> bool:
+        self.game_permission_flags_.add_flags(flags)
+        return True
+    
+    def remove_temp_flags(self, flags: TemporaryCharacterFlags) -> bool:
+        self.temporary_character_flags_.remove_flags(flags)
+        return True
+    
+    def remove_perm_flags(self, flags: PermanentCharacterFlags) -> bool:
+        self.permanent_character_flags_.remove_Flags(flags)
+        return True
+    
+    def remove_game_flags(self, flags: GamePermissionFlags) -> bool:
+        self.game_permission_flags_.remove_Flags(flags)
+        return True
+    
+
 
 class ObjectFlags(DescriptiveFlags):
     IS_ARMOR = 2**0
@@ -1285,6 +1447,24 @@ class Object(Actor):
                     msg_parts.append(f"{info['count']} {name}s")
         return separator.join(msg_parts)
 
+    def has_flags(self, flags: ObjectFlags) -> bool:
+        return self.object_flags_.are_flags_set(flags)
+
+    def set_flags(self, flags: ObjectFlags) -> bool:
+        self.object_flags_.add_flags(flags)
+        return True
+    
+    def remove_flags(self, flags: ObjectFlags) -> bool:
+        self.object_flags_.remove_Flags(flags)
+        return True
+    
+    @property
+    def art_name(self):
+        return article_plus_name(self.article_, self.name_)
+    
+    @property
+    def art_name_cap(self):
+        return article_plus_name(self.article_, self.name_, cap=True)
 
 
 class Corpse(Object):

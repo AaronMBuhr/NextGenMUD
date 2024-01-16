@@ -269,7 +269,7 @@ def actor_vars(actor: 'Actor', name: str) -> dict:
     return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
 
 
-def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str) -> dict:
+def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str, additional_vars: {}) -> dict:
     vars = { **{
         'a': actor.name_ if actor else "", 
         'A': Constants.REFERENCE_SYMBOL + actor.reference_number_ if actor else "", 
@@ -286,7 +286,8 @@ def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str) ->
     '*': message }, 
     **(actor_vars(actor, "a")), 
     **(actor_vars(subject, "s") if subject else {}), 
-    **(actor_vars(target, "t") if target else {}) }
+    **(actor_vars(target, "t") if target else {}),
+    **additional_vars }
 
     return vars
 
@@ -456,4 +457,17 @@ def split_preserving_quotes(text):
 def actor_vars(actor: 'Actor', name: str) -> dict:
     # Using dictionary comprehension to prefix keys and combine dictionaries
     return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
+
+
+def seconds_from_ticks(ticks: int) -> int:
+    return ticks * Constants.GAME_TICK_SEC
+
+def ticks_from_rounds(rounds: int) -> int:
+    return rounds * Constants.TICKS_PER_ROUND
+
+def ticks_from_seconds(seconds: int) -> int:
+    return seconds / Constants.GAME_TICK_SEC
+
+def rounds_from_ticks(ticks: int) -> int:
+    return ticks / Constants.TICKS_PER_ROUND
 
