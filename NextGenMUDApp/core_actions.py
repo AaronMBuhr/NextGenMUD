@@ -3,7 +3,7 @@ import random
 from .config import Config, default_app_config
 from .constants import Constants
 from .communication import CommTypes
-from .core_actions_interface import CoreActionsInterface
+from .core_actions_interface     import CoreActionsInterface
 from .comprehensive_game_state_interface import GameStateInterface
 from .nondb_models.actors import ActorType, Actor
 from .nondb_models.character_interface import CharacterInterface, PermanentCharacterFlags, TemporaryCharacterFlags
@@ -16,7 +16,7 @@ from .utility import set_vars, firstcap, article_plus_name, roll_dice, ticks_fro
 
 class CoreActions(CoreActionsInterface):
     config: Config = default_app_config
-    game_state: GameStateInterface = GameStateInterface.live_game_state
+    game_state: GameStateInterface = GameStateInterface.get_instance()
 
     async def do_look_room(cls, actor: Actor, room: Room):
         logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")

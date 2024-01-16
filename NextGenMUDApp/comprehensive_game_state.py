@@ -505,4 +505,5 @@ class ComprehensiveGameState:
     
 
 live_game_state = ComprehensiveGameState()
-GameStateInterface.register_game_state(live_game_state)
+GameStateInterface.set_instance(live_game_state)
+

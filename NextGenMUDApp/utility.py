@@ -263,29 +263,25 @@ def evaluate_functions_in_line(line: str, vars: dict, game_state: 'Comprehensive
     return retval
 
 
-def actor_vars(actor: 'Actor', name: str) -> dict:
-    # Using dictionary comprehension to prefix keys and combine dictionaries
-    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
 
-
-def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str, additional_vars: {}) -> dict:
+def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str, additional_vars: dict = {}) -> dict:
     vars = { **{
         'a': actor.name_ if actor else "", 
-        'A': Constants.REFERENCE_SYMBOL + actor.reference_number_ if actor else "", 
-        'p': actor.pronoun_subject_ if actor else "",
-        'P': actor.pronoun_object_ if actor else "",
+        'A': Constants.REFERENCE_SYMBOL + actor.reference_number if actor else "", 
+        'p': actor.pronoun_subject if actor else "",
+        'P': actor.pronoun_object if actor else "",
         's': subject.name_ if subject else "", 
-        'S': Constants.REFERENCE_SYMBOL + subject.reference_number_ if subject else "", 
-        'q': subject.pronoun_subject_ if subject else "", 
-        'Q': subject.pronoun_object_ if subject else "", 
+        'S': Constants.REFERENCE_SYMBOL + subject.reference_number if subject else "", 
+        'q': subject.pronoun_subject if subject else "", 
+        'Q': subject.pronoun_object if subject else "", 
         't': target.name_ if target else "",  
-        'T': Constants.REFERENCE_SYMBOL + target.reference_number_ if target else "", 
-        'r': target.pronoun_subject_ if target else "",
-        'R': target.pronoun_object_ if target else "",
+        'T': Constants.REFERENCE_SYMBOL + target.reference_number if target else "", 
+        'r': target.pronoun_subject if target else "",
+        'R': target.pronoun_object if target else "",
     '*': message }, 
-    **(actor_vars(actor, "a")), 
-    **(actor_vars(subject, "s") if subject else {}), 
-    **(actor_vars(target, "t") if target else {}),
+    **(actor.actor_vars("a")), 
+    **(subject.actor_vars("s") if subject else {}), 
+    **(target.actor_vars("t") if target else {}),
     **additional_vars }
 
     return vars
@@ -340,11 +336,6 @@ def split_preserving_quotes(text):
 
     # Flatten the list of tuples, filter out empty strings
     return [item for match in matches for item in match if item]
-
-
-def actor_vars(actor: 'Actor', name: str) -> dict:
-    # Using dictionary comprehension to prefix keys and combine dictionaries
-    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
 
 
 def seconds_from_ticks(ticks: int) -> int:

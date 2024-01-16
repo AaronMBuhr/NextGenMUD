@@ -29,7 +29,7 @@ class Room(Actor, RoomInterface):
             'id': self.id,
             'name': self.name_,
             'description': self.description,
-            'zone': self.zone.id_ if self.zone else None,
+            'zone': self.zone.id if self.zone else None,
             'exits': self.exits,
             'triggers': self.triggers_by_type,
             # Convert complex objects to a serializable format, if necessary
@@ -76,6 +76,7 @@ class Room(Actor, RoomInterface):
             for trig in yaml_data['triggers']:
                 # logger.debug3(f"loading trigger_type: {trigger_type}")
                 new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                print(new_trigger.to_dict())
                 if not new_trigger.trigger_type_ in self.triggers_by_type:
                     self.triggers_by_type[new_trigger.trigger_type_] = []
                 self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
