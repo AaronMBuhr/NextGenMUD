@@ -76,7 +76,7 @@ class CommandHandler(CommandHandlerInterface):
 
     async def process_command(cls, actor: Actor, input: str, vars: dict = None):
         logger = CustomDetailLogger(__name__, prefix="process_command()> ")
-        print(actor)
+        # print(actor)
         logger.critical(f"processing input for actor {actor.id}: {input}")
         if actor.reference_number is None:
             raise Exception(f"Actor {actor.id} has no reference number.")
@@ -186,9 +186,9 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "Say to whom?")
             return
         text = ' '.join(pieces[1:])
-        msg = f"You say to {target.name_}, \"{text}\""
+        msg = f"You say to {target.name}, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
-        await actor.send_text(CommTypes.DYNAMIC, f"You say to {target.name_}, \"{text}\"")
+        await actor.send_text(CommTypes.DYNAMIC, f"You say to {target.name}, \"{text}\"")
         msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to you, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
         await target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
@@ -197,7 +197,7 @@ class CommandHandler(CommandHandlerInterface):
             for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
                 await trig.run(target, text, vars, cls._game_state)
         if room:
-            msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to {target.name_}, \"{text}\""
+            msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to {target.name}, \"{text}\""
             vars = set_vars(actor, actor, target, msg)
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state = cls._game_state)
             if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
@@ -244,7 +244,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         text = ' '.join(pieces[1:])
         vars = set_vars(actor, actor, target, text)
-        msg = f"You echo '{text}' to {target.name_}."
+        msg = f"You echo '{text}' to {target.name}."
         await target.echo(CommTypes.DYNAMIC, text, vars, game_state=cls._game_state)
         await actor.send_text(CommTypes.DYNAMIC, msg)
 
@@ -266,7 +266,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         exclude = [ excludee ]
         text = ' '.join(pieces[1:])
-        msg = f"To everyone except {exclude[0].name_} you echo '{text}'."
+        msg = f"To everyone except {exclude[0].name} you echo '{text}'."
         vars = set_vars(actor, actor, exclude[0], msg)
         await actor.echo(CommTypes.DYNAMIC, text, vars, exceptions=exclude, game_state=cls._game_state)
         await actor.send_text(CommTypes.DYNAMIC, msg)
@@ -293,7 +293,7 @@ class CommandHandler(CommandHandlerInterface):
         vars = set_vars(actor, actor, target, msg)
         logger.debug3("sending message to actor")
         await target.echo(CommTypes.DYNAMIC, msg, game_state=cls._game_state)
-        await actor.send_text(CommTypes.DYNAMIC, f"You tell {target.name_} '{text}'.")
+        await actor.send_text(CommTypes.DYNAMIC, f"You tell {target.name} '{text}'.")
 
 
     async def cmd_emote(cls, actor: Actor, input: str):
@@ -317,63 +317,63 @@ class CommandHandler(CommandHandlerInterface):
 
 
     EMOTE_MESSAGES = {
-        "kick": {   'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "%a% lets loose with a wild kick." },
-                    'target' : { 'actor': "You kick %t%.", 'room': "%a% kicks %t%." , 'target': "%a% kicks you."} },
-        "kiss": {   'notarget' : { 'actor': 'You kiss the air.', 'room': '%a% kisses the air.'},
-                    'target': {'actor': "You kiss %t%.", 'room': "%a% kisses %t%.", 'target': "%a% kisses you." }},
-        "lick": {   'notarget': { 'actor': 'You lick the air.', 'room': '%a% licks the air.'},
-                    'target': {'actor': "You lick %t%.", 'room': "%s% licks %t%.", 'target': "%s% licks you." }},
-        "congratulate": {   'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '%a% congratulates %{P}self.'},
-                            'target' : { 'actor': "You congratulate %t%.", 'room': "%a% congratulates %t%." , 'target': "%a% congratulates you."}},
+        "kick": {   'notarget' : { 'actor': "You let loose with a wild kick.", 'room': "$cap(%a%) lets loose with a wild kick." },
+                    'target' : { 'actor': "You kick %t%.", 'room': "$cap(%a%) kicks %t%." , 'target': "$cap(%a%) kicks you."} },
+        "kiss": {   'notarget' : { 'actor': 'You kiss the air.', 'room': '$cap(%a%) kisses the air.'},
+                    'target': {'actor': "You kiss %t%.", 'room': "$cap(%a%) kisses %t%.", 'target': "$cap(%a%) kisses you." }},
+        "lick": {   'notarget': { 'actor': 'You lick the air.', 'room': '$cap(%a%) licks the air.'},
+                    'target': {'actor': "You lick %t%.", 'room': "$cap(%s%) licks %t%.", 'target': "$cap(%s%) licks you." }},
+        "congratulate": {   'notarget' : { 'actor' : 'You congratulate yourself.', 'room' : '$cap(%a%) congratulates %{P}self.'},
+                            'target' : { 'actor': "You congratulate %t%.", 'room': "$cap(%a%) congratulates %t%." , 'target': "$cap(%a%) congratulates you."}},
         "bow": {    'notarget': { 'actor': 'You take a bow.', 'room': 'Makes a sweeping bow.'}, 
-                    'target' : {'actor': "You bow to %t%.", 'room': "%a% bows to %t%.", 'target': "%a% bows to you." }},
-        "thank": {  'notarget': { 'actor' : 'You thank everyone.', 'room' : '%a% thanks everyone.' },
-                    'target' : {'actor': "You thank %t%.", 'room': "%a% thanks %t%.", 'target': "%a% thanks you." }},
-        "sing": {   'notarget' : {'actor': 'You sing your heart out.', 'room' : '%a% sings %P% heart out.' },
-                    'target': {'actor': "You sing to %t%.", 'room': "%a% sings to %t%.", 'target': "%a% sings to you." }},
-        "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '%a% dances a jig.' },
-                    'target': {'actor': "You dance with %t%.", 'room': "%a% dances with %t%.", 'target': "%a% dances with you." }},
-                    "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '%a% touches %P%self.' },
-                    'target': {'actor': "You touch %t%.", 'room': "%a% touches %t%.", 'target': "%a% touches you." }},
-        "wink": {   'notarget': {'actor': 'You wink mischievously.', 'room': '%a% winks mischievously.'},
-                    'target': {'actor': "You wink at %t%.", 'room': "%a% winks at %t%.", 'target': "%a% winks at you."} },
-        "laugh": {  'notarget': {'actor': 'You burst into laughter.', 'room': '%a% bursts into laughter.'},
-                    'target': {'actor': "You laugh with %t%.", 'room': "%a% laughs with %t%.", 'target': "%a% laughs with you."} },
-        "sigh":  {  'notarget': {'actor': 'You sigh deeply.', 'room': '%a% sighs deeply.'},
-                    'target': {'actor': "You sigh at %t%.", 'room': "%a% sighs at %t%.", 'target': "%a% sighs at you."} },
-        "nod": {    'notarget': {'actor': 'You nod thoughtfully.', 'room': '%a% nods thoughtfully.'},
-                    'target': {'actor': "You nod at %t%.", 'room': "%a% nods at %t%.", 'target': "%a% nods at you."} },
-        "shrug": {  'notarget': {'actor': 'You shrug indifferently.', 'room': '%a% shrugs indifferently.'},
-                    'target': {'actor': "You shrug at %t%.", 'room': "%a% shrugs at %t%.", 'target': "%a% shrugs at you."} },
-        "cheer": {  'notarget': {'actor': 'You cheer loudly.', 'room': '%a% cheers loudly.'},
-                    'target': {'actor': "You cheer for %t%.", 'room': "%a% cheers for %t%.", 'target': "%a% cheers for you."} },
-        "frown": {  'notarget': {'actor': 'You frown deeply.', 'room': '%a% frowns deeply.'},
-                    'target': {'actor': "You frown at %t%.", 'room': "%a% frowns at %t%.", 'target': "%a% frowns at you."} },
-        "wave": {   'notarget': {'actor': 'You wave at no one in particular.', 'room': '%a% waves at no one in particular.'},
-                    'target': {'actor': "You wave at %t%.", 'room': "%a% waves at %t%.", 'target': "%a% waves at you."} },
-        "clap": {   'notarget': {'actor': 'You clap your hands.', 'room': '%a% claps %P% hands.'},
-                    'target': {'actor': "You clap for %t%.", 'room': "%a% claps for %t%.", 'target': "%a% claps for you."} },
-        "gaze": {   'notarget': {'actor': 'You gaze into the distance.', 'room': '%a% gazes into the distance.'},
-                    'target': {'actor': "You gaze at %t%.", 'room': "%a% gazes at %t%.", 'target': "%a% gazes at you."} },
+                    'target' : {'actor': "You bow to %t%.", 'room': "$cap(%a%) bows to %t%.", 'target': "$cap(%a%) bows to you." }},
+        "thank": {  'notarget': { 'actor' : 'You thank everyone.', 'room' : '$cap(%a%) thanks everyone.' },
+                    'target' : {'actor': "You thank %t%.", 'room': "$cap(%a%) thanks %t%.", 'target': "$cap(%a%) thanks you." }},
+        "sing": {   'notarget' : {'actor': 'You sing your heart out.', 'room' : '$cap(%a%) sings %P% heart out.' },
+                    'target': {'actor': "You sing to %t%.", 'room': "$cap(%a%) sings to %t%.", 'target': "$cap(%a%) sings to you." }},
+        "dance": { 'notarget' : {'actor': 'You dance a jig.', 'room' : '$cap(%a%) dances a jig.' },
+                    'target': {'actor': "You dance with %t%.", 'room': "$cap(%a%) dances with %t%.", 'target': "$cap(%a%) dances with you." }},
+                    "touch": { 'notarget' : {'actor': 'You touch yourself.', 'room' : '$cap(%a%) touches %P%self.' },
+                    'target': {'actor': "You touch %t%.", 'room': "$cap(%a%) touches %t%.", 'target': "$cap(%a%) touches you." }},
+        "wink": {   'notarget': {'actor': 'You wink mischievously.', 'room': '$cap(%a%) winks mischievously.'},
+                    'target': {'actor': "You wink at %t%.", 'room': "$cap(%a%) winks at %t%.", 'target': "$cap(%a%) winks at you."} },
+        "laugh": {  'notarget': {'actor': 'You burst into laughter.', 'room': '$cap(%a%) bursts into laughter.'},
+                    'target': {'actor': "You laugh with %t%.", 'room': "$cap(%a%) laughs with %t%.", 'target': "$cap(%a%) laughs with you."} },
+        "sigh":  {  'notarget': {'actor': 'You sigh deeply.', 'room': '$cap(%a%) sighs deeply.'},
+                    'target': {'actor': "You sigh at %t%.", 'room': "$cap(%a%) sighs at %t%.", 'target': "$cap(%a%) sighs at you."} },
+        "nod": {    'notarget': {'actor': 'You nod thoughtfully.', 'room': '$cap(%a%) nods thoughtfully.'},
+                    'target': {'actor': "You nod at %t%.", 'room': "$cap(%a%) nods at %t%.", 'target': "$cap(%a%) nods at you."} },
+        "shrug": {  'notarget': {'actor': 'You shrug indifferently.', 'room': '$cap(%a%) shrugs indifferently.'},
+                    'target': {'actor': "You shrug at %t%.", 'room': "$cap(%a%) shrugs at %t%.", 'target': "$cap(%a%) shrugs at you."} },
+        "cheer": {  'notarget': {'actor': 'You cheer loudly.', 'room': '$cap(%a%) cheers loudly.'},
+                    'target': {'actor': "You cheer for %t%.", 'room': "$cap(%a%) cheers for %t%.", 'target': "$cap(%a%) cheers for you."} },
+        "frown": {  'notarget': {'actor': 'You frown deeply.', 'room': '$cap(%a%) frowns deeply.'},
+                    'target': {'actor': "You frown at %t%.", 'room': "$cap(%a%) frowns at %t%.", 'target': "$cap(%a%) frowns at you."} },
+        "wave": {   'notarget': {'actor': 'You wave at no one in particular.', 'room': '$cap(%a%) waves at no one in particular.'},
+                    'target': {'actor': "You wave at %t%.", 'room': "$cap(%a%) waves at %t%.", 'target': "$cap(%a%) waves at you."} },
+        "clap": {   'notarget': {'actor': 'You clap your hands.', 'room': '$cap(%a%) claps %P% hands.'},
+                    'target': {'actor': "You clap for %t%.", 'room': "$cap(%a%) claps for %t%.", 'target': "$cap(%a%) claps for you."} },
+        "gaze": {   'notarget': {'actor': 'You gaze into the distance.', 'room': '$cap(%a%) gazes into the distance.'},
+                    'target': {'actor': "You gaze at %t%.", 'room': "$cap(%a%) gazes at %t%.", 'target': "$cap(%a%) gazes at you."} },
         "smile": {
-            'notarget': {'actor': 'You smile warmly.', 'room': '%a% smiles warmly.'},
-            'target': {'actor': "You smile at %t%.", 'room': "%a% smiles at %t%.", 'target': "%a% smiles at you."}
+            'notarget': {'actor': 'You smile warmly.', 'room': '$cap(%a%) smiles warmly.'},
+            'target': {'actor': "You smile at %t%.", 'room': "$cap(%a%) smiles at %t%.", 'target': "$cap(%a%) smiles at you."}
         },
         "glare": {
-            'notarget': {'actor': 'You glare into the distance.', 'room': '%a% glares into the distance.'},
-            'target': {'actor': "You glare at %t%.", 'room': "%a% glares at %t%.", 'target': "%a% glares at you."}
+            'notarget': {'actor': 'You glare into the distance.', 'room': '$cap(%a%) glares into the distance.'},
+            'target': {'actor': "You glare at %t%.", 'room': "$cap(%a%) glares at %t%.", 'target': "$cap(%a%) glares at you."}
         },
         "cry": {
-            'notarget': {'actor': 'Tears well up in your eyes.', 'room': '%a% starts to cry.'},
-            'target': {'actor': "You cry on %t%'s shoulder.", 'room': "%a% cries on %t%'s shoulder.", 'target': "%a% cries on your shoulder."}
+            'notarget': {'actor': 'Tears well up in your eyes.', 'room': '$cap(%a%) starts to cry.'},
+            'target': {'actor': "You cry on %t%'s shoulder.", 'room': "$cap(%a%) cries on %t%'s shoulder.", 'target': "$cap(%a%) cries on your shoulder."}
         },
         "yawn": {
-            'notarget': {'actor': 'You yawn loudly.', 'room': '%a% yawns loudly.'},
-            'target': {'actor': "You yawn at %t%.", 'room': "%a% yawns at %t%.", 'target': "%a% yawns at you."}
+            'notarget': {'actor': 'You yawn loudly.', 'room': '$cap(%a%) yawns loudly.'},
+            'target': {'actor': "You yawn at %t%.", 'room': "$cap(%a%) yawns at %t%.", 'target': "$cap(%a%) yawns at you."}
         },
         "think": {
-            'notarget': {'actor': 'You look thoughtful.', 'room': '%a% looks thoughtful.'},
-            'target': {'actor': "You ponder %t%.", 'room': "%a% ponders %t%.", 'target': "%a% ponders about you."}
+            'notarget': {'actor': 'You look thoughtful.', 'room': '$cap(%a%) looks thoughtful.'},
+            'target': {'actor': "You ponder %t%.", 'room': "$cap(%a%) ponders %t%.", 'target': "$cap(%a%) ponders about you."}
         }
         }
 
@@ -458,10 +458,10 @@ class CommandHandler(CommandHandlerInterface):
             return
         var_value = ' '.join(pieces[3:])
         vars = set_vars(actor, actor, target, var_value)
-        logger.debug3(f"target.name_: {target.name_}, {target_name} var: {pieces[2]}, var_value: {var_value}")
+        logger.debug3(f"target.name: {target.name}, {target_name} var: {pieces[2]}, var_value: {var_value}")
         var_value = replace_vars(var_value, vars)
         target_dict_fn(target)[pieces[2]] = var_value
-        await actor.send_text(CommTypes.DYNAMIC, f"Set {target_name} var {pieces[2]} on {target.name_} to {var_value}.")
+        await actor.send_text(CommTypes.DYNAMIC, f"Set {target_name} var {pieces[2]} on {target.name} to {var_value}.")
 
     async def cmd_settempvar(cls, actor: Actor, input: str):
         await cls.cmd_setvar_helper(actor, input, lambda d : d.temp_variables, "temp")
@@ -478,21 +478,21 @@ class CommandHandler(CommandHandlerInterface):
         answer = {}
         if pieces[0].lower() == "zones":
             answer["ZONES"] = {
-                zone.id_: {"id": zone.id_, "name": zone.name_, "description": zone.description_} 
-                for zone in cls._game_state.zones_.values()
+                zone.id_: {"id": zone.id_, "name": zone.name, "description": zone.description_} 
+                for zone in cls._game_state.zones.values()
             }
         elif pieces[0].lower() == "zone":
             try:
-                zone = cls._game_state.zones_[pieces[1]]
+                zone = cls._game_state.zones[pieces[1]]
             except KeyError:
                 await actor.send_text(CommTypes.DYNAMIC, f"zone {pieces[1]} not found.")
                 return
             answer["ZONE"] = {}
-            answer["ZONE"][zone.id_] = {"id": zone.id_, "name": zone.name_, "description": zone.description_}
+            answer["ZONE"][zone.id_] = {"id": zone.id_, "name": zone.name, "description": zone.description_}
             answer["ZONE"][zone.id_]["rooms"] = {
                 room.id_: {
                     "id": room.id_,
-                    "name": room.name_,
+                    "name": room.name,
     #                "description": room.description_,
                     "characters": [character.id_ for character in room.get_characters()],
                     "objects": [object.id_ for object in room.contents_],
@@ -515,7 +515,7 @@ class CommandHandler(CommandHandlerInterface):
             answer["CHARACTERS"] = {
                 a.id_ : {
                     "id": a.id_,
-                    "name": a.name_,
+                    "name": a.name,
                     "description": a.description_,
                     "location": a.location_room_.id_ if a.location_room_ else None,
                     "temp_variables": a.temp_variables_,
@@ -526,7 +526,7 @@ class CommandHandler(CommandHandlerInterface):
             answer["OBJECTS"] = {
                 a.id_ : {
                     "id": a.id_,
-                    "name": a.name_,
+                    "name": a.name,
                     "description": a.description_,
                     "location": a.location_room_.id_ if a.location_room_ else None,
                     "temp_variables": a.temp_variables_,
@@ -537,9 +537,9 @@ class CommandHandler(CommandHandlerInterface):
             answer["OBJECTS"] = {
                 a.id_ : {
                     "id": a.id_,
-                    "name": a.name_,
+                    "name": a.name,
                     "description": a.description_,
-                    "inside": f"{article_plus_name(a.article_, a.in_actor_.name_)} ({a.in_actor_.rid})" if a.in_actor_ else None,
+                    "inside": f"{article_plus_name(a.article_, a.in_actor_.name)} ({a.in_actor_.rid})" if a.in_actor_ else None,
                     "temp_variables": a.temp_variables_,
                     "perm_variables": a.perm_variables_,
                 } for a in Actor.references_.values() if a.actor_type == ActorType.OBJECT and a.in_actor_ is not None
@@ -553,7 +553,7 @@ class CommandHandler(CommandHandlerInterface):
             answer["ROOMS"] = {
                 room.id_: {
                     "id": room.id_,
-                    "name": room.name_,
+                    "name": room.name,
                     "description": room.description_,
                     "characters": [character.id_ for character in room.get_characters()],
                     "objects": [object.id_ for object in room.contents_],
@@ -643,7 +643,7 @@ class CommandHandler(CommandHandlerInterface):
             new_character.location_room_ = actor.location_room
             new_character.location_room_.add_character(new_character)
             logger.debug(f"new_character: {new_character} added to room {new_character.location_room_.rid}")
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_character.article_, new_character.name_)}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_character.article_, new_character.name)}.")
             await CoreActionsInterface.get_instance().do_look_room(actor, actor.location_room)
         elif pieces[0].lower() == "obj":
             object_def = cls._game_state.world_definition.find_object_definition(' '.join(pieces[1:]))
@@ -657,26 +657,26 @@ class CommandHandler(CommandHandlerInterface):
                 actor.add_object(new_object, True)
                 logger.debug(f"new_object: {new_object} added to character {actor}")
                 logger.debug(f"actor.contents_ length: {len(actor.contents_)}")
-                # print(Object.collapse_name_multiples(actor.contents_, ","))
+                # print(Object.collapse_namemultiples(actor.contents_, ","))
             elif actor.actor_type == ActorType.OBJECT:
                 if actor.has_flags(ObjectFlags.IS_CONTAINER):
                     logger.debug("adding to container")
                     actor.add_object(new_object, True)
                     logger.debug(f"new_object: {new_object} added to container {actor}")
-                    # print(Object.collapse_name_multiples(actor.contents_, ","))
+                    # print(Object.collapse_namemultiples(actor.contents_, ","))
                 else:
                     logger.debug("adding to room")
                     actor.location_room.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor.location_room}")
-                    # print(Object.collapse_name_multiples(actor.location_room_.contents_, ","))
+                    # print(Object.collapse_namemultiples(actor.location_room_.contents_, ","))
             elif actor.actor_type == ActorType.ROOM:
                     logger.debug("adding to room")
                     actor.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor}")
-                    # print(Object.collapse_name_multiples(actor.contents_, ","))
+                    # print(Object.collapse_namemultiples(actor.contents_, ","))
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type} for object not implemented.")
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_object.article_, new_object.name_)}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_object.article_, new_object.name)}.")
         else:
             await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
             return
@@ -737,7 +737,7 @@ class CommandHandler(CommandHandlerInterface):
             if target == None:
                 await actor.send_text(CommTypes.DYNAMIC, "inspect what?")
                 return
-            msg_parts.append(f"You inspect {target.name_}.")
+            msg_parts.append(f"You inspect {target.name}.")
         if target.actor_type == ActorType.CHARACTER:
             if actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
                 msg_parts.append( 
@@ -762,12 +762,12 @@ class CommandHandler(CommandHandlerInterface):
                 msg_parts.append(
     # IS_ADMIN
     f"""
-    Location: {target.location_room.name_} ({target.location_room.id_})""")
+    Location: {target.location_room.name} ({target.location_room.id_})""")
             else:
                 msg_parts.append(
     # NOT IS_ADMIN
     f"""
-    Location: {target.location_room.name_}""")
+    Location: {target.location_room.name}""")
 
             msg_parts.append(
     # ALWAYS
@@ -798,7 +798,7 @@ class CommandHandler(CommandHandlerInterface):
             if len(actor.contents_) == 0:
                 msg_parts.append(" nothing.")
             else:
-                msg_parts.append(Object.collapse_name_multiples(actor.contents_, "\n"))
+                msg_parts.append(Object.collapse_namemultiples(actor.contents_, "\n"))
             await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         elif actor.actor_type == ActorType.OBJECT:
             logger.debug(f"obj: {actor.rid}")
@@ -808,7 +808,7 @@ class CommandHandler(CommandHandlerInterface):
                 if len(actor.contents_) == 0:
                     msg_parts.append(" nothing.")
                 else:
-                    msg_parts.append(Object.collapse_name_multiples(actor.contents_, "\n"))
+                    msg_parts.append(Object.collapse_namemultiples(actor.contents_, "\n"))
                 await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         elif actor.actor_type == ActorType.ROOM:
             logger.debug(f"room: {actor.rid}")
@@ -816,7 +816,7 @@ class CommandHandler(CommandHandlerInterface):
             if len(room.contents_) == 0:
                 msg_parts.append(" nothing.")
             else:
-                msg_parts.append(Object.collapse_name_multiples(room.contents_, "\n"))
+                msg_parts.append(Object.collapse_namemultiples(room.contents_, "\n"))
             await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type} not implemented.")
@@ -881,12 +881,12 @@ class CommandHandler(CommandHandlerInterface):
                 num_got += 1
                 room.remove_object(item)
                 actor.add_object(item)
-                apn = article_plus_name(item.article_, item.name_)
+                apn = article_plus_name(item.article, item.name)
             if num_got == 0:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't see any {item_name} here.")
                 return
             if num_got > 1:
-                apn = num2words(num_got) + " " + item.name_
+                apn = num2words(num_got) + " " + item.name
             msg = f"You get {apn}."
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             msg = f"{firstcap(actor.name)} gets you."
@@ -911,12 +911,12 @@ class CommandHandler(CommandHandlerInterface):
                 return
             actor.remove_object(item)
             room.add_object(item)
-            msg = f"You drop {item.name_}."
+            msg = f"You drop {item.name}."
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             await CoreActionsInterface.get_instance().do_look_room(actor, room)
             msg = f"{firstcap(actor.name)} drops you."
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-            msg = f"{firstcap(article_plus_name(actor.article,actor.name))} drops {article_plus_name(item.article_, item.name_)}."
+            msg = f"{firstcap(article_plus_name(actor.article,actor.name))} drops {article_plus_name(item.article, item.name)}."
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor], game_state=cls._game_state)
             await CoreActionsInterface.get_instance().do_look_room(actor, room)
         elif actor.actor_type == ActorType.OBJECT:
@@ -936,7 +936,7 @@ class CommandHandler(CommandHandlerInterface):
                 return
             actor.remove_object(item)
             room.add_object(item)
-            await actor.send_text(CommTypes.DYNAMIC, f"You drop {item.name_}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You drop {item.name}.")
 
 
     async def cmd_equip(cls, actor: Actor, input: str):
@@ -1005,10 +1005,10 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
             return
         if equip_location == None:
-            if target_object.equip_locations_ == None or len(target_object.equip_locations_) == 0:
+            if target_object.equip_locations == None or len(target_object.equip_locations) == 0:
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't equip that.")
                 return
-            for loc in target_object.equip_locations_:
+            for loc in target_object.equip_locations:
                 if actor.equipped_[loc] == None:
                     equip_location = loc
                     break
@@ -1059,11 +1059,11 @@ class CommandHandler(CommandHandlerInterface):
             return
         actor.remove_object(target_object)
         actor.equip_item(equip_location, target_object)
-        msg = f"You equip {target_object.name_}."
+        msg = f"You equip {target_object.name}."
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), game_state=cls._game_state)
         msg = f"{firstcap(actor.name)} equips you."
         await target_object.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), game_state=cls._game_state)
-        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} equips {article_plus_name(target_object.article_, target_object.name_)}."
+        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} equips {article_plus_name(target_object.article, target_object.name)}."
         await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), exceptions=[actor], game_state=cls._game_state)
 
 
@@ -1155,11 +1155,11 @@ class CommandHandler(CommandHandlerInterface):
             return
         actor.unequip_location(equip_location)
         actor.add_object(item, True)
-        msg = f"You unequip {item.name_}."
+        msg = f"You unequip {item.name}."
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
         msg = f"{firstcap(actor.name)} unequips you."
         await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} unequips {article_plus_name(item.article_, item.name_)}."
+        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} unequips {article_plus_name(item.article_, item.name)}."
         await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor], game_state=cls._game_state)
 
 
@@ -1170,7 +1170,7 @@ class CommandHandler(CommandHandlerInterface):
         msg_parts = [ "You are equipped with:\n"]
         for loc in EquipLocation:
             if actor.equipped_[loc] != None:
-                msg_parts.append(f"{loc.name}: {article_plus_name(actor.equipped_[loc].article_, actor.equipped_[loc].name_)}\n")
+                msg_parts.append(f"{loc.name}: {article_plus_name(actor.equipped_[loc].article_, actor.equipped_[loc].name)}\n")
             else:
                 msg_parts.append(f"{loc.name}: nothing\n")
         await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
@@ -1251,9 +1251,9 @@ class CommandHandler(CommandHandlerInterface):
             logger.warn(f"({pieces}) Could not find target.")
             await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
             return
-        logger.debug3(f"target.name_: {target.name_}, {target_name} delete var: {pieces[2]}")
+        logger.debug3(f"target.name: {target.name}, {target_name} delete var: {pieces[2]}")
         del target_dict_fn(target)[pieces[2]]
-        await actor.send_text(CommTypes.DYNAMIC, f"Deleted {target_name} var {pieces[2]} on {target.name_}")
+        await actor.send_text(CommTypes.DYNAMIC, f"Deleted {target_name} var {pieces[2]} on {target.name}")
 
 
     async def cmd_deltempvar(cls, actor: Actor, input: str):

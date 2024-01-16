@@ -90,5 +90,15 @@ class ActorInterface(ABC):
     def get_room(self) -> 'Room':
         raise NotImplementedError
     
+    @abstractmethod
     def set_room(self, room: 'Room') -> 'Room':
         raise NotImplementedError
+    
+    @abstractmethod
+    def get_temp_var(self, varname, default):
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_perm_var(self, varname, default):
+        raise NotImplementedError
+    

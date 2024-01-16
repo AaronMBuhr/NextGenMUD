@@ -72,26 +72,26 @@ class DamageReduction:
 
 class PotentialDamage:
     def __init__(self, damage_type: DamageType, damage_dice_number: int, damage_dice_type: int, damage_dice_bonus: int):
-        self.damage_type_ = damage_type
-        self.damage_dice_number_ = damage_dice_number
-        self.damage_dice_type_ = damage_dice_type
-        self.damage_dice_bonus_ = damage_dice_bonus
-        self.min_damage_ = damage_dice_number + damage_dice_bonus
-        self.max_damage_ = damage_dice_number * damage_dice_type + damage_dice_bonus
-        self.glancing_damage_ = (self.max_damage_ - self.min_damage_) * 0.20 + self.min_damage_
-        self.powerful_damage_ = (self.max_damage_ - self.min_damage_) * 0.80 + self.min_damage_
+        self.damage_type = damage_type
+        self.damage_dice_number = damage_dice_number
+        self.damage_dice_type = damage_dice_type
+        self.damage_dice_bonus = damage_dice_bonus
+        self.min_damage = damage_dice_number + damage_dice_bonus
+        self.max_damage = damage_dice_number * damage_dice_type + damage_dice_bonus
+        self.glancing_damage = (self.max_damage - self.min_damage) * 0.20 + self.min_damage
+        self.powerful_damage = (self.max_damage - self.min_damage) * 0.80 + self.min_damage
 
     def to_dict(self):
         return {
-            "damage": f"{self.damage_dice_number_}d{self.damage_dice_type_}+{self.damage_dice_bonus_}",
-            "damage_type": self.damage_type_.name.lower()
+            "damage": f"{self.damage_dice_number}d{self.damage_dice_type}+{self.damage_dice_bonus}",
+            "damage_type": self.damage_type.name.lower()
         }
     
     def roll_damage(self, critical_chance: int = 0, critical_multiplier: int = 2):
         total_damage = 0
-        for i in range(self.damage_dice_number_):
-            total_damage += random.randint(1, self.damage_dice_type_)
-        total_damage += self.damage_dice_bonus_
+        for i in range(self.damage_dice_number):
+            total_damage += random.randint(1, self.damage_dice_type)
+        total_damage += self.damage_dice_bonus
         if random.randint(1, 100) <= critical_chance:
             total_damage *= critical_multiplier
         return total_damage
@@ -107,9 +107,9 @@ class PotentialDamage:
     def damage_adjective(self, damage: int):
         if damage == 0:
             return "insignificant"
-        if damage < self.glancing_damage_:
+        if damage < self.glancing_damage:
             return "minor"
-        elif damage >= self.powerful_damage_:
+        elif damage >= self.powerful_damage:
             return "major"
         else:
             return "moderate"
@@ -117,9 +117,9 @@ class PotentialDamage:
     def damage_verb(self, damage: int):
         if damage == 0:
             return "whiffs"
-        if damage < self.glancing_damage_:
+        if damage < self.glancing_damage:
             return "scratches"
-        elif damage >= self.powerful_damage_:
+        elif damage >= self.powerful_damage:
             return "hits"
         else:
             return "whacks"
@@ -147,8 +147,8 @@ class AttackData():
             self.potential_damage_.append(PotentialDamage(damage_type, damage_num_dice or 0, damage_dice_size or 0, damage_bonus or 0))
         else:
             logger.error("AttackData() called without damage_type and damage_amount or damage_type and damage_num_dice and damage_dice_size or damage_bonus")
-        self.attack_noun_ = attack_noun or "something"
-        self.attack_verb_ = attack_verb or "hits"
+        self.attack_noun = attack_noun or "something"
+        self.attack_verb = attack_verb or "hits"
         self.attack_bonus = attack_bonus
 
     def to_dict(self):

@@ -10,7 +10,7 @@ from .character_interface import CharacterInterface, EquipLocation, GamePermissi
 from ..communication import CommTypes
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
-from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice
+from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice, evaluate_functions_in_line
 
 
 
@@ -45,7 +45,7 @@ class Character(Actor, CharacterInterface):
     
     def __init__(self, id: str, definition_zone: 'Zone', name: str = "", create_reference=True):
         super().__init__(ActorType.CHARACTER, id, name=name, create_reference=create_reference)
-        self.definition_zone_ = definition_zone
+        self.definition_zone = definition_zone
         self.description = ""
         self.attributes = {}
         self.contents = []
@@ -54,7 +54,7 @@ class Character(Actor, CharacterInterface):
         self.permanent_character_flags = PermanentCharacterFlags(0)
         self.temporary_character_flags = TemporaryCharacterFlags(0)
         self.current_states = []
-        self.connection_: 'Connection' = None
+        self.connection: 'Connection' = None
         self.fighting_whom: Character = None
         self.equipped: Dict[EquipLocation, ObjectInterface] = {loc: None for loc in EquipLocation}
         self.damage_resistances = DamageResistances()
@@ -77,7 +77,7 @@ class Character(Actor, CharacterInterface):
         self.max_carrying_capacity = 100
         self.current_carrying_weight = 0
         self.num_main_hand_attacks = 1
-        self.num_off_hand_attacks_ = 0
+        self.num_off_hand_attacks = 0
         self.skill_levels_by_role: Dict[CharacterClassRole, Dict[Enum, int]] = {}
         self.skill_points_available: int = 0
         self.cooldowns: List[Cooldown] = []
@@ -89,8 +89,8 @@ class Character(Actor, CharacterInterface):
         logger = CustomDetailLogger(__name__, prefix="Character.from_yaml()> ")
         # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
         # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
-        self.name_ = yaml_data['name']
-        self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name_[0].lower() in "aeiou" else "an" if self.name_ else ""
+        self.name = yaml_data['name']
+        self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
         self.description = yaml_data['description'] if 'description' in yaml_data else ''
         self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
         self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
@@ -115,8 +115,8 @@ class Character(Actor, CharacterInterface):
         # print(yaml_data['natural_attacks'])
         for atk in yaml_data['natural_attacks']:
             new_attack = AttackData()
-            new_attack.attack_noun_ = atk['attack_noun']
-            new_attack.attack_verb_ = atk['attack_verb']
+            new_attack.attack_noun = atk['attack_noun']
+            new_attack.attack_verb = atk['attack_verb']
             for dmg in atk['potential_damage']:
                 dice_parts = get_dice_parts(dmg['damage_dice'])
                 num_dice, dice_size, dice_bonus = dice_parts[0],dice_parts[1],dice_parts[2]
@@ -134,7 +134,7 @@ class Character(Actor, CharacterInterface):
         self.critical_multiplier = yaml_data['critical_multiplier']
         if 'triggers' in yaml_data:
             for trig in yaml_data['triggers']:
-                logger.debug(f"got trigger for {self.name_}: {trig}")
+                logger.debug(f"got trigger for {self.name}: {trig}")
                 # logger.debug3(f"loading trigger_type: {trigger_type}")
                 new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
                 if not new_trigger.trigger_type_ in self.triggers_by_type:
@@ -161,18 +161,18 @@ class Character(Actor, CharacterInterface):
 
     @property
     def art_name(self):
-        return article_plus_name(self.article, self.name_)
+        return article_plus_name(self.article, self.name)
     
     @property
     def art_name_cap(self):
-        return article_plus_name(self.article, self.name_, cap=True)
+        return article_plus_name(self.article, self.name, cap=True)
     
     async def send_text(self, text_type: CommTypes, text: str) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.sendText()> ")
         logger.debug3(f"sendText: {text}")
-        if self.connection_:
-            logger.debug3(f"connection exists, sending text to {self.name_}")
-            await self.connection_.send(text_type, text)
+        if self.connection:
+            logger.debug3(f"connection exists, sending text to {self.name}")
+            await self.connection.send(text_type, text)
             logger.debug3("text sent")
             return True
         else:
@@ -185,7 +185,7 @@ class Character(Actor, CharacterInterface):
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
-            text = replace_vars(text, vars)
+            text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
         logger.critical("text after " + text)
         if exceptions and self in exceptions:
             retval = False
@@ -200,6 +200,7 @@ class Character(Actor, CharacterInterface):
     @classmethod
     def create_from_definition(cls, char_def: 'Character') -> 'Character':
         logger = CustomDetailLogger(__name__, prefix="Character.create_from_definition()> ")
+        print(f"char_def: {char_def}")
         logger.critical(f"char def triggers: {char_def.triggers_by_type}")
         new_char = copy.deepcopy(char_def)
         logger.critical(f"new_char triggers: {char_def.triggers_by_type}")
@@ -208,7 +209,7 @@ class Character(Actor, CharacterInterface):
         new_char.max_hit_points = roll_dice(new_char.hit_dice, new_char.hit_dice_size, new_char.hit_point_bonus)
         new_char.current_hit_points = new_char.max_hit_points
         new_char.contents = []
-        new_char.connection_ = None
+        new_char.connection = None
         new_char.fighting_whom = None
         new_char.equipped = {loc: None for loc in EquipLocation}
         for trig_type, trig_data in new_char.triggers_by_type.items():
@@ -381,10 +382,10 @@ class Character(Actor, CharacterInterface):
                     highest_main_hand_attacks_num = main_hand_attacks_num
                     highest_main_hand_attacks_role = role
             if role == CharacterClassRole.ROGUE and self.levels_by_role[role] >= highest_role:
-                self.num_off_hand_attacks_ = Constants.OFF_HAND_PROGRESSION[CharacterClassRole.ROGUE][self.levels_by_role[role]]
+                self.num_off_hand_attacks = Constants.OFF_HAND_PROGRESSION[CharacterClassRole.ROGUE][self.levels_by_role[role]]
                 self.add_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
             else:
-                self.num_off_hand_attacks_ = 0
+                self.num_off_hand_attacks = 0
                 self.remove_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
             return True
         else:

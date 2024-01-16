@@ -50,7 +50,7 @@ class CoreActions(CoreActionsInterface):
         
     async def do_look_character(cls, actor: Actor, target: 'Character'):
         logger = CustomDetailLogger(__name__, prefix="do_look_character()> ")
-        msg = firstcap(target.description) + "\n" + f"{firstcap(target.pronoun_subject)} is {target.get_status_description()}"
+        msg = firstcap(target.description) + "\n" + f"{firstcap(target.pronounsubject)} is {target.get_status_description()}"
         await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
 
 
@@ -58,10 +58,10 @@ class CoreActions(CoreActionsInterface):
         logger = CustomDetailLogger(__name__, prefix="do_look_object()> ")
         msg_parts = [ target.description ]
         if target.has_flags(ObjectFlags.IS_CONTAINER) and not target.has_flags(ObjectFlags.IS_CONTAINER_LOCKED):
-            if len(target.contents_) == 0:
-                msg_parts.append(firstcap(target.pronoun_subject) + " is empty.")
+            if len(target.contents) == 0:
+                msg_parts.append(firstcap(target.pronounsubject) + " is empty.")
             else:
-                msg_parts.append(firstcap(target.pronoun_subject) + " contains:\n" + Object.collapse_name_multiples(target.contents_, "\n"))
+                msg_parts.append(firstcap(target.pronounsubject) + " contains:\n" + Object.collapse_name_multiples(target.contents, "\n"))
         msg = '\n'.join(msg_parts)
         await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
 
@@ -206,7 +206,7 @@ class CoreActions(CoreActionsInterface):
                 c.fighting_whom = None
 
         dying_actor.fighting_whom = None
-        dying_actor.current_hit_points_ = 0
+        dying_actor.current_hit_points = 0
         room = dying_actor.get_room()
         dying_actor.get_room().remove_character(dying_actor)
         corpse = Corpse(dying_actor, room)
@@ -217,7 +217,7 @@ class CoreActions(CoreActionsInterface):
             await cls.do_look_room(c, room)
         if not dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             xp_amount = dying_actor.experience_points
-            those_fighting = [c for c in dying_actor.get_room().characters if c.fighting_whom == dying_actor]
+            those_fighting = [c for c in room.get_characters() if c.fighting_whom == dying_actor]
             total_levels = sum([c.total_levels() for c in those_fighting])
             for c in those_fighting:
                 this_xp = xp_amount * c.total_levels() / total_levels
@@ -246,7 +246,7 @@ class CoreActions(CoreActionsInterface):
             raise Exception("Actor must be of type CHARACTER to do damage.")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to do damage.")
-        target.current_hit_points_ -= damage
+        target.current_hit_points -= damage
         msg = f"You do {damage} {damage_type.word()} damage to {target.art_name}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
         msg = f"{actor.art_name_cap} does {damage} {damage_type.word()} damage to you!"
@@ -256,7 +256,7 @@ class CoreActions(CoreActionsInterface):
         await actor.get_room().echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.get_room(), actor, target, msg),
                                         exceptions=[actor, target], game_state=cls.game_state)
-        if target.current_hit_points_ <= 0:
+        if target.current_hit_points <= 0:
             await cls.do_die(target, actor)
 
 
@@ -271,29 +271,29 @@ class CoreActions(CoreActionsInterface):
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to attack.")
         hit_modifier = actor.hit_modifier + attack.attack_bonus
-        logger.critical(f"dodge_dicenumber: {target.dodge_dicenumber}, dodge_dicesize: {target.dodge_dicesize}, dodge_modifier: {target.dodge_modifier}")
-        dodge_roll = roll_dice(target.dodge_dicenumber, target.dodge_dicesize) + target.dodge_modifier
+        logger.critical(f"dodge_dice_number: {target.dodge_dice_number}, dodge_dice_size: {target.dodge_dice_size}, dodge_modifier: {target.dodge_modifier}")
+        dodge_roll = roll_dice(target.dodge_dice_number, target.dodge_dice_size) + target.dodge_modifier
         hit_roll = random.randint(1, 100)
         if hit_roll + hit_modifier < dodge_roll:
             logger.critical(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
-            msg = f"You miss {target.art_name} with {attack.attack_noun_}!"
+            msg = f"You miss {target.art_name} with {attack.attack_noun}!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
-            msg = f"{actor.art_name_cap} misses you with {attack.attack_noun_}!"
+            msg = f"{actor.art_name_cap} misses you with {attack.attack_noun}!"
             await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
-            msg = f"{actor.art_name_cap} misses {target.name} with {attack.attack_noun_}!"
+            msg = f"{actor.art_name_cap} misses {target.name} with {attack.attack_noun}!"
             await actor.get_room().echo(CommTypes.DYNAMIC, msg,
                                             set_vars(actor.get_room(), actor, target, msg),
                                             exceptions=[actor, target], game_state=cls.game_state)
             return -1 # a miss
         # is it a critical?
-        critical = random.randint(1,100) < actor.critical_chance_
+        critical = random.randint(1,100) < actor.critical_chance
         logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
-        msg = f"You {"critically" if critical else ""} {attack.attack_verb_} {target.art_name} with {attack.attack_noun_}!"
+        msg = f"You {"critically" if critical else ""} {attack.attack_verb} {target.art_name} with {attack.attack_noun}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
-        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb_}s you with {attack.attack_noun_}!"
+        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb}s you with {attack.attack_noun}!"
         await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
-        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb_}s {target.name} with {attack.attack_noun_}!"
+        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb}s {target.name} with {attack.attack_noun}!"
         await actor.get_room().echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.get_room(), actor, target, msg),
                                         exceptions=[actor, target], game_state=cls.game_state)
@@ -304,8 +304,8 @@ class CoreActions(CoreActionsInterface):
             damage = dp.roll_damage()
             if critical:
                 damage *= (100 + actor.critical_damage_bonus) / 100
-            dmg_mult = target.damage_resistances_.get(dp.damage_type)
-            damage = damage * dmg_mult - target.damage_reduction_.get(dp.damage_type)
+            dmg_mult = target.damage_resistances.get(dp.damage_type)
+            damage = damage * dmg_mult - target.damage_reduction.get(dp.damage_type)
             await cls.do_damage(actor, target, damage, dp.damage_type)
             total_damage += damage
             logger.critical(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
@@ -319,22 +319,22 @@ class CoreActions(CoreActionsInterface):
         logger.debug3(f"num characters_fighting_: {len(cls.game_state.get_characters_fighting())}")
         for c in cls.game_state.get_characters_fighting():
             total_dmg = 0
-            if c.equipped_[EquipLocation.MAIN_HAND] != None \
-            or c.equipped_[EquipLocation.BOTH_HANDS] != None:
-                num_attacks = c.num_main_hand_attacks_
-                if c.equipped_[EquipLocation.BOTH_HANDS] != None:
+            if c.equipped[EquipLocation.MAIN_HAND] != None \
+            or c.equipped[EquipLocation.BOTH_HANDS] != None:
+                num_attacks = c.num_main_hand_attacks
+                if c.equipped[EquipLocation.BOTH_HANDS] != None:
                     hands = "both hands"
-                    weapon = c.equipped_[EquipLocation.BOTH_HANDS]
+                    weapon = c.equipped[EquipLocation.BOTH_HANDS]
                 else:
                     hands = "main hand"
-                    weapon = c.equipped_[EquipLocation.MAIN_HAND]
+                    weapon = c.equipped[EquipLocation.MAIN_HAND]
                 logger.critical(f"character: {c.rid} attacking {num_attacks}x with {weapon.name} in {hands})")
-                logger.critical(f"weapon: +{weapon.attack_bonus} {weapon.damage_type}: {weapon.damage_num_dice}d{weapon.damage_dicesize} +{weapon.damage_bonus}")
+                logger.critical(f"weapon: +{weapon.attack_bonus} {weapon.damage_type}: {weapon.damage_num_dice}d{weapon.damage_dice_size} +{weapon.damage_bonus}")
                 for n in range(num_attacks):
                     attack_data = AttackData(
                         damage_type=weapon.damage_type, 
                         damage_num_dice=weapon.damage_num_dice, 
-                        damage_dicesize=weapon.damage_dicesize, 
+                        damage_dice_size=weapon.damage_dice_size, 
                         damage_bonus=weapon.damage_bonus, 
                         attack_verb=weapon.damage_type.verb(), 
                         attack_noun=weapon.damage_type.noun(),
@@ -342,24 +342,24 @@ class CoreActions(CoreActionsInterface):
                         )
                     logger.critical(f"attack_data: {attack_data.to_dict()}")
                     total_dmg += await cls.do_single_attack(c, c.fighting_whom, attack_data)
-            if c.equipped_[EquipLocation.OFF_HAND] != None:
-                num_attacks = c.num_off_hand_attacks_
+            if c.equipped[EquipLocation.OFF_HAND] != None:
+                num_attacks = c.num_off_hand_attacks
                 weapon = c.equipped[EquipLocation.OFF_HAND]
                 logger.critical(f"character: {c.rid} attacking, {num_attacks} with {weapon.name} in off hand)")
                 for n in range(num_attacks):
                     attack_data = AttackData(
                         damage_type=weapon.damage_type, 
                         damage_num_dice=weapon.damage_num_dice, 
-                        damage_dicesize=weapon.damage_dicesize,
+                        damage_dice_size=weapon.damage_dice_size,
                         damage_bonus=weapon.damage_modifier, 
                         attack_verb=weapon.DamageType.verb(weapon.damage_type), 
                         attack_noun=DamageType.noun(weapon.damage_type),
                         attack_bonus=weapon.attack_bonus
                         )
                     total_dmg += await cls.do_single_attack(c, c.fighting_whom, attack_data)
-            if not c.equipped_[EquipLocation.MAIN_HAND] and not c.equipped_[EquipLocation.BOTH_HANDS] and not c.equipped_[EquipLocation.OFF_HAND]:        
-                logger.critical(f"character: {c.rid} attacking, {len(c.natural_attacks_)} natural attacks)")
-                for natural_attack in c.natural_attacks_:
+            if not c.equipped[EquipLocation.MAIN_HAND] and not c.equipped[EquipLocation.BOTH_HANDS] and not c.equipped[EquipLocation.OFF_HAND]:        
+                logger.critical(f"character: {c.rid} attacking, {len(c.natural_attacks)} natural attacks)")
+                for natural_attack in c.natural_attacks:
                     logger.critical(f"natural_attack: {natural_attack.to_dict()}")
                     if c.fighting_whom:
                         total_dmg += await cls.do_single_attack(c, c.fighting_whom, natural_attack)

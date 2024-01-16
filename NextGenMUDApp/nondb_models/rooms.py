@@ -6,7 +6,7 @@ from custom_detail_logger import CustomDetailLogger
 from .object_interface import ObjectInterface
 from .room_interface import RoomInterface
 from .triggers import Trigger
-from ..utility import replace_vars
+from ..utility import replace_vars, firstcap, evaluate_functions_in_line
 
 class Room(Actor, RoomInterface):
     from .world import Zone
@@ -27,7 +27,7 @@ class Room(Actor, RoomInterface):
         return {
             'ref#': self.reference_number,
             'id': self.id,
-            'name': self.name_,
+            'name': self.name,
             'description': self.description,
             'zone': self.zone.id if self.zone else None,
             'exits': self.exits,
@@ -47,7 +47,8 @@ class Room(Actor, RoomInterface):
         return self.__repr__()
 
     def from_yaml(self, zone, yaml_data: str):
-        self.name_ = yaml_data['name']
+        logger = CustomDetailLogger(__name__, prefix="Room.from_yaml()> ")
+        self.name = yaml_data['name']
         self.description = yaml_data['description']
         self.zone = zone
 
@@ -56,14 +57,18 @@ class Room(Actor, RoomInterface):
             self.exits[direction] = exit_info['destination']
 
         if 'characters' in yaml_data:
+            logger.debug3("characters found")
             for character in yaml_data['characters']:
+                logger.debug3(f"character: {character}")
                 if not "." in character['id']:
                     spawn_id = self.zone.id + "." + character['id']
                 else:
                     spawn_id = character['id']
-                print(repr(character))
-                respawn = ActorSpawnData(ActorType.CHARACTER, spawn_id, character['quantity'],
+                logger.debug(f"spawn_id: {spawn_id}")
+                # print(repr(character))
+                respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
                                             character['respawn time min'], character['respawn time max'])
+                self.spawn_data.append(respawn)
 
         if 'triggers' in yaml_data:
             # print(f"triggers: {yaml_data['triggers']}")
@@ -76,7 +81,7 @@ class Room(Actor, RoomInterface):
             for trig in yaml_data['triggers']:
                 # logger.debug3(f"loading trigger_type: {trigger_type}")
                 new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                print(new_trigger.to_dict())
+                # print(new_trigger.to_dict())
                 if not new_trigger.trigger_type_ in self.triggers_by_type:
                     self.triggers_by_type[new_trigger.trigger_type_] = []
                 self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
@@ -88,17 +93,17 @@ class Room(Actor, RoomInterface):
         logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
         if text == False:
             raise Exception("text False")
-        logger.critical("text before " + text)
+        logger.debug3("text before " + text)
         if not already_substituted:
-            text = replace_vars(text, vars)
-        logger.critical("text after " + text)
+            text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
+        logger.debug3("text after " + text)
         logger.debug3(f"checking characters: {self.characters}")
         # if len(self.characters_) > 0:
         #     raise Exception("we found a character!")
         for c in self.characters:
-            logger.debug3(f"checking character {c.name_}")
+            logger.debug3(f"checking character {c.name}")
             if exceptions is None or c not in exceptions:
-                logger.debug3(f"sending '{text}' to {c.name_}")
+                logger.debug3(f"sending '{text}' to {c.name}")
                 await c.echo(text_type, text, vars, exceptions, already_substituted=True,game_state=game_state, skip_triggers=skip_triggers)
         logger.debug3("running super, text: " + text)
         await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
