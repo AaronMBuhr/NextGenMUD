@@ -28,6 +28,7 @@ class NextGenMUDAppConfig(AppConfig):
 # - hp regen over time
 # - command abbrevs
 # - need an ON_SPAWN trigger
+# - not sure players are being handled right
                         
 # LOW priority
 # - handle possessive pronouns

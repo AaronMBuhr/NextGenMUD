@@ -31,27 +31,40 @@ class Zone:
 class WorldDefinition:
     def __init__(self) -> None:
         self.zones = {}
-        self.characters_ = {}
-        self.objects_ = {}
+        self.characters = {}
+        self.objects = {}
 
     def find_character_definition(self, character_id_or_name: str) -> 'Character':
-        if character_id_or_name in self.characters_:
-            return self.characters_[character_id_or_name]
-        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-        print(type(self.characters_))
-        for character in self.characters_:
-            print(type(character))
-            if character.name_.startswith(character_id_or_name):
+        if "." in character_id_or_name:
+            zone_id, character_id = character_id_or_name.split(".")
+            if zone_id in self.zones:
+                zone = self.zones[zone_id]
+                for c,cd in self.characters.items():
+                    if cd.id == character_id and cd.definition_zone == zone:
+                        return cd
+        else:
+            zone_id = None
+            for c,cd in self.characters.items():
+                if cd.id == character_id_or_name:
+                    return cd
+        # if character_id_or_name in self.characters:
+        #     return self.characters[character_id_or_name]
+        # print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+        # print(type(self.characters))
+        for character, char_data in self.characters.items():
+            # print(type(character))
+            # print(character)
+            if character.startswith(character_id_or_name) and (zone_id is None or char_data.zone == zone_id):
                 return character
         return None
 
     def find_object_definition(self, object_id_or_name: str) -> 'Object':
-        if object_id_or_name in self.objects_:
-            return self.objects_[object_id_or_name]
-        for object_id, object in self.objects_.items():
+        if object_id_or_name in self.objects:
+            return self.objects[object_id_or_name]
+        for object_id, object in self.objects.items():
             if object.id_.startswith(object_id_or_name):
                 return object
-            pieces = object.name_.split()
+            pieces = object.name.split()
             for piece in pieces:
                 if piece.startswith(object_id_or_name):
                     return object

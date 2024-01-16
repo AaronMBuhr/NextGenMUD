@@ -10,7 +10,7 @@ from ..basic_types import DescriptiveFlags
 from ..communication import CommTypes
 from .object_interface import ObjectInterface
 from .trigger_interface import TriggerType
-from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, set_vars
+from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, set_vars, evaluate_functions_in_line
 
 
 class Actor(ActorInterface):
@@ -94,7 +94,7 @@ class Actor(ActorInterface):
         logger.critical(f"text before: {text}")
         logger.critical(f"vars: {vars}")
         if not already_substituted:
-            text = replace_vars(text, vars)
+            text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
         logger.critical(f"text after: {text}")
         # check room triggers
         if exceptions and self in exceptions:
@@ -134,5 +134,4 @@ class Actor(ActorInterface):
     
     def get_perm_var(self, varname, default):
         return self.perm_variables.get(varname, default)
-    
     

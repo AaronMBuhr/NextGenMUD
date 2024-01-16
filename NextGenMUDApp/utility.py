@@ -267,15 +267,15 @@ def evaluate_functions_in_line(line: str, vars: dict, game_state: 'Comprehensive
 
 def set_vars(actor: 'Actor', subject: 'Actor', target: 'Actor', message: str, additional_vars: dict = {}) -> dict:
     vars = { **{
-        'a': actor.name_ if actor else "", 
+        'a': actor.art_name if actor else "", 
         'A': Constants.REFERENCE_SYMBOL + actor.reference_number if actor else "", 
         'p': actor.pronoun_subject if actor else "",
         'P': actor.pronoun_object if actor else "",
-        's': subject.name_ if subject else "", 
+        's': subject.art_name if subject else "", 
         'S': Constants.REFERENCE_SYMBOL + subject.reference_number if subject else "", 
         'q': subject.pronoun_subject if subject else "", 
         'Q': subject.pronoun_object if subject else "", 
-        't': target.name_ if target else "",  
+        't': target.art_name if target else "",  
         'T': Constants.REFERENCE_SYMBOL + target.reference_number if target else "", 
         'r': target.pronoun_subject if target else "",
         'R': target.pronoun_object if target else "",

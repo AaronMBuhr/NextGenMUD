@@ -76,7 +76,7 @@ class MainProcess:
     @classmethod
     async def process_input(cls, conn: Connection, input: str):
         logger = CustomDetailLogger(__name__, prefix="processInput()> ")
-        logger.debug3(f"processing input for character {conn.character.name_}: {input}")
+        logger.debug3(f"processing input for character {conn.character.name}: {input}")
         # command = input.split(" ")[0]
         # if not command in command_handlers:
         #     conn.send("dynamic", "Unknown command")
