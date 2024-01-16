@@ -1,29 +1,14 @@
 from abc import abstractmethod
-from ..constants import Constants
 from custom_detail_logger import CustomDetailLogger
 from enum import Enum
 import re
 import time
+from .actors import Actor
+from ..constants import Constants
+from ..comprehensive_game_state_interface import GameStateInterface
+from .trigger_interface import TriggerInterface, TriggerType
 from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
-from ..interfaces import GameStateInterface
 
-def execute_functions(text: str) -> str:
-    # TODO: handle various functions such as $name()
-    return text
-
-def actor_vars(actor: 'Actor', name: str) -> dict:
-    # Using dictionary comprehension to prefix keys and combine dictionaries
-    return {f"{name}.{key}": value for d in [actor.temp_variables_, actor.perm_variables_] for key, value in d.items()}
-
-class TriggerType(Enum):
-    CATCH_ANY = 1
-    CATCH_SAY = 2
-    CATCH_TELL = 3
-    TIMER_TICK = 4
-    CATCH_LOOK = 5
-
-    def __str__(self):
-        return "TriggerType." + self.name
 
 class TriggerCriteria:
     def __init__(self) -> None:
@@ -79,8 +64,7 @@ class TriggerCriteria:
         # return False
         return result
     
-class Trigger:
-
+class Trigger(TriggerInterface):
     
     def __init__(self, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
         from ..scripts import ScriptHandler
@@ -179,8 +163,8 @@ class TriggerCatchAny(Trigger):
         if self.disabled_:
             return False
         vars = {**vars, 
-                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
-                **(actor_vars(actor, "a"))}
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
         logger.critical("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
@@ -197,7 +181,7 @@ class TriggerTimerTick(Trigger):
 
     def __init__(self, actor: 'Actor') -> None:
         logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
-        logger.debug3(f"__init__ actor: {actor.id_}")
+        logger.debug3(f"__init__ actor: {actor.id}")
         if not actor or actor == None:
             raise Exception("actor is None")
         super().__init__(TriggerType.TIMER_TICK, actor)
@@ -221,8 +205,8 @@ class TriggerTimerTick(Trigger):
         if self.disabled_:
             logger.debug3("disabled")
             return False
-        logger.debug3(f"running, actor: {actor.name_} ({actor.rid}) text: {text}")
-        if not Actor.get_reference(actor.reference_number_):
+        logger.debug3(f"running, actor: {actor.name} ({actor.rid}) text: {text}")
+        if not Actor.get_reference(actor.reference_number):
             TriggerTimerTick.timer_tick_triggers_.remove(self)
             logger.debug3("actor no longer exists")
             return False
@@ -230,8 +214,8 @@ class TriggerTimerTick(Trigger):
         time_elapsed = time.time() - self.last_ticked_
         logger.debug3(f"time_elapsed: {time_elapsed}")
         vars = {**vars, 
-                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
-                **(actor_vars(actor, "a"))}
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
         vars['time_elapsed'] = time_elapsed
         logger.debug3("evaluating")
         for crit in self.criteria_:
@@ -241,7 +225,7 @@ class TriggerTimerTick(Trigger):
         logger.debug3("executing script")
         self.last_ticked_ = time.time()
         logger.debug3(f"script: {self.script_}")
-        for c in actor.characters_:
+        for c in actor.characters:
             logger.debug3(c.rid)
         await self.execute_trigger_script(actor, vars, game_state)
         return True
@@ -257,8 +241,8 @@ class TriggerCatchLook(Trigger):
         if self.disabled_:
             return False
         vars = {**vars, 
-                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
-                **(actor_vars(actor, "a"))}
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
         logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
@@ -272,14 +256,14 @@ class TriggerCatchSay(Trigger):
     def __init__(self, actor: 'Actor') -> None:
         super().__init__(TriggerType.CATCH_SAY, actor)
 
-    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchSay.run()> ")
         if self.disabled_:
             return False
         vars = {**vars, 
-                **({ 'a': actor.name_, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number_, 'p': actor.pronoun_subject_, 'P': actor.pronoun_object_, '*': text }),
-                **(actor_vars(actor, "a"))}
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
         logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):

@@ -4,7 +4,6 @@ import re
 import random
 from typing import Dict, List
 from .constants import Constants
-from .game_state_interface import GameStateInterface
 
 def to_int(v) -> int:
     try:
@@ -188,19 +187,19 @@ SCRIPT_FUNCTIONS = {
 
 # TODO:M: make these handle containers
 
-def does_char_have_item_inv(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+def does_char_have_item_inv(char_name_or_id: str, item_name_or_id: str, game_state: 'GameStateInterface') -> bool:
     if game_state == None:
         return False
     char = game_state.find_target_character(char_name_or_id)
     return False if char == None else game_state.find_target_object(item_name_or_id, char) != None
 
-def does_char_have_item_equipped(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+def does_char_have_item_equipped(char_name_or_id: str, item_name_or_id: str, game_state:  'GameStateInterface') -> bool:
     if game_state == None:
         return False
     char = game_state.find_target_character(char_name_or_id)
     return False if char == None else game_state.find_target_object(item_name_or_id, None, char.equipped_) != None
 
-def does_char_have_item_anywhere(char_name_or_id: str, item_name_or_id: str, GameStateInterface game_state) -> bool:
+def does_char_have_item_anywhere(char_name_or_id: str, item_name_or_id: str, game_state: 'GameStateInterface') -> bool:
     if game_state == None:
         return False
     return does_char_have_item_inv(char_name_or_id, item_name_or_id, game_state) \
@@ -213,7 +212,7 @@ def try_get(lst: [], idx: int, default=None):
         return default
 
 
-def evaluate_functions_in_line(line: str, vars: dict, ComprehensiveGameState game_state) -> str:
+def evaluate_functions_in_line(line: str, vars: dict, game_state: 'ComprehensiveGameState') -> str:
     from .scripts import ScriptHandler
     logger = CustomDetailLogger(__name__, prefix="evaluate_functions_in_line()> ")
     logger.debug3(f"line: {line}")
@@ -236,7 +235,7 @@ def evaluate_functions_in_line(line: str, vars: dict, ComprehensiveGameState gam
         logger.debug3("args_str: " + args_str)
         arg_parts = split_string_honoring_parentheses(args_str)
         logger.debug3(f"arg_parts: {arg_parts}")
-        args = [evaluate_functions_in_line(ap, vars) for ap in arg_parts]
+        args = [evaluate_functions_in_line(ap, vars, game_state) for ap in arg_parts]
         logger.debug3(f"func_name: {func_name}, args: {args}")
         # Evaluate the function based on its name and arguments
         if func_name in SCRIPT_FUNCTIONS:
@@ -321,117 +320,6 @@ def roll_dice(num_dice: int, dice_size: int, dice_bonus: int = 0) -> int:
 
 def firstcap(s: str) -> str:
     return s[0].upper() + s[1:] if s else ""
-
-
-# class FlagBitmap:
-#     def __init__(self):
-#         self.flags = 0
-
-#     def set_flag(self, flag):
-#         self.flags |= flag
-
-#     def clear_flag(self, flag):
-#         self.flags &= ~flag
-
-#     def is_flag_set(self, flag):
-#         return bool(self.flags & flag)
-
-#     def are_flags_set(self, flags):
-#         return self.flags & flags == flags
-
-
-# class DescriptiveFlags(FlagBitmap):
-#     @staticmethod
-#     def field_name_safe(index: int) -> str:
-#         try:
-#             return DescriptiveFlags.field_name(index)
-#         except IndexError:
-#             return "unknown_flag"
-
-#     def describe(self):
-#         descriptions = [self.field_name_safe(flag.value - 1) for flag in type(self) if self & flag]
-#         return ', '.join(descriptions)
-
-#     # Placeholder for the field_name method. To be implemented in child classes.
-#     @staticmethod
-#     def field_name(idx):
-#         raise NotImplementedError("This method should be implemented in child classes.")
-
-class DescriptiveFlags(IntFlag):
-
-    def __init__(self, value=0, *args, **kwargs):
-        super().__init__(value)
-
-    @classmethod
-    def field_name(cls, index: int) -> str:
-        try:
-            return cls.field_name(index)
-        except IndexError:
-            return "unknown_flag"
-
-    @classmethod
-    def field_name_unsafe(cls, index: int):
-        raise NotImplementedError("This method should be overridden in a child class")
-
-    def to_comma_separated(self):
-        # Generate a comma-separated list of descriptions for all enabled flags
-        return ', '.join(self.field_name(flag.value.bit_length() - 1) for flag in self.__class__ if flag in self)
-
-
-    def add_flags(self, flags):
-        # Add one or more flags
-        if isinstance(flags, self.__class__):
-            return self | flags
-        elif isinstance(flags, int):
-            return self.__class__(self.value | flags)
-        else:
-            raise ValueError("Invalid flag or flag combination")
-
-    def remove_flags(self, flags):
-        # Remove one or more flags
-        if isinstance(flags, self.__class__):
-            return self & ~flags
-        elif isinstance(flags, int):
-            return self.__class__(self.value & ~flags)
-        else:
-            raise ValueError("Invalid flag or flag combination")
-
-    def add_flag_name(self, flag_name):
-        # Add a flag by its name
-        flag_name = flag_name.upper().replace(" ", "_")  # Convert to the expected enum name format
-        if flag_name in self.__class__.__members__:
-            flag = self.__class__.__members__[flag_name]
-            return self.add_flags(flag)
-        else:
-            raise ValueError(f"Invalid flag name: {flag_name}")
-
-
-    def are_flags_set(self, flags):
-        # Check if each flag in a bitwise OR combination is set
-        if isinstance(flags, self.__class__):
-            for flag in self.__class__:
-                if flags & flag and not self & flag:
-                    return False
-            return True
-        else:
-            raise ValueError("Invalid flag or flag combination")
-
-    def are_flags_list_set(self, *flags):
-        # Check if multiple specified flags are all set
-        for flag in flags:
-            if not isinstance(flag, self.__class__):
-                raise ValueError(f"Invalid flag: {flag}")
-            if not self & flag == flag:
-                return False
-        return True
-    
-    def get_flags_set(self):
-        set_flags = []
-        for flag in self.__class__:
-            if self & flag == flag:
-                set_flags.append(flag)
-        return set_flags
-
 
 
 def article_plus_name(article: str, name: str, cap: bool=False):

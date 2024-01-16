@@ -7,17 +7,24 @@ import os
 from typing import List, Dict
 import yaml
 from yaml_dumper import YamlDumper
-from .nondb_models.actors import Character, Actor, Room, Object, EquipLocation, GamePermissionFlags, \
-    TemporaryCharacterFlags, PermanentCharacterFlags, CharacterStateStealthed
+from .nondb_models.actor_interface import ActorType, ActorSpawnData
+from .nondb_models.actor_states import ActorState, CharacterStateStealthed
+from .nondb_models.actors import Actor
+from .nondb_models.character_interface import CharacterInterface, EquipLocation, \
+    GamePermissionFlags, TemporaryCharacterFlags, PermanentCharacterFlags
+from .nondb_models.character_interface import CharacterAttributes
+from .nondb_models.characters import Character
+from .nondb_models.objects import Object, ObjectFlags
+from .nondb_models.room_interface import RoomInterface
+from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
 from .communication import Connection
+from .comprehensive_game_state_interface import GameStateInterface
 from .config import Config, default_app_config
 from .utility import article_plus_name
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
-from .game_state_interface import GameStateInterface, ScheduledAction
 from .nondb_models.world import Zone
-
 
 class LiveGameStateContextManager:
     def __init__(self, **live_game_states):
@@ -51,26 +58,24 @@ class ComprehensiveGameState:
 
     def __init__(self, app_config: Config = default_app_config):
         self.app_config: Config = app_config
-        self.world_definition_: WorldDefinition = WorldDefinition()
-        self.characters_: List[Character] = []
-        self.players_ : List[Character] = []
+        self.world_definition: WorldDefinition = WorldDefinition()
+        self.characters: List[Character] = []
+        self.players : List[Character] = []
         self.connections_ : List[Connection] = []
-        self.characters_fighting_ : List[Character] = []
+        self.characters_fighting : List[Character] = []
         self.zones_ = {}
-        self.world_clock_tick_ = 0
-        self.scheduled_actions_ = {}
-        self.xp_progression_ = []
+        self.world_clock_tick = 0
+        self.scheduled_actions = {}
+        self.xp_progression = []
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
     def Initialize(self):
-        from .nondb_models.actors import Character, Room #, Zone
-        from .nondb_models.world import Zone
         logger = CustomDetailLogger(__name__, prefix="Initialize()> ")
 
-        self.world_definition_.zones_ = {}
+        self.world_definition.zones = {}
 
-        self.xp_progression_ = self.app_config.XP_PROGRESSION   
+        self.xp_progression = Constants.XP_PROGRESSION   
 
         file_found = False
         logger.info(f"Loading world files (*.yaml) from [{self.app_config.WORLD_DATA_DIR}]...")
@@ -88,16 +93,16 @@ class ComprehensiveGameState:
                 for zone_id, zone_info in yaml_data['ZONES'].items():
                     logger.info(f"Loading zone_id: {zone_id}")
                     new_zone = Zone(zone_id)
-                    new_zone.name_ = zone_info['name']
+                    new_zone.name = zone_info['name']
                     # logger.debug(f"new_zone.name_: {new_zone.name_}")
-                    new_zone.description_ = zone_info['description']
-                    self.world_definition_.zones_[zone_id] = new_zone
+                    new_zone.description = zone_info['description']
+                    self.world_definition.zones[zone_id] = new_zone
                     logger.debug(f"Loading rooms...")
                     for room_id, room_info in zone_info['rooms'].items():
                         logger.debug2(f"Loading room_id: {room_id}")
-                        new_room = Room(room_id, self.world_definition_.zones_[zone_id])
+                        new_room = Room(room_id, self.world_definition.zones[zone_id])
                         new_room.from_yaml(new_zone, room_info)
-                        new_zone.rooms_[room_id] = new_room
+                        new_zone.rooms[room_id] = new_room
                     logger.debug("Rooms loaded")
                 logger.debug("Zones loaded")
 
@@ -108,14 +113,14 @@ class ComprehensiveGameState:
                 #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
                 #         ch = Character(chardef["id"], charzone)
                 #         ch.from_yaml(chardef)
-                #         self.world_definition_.characters_[ch.id_] = ch
+                #         self.world_definition_.characters_[ch.id] = ch
                 for zonedef in yaml_data["CHARACTERS"]:
                     for chardef in zonedef["characters"]:
-                        ch = Character(chardef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
+                        ch = Character(chardef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
                         ch.from_yaml(chardef)
-                        ch.game_permission_flags_ = ch.game_permission_flags_.add_flags(GamePermissionFlags.IS_ADMIN)
-                        logger.debug(f"loaded character: {ch.id_}")
-                        self.world_definition_.characters_[ch.id_] = ch
+                        ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN)
+                        logger.debug(f"loaded character: {ch.id}")
+                        self.world_definition.characters_[ch.id] = ch
 
                 logger.debug("Characters loaded")
 
@@ -127,34 +132,48 @@ class ComprehensiveGameState:
                 #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
                 #         ch = Character(chardef["id"], charzone)
                 #         ch.from_yaml(chardef)
-                #         self.world_definition_.characters_[ch.id_] = ch
+                #         self.world_definition_.characters_[ch.id] = ch
                 for zonedef in yaml_data["OBJECTS"]:
                     for objdef in zonedef["objects"]:
-                        obj = Object(objdef["id"], self.world_definition_.zones_[zonedef["zone"]], create_reference=False)
+                        obj = Object(objdef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
                         obj.from_yaml(objdef)
-                        self.world_definition_.objects_[obj.id_] = obj
+                        self.world_definition.objects_[obj.id] = obj
                 logger.debug("Objects loaded")
             # except Exception as e:
             #     logger.error(f"Error loading yaml file {yaml_file}: {e}")
 
         if not file_found:
             raise Exception(f"No world files found in {self.app_config.WORLD_DATA_DIR}.")
-        if self.world_definition_.zones_ == {}:
+        if self.world_definition.zones == {}:
             raise Exception("No zones loaded.")
-        if self.world_definition_.zones_ == None:
+        if self.world_definition.zones == None:
             raise Exception("Zones is NONE.")
         logger.info(f"World files finished loading, from [{self.app_config.WORLD_DATA_DIR}].")
 
         logger.info("Preparing world...")
         # copy to operating data
-        self.zones_ = copy.deepcopy(self.world_definition_.zones_)
+        self.zones_ = copy.deepcopy(self.world_definition.zones)
         # print("init zones")
         for zone, zone_data in self.zones_.items():
-            for room, room_data in zone_data.rooms_.items():
+            for room, room_data in zone_data.rooms.items():
                 room_data.create_reference()
                 # print(f"room_data: {room_data}")
-                for trig_type in room_data.triggers_by_type_:
-                    for trig in room_data.triggers_by_type_[trig_type]:
+                for spawndata in room_data.spawn_data:
+                    spawndata.owner = room_data
+                    if spawndata.actor_type == ActorType.Character:
+                        character_def = self.world_definition.find_character_definition(spawndata.id)
+                        if not character_def:
+                            logger.warning(f"Character definition for {spawndata.id} not found.")
+                            continue
+                        for i in range(spawndata.desired_quantity):
+                            new_character = Character.create_from_definition(character_def)
+                            new_character.spawned_by = spawndata
+                            self.characters.append(new_character)
+                            new_character.location_room.add_character(new_character)
+                            spawndata.spawned.append(new_character)
+                            logger.debug3(f"new_character: {new_character} added to room {new_character.location_room.rid}")
+                for trig_type in room_data.triggers_by_type:
+                    for trig in room_data.triggers_by_type[trig_type]:
                         logger.debug3("enabling trigger")
                         trig.enable()
 
@@ -172,11 +191,11 @@ class ComprehensiveGameState:
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor.location_room_
+            start_room = actor.location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor.location_room_:
-            start_room = actor.location_room_
+        elif isinstance(actor, Object) and actor.location_room:
+            start_room = actor.location_room
 
         if not start_room:
             return None
@@ -213,7 +232,7 @@ class ComprehensiveGameState:
         # Helper function to add candidates from a room
         def add_candidates_from_room(actor, room):
             for char in room.characters_:
-                if char.id_.startswith(target_name) and can_see(char, actor):
+                if char.id.startswith(target_name) and can_see(char, actor):
                     candidates.append(char)
                 else:
                     name_pieces = char.name_.split(' ')
@@ -227,14 +246,14 @@ class ComprehensiveGameState:
         if search_zone or search_world:
             # If not found in the current room, search in the current zone
             if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone_:
-                for room in start_room.zone_.rooms_.values():
+                for room in start_room.zone_.rooms.values():
                     add_candidates_from_room(room)
 
         if search_world:
             # If still not found, search across all zones
             if len(candidates) < target_number:
                 for zone in self.zones_.values():
-                    for room in zone.rooms_.values():
+                    for room in zone.rooms.values():
                         add_candidates_from_room(room)
 
         # Return the target character
@@ -250,11 +269,11 @@ class ComprehensiveGameState:
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor.location_room_
+            start_room = actor.location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor.location_room_:
-            start_room = actor.location_room_
+        elif isinstance(actor, Object) and actor.location_room:
+            start_room = actor.location_room
 
         if not start_room:
             return ""
@@ -264,7 +283,7 @@ class ComprehensiveGameState:
         # Helper function to add matching characters from a room
         def add_matching_characters_from_room(room):
             for char in room.characters_:
-                if char.id_.startswith(target_name):
+                if char.id.startswith(target_name):
                     matching_characters.append(f"{article_plus_name(char.article_, char.name_, cap=True)} in {room.name_}")
                 else:
                     name_pieces = char.name_.split(' ')
@@ -278,29 +297,29 @@ class ComprehensiveGameState:
 
         # Search in the current zone
         if isinstance(start_room, Room) and start_room.zone_:
-            for room in start_room.zone_.rooms_.values():
+            for room in start_room.zone_.rooms.values():
                 add_matching_characters_from_room(room)
 
         # Search across all zones
         for zone in self.zones_.values():
-            for room in zone.rooms_.values():
+            for room in zone.rooms.values():
                 add_matching_characters_from_room(room)
 
         # Format and return the results
         return "\n".join(matching_characters)
 
 
-    def find_target_room(self, actor: Actor, target_name: str, start_zone: Zone) -> Room:
+    def find_target_room(self, actor: Actor, target_name: str, start_zone: Zone) -> 'Room':
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
         if target_name[0].lower() == 'me':
             return actor
-        for room in start_zone.rooms_.values():
-            if room.name_.startswith(target_name) or room.id_.startswith(target_name):
+        for room in start_zone.rooms.values():
+            if room.name_.startswith(target_name) or room.id.startswith(target_name):
                 return room
         for zone in self.zones_:
-            for room in zone.rooms_.values():
-                if room.id_.startswith(target_name):
+            for room in zone.rooms.values():
+                if room.id.startswith(target_name):
                     return room
                 for pieces in room.name_.split(' '):
                     if pieces.startswith(target_name):
@@ -309,7 +328,7 @@ class ComprehensiveGameState:
     
 
     def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
-                           start_room: Room = None, start_zone: Zone = None, search_world=False) -> Object:
+                           start_room: 'Room' = None, start_zone: Zone = None, search_world=False) -> Object:
         logger = CustomDetailLogger(__name__, prefix="find_target_object()> ")
 
         if target_name[0] == Constants.REFERENCE_SYMBOL:
@@ -319,7 +338,7 @@ class ComprehensiveGameState:
 
         def check_object(obj) -> bool:
             logger = CustomDetailLogger(__name__, prefix="find_target_object.check_object()> ")
-            if obj.id_.startswith(target_name):
+            if obj.id.startswith(target_name):
                 return True
             for pieces in obj.name_.split(' '):
                 logger.debug3(f"pieces: {pieces} ? {target_name}")
@@ -352,13 +371,13 @@ class ComprehensiveGameState:
                 if check_object(obj):
                     candidates.append(obj)
         if start_zone:
-            for room in start_zone.rooms_.values():
+            for room in start_zone.rooms.values():
                 for obj in room.contents_:
                     if check_object(obj):
                         candidates.append(obj)
         if search_world:
             for zone in self.zones_.values():
-                for room in zone.rooms_.values():
+                for room in zone.rooms.values():
                     for obj in room.contents_:
                         if check_object(obj):
                             candidates.append(obj)
@@ -390,7 +409,7 @@ class ComprehensiveGameState:
         from .core_actions import CoreActions
         logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
         logger.debug("loading in character")
-        chardef = self.world_definition_.find_character_definition("test_player")
+        chardef = self.world_definition.find_character_definition("test_player")
         if not chardef:
             raise Exception("Character definition for 'test_player' not found.")
         new_player = Character.create_from_definition(chardef)
@@ -400,12 +419,12 @@ class ComprehensiveGameState:
         new_player.description_ = "A test player."
         new_player.pronoun_subject_ = "he"
         new_player.pronoun_object_ = "him"
-        self.players_.append(new_player)
+        self.players.append(new_player)
         # print(YamlDumper.to_yaml_compatible_str(operating_state.zones_))
         first_zone = self.zones_[list(self.zones_.keys())[0]]
         # print(YamlDumper.to_yaml_compatible_str(first_zone))
         logger.debug3(f"first_zone: {first_zone}")
-        first_room = first_zone.rooms_[list(first_zone.rooms_.keys())[0]]
+        first_room = first_zone.rooms[list(first_zone.rooms.keys())[0]]
         logger.debug3(f"first_room: {first_room}")
         logger.info(f"New player arriving: {new_player.name_}")
         await CoreActions.arrive_room(new_player, first_room)
@@ -420,25 +439,70 @@ class ComprehensiveGameState:
             
 
     def remove_character(self, connection: Connection):
-        self.players_.remove(connection.character)
+        self.players.remove(connection.character)
 
 
-    def add_scheduled_action(self, scheduled_tick: int, actor: Actor, name: str, vars: Dict[str, str], func: callable = None):
+    def add_scheduled_action(self, actor: Actor, name: str, scheduled_tick: int = None, in_ticks: int = None, 
+                             vars: Dict[str, str]=None, func: callable = None):
         logger = CustomDetailLogger(__name__, prefix="add_scheduled_task()> ")
-        action = ScheduledAction(actor, name, vars, func)
-        if not scheduled_tick in self.scheduled_actions_:
-            self.scheduled_actions_[scheduled_tick] = []
-        self.scheduled_actions_[scheduled_tick].append(action)
+        if not scheduled_tick and not in_ticks:
+            raise Exception("Must specify either scheduled_tick or in_ticks.")
+        elif scheduled_tick and in_ticks:
+            raise Exception("Must specify either scheduled_tick or in_ticks, but not both.")
+        if in_ticks:
+            scheduled_tick = self.world_clock_tick + in_ticks
+        action = ScheduledAction(scheduled_tick, actor, name, vars, func)
+        if not scheduled_tick in self.scheduled_actions:
+            self.scheduled_actions[scheduled_tick] = []
+        self.scheduled_actions[scheduled_tick].append(action)
 
     def perform_scheduled_actions(self, tick: int):
         logger = CustomDetailLogger(__name__, prefix="perform_scheduled_actions()> ")
-        if tick in self.scheduled_actions_:
-            for action in self.scheduled_actions_[tick]:
-                if action.actor_ and Actor.is_deleted_(action.actor_):
+        if tick in self.scheduled_actions:
+            for action in self.scheduled_actions[tick]:
+                if action.actor_ and Actor.is_deleted(action.actor_):
                     action.actor_ = None
                     continue
                 logger.debug(f"performing scheduled action {action.name_}")
                 action.run()
-            del self.scheduled_actions_[tick]
+            del self.scheduled_actions[tick]
+
+    def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
+        logger = CustomDetailLogger(__name__, prefix="spawn_character()> ")
+        new_character = Character.create_from_definition(character_def)
+        new_character.spawned_by = spawned_by
+        self.characters.append(new_character)
+        room.add_character(new_character)
+        if spawned_by:
+            spawned_by.spawned.append(new_character)
+        logger.debug3(f"Spawning {new_character.rid} added to room {new_character.location_room.rid}")
+
+    def respawn_character(self, owner: Actor, vars: dict):
+        logger = CustomDetailLogger(__name__, prefix="respawn_character()> ")
+        spawn_data = vars['spawned_from']
+        character_def = self.world_definition.find_character_definition(spawn_data.id)
+        if character_def == None:
+            raise Exception(f"Character definition for {spawn_data.id} not found.")
+        self.spawn_character(character_def, owner, spawn_data)
+
+    def get_zone_by_id(self, zone_id: str) -> Zone:
+        return self.zones_[zone_id]
+    
+    def add_character_fighting(self, character: Character):
+        self.characters_fighting.append(character)
+
+    def get_characters_fighting(self) -> List[Character]:
+        return self.characters_fighting
+    
+    def remove_character_fighting(self, character: Character):
+        self.characters_fighting.remove(character)
+
+    def get_world_definition(self) -> WorldDefinition:
+        return self.world_definition
+    
+    def get_xp_progression(self) -> List[int]:
+        return self.xp_progression
+    
 
 live_game_state = ComprehensiveGameState()
+GameStateInterface.register_game_state(live_game_state)

@@ -4,19 +4,19 @@ import json
 
 class Zone:
     def __init__(self, id):
-        self.id_ = id
-        self.name_ = ""
-        self.rooms_ = {}
-        self.actors_ = {}
-        self.description_ = ""
+        self.id = id
+        self.name = ""       
+        self.rooms = {}
+        self.actors = {}
+        self.description = ""
 
     def to_dict(self):
         return {
-            'id': self.id_,
-            'name': self.name_,
-            'rooms': {room_id: room.to_dict() for room_id, room in self.rooms_.items()},
-            'actors': self.actors_,  # Make sure this is also serializable
-            'description': self.description_
+            'id': self.id,
+            'name': self.name,
+            'rooms': {room_id: room.to_dict() for room_id, room in self.rooms.items()},
+            'actors': self.actors,  # Make sure this is also serializable
+            'description': self.description
         }
 
     def __repr__(self):
@@ -30,7 +30,7 @@ class Zone:
 
 class WorldDefinition:
     def __init__(self) -> None:
-        self.zones_ = {}
+        self.zones = {}
         self.characters_ = {}
         self.objects_ = {}
 

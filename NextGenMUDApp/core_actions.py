@@ -1,20 +1,23 @@
-from .constants import Constants
 from custom_detail_logger import CustomDetailLogger
-from .communication import CommTypes
-from .utility import set_vars, firstcap, article_plus_name, roll_dice
-from .nondb_models.actors import ActorType, Actor, Room, Character, \
-     AttackData, DamageType, Corpse, Object, ObjectFlags, EquipLocation, \
-     TemporaryCharacterFlags, PermanentCharacterFlags
-from .nondb_models.triggers import TriggerType
 import random
 from .config import Config, default_app_config
-from .comprehensive_game_state import ComprehensiveGameState, live_game_state
+from .constants import Constants
+from .communication import CommTypes
+from .core_actions_interface import CoreActionsInterface
+from .comprehensive_game_state_interface import GameStateInterface
+from .nondb_models.actors import ActorType, Actor
+from .nondb_models.character_interface import CharacterInterface, PermanentCharacterFlags, TemporaryCharacterFlags
+from .nondb_models.attacks_and_damage import AttackData, DamageType
+from .nondb_models.object_interface import ObjectInterface, ObjectFlags
+from .nondb_models.rooms import Room
+from .nondb_models.triggers import TriggerType
+from .utility import set_vars, firstcap, article_plus_name, roll_dice, ticks_from_seconds
 
-class CoreActions:
+
+class CoreActions(CoreActionsInterface):
     config: Config = default_app_config
-    game_state: ComprehensiveGameState = live_game_state
+    game_state: GameStateInterface = GameStateInterface.live_game_state
 
-    @classmethod
     async def do_look_room(cls, actor: Actor, room: Room):
         logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
         logger.debug("starting")
@@ -40,18 +43,16 @@ class CoreActions:
             msg_parts.append(object.art_name_cap + " is here.")
         logger.debug(f"Sending room description to actor for: {room.name_}")
         await actor.send_text(CommTypes.CLEARSTATIC, "")
-        await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts), game_state=cls.game_state_)
+        await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts), game_state=cls.game_state)
 
         
-    @classmethod
-    async def do_look_character(cls, actor: Actor, target: Character):
+    async def do_look_character(cls, actor: Actor, target: 'Character'):
         logger = CustomDetailLogger(__name__, prefix="do_look_character()> ")
         msg = firstcap(target.description_) + "\n" + f"{firstcap(target.pronoun_subject_)} is {target.get_status_description()}"
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
 
 
-    @classmethod
-    async def do_look_object(cls, actor: Actor, target: Object):
+    async def do_look_object(cls, actor: Actor, target: 'Object'):
         logger = CustomDetailLogger(__name__, prefix="do_look_object()> ")
         msg_parts = [ target.description_ ]
         if target.has_flags(ObjectFlags.IS_CONTAINER) and not target.has_flags(ObjectFlags.IS_CONTAINER_LOCKED):
@@ -60,54 +61,51 @@ class CoreActions:
             else:
                 msg_parts.append(firstcap(target.pronoun_subject_) + " contains:\n" + Object.collapse_name_multiples(target.contents_, "\n"))
         msg = '\n'.join(msg_parts)
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
 
 
-    @classmethod
     async def arrive_room(cls, actor: Actor, room: Room, room_from: Room = None):
         logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
         logger.debug(f"actor: {actor}, room: {room}, room_from: {room_from}")
-        if actor.actor_type_ != ActorType.CHARACTER:
+        if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to arrive in a room.")
-        if actor.location_room_ is not None:
+        if actor.location_room is not None:
             raise Exception("Actor must not already be in a room to arrive in a room.")
         
-        actor.location_room_ = room
+        actor.location_room = room
         room.add_character(actor)
         # await room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
-        room_msg = f"{actor.name_} arrives."
+        room_msg = f"{actor.name} arrives."
         vars = set_vars(actor, actor, actor, room_msg)
-        await cls.do_look_room(actor, actor.location_room_)
-        await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor], game_state=cls.game_state_)
+        await cls.do_look_room(actor, actor.location_room)
+        await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor], game_state=cls.game_state)
         cls.do_aggro(actor)
         # # TODO:L: figure out what direction "from" based upon back-path
         # actor.location_room.send_text("dynamic", f"{actor.name_} arrives.", exceptions=[actor])
 
 
-
-    @classmethod
     async def world_move(cls, actor: Actor, direction: str):
         logger = CustomDetailLogger(__name__, prefix="worldMove()> ")
         logger.debug(f"actor: {actor}")
 
-        if actor.actor_type_ != ActorType.CHARACTER:
+        if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to move.")
         
-        if not direction in actor.location_room_.exits_:
-            raise Exception(f"Location {actor.location_room_.id_} does not have an exit in direction {direction}")
+        if not direction in actor.location_room.exits_:
+            raise Exception(f"Location {actor.location_room.id} does not have an exit in direction {direction}")
         
-        actor.location_room_.echo("dynamic", f"{firstcap(actor.name_)} leaves {direction}", exceptions=[actor], game_state=cls.game_state_)
+        actor.location_room.echo("dynamic", f"{firstcap(actor.name)} leaves {direction}", exceptions=[actor], game_state=cls.game_state)
         await actor.send_text("dynamic", f"You leave {direction}")
-        old_room = actor.location_room_
-        destination = actor.location_room_.exits_[direction]
+        old_room = actor.location_room
+        destination = actor.location_room.exits_[direction]
         if "." in destination:
             zone_id, room_id = destination.split(".")
         else:
-            zone_id = old_room.zone_.id_
+            zone_id = old_room.zone_.id
             room_id = destination
-        new_room = cls.game_state.zones_[zone_id].rooms_[room_id]
-        actor.location_room_.remove_character(actor)
-        actor.location_room_ = None
+        new_room = cls.game_state.get_zone_by_id(zone_id).rooms[room_id]
+        actor.location_room.remove_character(actor)
+        actor.location_room = None
         await cls.arrive_room(actor, new_room, old_room)
 
 
@@ -135,74 +133,70 @@ class CoreActions:
     #                 await trigger.run(actor, text, var, None)
 
 
-    @classmethod
     async def start_fighting(cls, subject: Actor, target: Actor):
         logger = CustomDetailLogger(__name__, prefix="start_fighting()> ")
         logger.debug(f"subject: {subject}, target: {target}")
-        if subject.actor_type_ != ActorType.CHARACTER:
+        if subject.actor_type != ActorType.CHARACTER:
             raise Exception("Subject must be of type CHARACTER to start fighting.")
-        if target.actor_type_ != ActorType.CHARACTER:
+        if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to start fighting.")
         subject.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
         target.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
         subject.fighting_whom_ = target
         msg = f"You start fighting {target.art_name}!"
-        await subject.echo(CommTypes.DYNAMIC, msg, set_vars(subject, subject, target, msg), game_state=cls.game_state_)
+        await subject.echo(CommTypes.DYNAMIC, msg, set_vars(subject, subject, target, msg), game_state=cls.game_state)
         msg = f"{subject.art_name_cap} starts fighting you!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, subject, target, msg), game_state=cls.game_state_)
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, subject, target, msg), game_state=cls.game_state)
         msg = f"{subject.art_name_cap} starts fighting {target.art_name}!"
-        await subject.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                        set_vars(subject.location_room_, subject, target, msg),
-                                        exceptions=[subject, target], game_state=cls.game_state_)
-        cls.game_state.characters_fighting_.append(subject)
-        for c in target.location_room_.characters_:
+        await subject.location_room.echo(CommTypes.DYNAMIC, msg,
+                                        set_vars(subject.location_room, subject, target, msg),
+                                        exceptions=[subject, target], game_state=cls.game_state)
+        cls.game_state.add_character_fighting(subject)
+        for c in target.location_room.characters_:
             if c.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
                  and c != subject and c.fighting_whom_ == None:
                 msg = f"You join the attack against {target.art_name}!"
                 set_vars(c, c, target, msg)
-                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                 msg = f"{c.art_name_cap} joins the attack against you!"
                 set_vars(c, c, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                 msg = f"{c.art_name_cap} joins the attack against {target.art_name}!"
                 set_vars(c, c, target, msg)
-                target.location_room_.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c], game_state=cls.game_state_)
+                target.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c], game_state=cls.game_state)
                 c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
                 c.fighting_whom_ = target
                 
 
-
-
-    @classmethod
     async def do_die(cls, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
         # TODO:L: maybe do "x kills you"
         logger = CustomDetailLogger(__name__, prefix="do_die()> ")
         msg = f"You die!"
-        await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg), game_state=cls.game_state_)
+        await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg), game_state=cls.game_state)
 
         if killer:
             msg = f"You kill {dying_actor.art_name}!"
-            await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg), game_state=cls.game_state_)
+            await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg), game_state=cls.game_state)
             msg = f"{killer.art_name_cap} kills {dying_actor.art_name}!"
-            await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
+            await dying_actor.location_room.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(dying_actor, killer, dying_actor, msg), exceptions=[killer, dying_actor], 
-                                            game_state=cls.game_state_)
+                                            game_state=cls.game_state)
         if other_killer != None:
             if other_killer == "":
                 msg = f"{dying_actor.art_name_cap} dies!"
-                await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                                set_vars(dying_actor, None, dying_actor, msg), exceptions=[dying_actor], game_state=cls.game_state_)
+                await dying_actor.location_room.echo(CommTypes.DYNAMIC, msg,
+                                                set_vars(dying_actor, None, dying_actor, msg), exceptions=[dying_actor], game_state=cls.game_state)
             else:
                 msg = f"{other_killer} kills {dying_actor.art_name}!"
-                await dying_actor.location_room_.echo(CommTypes.DYNAMIC, msg,
+                await dying_actor.location_room.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(dying_actor, None, dying_actor, msg),
-                                                exceptions=[dying_actor], game_state=cls.game_state_)
-        if dying_actor in cls.game_state.characters_fighting_:
-            cls.game_state.characters_fighting_.remove(dying_actor)
+                                                exceptions=[dying_actor], game_state=cls.game_state)
+        if dying_actor in cls.game_state.get_characters_fighting():
+            cls.game_state.remove_character_fighting(dying_actor)
         if killer:
             killer.fighting_whom_ = None
-            cls.game_state.characters_fighting_.remove(killer)
-        for c in cls.game_state.characters_fighting_:
+            cls.game_state.remove_character_fighting(killer)
+        for c in cls.game_state.get_characters_fighting():
             if killer and c.fighting_whom_ == killer:
                 cls.start_fighting(killer, c)
             if c.fighting_whom_ == dying_actor:
@@ -210,55 +204,68 @@ class CoreActions:
 
         dying_actor.fighting_whom_ = None
         dying_actor.current_hit_points_ = 0
-        room = dying_actor.location_room_
-        dying_actor.location_room_.remove_character(dying_actor)
+        room = dying_actor.location_room
+        dying_actor.location_room.remove_character(dying_actor)
         corpse = Corpse(dying_actor, room)
         corpse.transfer_inventory()
         room.add_object(corpse)
         for c in room.characters_:
             logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
-            logger.debug(f"{c.rid} is refreshing room")
             await cls.do_look_room(c, room)
+        if not dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            xp_amount = dying_actor.experience_points
+            those_fighting = [c for c in dying_actor.location_room.characters_ if c.fighting_whom_ == dying_actor]
+            total_levels = sum([c.total_levels() for c in those_fighting])
+            for c in those_fighting:
+                this_xp = xp_amount * c.total_levels() / total_levels
+                c.experience_points += this_xp
+                msg = f"You gain {this_xp} experience points!"
+                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=cls.game_state)
+            dying_actor.is_deleted = True
+            if dying_actor.spawned_from:
+                dying_actor.spawned_from.spawned.remove(dying_actor)
+                if dying_actor.spawned_from.current_quantity < dying_actor.spawned_from.desired_quantity:
+                    character_def = cls.game_state.get_world_definition().find_character_definition(dying_actor.id)
+                    if character_def:
+                        in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
+                                                      + random.randint(0, dying_actor.spawned_from.respawn_time_max 
+                                                                       - dying_actor.spawned_from.respawn_time_min))
+                        vars = { 'spawn_data': dying_actor.spawned_from }
+                        cls.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
+                                                            vars=vars, func=lambda a,v: cls.game_state.respawn_character(a,v))
+            cls.game_state.remove_character(dying_actor)
 
 
-    @classmethod
     async def do_damage(cls, actor: Actor, target: Actor, damage: int, damage_type: DamageType):
         logger = CustomDetailLogger(__name__, prefix="do_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
-        if actor.actor_type_ != ActorType.CHARACTER:
+        if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to do damage.")
-        if target.actor_type_ != ActorType.CHARACTER:
+        if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to do damage.")
         target.current_hit_points_ -= damage
         msg = f"You do {damage} {damage_type.word()} damage to {target.art_name}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
         msg = f"{actor.art_name_cap} does {damage} {damage_type.word()} damage to you!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
         msg = (f"{actor.art_name_cap} does "
             f"{damage} {damage_type.word()} damage to {target.art_name}!")
-        await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                        set_vars(actor.location_room_, actor, target, msg),
-                                        exceptions=[actor, target], game_state=cls.game_state_)
+        await actor.location_room.echo(CommTypes.DYNAMIC, msg,
+                                        set_vars(actor.location_room, actor, target, msg),
+                                        exceptions=[actor, target], game_state=cls.game_state)
         if target.current_hit_points_ <= 0:
             await cls.do_die(target, actor)
 
 
-    @classmethod
     async def do_single_attack(cls, actor: Actor, target: Actor, attack: AttackData) -> int:
         # TODO:M: figure out weapons
         # TODO:L: deal with nouns and verbs correctly
         logger = CustomDetailLogger(__name__, prefix="do_single_attack()> ")
         logger.critical(f"actor: {actor.rid}, target: {target.rid}")
         logger.critical(f"attackdata: {attack.to_dict()}")
-        if actor.actor_type_ != ActorType.CHARACTER:
+        if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to attack.")
-        if target.actor_type_ != ActorType.CHARACTER:
+        if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to attack.")
         hit_modifier = actor.hit_modifier_ + attack.attack_bonus
         logger.critical(f"dodge_dice_number_: {target.dodge_dice_number_}, dodge_dice_size_: {target.dodge_dice_size_}, dodge_modifier_: {target.dodge_modifier_}")
@@ -267,26 +274,26 @@ class CoreActions:
         if hit_roll + hit_modifier < dodge_roll:
             logger.critical(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
             msg = f"You miss {target.art_name} with {attack.attack_noun_}!"
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
             msg = f"{actor.art_name_cap} misses you with {attack.attack_noun_}!"
-            await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
-            msg = f"{actor.art_name_cap} misses {target.name_} with {attack.attack_noun_}!"
-            await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                            set_vars(actor.location_room_, actor, target, msg),
-                                            exceptions=[actor, target], game_state=cls.game_state_)
+            await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
+            msg = f"{actor.art_name_cap} misses {target.name} with {attack.attack_noun_}!"
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg,
+                                            set_vars(actor.location_room, actor, target, msg),
+                                            exceptions=[actor, target], game_state=cls.game_state)
             return -1 # a miss
         # is it a critical?
         critical = random.randint(1,100) < actor.critical_chance_
         logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
         msg = f"You {"critically" if critical else ""} {attack.attack_verb_} {target.art_name} with {attack.attack_noun_}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
         msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb_}s you with {attack.attack_noun_}!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state_)
-        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb_}s {target.name_} with {attack.attack_noun_}!"
-        await actor.location_room_.echo(CommTypes.DYNAMIC, msg,
-                                        set_vars(actor.location_room_, actor, target, msg),
-                                        exceptions=[actor, target], game_state=cls.game_state_)
+        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=cls.game_state)
+        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb_}s {target.name} with {attack.attack_noun_}!"
+        await actor.location_room.echo(CommTypes.DYNAMIC, msg,
+                                        set_vars(actor.location_room, actor, target, msg),
+                                        exceptions=[actor, target], game_state=cls.game_state)
         total_damage = 0
         if len(attack.potential_damage_) == 0:
             logger.warning(f"no damage types in attack by {actor.rid}: {attack.to_dict()}")
@@ -303,13 +310,11 @@ class CoreActions:
         return total_damage
             
 
-
-    @classmethod
     async def process_fighting(cls):
         logger = CustomDetailLogger(__name__, prefix="process_fighting()> ")
         logger.debug3("beginning")
-        logger.debug3(f"num characters_fighting_: {len(cls.game_state.characters_fighting_)}")
-        for c in cls.game_state.characters_fighting_:
+        logger.debug3(f"num characters_fighting_: {len(cls.game_state.get_characters_fighting())}")
+        for c in cls.game_state.get_characters_fighting():
             total_dmg = 0
             if c.equipped_[EquipLocation.MAIN_HAND] != None \
             or c.equipped_[EquipLocation.BOTH_HANDS] != None:
@@ -358,35 +363,34 @@ class CoreActions:
             if total_dmg > 0 and c.fighting_whom_ != None:
                 status_desc = c.fighting_whom_.get_status_description()
                 msg = f"{c.fighting_whom_.art_name_cap} is {status_desc}"
-                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, c.fighting_whom_, msg), game_state=cls.game_state_)
+                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, c.fighting_whom_, msg), game_state=cls.game_state)
                 msg = f"You are {status_desc}"
-                await c.fighting_whom_.echo(CommTypes.DYNAMIC, msg, set_vars(c.fighting_whom_, c, c.fighting_whom_, msg), game_state=cls.game_state_)
+                await c.fighting_whom_.echo(CommTypes.DYNAMIC, msg, set_vars(c.fighting_whom_, c, c.fighting_whom_, msg), game_state=cls.game_state)
                 msg = f"{c.fighting_whom_.art_name_cap} is {status_desc}"
                 await c.location_room_.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(c.location_room_, c, c.fighting_whom_, msg),
-                                            exceptions=[c, c.fighting_whom_], game_state=cls.game_state_)
+                                            exceptions=[c, c.fighting_whom_], game_state=cls.game_state)
 
     
-    @classmethod
     async def do_aggro(cls, actor: Actor):
-        from classes import Skills
+        from NextGenMUDApp.character_classes import Skills
         logger = CustomDetailLogger(__name__, prefix="do_aggro()> ")
         logger.debug(f"actor: {actor}")
-        if actor.actor_type_ != ActorType.CHARACTER:
+        if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to aggro.")
         if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
             msg = "You can't aggro while sitting!"
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state)
             return
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
             msg = "You can't aggro while sleeping!"
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state)
             return
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
             msg = "You can't aggro while stunned!"
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state_)
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=cls.game_state)
             return
-        for c in actor.location_room_.characters_:
+        for c in actor.location_room.characters_:
             if c != actor and c.actor_type_ == ActorType.CHARACTER:
 
                 if (c.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE) \
@@ -401,13 +405,13 @@ class CoreActions:
                     
                 msg = f"You attack {c.art_name}!"
                 set_vars(actor, actor, c, msg)
-                actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                 msg = f"{actor.art_name_cap} attacks you!"
                 set_vars(actor, actor, c, msg)
-                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state_)
+                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                 msg = f"{actor.art_name_cap} attacks {c.art_name}!"
                 set_vars(actor, actor, c, msg)
-                actor.location_room_.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls.game_state_)
+                actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls.game_state)
                 await cls.start_fighting(c, actor)
                 await cls.start_fighting(actor, c)
                 return
