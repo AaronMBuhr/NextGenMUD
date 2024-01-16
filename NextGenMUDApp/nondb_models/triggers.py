@@ -40,8 +40,8 @@ class TriggerCriteria:
     @abstractmethod
     def evaluate(self, vars: dict, game_state: GameStateInterface) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
-        logger.critical(f"vars: {vars}")
-        logger.critical(f"checking {self.subject_},{self.operator_},{self.predicate_}")
+        logger.debug3(f"vars: {vars}")
+        logger.debug3(f"checking {self.subject_},{self.operator_},{self.predicate_}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
         # predicate = execute_functions(replace_vars(self.predicate_, vars))
         if type(self.subject_) is str:
@@ -54,7 +54,7 @@ class TriggerCriteria:
             predicate = self.predicate_
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
-        logger.critical(f"checking calculated {subject},{self.operator_},{predicate}")
+        logger.debug3(f"checking calculated {subject},{self.operator_},{predicate}")
         result = evaluate_if_condition(subject, self.operator_, predicate)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
@@ -136,8 +136,8 @@ class Trigger(TriggerInterface):
         # script = self.script_
         # while script := process_line(actor, script, vars):
         #     pass
-        logger.critical("executing execute_trigger_script")
-        logger.critical(f"script: {self.script_}")
+        logger.debug3("executing execute_trigger_script")
+        logger.debug3(f"script: {self.script_}")
         await self.script_handler_.run_script(actor, self.script_, vars, game_state)
 
 
@@ -165,13 +165,13 @@ class TriggerCatchAny(Trigger):
         vars = {**vars, 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
-        logger.critical("evaluating")
+        logger.debug3("evaluating")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
-                logger.critical("criteria not met")
+                logger.debug3("criteria not met")
                 return False
-        logger.critical("executing script")
-        logger.critical(f"script: {self.script_}")
+        logger.debug3("executing script")
+        logger.debug3(f"script: {self.script_}")
         await self.execute_trigger_script(actor, vars, game_state)
         return True
 

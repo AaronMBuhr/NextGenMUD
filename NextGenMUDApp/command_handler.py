@@ -1,27 +1,25 @@
-from .utility import replace_vars, firstcap
-from .core_actions import CoreActions
+from custom_detail_logger import CustomDetailLogger
+import itertools
+import logging
+from num2words import num2words
+import re
+from typing import Callable, List
+from yaml_dumper import YamlDumper
+import yaml
 from .command_handler_interface import CommandHandlerInterface
 from .communication import CommTypes
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 from .constants import Constants
-from custom_detail_logger import CustomDetailLogger
+from .core_actions_interface import CoreActionsInterface
 from .nondb_models.actor_states import CharacterStateForcedSleeping
 from .nondb_models.actors import Actor, ActorType
 from .nondb_models.character_interface import CharacterInterface, \
     EquipLocation, PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags
 from .nondb_models.object_interface import ObjectInterface, ObjectFlags
 from .nondb_models.room_interface import RoomInterface
-
-from .nondb_models import world
-import re
-from typing import Callable, List
-from yaml_dumper import YamlDumper
-import yaml
-from .utility import set_vars, split_preserving_quotes, article_plus_name
-from num2words import num2words
-import itertools
-import logging
 from .nondb_models.triggers import TriggerType
+from .nondb_models import world
+from .utility import replace_vars, firstcap, set_vars, split_preserving_quotes, article_plus_name
 
 class CommandHandler(CommandHandlerInterface):
     _game_state: ComprehensiveGameState = live_game_state
@@ -46,14 +44,14 @@ class CommandHandler(CommandHandlerInterface):
         "delpermvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_delpermvar(char, input),
 
         # normal commands
-        "north": lambda command, char, input: CoreActions.world_move(char, "north"),
-        "n": lambda command, char, input: CoreActions.world_move(char, "north"),
-        "south": lambda command, char, input: CoreActions.world_move(char, "south"),
-        "s": lambda command, char, input: CoreActions.world_move(char, "south"),
-        "east": lambda command, char, input: CoreActions.world_move(char, "east"),
-        "e": lambda command, char, input: CoreActions.world_move(char, "east"),
-        "west": lambda command, char, input: CoreActions.world_move(char, "west"),
-        "w": lambda command, char, input: CoreActions.world_move(char, "west"),
+        "north": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
+        "n": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
+        "south": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "south"),
+        "s": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "south"),
+        "east": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "east"),
+        "e": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "east"),
+        "west": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "west"),
+        "w": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "west"),
         "say": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_say(char, input),
         "sayto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sayto(char, input),
         "tell": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_tell(char, input),
@@ -161,12 +159,12 @@ class CommandHandler(CommandHandlerInterface):
                 await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type} not implemented.")
-            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type_:
-                for trig in room.triggers_by_type_[TriggerType.CATCH_SAY]:
+            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
+                for trig in room.triggers_by_type[TriggerType.CATCH_SAY]:
                     await trig.run(room, text, vars, cls._game_state)
-            for ch in room.characters_:
-                if ch != actor and TriggerType.CATCH_SAY in ch.triggers_by_type_:
-                    for trig in ch.triggers_by_type_[TriggerType.CATCH_SAY]:
+            for ch in room.get_characters():
+                if ch != actor and TriggerType.CATCH_SAY in ch.triggers_by_type:
+                    for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
         else:
             actor.send_text(CommTypes.DYNAMIC, "You have no location room.")
@@ -195,19 +193,19 @@ class CommandHandler(CommandHandlerInterface):
         vars = set_vars(actor, actor, target, msg)
         await target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         room = actor.location_room if actor.location_room else actor.in_actor_.location_room_
-        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type_:
-            for trig in target.triggers_by_type_[TriggerType.CATCH_SAY]:
+        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
+            for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
                 await trig.run(target, text, vars, cls._game_state)
         if room:
             msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to {target.name_}, \"{text}\""
             vars = set_vars(actor, actor, target, msg)
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state = cls._game_state)
-            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type_:
-                for trig in room.triggers_by_type_[TriggerType.CATCH_SAY]:
+            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
+                for trig in room.triggers_by_type[TriggerType.CATCH_SAY]:
                     await trig.run(room, text, vars, cls._game_state)
-            for ch in room.characters_:
-                if ch != actor and ch != target and TriggerType.CATCH_SAY in ch.triggers_by_type_:
-                    for trig in ch.triggers_by_type_[TriggerType.CATCH_SAY]:
+            for ch in room.get_characters():
+                if ch != actor and ch != target and TriggerType.CATCH_SAY in ch.triggers_by_type:
+                    for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
 
     async def cmd_echo(cls, actor: Actor, input: str):
@@ -496,7 +494,7 @@ class CommandHandler(CommandHandlerInterface):
                     "id": room.id_,
                     "name": room.name_,
     #                "description": room.description_,
-                    "characters": [character.id_ for character in room.characters_],
+                    "characters": [character.id_ for character in room.get_characters()],
                     "objects": [object.id_ for object in room.contents_],
                     "triggers": {
                         trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
@@ -506,9 +504,9 @@ class CommandHandler(CommandHandlerInterface):
                                     for criterion in trigger.criteria_
                                 ]
                             }
-                            for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type_.items()
+                            for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type.items()
                         ] 
-                        for trigger_type, triggers in room.triggers_by_type_.items()  # Correctly extracting trigger_type and triggers
+                        for trigger_type, triggers in room.triggers_by_type.items()  # Correctly extracting trigger_type and triggers
                     }
                 }
                 for room in zone.rooms_.values()
@@ -522,7 +520,7 @@ class CommandHandler(CommandHandlerInterface):
                     "location": a.location_room_.id_ if a.location_room_ else None,
                     "temp_variables": a.temp_variables_,
                     "perm_variables": a.perm_variables_,
-                } for a in Actor.references_.values() if a.actor_type_ == ActorType.CHARACTER
+                } for a in Actor.references_.values() if a.actor_type == ActorType.CHARACTER
             }
         elif pieces[0].lower() == "objects":
             answer["OBJECTS"] = {
@@ -533,7 +531,7 @@ class CommandHandler(CommandHandlerInterface):
                     "location": a.location_room_.id_ if a.location_room_ else None,
                     "temp_variables": a.temp_variables_,
                     "perm_variables": a.perm_variables_,
-                } for a in Actor.references_.values() if a.actor_type_ == ActorType.OBJECT and a.location_room_ is not None
+                } for a in Actor.references_.values() if a.actor_type == ActorType.OBJECT and a.location_room_ is not None
             }
         elif pieces[0].lower() == "carried":
             answer["OBJECTS"] = {
@@ -544,7 +542,7 @@ class CommandHandler(CommandHandlerInterface):
                     "inside": f"{article_plus_name(a.article_, a.in_actor_.name_)} ({a.in_actor_.rid})" if a.in_actor_ else None,
                     "temp_variables": a.temp_variables_,
                     "perm_variables": a.perm_variables_,
-                } for a in Actor.references_.values() if a.actor_type_ == ActorType.OBJECT and a.in_actor_ is not None
+                } for a in Actor.references_.values() if a.actor_type == ActorType.OBJECT and a.in_actor_ is not None
             }
         elif pieces[0].lower() == "room":
             try:
@@ -557,13 +555,13 @@ class CommandHandler(CommandHandlerInterface):
                     "id": room.id_,
                     "name": room.name_,
                     "description": room.description_,
-                    "characters": [character.id_ for character in room.characters_],
+                    "characters": [character.id_ for character in room.get_characters()],
                     "objects": [object.id_ for object in room.contents_],
                     "triggers": {
                         trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
-                            trigger.to_dict() for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type_.items()
+                            trigger.to_dict() for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type.items()
                         ] 
-                        for trigger_type, triggers in room.triggers_by_type_.items()  # Correctly extracting trigger_type and triggers
+                        for trigger_type, triggers in room.triggers_by_type.items()  # Correctly extracting trigger_type and triggers
                     }
                 }
             }
@@ -584,7 +582,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = input.split(' ')
         if input.strip() == "":
             await actor.send_text(CommTypes.DYNAMIC, "You look around.")
-            await CoreActions.do_look_room(actor, room)
+            await CoreActionsInterface.get_instance().do_look_room(actor, room)
             return
         found = False
 
@@ -593,7 +591,7 @@ class CommandHandler(CommandHandlerInterface):
         target = cls._game_state.find_target_character(actor, input, search_zone=False, search_world=False)
         if target:
             logger.debug("found character")
-            await CoreActions.do_look_character(actor, target)
+            await CoreActionsInterface.get_instance().do_look_character(actor, target)
             return
         # object?
         logger.debug("looking for objects")
@@ -602,17 +600,17 @@ class CommandHandler(CommandHandlerInterface):
 
         if target:
             logger.debug("found object")
-            await CoreActions.do_look_object(actor, target)
+            await CoreActionsInterface.get_instance().do_look_object(actor, target)
             return
 
         try:
             logger.debug3(f"target: {input}")
             logger.debug3("Blah Looking for CATCH_LOOK triggers")
-            # print(yaml.dump(room.triggers_by_type_))
+            # print(yaml.dump(room.triggers_by_type))
             # print("**** should have dumped ****")
             logger.debug3(f"Still looking for CATCH_LOOK triggers {room.id_}")
-            logger.debug3(f"heh 2 {room.triggers_by_type_.keys()}")
-            for trig in room.triggers_by_type_[TriggerType.CATCH_LOOK]:
+            logger.debug3(f"heh 2 {room.triggers_by_type.keys()}")
+            for trig in room.triggers_by_type[TriggerType.CATCH_LOOK]:
                 logger.debug3(f"checking trigger for: {trig.criteria_[0].subject_}")
                 logger.debug3("before trig.run")
                 vars = set_vars(actor, actor, actor, input)
@@ -646,7 +644,7 @@ class CommandHandler(CommandHandlerInterface):
             new_character.location_room_.add_character(new_character)
             logger.debug(f"new_character: {new_character} added to room {new_character.location_room_.rid}")
             await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_character.article_, new_character.name_)}.")
-            await CoreActions.do_look_room(actor, actor.location_room)
+            await CoreActionsInterface.get_instance().do_look_room(actor, actor.location_room)
         elif pieces[0].lower() == "obj":
             object_def = cls._game_state.world_definition.find_object_definition(' '.join(pieces[1:]))
             if not object_def:
@@ -714,9 +712,9 @@ class CommandHandler(CommandHandlerInterface):
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, "{command} whom?")
             return
-        await CoreActions.start_fighting(actor, target)
+        await CoreActionsInterface.get_instance().start_fighting(actor, target)
         # TODO:L: maybe some situations where target doesn't retaliate?
-        await CoreActions.start_fighting(target, actor)
+        await CoreActionsInterface.get_instance().start_fighting(target, actor)
 
 
     async def cmd_inspect(cls, actor: Actor, input: str):
@@ -895,7 +893,7 @@ class CommandHandler(CommandHandlerInterface):
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             msg = f"{firstcap(article_plus_name(actor.article,actor.name))} gets {apn}."
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor, item], game_state=cls._game_state)
-            await CoreActions.do_look_room(actor, room)
+            await CoreActionsInterface.get_instance().do_look_room(actor, room)
 
 
     async def cmd_drop(cls, actor: Actor, input: str):
@@ -915,12 +913,12 @@ class CommandHandler(CommandHandlerInterface):
             room.add_object(item)
             msg = f"You drop {item.name_}."
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-            await CoreActions.do_look_room(actor, room)
+            await CoreActionsInterface.get_instance().do_look_room(actor, room)
             msg = f"{firstcap(actor.name)} drops you."
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             msg = f"{firstcap(article_plus_name(actor.article,actor.name))} drops {article_plus_name(item.article_, item.name_)}."
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor], game_state=cls._game_state)
-            await CoreActions.do_look_room(actor, room)
+            await CoreActionsInterface.get_instance().do_look_room(actor, room)
         elif actor.actor_type == ActorType.OBJECT:
             # TODO:L: what if in a container? to floor?
             # TODO:L: want to drop from container to inv?

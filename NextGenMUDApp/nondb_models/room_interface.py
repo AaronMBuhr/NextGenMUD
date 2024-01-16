@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import List
 from .actor_interface import ActorInterface
 from ..basic_types import DescriptiveFlags
 
@@ -31,3 +32,6 @@ class RoomInterface:
     def add_object(self, obj: 'Object'):
         raise NotImplementedError
     
+    @abstractmethod
+    def get_characters(self) -> List['Character']:
+        raise NotImplementedError
