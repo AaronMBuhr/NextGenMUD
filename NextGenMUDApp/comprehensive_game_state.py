@@ -22,6 +22,7 @@ from .constants import Constants
 from .communication import Connection
 from .comprehensive_game_state_interface import GameStateInterface
 from .config import Config, default_app_config
+from .core_actions_interface import CoreActionsInterface
 from .utility import article_plus_name
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
 from .nondb_models.world import Zone
@@ -406,7 +407,6 @@ class ComprehensiveGameState:
 
 
     async def load_in_character(self, connection: Connection):
-        from .core_actions import CoreActions
         logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
         logger.debug("loading in character")
         chardef = self.world_definition.find_character_definition("test_player")
@@ -427,7 +427,7 @@ class ComprehensiveGameState:
         first_room = first_zone.rooms[list(first_zone.rooms.keys())[0]]
         logger.debug3(f"first_room: {first_room}")
         logger.info(f"New player arriving: {new_player.name_}")
-        await CoreActions.arrive_room(new_player, first_room)
+        await CoreActionsInterface.get_instance().arrive_room(new_player, first_room)
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
@@ -503,6 +503,22 @@ class ComprehensiveGameState:
     def get_xp_progression(self) -> List[int]:
         return self.xp_progression
     
+    def get_temp_var(cls, source_actor_ptr: str, var_name: str) -> str:
+        if source_actor_ptr[0] == Constants.REFERENCE_SYMBOL:
+            source_actor_ptr = source_actor_ptr[1:]
+        source_actor = Actor.get_reference(source_actor_ptr)
+        if not source_actor:
+            return ""
+        return source_actor.get_temp_var(var_name, "")
+
+    def get_perm_var(cls, source_actor_ptr: str, var_name: str) -> str:
+        if source_actor_ptr[0] == Constants.REFERENCE_SYMBOL:
+            source_actor_ptr = source_actor_ptr[1:]
+        source_actor = Actor.get_reference(source_actor_ptr)
+        if not source_actor:
+            return ""
+        return source_actor.get_permvar(var_name, "")
+
 
 live_game_state = ComprehensiveGameState()
 GameStateInterface.set_instance(live_game_state)

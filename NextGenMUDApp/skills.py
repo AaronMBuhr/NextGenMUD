@@ -3,6 +3,7 @@ import random
 from .basic_types import DescriptiveFlags
 from .communication import CommTypes
 from .constants import CharacterClassRole
+from .core_actions_interface import CoreActionsInterface
 from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, CharacterStateStealthed, CharacterStateStunned
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, PermanentCharacterFlags, TemporaryCharacterFlags
@@ -300,7 +301,7 @@ class Skills:
             msg = f"{actor.art_name_cap} backstabs {target.art_name}!"
             set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
             actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            await CoreActions.do_damage(actor, target, damage, mhw.damage_type_)
+            await CoreActionsInterface.get_instance().do_damage(actor, target, damage, mhw.damage_type_)
             return True
         else:
             msg = f"You try to backstab {target.art_name}, but fumble your attack!"
@@ -375,8 +376,8 @@ class Skills:
                     set_vars(sneaker, sneaker, viewer, msg)
                     sneaker.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[sneaker, viewer], game_state=cls.game_state)
                     cls.remove_stealth(sneaker)
-                    CoreActions.start_fighting(viewer,sneaker)
-                    CoreActions.start_fighting(sneaker,viewer)
+                    CoreActionsInterface.get_instance().start_fighting(viewer,sneaker)
+                    CoreActionsInterface.get_instance().start_fighting(sneaker,viewer)
                 retval = False
         
 

@@ -5,6 +5,7 @@ import random
 from typing import Dict, List
 from .constants import Constants
 
+
 def to_int(v) -> int:
     try:
         if type(v) is int:
@@ -36,13 +37,13 @@ def replace_vars(script, vars: dict) -> str:
         return script
 
     logger.debug3("is str")
-    logger.critical(f"vars: {vars}")   
-    logger.critical(f"script in : {script}")
+    logger.debug3(f"vars: {vars}")   
+    logger.debug3(f"script in : {script}")
 
     # Use the compiled regex for replacement
     script = variable_replacement_regex.sub(lambda match: replace_match(match, vars), script)
 
-    logger.critical(f"script out : {script}")
+    logger.debug3(f"script out : {script}")
     return script
 
 
@@ -64,7 +65,7 @@ IF_CONDITIONS = {
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
     logger = CustomDetailLogger(__name__, prefix="evaluate_if_condition()> ")
-    logger.critical(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
+    logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
 
     if if_operator in IF_CONDITIONS:
         try:
@@ -177,8 +178,8 @@ SCRIPT_FUNCTIONS = {
     "numlte" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) else "false",
     "between" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) <= to_int(c) else "false",
     "random" : lambda a,b,c,gs: str(random.randint(to_int(a), to_int(b))),
-    "tempvar" : lambda a,b,c,gs: gs.get_tempvar(a, b),
-    "permvar" : lambda a,b,c,gs: gs.get_permvar(a, b),
+    "tempvar" : lambda a,b,c,gs: gs.get_temp_var(a, b),
+    "permvar" : lambda a,b,c,gs: gs.get_perm_var(a, b),
     "hasiteminv": lambda a,b,c,gs: does_char_have_item_inv(a, b, gs),
     "hasitemeq": lambda a,b,c,gs: does_char_have_item_equipped(a, b, gs),
     "hasitem" : lambda a,b,c,gs: does_char_have_item_anywhere(a, b, gs),

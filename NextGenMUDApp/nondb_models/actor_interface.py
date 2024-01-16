@@ -82,6 +82,13 @@ class ActorInterface(ABC):
     def rid(self) -> str:
         raise NotImplementedError
     
+    @abstractmethod
     def get_vars(self, name: str) -> dict:    
         raise NotImplementedError
     
+    @abstractmethod
+    def get_room(self) -> 'Room':
+        raise NotImplementedError
+    
+    def set_room(self, room: 'Room') -> 'Room':
+        raise NotImplementedError

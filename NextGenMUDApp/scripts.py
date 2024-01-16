@@ -75,7 +75,7 @@ class ScriptHandler:
                            if_predicate: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
         logger = CustomDetailLogger(__name__, prefix="cls.evaluate_condition()> ")
         logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
-        return evaluate_if_condition(if_subject, if_operator, if_predicate, game_state)
+        return evaluate_if_condition(if_subject, if_operator, if_predicate)
 
 
     # # Placeholder implementations of the functions
@@ -87,21 +87,3 @@ class ScriptHandler:
     #     # Implement the logic to check if the target has an item of the given type equipped
     #     return "equipped_item_for_" + target
 
-
-    @classmethod
-    def get_tempvar(cls, source_actor_ptr: str, var_name: str) -> str:
-        if source_actor_ptr[0] == Constants.REFERENCE_SYMBOL:
-            source_actor_ptr = source_actor_ptr[1:]
-        source_actor = Actor.get_reference(source_actor_ptr)
-        if not source_actor:
-            return ""
-        return source_actor.temp_variables_.get(var_name, "")
-
-    @classmethod
-    def get_permvar(cls, source_actor_ptr: str, var_name: str) -> str:
-        if source_actor_ptr[0] == Constants.REFERENCE_SYMBOL:
-            source_actor_ptr = source_actor_ptr[1:]
-        source_actor = Actor.get_reference(source_actor_ptr)
-        if not source_actor:
-            return ""
-        return source_actor.perm_variables_.get(var_name, "")

@@ -1,5 +1,5 @@
 import asyncio
-from .command_handler import CommandHandler
+from .command_handler_interface import CommandHandlerInterface
 from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
@@ -86,4 +86,4 @@ class MainProcess:
         #     except KeyError:
         #         logger.error(f"KeyError processing command {command}")
         #         conn.send("dynamic", "Command failure.")
-        await CommandHandler.process_command(conn.character, input)
+        await CommandHandlerInterface.get_instance().process_command(conn.character, input)

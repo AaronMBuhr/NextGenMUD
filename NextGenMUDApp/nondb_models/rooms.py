@@ -128,3 +128,6 @@ class Room(Actor, RoomInterface):
     def art_name_cap(self):
         return firstcap(self.name)
     
+    def get_characters(self) -> List['Character']:
+        return self.characters
+    

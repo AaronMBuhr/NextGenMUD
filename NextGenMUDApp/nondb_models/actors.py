@@ -122,6 +122,17 @@ class Actor(ActorInterface):
         # Using dictionary comprehension to prefix keys and combine dictionaries
         return {f"{name}.{key}": value for d in [self.temp_variables, self.perm_variables] for key, value in d.items()}
 
+    def get_room(self) -> 'Room':
+        return self.location_room
 
+    def set_room(self, room) -> 'Room':
+        self.location_room = room
+        return room
 
-
+    def get_temp_var(self, varname, default):
+        return self.temp_variables.get(varname, default)
+    
+    def get_perm_var(self, varname, default):
+        return self.perm_variables.get(varname, default)
+    
+    

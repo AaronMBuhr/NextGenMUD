@@ -2,7 +2,7 @@ from custom_detail_logger import CustomDetailLogger
 
 from .comprehensive_game_state import ComprehensiveGameState
 from .communication import Connection
-from .core_actions import CoreActions
+from .core_actions_interface import CoreActionsInterface
 
 
 class ConnectionManager:
@@ -44,7 +44,7 @@ class ConnectionManager:
         logger.debug3(f"first_zone: {first_zone}")
         first_room = first_zone.rooms_[list(first_zone.rooms_.keys())[0]]
         logger.debug3(f"first_room: {first_room}")
-        await CoreActions.actions.arrive_room(new_player, first_room)
+        await CoreActionsInterface.get_instance().actions.arrive_room(new_player, first_room)
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
