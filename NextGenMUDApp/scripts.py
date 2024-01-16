@@ -10,7 +10,7 @@ class ScriptHandler:
     game_state: ComprehensiveGameState = live_game_state
 
     @classmethod
-    async def run_script(cls, actor: Actor, script: str, vars: dict):
+    async def run_script(cls, actor: Actor, script: str, vars: dict, game_state: ComprehensiveGameState = None):
         logger = CustomDetailLogger(__name__, prefix="run_script()> ")
         logger.debug3(f"actor.rid: {actor.rid}, script: {script}, vars: {vars}")
         script = replace_vars(script, vars).strip()
@@ -29,10 +29,10 @@ class ScriptHandler:
                 logger.debug3("condition: " + condition)
                 logger.debug3("blocks: " + str(blocks))
                 condition_parts = split_string_honoring_parentheses(condition)
-                if_subject = evaluate_functions_in_line(condition_parts[0], vars)
-                if_operator = evaluate_functions_in_line(condition_parts[1], vars)
-                if_predicate = evaluate_functions_in_line(condition_parts[2], vars)
-                condition_result = cls.evaluate_condition(actor, if_subject, if_operator, if_predicate, vars)
+                if_subject = evaluate_functions_in_line(condition_parts[0], vars, cls.game_state)
+                if_operator = evaluate_functions_in_line(condition_parts[1], vars, cls.game_state)
+                if_predicate = evaluate_functions_in_line(condition_parts[2], vars, cls.game_state)
+                condition_result = cls.evaluate_condition(actor, if_subject, if_operator, if_predicate, vars, game_state)
                 script = (blocks['true_block'] if condition_result else blocks['false_block']) + '\n' + blocks['remainder']
             else:
                 script = (await cls.process_line(actor, script, vars)).strip()
@@ -67,10 +67,11 @@ class ScriptHandler:
 
 
     @classmethod
-    def evaluate_condition(cls, actor: Actor, if_subject: str, if_operator: str, if_predicate: str, vars: dict) -> bool:
+    def evaluate_condition(cls, actor: Actor, if_subject: str, if_operator: str,
+                           if_predicate: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
         logger = CustomDetailLogger(__name__, prefix="cls.evaluate_condition()> ")
         logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
-        return evaluate_if_condition(if_subject, if_operator, if_predicate)
+        return evaluate_if_condition(if_subject, if_operator, if_predicate, game_state)
 
 
     # # Placeholder implementations of the functions

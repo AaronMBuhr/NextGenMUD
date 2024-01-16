@@ -970,9 +970,13 @@ class CharacterSkill():
 
 class CharacterClass:
 
-    def __init__(self, role: CharacterClassRole):
-        self.role_ = role
+    def __init__(self, role: CharacterClassRole, level: int = 0):
+        self.role = role
+        self.level = level
 
+    def level_up(self):
+        self.level += 1
+        
 
 
 class CharacterAttributes(Enum):

@@ -468,7 +468,15 @@ ZONES:
       misty_copse:
         name: Misty Copse
         description: >
-          The Misty Copse is a small, secluded area within the Enchanted Forest, perpetually shrouded in a gentle, mystical mist. This mist softens the sounds and sights, creating a sense of seclusion and introspection. The trees here are old and wise, their trunks covered in moss and their branches heavy with the weight of time. Small beams of light occasionally break through the mist, illuminating the copse in a soft, ethereal glow. The air is cool and fresh, carrying with it the scent of damp earth and ancient wood.
+          The Misty Copse is a small, secluded area within the Enchanted
+          Forest, perpetually shrouded in a gentle, mystical mist. This
+          mist softens the sounds and sights, creating a sense of seclusion 
+          and introspection. The trees here are old and wise, their trunks
+          covered in moss and their branches heavy with the weight of time.
+          Small beams of light occasionally break through the mist,
+          illuminating the copse in a soft, ethereal glow. The air is cool 
+          and fresh, carrying with it the scent of damp earth and ancient
+          wood.
 
           Exits: northeast, southeast
         exits:
@@ -483,21 +491,24 @@ ZONES:
                 operator: "numgte"
                 predicate: 15
             script: |
-              echo The mist swirls around you, its tendrils caressing the landscape and adding an air of mystery to the copse.
+              echo The mist swirls around you, its tendrils caressing the
+              landscape and adding an air of mystery to the copse.
           - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "mist"
             script: |
-              echo Peering into the mist, you feel a sense of timelessness, as if the copse exists in a world apart from the rest.
+              echo Peering into the mist, you feel a sense of timelessness,
+              as if the copse exists in a world apart from the rest.
           - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "tree"
             script: |
-              echo The trees loom out of the mist, their ancient forms whispering stories of the forest's past.
+              echo The trees loom out of the mist, their ancient forms
+              whispering stories of the forest's past.
 
 CHARACTERS:
   - zone: enchanted_forest

@@ -70,7 +70,7 @@ class ComprehensiveGameState:
 
         self.world_definition_.zones_ = {}
 
-        self.xp_progression_ = self.app_config.XP_PROGRESSION
+        self.xp_progression_ = self.app_config.XP_PROGRESSION   
 
         file_found = False
         logger.info(f"Loading world files (*.yaml) from [{self.app_config.WORLD_DATA_DIR}]...")
