@@ -101,6 +101,20 @@ class CoreActions(CoreActionsInterface):
                 # reset trigger timers
                 reset_triggers_by_room(r)                   
         self.do_aggro(actor)
+        if actor.fighting_whom == None and actor.group_id is not None \
+            and not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            for c in room.get_characters():
+                if c.group_id == actor.group_id and c.fighting_whom != None:
+                    msg = f"You join the attack against {c.fighting_whom.art_name}!"
+                    vars = set_vars(actor, actor, c.fighting_whom, msg)
+                    await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                    msg = f"{actor.art_name_cap} joins the attack against {c.fighting_whom.art_name}!"
+                    vars = set_vars(actor, actor, c.fighting_whom, msg)
+                    await room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c.fighting_whom], game_state=self.game_state)
+                    msg = f"{actor.art_name_cap} joins the attack against you!"
+                    vars = set_vars(actor, actor, c.fighting_whom, msg)
+                    await c.fighting_whom.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                    self.start_fighting(actor, c.fighting_whom)
         # # TODO:L: figure out what direction "from" based upon back-path
         # actor.location_room.send_text("dynamic", f"{actor.name} arrives.", exceptions=[actor])
 
@@ -114,6 +128,12 @@ class CoreActions(CoreActionsInterface):
         
         if not direction in actor.location_room.exits:
             raise Exception(f"Location {actor.location_room.id} does not have an exit in direction {direction}")
+        
+        if actor.fighting_whom != None:
+            msg = "You can't move while fighting!"
+            vars = set_vars(actor, actor, actor, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            return
         
         msg = f"{actor.art_name_cap} leaves {direction}."
         vars = set_vars(actor.location_room, actor, actor, msg, { 'direction': direction })
@@ -175,20 +195,25 @@ class CoreActions(CoreActionsInterface):
                                         set_vars(subject.location_room, subject, target, msg),
                                         exceptions=[subject, target], game_state=self.game_state)
         self.game_state.add_character_fighting(subject)
+        logger.critical("checking for aggro or friends")
         for c in target.location_room.get_characters():
-            if c.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
+            logger.critical(f"checking {c.rid}: {c.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)} / {c.group_id} / {subject.group_id}")
+            if (c.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
+                or (c.group_id == subject.group_id and c.group_id != None)) \
                  and c != subject and c.fighting_whom == None:
+                logger.critical(f"found {c.rid} joining in")
                 msg = f"You join the attack against {target.art_name}!"
-                set_vars(c, c, target, msg)
-                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                vars = set_vars(c, c, target, msg)
+                await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"{c.art_name_cap} joins the attack against you!"
-                set_vars(c, c, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                vars = set_vars(c, c, target, msg)
+                await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"{c.art_name_cap} joins the attack against {target.art_name}!"
-                set_vars(c, c, target, msg)
-                target.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c], game_state=self.game_state)
+                vars = set_vars(c, c, target, msg)
+                await target.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c, target], game_state=self.game_state)
                 c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
                 c.fighting_whom = target
+                self.game_state.add_character_fighting(c)
                 
 
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
@@ -279,6 +304,17 @@ class CoreActions(CoreActionsInterface):
                                         exceptions=[actor, target], game_state=self.game_state)
         if target.current_hit_points <= 0:
             await self.do_die(target, actor)
+        else:
+            if target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
+                target.remove_temp_flags(TemporaryCharacterFlags.IS_SLEEPING)
+                msg = f"{target.art_name_cap} wakes up!"
+                await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, target, target, msg), game_state=self.game_state)
+                msg = f"You wake up!"
+                await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, target, target, msg), game_state=self.game_state)
+                msg = f"{target.art_name_cap} wakes up!"
+                await target.location_room.echo(CommTypes.DYNAMIC, msg,
+                                                set_vars(target.location_room, target, target, msg),
+                                                exceptions=[target], game_state=self.game_state)
 
 
     async def do_single_attack(self, actor: Actor, target: Actor, attack: AttackData) -> int:

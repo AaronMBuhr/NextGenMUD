@@ -572,6 +572,7 @@ CHARACTERS:
         article: a
         description: >
           A small, furry rabbit.
+        group_id: small_creatures
         attributes:
           strength: 2
           dexterity: 14
@@ -635,6 +636,7 @@ CHARACTERS:
 
       - id: deer
         name: deer
+        group_id: small_creatures
         article: a
         description: >
           A peaceful brown deer.
@@ -675,6 +677,7 @@ CHARACTERS:
       - id: fairy
         name: fairy
         article: a
+        group_id: small_creatures
         description: >
           A small, twinkling fairy.
         attributes:
