@@ -83,7 +83,7 @@ class Character(Actor, CharacterInterface):
         self.skill_points_available: int = 0
         self.cooldowns: List[Cooldown] = []
         self.experience_points: int = 0
-        self.group_id: str = ""
+        self.group_id: str = None
 
 
     def from_yaml(self, yaml_data: str):
@@ -97,6 +97,7 @@ class Character(Actor, CharacterInterface):
         self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
         self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
         self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+        self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
         # if 'character_flags' in yaml_data:
         #     for flag in yaml_data['character_flags']:
         #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])

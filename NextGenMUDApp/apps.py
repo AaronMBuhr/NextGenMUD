@@ -29,6 +29,7 @@ class NextGenMUDAppConfig(AppConfig):
 # - command abbrevs
 # - need an ON_SPAWN trigger
 # - not sure players are being handled right
+# - make attack and kill allow you to switch targets
                         
 # LOW priority
 # - handle possessive pronouns
