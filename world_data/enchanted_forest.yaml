@@ -213,6 +213,11 @@ ZONES:
                 predicate: "fairy"
             script: |
               echo A curious fairy pauses in its flight to regard you, its wings a blur of iridescent color, before flitting away.
+        characters:
+          - id: fairy
+            quantity: 3
+            respawn time min: 30
+            respawn time max: 90
 
       twilight_thicket:
         name: Twilight Thicket
@@ -285,6 +290,11 @@ ZONES:
                 predicate: "star"
             script: |
               echo The stars above twinkle brightly, each one telling its own ancient story in the tapestry of the night sky.
+        characters:
+          - id: deer
+            quantity: 3
+            respawn time min: 30
+            respawn time max: 90
 
       echo_pond:
         name: Echo Pond
@@ -653,6 +663,45 @@ CHARACTERS:
         critical_chance: 0.05
         critical_multiplier: 2
         experience_points: 20
+        triggers:
+          - type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 10
+            script: |
+              leaverandom stayinzone
+
+      - id: fairy
+        name: fairy
+        article: a
+        description: >
+          A small, twinkling fairy.
+        attributes:
+          strength: 6
+          dexterity: 12
+          constitution: 6
+          intelligence: 2
+          wisdom: 2
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d8+2
+        damage_resistances:
+          unholy: 0
+          pyschic: 0.5
+        natural_attacks:
+          - attack_noun: zap
+            attack_verb: zaps
+            potential_damage:
+            - damage_type: arcane
+              damage_dice: 1d4+2
+        hit_modifier: 0
+        dodge_dice: 4d10+30
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 30
         triggers:
           - type: timer_tick
             criteria:

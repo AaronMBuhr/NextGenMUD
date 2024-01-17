@@ -62,7 +62,7 @@ class WorldDefinition:
         if object_id_or_name in self.objects:
             return self.objects[object_id_or_name]
         for object_id, object in self.objects.items():
-            if object.id_.startswith(object_id_or_name):
+            if object_id.startswith(object_id_or_name):
                 return object
             pieces = object.name.split()
             for piece in pieces:

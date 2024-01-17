@@ -370,8 +370,7 @@ class ComprehensiveGameState:
 
         if equipped:
             for obj in equipped.values():
-                # print(obj)
-                if check_object(obj):
+                if obj and check_object(obj):
                     candidates.append(obj)
         if actor:
             for obj in actor.contents:

@@ -22,15 +22,15 @@ class CoreActions(CoreActionsInterface):
 
     async def do_look_room(self, actor: Actor, room: Room):
         logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
-        logger.debug("starting")
+        logger.debug3("starting")
         # await actor.send_text(CommTypes.STATIC, room.description)
-        logger.debug("room parts")
+        logger.debug3("room parts")
         msg_parts = [ room.name , room.description ]
         # TODO:M: handle batching multiples
-        logger.debug("characters")
+        logger.debug3("characters")
         for character in room.characters:
             if character != actor:
-                logger.debug(f"character: {character.rid}")
+                logger.debug3(f"character: {character.rid}")
                 if character.fighting_whom:
                     if character.fighting_whom == actor:
                         msg_parts.append(character.art_name_cap + " is here, fighting you!")
@@ -40,10 +40,10 @@ class CoreActions(CoreActionsInterface):
                     # print("character.article: " + character.article_)
                     # print("character.name: " + character.name)
                     msg_parts.append(character.art_name_cap + " is here.")
-        logger.debug("objects")
+        logger.debug3("objects")
         for object in room.contents: 
             msg_parts.append(object.art_name_cap + " is here.")
-        logger.debug(f"Sending room description to actor for: {room.name}")
+        logger.debug3(f"Sending room description to actor for: {room.name}")
         await actor.send_text(CommTypes.CLEARSTATIC, "")
         await actor.echo(CommTypes.STATIC, "\n".join(msg_parts), set_vars(actor, actor, room, msg_parts), game_state=self.game_state)
 
@@ -68,7 +68,7 @@ class CoreActions(CoreActionsInterface):
 
     async def arrive_room(self, actor: Actor, room: Room, room_from: Room = None):
         logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
-        logger.debug(f"actor: {actor}, room: {room}, room_from: {room_from}")
+        logger.debug3(f"actor: {actor}, room: {room}, room_from: {room_from}")
 
         def reset_triggers_by_room(room: Room):
             for trigger in room.triggers_by_type.get(TriggerType.TIMER_TICK, []):

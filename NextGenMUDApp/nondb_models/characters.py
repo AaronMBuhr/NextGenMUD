@@ -241,12 +241,12 @@ class Character(Actor, CharacterInterface):
     def add_object(self, obj: ObjectInterface, force=False):
         self.contents.append(obj)
         obj.set_in_actor(self)
-        self.current_carrying_weight += obj.weight_
+        self.current_carrying_weight += obj.weight
 
     def remove_object(self, obj: ObjectInterface):
         self.contents.remove(obj)
         obj.set_in_actor(None)
-        self.current_carrying_weight -= obj.weight_
+        self.current_carrying_weight -= obj.weight
 
     def is_dead(self):
         return self.current_hit_points <= 0
@@ -273,8 +273,8 @@ class Character(Actor, CharacterInterface):
         self.current_damage_resistances = copy.deepcopy(self.damage_resistances)
         for item in self.equipped.values():
             if item:
-                for dt, mult in item.damage_resistances_.profile_.items():
-                    self.current_damage_resistances.profile_[dt] = self.current_damage_resistances.profile_[dt] * mult
+                for dt, mult in item.damage_resistances.profile.items():
+                    self.current_damage_resistances.profile[dt] = self.current_damage_resistances.profile[dt] * mult
         # TODO:M: add status effects
                     
     # def get_character_states_flags(self, flags: TemporaryCharacterFlags) -> List[ActorState]:
