@@ -43,6 +43,8 @@ class Object(Actor, ObjectInterface):
         return {
             'id': self.id,
             'name': self.name,
+            'article': self.article,
+            'definition zone': self.definition_zone.id,
             'equip_locations': [ loc.name.lower() for loc in self.equip_locations ],
             'damage_resistances': self.damage_resistances.to_dict(),
             'damage_reduction': self.damage_reduction,
@@ -50,7 +52,8 @@ class Object(Actor, ObjectInterface):
             'damage_dice_number': self.damage_num_dice,
             'damage_dice_size': self.damage_dice_size,
             'damage_bonus': self.damage_bonus,
-            'weight': self.weight
+            'weight': self.weight,
+            'value': self.value
         }
     
     def from_yaml(self, yaml_data: str):
@@ -175,11 +178,11 @@ class Object(Actor, ObjectInterface):
 
     @property
     def art_name(self) -> str:
-        return self.character.name
+        return ((self.article + " ") if self.article else "") + self.name
     
     @property
     def art_name_cap(self) -> str:
-        return firstcap(self.name)
+        return firstcap(self.art_name)
 
 
 class Corpse(Object):

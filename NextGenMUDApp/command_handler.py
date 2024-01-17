@@ -17,6 +17,7 @@ from .nondb_models.actors import Actor, ActorType
 from .nondb_models.character_interface import CharacterInterface, \
     EquipLocation, PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags
 from .nondb_models.object_interface import ObjectInterface, ObjectFlags
+from .nondb_models.objects import Object
 from .nondb_models.room_interface import RoomInterface
 from .nondb_models.triggers import TriggerType
 from .nondb_models import world
@@ -154,9 +155,9 @@ class CommandHandler(CommandHandlerInterface):
         room = actor.location_room if actor.location_room else actor.in_actor.location_room if actor.in_actor else None
         if room:
             if actor.actor_type == ActorType.CHARACTER:
-                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article, actor.name, cap=True)} says, \"{text}\"", vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
+                await room.echo(CommTypes.DYNAMIC, f"{actor.art_name_cap} says, \"{text}\"", vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
             elif actor.actor_type == ActorType.OBJECT:
-                await room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article, actor.name, cap=True)} says, \"{text}\"", vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
+                await room.echo(CommTypes.DYNAMIC, f"{actor.art_name_cap} says, \"{text}\"", vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
             elif actor.actor_type == ActorType.ROOM:
                 await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
             else:
@@ -191,7 +192,7 @@ class CommandHandler(CommandHandlerInterface):
         msg = f"You say to {target.name}, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
         await actor.send_text(CommTypes.DYNAMIC, f"You say to {target.name}, \"{text}\"")
-        msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to you, \"{text}\""
+        msg = f"{actor.art_name_cap} says to you, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
         await target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         room = actor._location_room if actor._location_room else actor.in_actor_.location_room_
@@ -199,7 +200,7 @@ class CommandHandler(CommandHandlerInterface):
             for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
                 await trig.run(target, text, vars, cls._game_state)
         if room:
-            msg = f"{article_plus_name(actor.article,actor.name, cap=True)} says to {target.name}, \"{text}\""
+            msg = f"{actor.art_name_cap} says to {target.name}, \"{text}\""
             vars = set_vars(actor, actor, target, msg)
             await actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state = cls._game_state)
             if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
@@ -309,7 +310,7 @@ class CommandHandler(CommandHandlerInterface):
                 if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
                     await actor._location_room.echo(CommTypes.DYNAMIC, f"... {actor.name} {text}", vars, exceptions=[actor], game_state=cls._game_state)
                 else:
-                    await actor._location_room.echo(CommTypes.DYNAMIC, f"{article_plus_name(actor.article, actor.name, cap=True)} {text}", vars, exceptions=[actor], game_state=cls._game_state)
+                    await actor._location_room.echo(CommTypes.DYNAMIC, f"{actor.art_name_cap} {text}", vars, exceptions=[actor], game_state=cls._game_state)
             elif actor.actor_type == ActorType.OBJECT:
                 await actor._location_room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor], game_state=cls._game_state)
             elif actor.actor_type == ActorType.ROOM:
@@ -480,7 +481,7 @@ class CommandHandler(CommandHandlerInterface):
         answer = {}
         if pieces[0].lower() == "zones":
             answer["ZONES"] = {
-                zone.id: {"id": zone.id, "name": zone.name, "description": zone.description_} 
+                zone.id: {"id": zone.id, "name": zone.name, "description": zone.description} 
                 for zone in cls._game_state.zones.values()
             }
         elif pieces[0].lower() == "zone":
@@ -490,14 +491,14 @@ class CommandHandler(CommandHandlerInterface):
                 await actor.send_text(CommTypes.DYNAMIC, f"zone {pieces[1]} not found.")
                 return
             answer["ZONE"] = {}
-            answer["ZONE"][zone.id] = {"id": zone.id, "name": zone.name, "description": zone.description_}
+            answer["ZONE"][zone.id] = {"id": zone.id, "name": zone.name, "description": zone.description}
             answer["ZONE"][zone.id]["rooms"] = {
                 room.id: {
                     "id": room.id,
                     "name": room.name,
-    #                "description": room.description_,
+    #                "description": room.description,
                     "characters": [character.id for character in room.get_characters()],
-                    "objects": [object.id for object in room.contents_],
+                    "objects": [object.id for object in room.contents],
                     "triggers": {
                         trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
                             {
@@ -518,10 +519,10 @@ class CommandHandler(CommandHandlerInterface):
                 a.id : {
                     "id": a.id,
                     "name": a.name,
-                    "description": a.description_,
+                    "description": a.description,
                     "location": a.location_room_.id if a.location_room_ else None,
-                    "temp_variables": a.temp_variables_,
-                    "perm_variables": a.perm_variables_,
+                    "temp_variables": a.temp_variables,
+                    "perm_variables": a.perm_variables,
                 } for a in Actor.references_.values() if a.actor_type == ActorType.CHARACTER
             }
         elif pieces[0].lower() == "objects":
@@ -529,10 +530,10 @@ class CommandHandler(CommandHandlerInterface):
                 a.id : {
                     "id": a.id,
                     "name": a.name,
-                    "description": a.description_,
+                    "description": a.description,
                     "location": a.location_room_.id if a.location_room_ else None,
-                    "temp_variables": a.temp_variables_,
-                    "perm_variables": a.perm_variables_,
+                    "temp_variables": a.temp_variables,
+                    "perm_variables": a.perm_variables,
                 } for a in Actor.references_.values() if a.actor_type == ActorType.OBJECT and a.location_room_ is not None
             }
         elif pieces[0].lower() == "carried":
@@ -540,10 +541,10 @@ class CommandHandler(CommandHandlerInterface):
                 a.id : {
                     "id": a.id,
                     "name": a.name,
-                    "description": a.description_,
-                    "inside": f"{article_plus_name(a.article_, a.in_actor_.name)} ({a.in_actor_.rid})" if a.in_actor_ else None,
-                    "temp_variables": a.temp_variables_,
-                    "perm_variables": a.perm_variables_,
+                    "description": a.description,
+                    "inside": f"{a.art_name} ({a.in_actor_.rid})" if a.in_actor_ else None,
+                    "temp_variables": a.temp_variables,
+                    "perm_variables": a.perm_variables,
                 } for a in Actor.references_.values() if a.actor_type == ActorType.OBJECT and a.in_actor_ is not None
             }
         elif pieces[0].lower() == "room":
@@ -556,9 +557,9 @@ class CommandHandler(CommandHandlerInterface):
                 room.id: {
                     "id": room.id,
                     "name": room.name,
-                    "description": room.description_,
+                    "description": room.description,
                     "characters": [character.id for character in room.get_characters()],
-                    "objects": [object.id for object in room.contents_],
+                    "objects": [object.id for object in room.contents],
                     "triggers": {
                         trigger_type.name: [  # Using trigger_type here, assuming it's an Enum
                             trigger.to_dict() for trigger in triggers  # Make sure this is the correct variable from room.triggers_by_type.items()
@@ -630,6 +631,7 @@ class CommandHandler(CommandHandlerInterface):
     async def cmd_spawn(cls, actor: Actor, input: str):
         # TODO:L: what if an object in a container spawns something?
         from .nondb_models.characters import Character
+        from .nondb_models.objects import Object, ObjectFlags
         logger = CustomDetailLogger(__name__, prefix="cmd_spawn()> ")
         pieces = input.split(' ')
         if len(pieces) < 1:
@@ -646,7 +648,7 @@ class CommandHandler(CommandHandlerInterface):
             new_character.location_room_ = actor._location_room
             new_character.location_room_.add_character(new_character)
             logger.debug(f"new_character: {new_character} added to room {new_character.location_room_.rid}")
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_character.article_, new_character.name)}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {actor.art_name_cap}.")
             await CoreActionsInterface.get_instance().do_look_room(actor, actor._location_room)
         elif pieces[0].lower() == "obj":
             object_def = cls._game_state.world_definition.find_object_definition(' '.join(pieces[1:]))
@@ -659,27 +661,28 @@ class CommandHandler(CommandHandlerInterface):
                 logger.debug("adding to character")
                 actor.add_object(new_object, True)
                 logger.debug(f"new_object: {new_object} added to character {actor}")
-                logger.debug(f"actor.contents_ length: {len(actor.contents_)}")
-                # print(Object.collapse_namemultiples(actor.contents_, ","))
+                logger.debug(f"actor.contents length: {len(actor.contents)}")
+                # print(Object.collapse_name_multiples(actor.contents, ","))
             elif actor.actor_type == ActorType.OBJECT:
                 if actor.has_flags(ObjectFlags.IS_CONTAINER):
                     logger.debug("adding to container")
                     actor.add_object(new_object, True)
                     logger.debug(f"new_object: {new_object} added to container {actor}")
-                    # print(Object.collapse_namemultiples(actor.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.contents, ","))
                 else:
                     logger.debug("adding to room")
                     actor._location_room.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor._location_room}")
-                    # print(Object.collapse_namemultiples(actor.location_room_.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.location_room_.contents, ","))
             elif actor.actor_type == ActorType.ROOM:
                     logger.debug("adding to room")
                     actor.add_object(new_object)
                     logger.debug(f"new_object: {new_object} added to room {actor}")
-                    # print(Object.collapse_namemultiples(actor.contents_, ","))
+                    # print(Object.collapse_name_multiples(actor.contents, ","))
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type} for object not implemented.")
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {article_plus_name(new_object.article_, new_object.name)}.")
+            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_object.art_name}.")
+            logger.critical(f"new_object: art_name: {new_object.art_name}, object: {new_object.to_dict()}")
         else:
             await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
             return
@@ -751,7 +754,7 @@ class CommandHandler(CommandHandlerInterface):
     # ALWAYS
     f"""
     Name: {actor.name}
-    Description: {actor.description_}
+    Description: {actor.description}
     Health: {actor.get_status_description()}""")
             if actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
                 msg_parts.append(
@@ -798,28 +801,28 @@ class CommandHandler(CommandHandlerInterface):
         msg_parts = [ "You are carrying:\n"]
         if actor.actor_type == ActorType.CHARACTER:
             logger.debug(f"char: {actor.rid}")
-            if len(actor.contents_) == 0:
+            if len(actor.contents) == 0:
                 msg_parts.append(" nothing.")
             else:
-                msg_parts.append(Object.collapse_namemultiples(actor.contents_, "\n"))
+                msg_parts.append(Object.collapse_name_multiples(actor.contents, "\n"))
             await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         elif actor.actor_type == ActorType.OBJECT:
             logger.debug(f"obj: {actor.rid}")
             if not actor.has_flags(ObjectFlags.IS_CONTAINER):
                 msg_parts.append(" nothing (you're not a container).")
             else:
-                if len(actor.contents_) == 0:
+                if len(actor.contents) == 0:
                     msg_parts.append(" nothing.")
                 else:
-                    msg_parts.append(Object.collapse_namemultiples(actor.contents_, "\n"))
+                    msg_parts.append(Object.collapse_name_multiples(actor.contents, "\n"))
                 await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         elif actor.actor_type == ActorType.ROOM:
             logger.debug(f"room: {actor.rid}")
             room: Room = actor
-            if len(room.contents_) == 0:
+            if len(room.contents) == 0:
                 msg_parts.append(" nothing.")
             else:
-                msg_parts.append(Object.collapse_namemultiples(room.contents_, "\n"))
+                msg_parts.append(Object.collapse_name_multiples(room.contents, "\n"))
             await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         else:
             raise NotImplementedError(f"ActorType {actor.actor_type} not implemented.")
@@ -884,7 +887,7 @@ class CommandHandler(CommandHandlerInterface):
                 num_got += 1
                 room.remove_object(item)
                 actor.add_object(item)
-                apn = article_plus_name(item.article, item.name)
+                apn = item.art_name
             if num_got == 0:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't see any {item_name} here.")
                 return
@@ -894,7 +897,7 @@ class CommandHandler(CommandHandlerInterface):
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             msg = f"{firstcap(actor.name)} gets you."
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-            msg = f"{firstcap(article_plus_name(actor.article,actor.name))} gets {apn}."
+            msg = f"{actor.art_name_cap} gets {apn}."
             await actor._location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor, item], game_state=cls._game_state)
             await CoreActionsInterface.get_instance().do_look_room(actor, room)
 
@@ -917,9 +920,9 @@ class CommandHandler(CommandHandlerInterface):
             msg = f"You drop {item.name}."
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
             await CoreActionsInterface.get_instance().do_look_room(actor, room)
-            msg = f"{firstcap(actor.name)} drops you."
+            msg = f"{actor.art_name_cap} drops you."
             await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-            msg = f"{firstcap(article_plus_name(actor.article,actor.name))} drops {article_plus_name(item.article, item.name)}."
+            msg = f"{actor.art_name_cap} drops {item.art_name}."
             await actor._location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor], game_state=cls._game_state)
             await CoreActionsInterface.get_instance().do_look_room(actor, room)
         elif actor.actor_type == ActorType.OBJECT:
@@ -995,7 +998,7 @@ class CommandHandler(CommandHandlerInterface):
             # await actor.send_text(CommTypes.DYNAMIC, "Equip what?")
             await cls.cmd_equip_list(actor, input)
             return
-        # equip_location = EquipLocation.string_to_enum(equip_location_name)
+        # equip_location = EquipLocation.string_to_enum(equip_locationname)
         result = parse_equip_command(input, cls, actor)
         if result:
             equip_location, target_object = result
@@ -1012,7 +1015,7 @@ class CommandHandler(CommandHandlerInterface):
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't equip that.")
                 return
             for loc in target_object.equip_locations:
-                if actor.equipped_[loc] == None:
+                if actor.equipped[loc] == None:
                     equip_location = loc
                     break
             if equip_location == None:
@@ -1021,7 +1024,7 @@ class CommandHandler(CommandHandlerInterface):
         if target_object == None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have any {input}.")
             return
-        if actor.equipped_[equip_location] != None:
+        if actor.equipped[equip_location] != None:
             await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped there.")
             return
         if target_object.has_flags(ObjectFlags.IS_WEAPON):
@@ -1047,26 +1050,26 @@ class CommandHandler(CommandHandlerInterface):
                 await actor.send_text(CommTypes.DYNAMIC, "You can't equip that there.")
                 return
         if equip_location == EquipLocation.BOTH_HANDS:
-            if actor.equip_location_[EquipLocation.MAIN_HAND] != None:
+            if actor.equip_location[EquipLocation.MAIN_HAND] != None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your main hand.")
                 return
-            if actor.equip_location_[EquipLocation.OFF_HAND] != None:
+            if actor.equip_location[EquipLocation.OFF_HAND] != None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You already have something equipped in your off hand.")
                 return
         if equip_location == EquipLocation.OFF_HAND:
             if not actor.has_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD):
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't dual wield.")
                 return
-        if actor.fighting_whom_ != None:
+        if actor.fighting_whom != None:
             await actor.send_text(CommTypes.DYNAMIC, f"You can't equip things while fighting.")
             return
         actor.remove_object(target_object)
         actor.equip_item(equip_location, target_object)
         msg = f"You equip {target_object.name}."
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), game_state=cls._game_state)
-        msg = f"{firstcap(actor.name)} equips you."
+        msg = f"{actor.art_name_cap} equips you."
         await target_object.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), game_state=cls._game_state)
-        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} equips {article_plus_name(target_object.article, target_object.name)}."
+        msg = f"{actor.art_name_cap} equips {target_object.art_name}."
         await actor._location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target_object, msg), exceptions=[actor], game_state=cls._game_state)
 
 
@@ -1092,10 +1095,10 @@ class CommandHandler(CommandHandlerInterface):
                 for combo in itertools.combinations(words, i):
                     item_name = ' '.join(combo)
                     logger.debug("searching actor equipped for " + item_name)
-                    target_object = cls._game_state.find_target_object(item_name, actor=None,equipped=actor.equipped_)
+                    target_object = cls._game_state.find_target_object(item_name, actor=None,equipped=actor.equipped)
                     if target_object:
-                        logger.debug("found " + item_name + "at " + target_object.equipped_location_.word())
-                        return target_object.equipped_location_, target_object
+                        logger.debug("found " + item_name + "at " + target_object.equipped_location.word())
+                        return target_object.equipped_location, target_object
             logger.debug("didn't find it equipped")
 
             # Try to find a matching object without considering the equip location
@@ -1126,19 +1129,19 @@ class CommandHandler(CommandHandlerInterface):
             return
         if "main hand" in input.lower():
             specified_location = EquipLocation.MAIN_HAND
-            target_object = actor.equipped_[EquipLocation.MAIN_HAND]
+            target_object = actor.equipped[EquipLocation.MAIN_HAND]
             if target_object == None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
                 return
         elif "off hand" in input.lower():
             specified_location = EquipLocation.OFF_HAND
-            target_object = actor.equipped_[EquipLocation.OFF_HAND]
+            target_object = actor.equipped[EquipLocation.OFF_HAND]
             if target_object == None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
                 return
         elif "both hands" in input.lower():
             specified_location = EquipLocation.BOTH_HANDS
-            target_object = actor.equipped_[EquipLocation.BOTH_HANDS]
+            target_object = actor.equipped[EquipLocation.BOTH_HANDS]
             if target_object == None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
                 return
@@ -1152,7 +1155,7 @@ class CommandHandler(CommandHandlerInterface):
         if equip_location == None:
             await actor.send_text(CommTypes.DYNAMIC, f"Unequip what or where?")
             return
-        item = actor.equipped_[equip_location]
+        item = actor.equipped[equip_location]
         if item == None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have anything equipped there.")
             return
@@ -1160,9 +1163,9 @@ class CommandHandler(CommandHandlerInterface):
         actor.add_object(item, True)
         msg = f"You unequip {item.name}."
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-        msg = f"{firstcap(actor.name)} unequips you."
+        msg = f"{actor.art_name_cap} unequips you."
         await item.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), game_state=cls._game_state)
-        msg = f"{firstcap(article_plus_name(actor.article,actor.name))} unequips {article_plus_name(item.article_, item.name)}."
+        msg = f"{actor.art_name_cap} unequips {item.art_name}."
         await actor._location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, item, msg), exceptions=[actor], game_state=cls._game_state)
 
 
@@ -1172,8 +1175,8 @@ class CommandHandler(CommandHandlerInterface):
             return
         msg_parts = [ "You are equipped with:\n"]
         for loc in EquipLocation:
-            if actor.equipped_[loc] != None:
-                msg_parts.append(f"{loc.name}: {article_plus_name(actor.equipped_[loc].article_, actor.equipped_[loc].name)}\n")
+            if actor.equipped[loc] != None:
+                msg_parts.append(f"{loc.name}: {actor.equipped[loc].art_name}\n")
             else:
                 msg_parts.append(f"{loc.name}: nothing\n")
         await actor.send_text(CommTypes.STATIC, "".join(msg_parts))

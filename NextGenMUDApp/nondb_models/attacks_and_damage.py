@@ -40,35 +40,35 @@ class DamageType(Enum):
 class DamageResistances:
     def __init__(self, profile=None):
         if profile:
-            self.profile_ = profile
+            self.profile = profile
         else:
-            self.profile_ = {loc: 1 for loc in DamageType}
+            self.profile = {loc: 1 for loc in DamageType}
 
     def to_dict(self):
-        # return {EquipLocation[loc].name.lower(): dt.name.lower() for loc, dt in self.profile_.items()}
-        return repr(self.profile_)
+        # return {EquipLocation[loc].name.lower(): dt.name.lower() for loc, dt in self.profile.items()}
+        return repr(self.profile)
 
     def set(self, damage_type: DamageType, amount: float):
-        self.profile_[damage_type] = amount
+        self.profile[damage_type] = amount
    
     def get(self, damage_type: DamageType):
-        return self.profile_[damage_type]
+        return self.profile[damage_type]
 
 class DamageReduction:
     def __init__(self, profile=None):
         if profile:
-            self.profile_ = profile
+            self.profile = profile
         else:
-            self.profile_ = {loc: 0 for loc in DamageType}
+            self.profile = {loc: 0 for loc in DamageType}
 
     def set(self, damage_type: DamageType, amount: float):
-        self.profile_[damage_type] = amount
+        self.profile[damage_type] = amount
    
     def get(self, damage_type: DamageType):
-        return self.profile_[damage_type]
+        return self.profile[damage_type]
 
     def to_dict(self):
-        return repr(self.profile_)
+        return repr(self.profile)
 
 class PotentialDamage:
     def __init__(self, damage_type: DamageType, damage_dice_number: int, damage_dice_type: int, damage_dice_bonus: int):
@@ -101,7 +101,7 @@ class PotentialDamage:
         logger.debug(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
         mult = 1
         for profile in damage_profile:
-            mult *= profile.profile_[damage_type]
+            mult *= profile.profile[damage_type]
         return mult
     
     def damage_adjective(self, damage: int):
