@@ -623,7 +623,7 @@ CHARACTERS:
           pyschic: 0.5
         natural_attacks:
           - attack_noun: bite
-            attack_verb: bite
+            attack_verb: bites
             potential_damage:
             - damage_type: piercing
               damage_dice: 1d4+1
@@ -654,7 +654,7 @@ CHARACTERS:
           pyschic: 0.5
         natural_attacks:
           - attack_noun: bite
-            attack_verb: bite
+            attack_verb: bites
             potential_damage:
             - damage_type: piercing
               damage_dice: 1d4+2
@@ -692,7 +692,7 @@ CHARACTERS:
           unholy: 0
           pyschic: 0.5
         natural_attacks:
-          - attack_noun: zap
+          - attack_noun: her wand
             attack_verb: zaps
             potential_damage:
             - damage_type: arcane
