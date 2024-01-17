@@ -48,6 +48,7 @@ class Character(Actor, CharacterInterface):
         self.definition_zone = definition_zone
         self.description = ""
         self.attributes = {}
+        self._location_room = None
         self.contents = []
         self.levels_by_role : Dict[CharacterClassRole, int] = {}
         self.contents: List[Object] = []
@@ -82,6 +83,7 @@ class Character(Actor, CharacterInterface):
         self.skill_points_available: int = 0
         self.cooldowns: List[Cooldown] = []
         self.experience_points: int = 0
+        self.group_id: str = ""
 
 
     def from_yaml(self, yaml_data: str):
@@ -183,15 +185,15 @@ class Character(Actor, CharacterInterface):
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
                    game_state: 'ComprehensiveGameState' = None, skip_triggers: bool = False) -> bool:
         logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
-        logger.critical("text before " + text)
+        logger.debug3("text before " + text)
         if not already_substituted:
             text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.critical("text after " + text)
+        logger.debug3("text after " + text)
         if exceptions and self in exceptions:
             retval = False
         else:
             retval = True
-            logger.critical("sending text: " + text)
+            logger.debug3("sending text: " + text)
             await self.send_text(text_type, text)
         logger.debug3("running super")
         await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
@@ -357,7 +359,7 @@ class Character(Actor, CharacterInterface):
         return True
     
     def set_in_room(self, room: 'Room'):
-        self.location_room = room
+        self._location_room = room
 
     def can_level(self):
         return self.experience_points >= Constants.XP_PROGRESSION[self.total_levels()]
@@ -394,3 +396,11 @@ class Character(Actor, CharacterInterface):
     def gain_xp(self, xp_amount: int) -> bool:
         self.experience_points += xp_amount
         return self.can_level()
+
+    @property
+    def location_room(self) -> 'Room':
+        return self._location_room
+
+    @location_room.setter
+    def location_room(self, room: 'Room'):
+        self._location_room = room

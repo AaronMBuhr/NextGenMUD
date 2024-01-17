@@ -121,7 +121,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} kicks %t% to the ground!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to kick {target.art_name}, but %r% dodges!"
@@ -132,7 +132,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to kick {target.art_name}, but {target.pronoun_subject} dodges!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
 
@@ -158,7 +158,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name} shouts at {target.art_name}, demoralizing {target.pronoun_object}!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to shout at {target.art_name}, but {target.pronoun_object} resists!"
@@ -169,7 +169,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to shout at {target.art_name}, but {target.pronoun_subject} resists!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
             return False
 
 
@@ -195,7 +195,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars)
             msg = f"{actor.art_name_cap} intimidates {target.art_name}, making {target.pronoun_possessive} attacks less accurate!"
             set_vars(actor, actor, target, msg, cls.game_state)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars)
             return True
         else:
             msg = f"You try to intimidate {target.art_name}, but {actor.pronoun_subject} resists!"
@@ -206,7 +206,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = "{actor.art_name_cap} tries to intimidate {target.art_name}, but {target.pronoun_subject_} resists!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
             return False
         
 
@@ -229,7 +229,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} disarms {target.art_name}!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
 
     @classmethod
@@ -251,7 +251,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} intimidates {target.art_name}, making {target.pronoun_object} easier to hit!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to intimidate {target.art_name}, but {target.pronoun_subject} resists!"
@@ -262,7 +262,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to intimidate %t%, but %t%s resists!"
             set_vars(actor, actor, target, msg)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
             return False
 
     @classmethod
@@ -300,7 +300,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} backstabs {target.art_name}!"
             set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             await CoreActionsInterface.get_instance().do_damage(actor, target, damage, mhw.damage_type_)
             return True
         else:
@@ -312,7 +312,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to backstab {target.art_name}, but fumbles {actor.pronoun_possessive} attack!"
             set_vars(actor, actor, target, msg, cls.game_state)
-            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
 
@@ -361,7 +361,7 @@ class Skills:
     def recheck_stealth(cls, sneaker: Actor, cooldown: Cooldown=None):
         if not sneaker.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
             retval = False
-        for viewer in sneaker.location_room:
+        for viewer in sneaker._location_room:
             if viewer == sneaker:
                 continue
             if not cls.stealthcheck(sneaker, viewer):
@@ -374,7 +374,7 @@ class Skills:
                     sneaker.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                     msg = f"{viewer.art_name_cap} notices {sneaker.art_name} and attacks!"
                     set_vars(sneaker, sneaker, viewer, msg)
-                    sneaker.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[sneaker, viewer], game_state=cls.game_state)
+                    sneaker._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[sneaker, viewer], game_state=cls.game_state)
                     cls.remove_stealth(sneaker)
                     CoreActionsInterface.get_instance().start_fighting(viewer,sneaker)
                     CoreActionsInterface.get_instance().start_fighting(sneaker,viewer)

@@ -25,7 +25,6 @@ class Actor(ActorInterface):
         self.pronoun_subject = "it"
         self.pronoun_object = "it"
         self.pronoun_possessive = "its"
-        self.location_room = None
         self.triggers_by_type = {}
         self.reference_number = None
         self.temp_variables = {}
@@ -90,24 +89,24 @@ class Actor(ActorInterface):
                    game_state: 'GameStateInterface' = None, skip_triggers: bool = False) -> bool:
         # note that you probably want to run this last in the child class implementation
         logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
-        logger.critical("running")
-        logger.critical(f"text before: {text}")
-        logger.critical(f"vars: {vars}")
+        logger.debug3("running")
+        logger.debug3(f"text before: {text}")
+        logger.debug3(f"vars: {vars}")
         if not already_substituted:
             text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.critical(f"text after: {text}")
+        logger.debug3(f"text after: {text}")
         # check room triggers
         if exceptions and self in exceptions:
             return False
         if skip_triggers:
-            logger.critical("skipping triggers")
+            logger.debug3("skipping triggers")
         else:
-            logger.critical(f"triggers:\n{self.triggers_by_type}")
+            logger.debug3(f"triggers:\n{self.triggers_by_type}")
             for trigger_type in [ TriggerType.CATCH_ANY ]:
                 if trigger_type in self.triggers_by_type:
-                    logger.critical(f"checking trigger_type: {trigger_type}")
+                    logger.debug3(f"checking trigger_type: {trigger_type}")
                     for trigger in self.triggers_by_type[trigger_type]:
-                        logger.critical(f"checking trigger: {trigger.to_dict()}")
+                        logger.debug3(f"checking trigger: {trigger.to_dict()}")
                         await trigger.run(self, text, vars, game_state)
         return True
     
@@ -122,12 +121,13 @@ class Actor(ActorInterface):
         # Using dictionary comprehension to prefix keys and combine dictionaries
         return {f"{name}.{key}": value for d in [self.temp_variables, self.perm_variables] for key, value in d.items()}
 
-    def get_room(self) -> 'Room':
-        return self.location_room
+    @property
+    def location_room(self) -> 'Room':
+        raise Exception("location_room must be implemented in child class")
 
-    def set_room(self, room) -> 'Room':
-        self.location_room = room
-        return room
+    @location_room.setter
+    def location_room(self, room: 'Room'):
+        raise Exception("location_room must be implemented in child class")
 
     def get_temp_var(self, varname, default):
         return self.temp_variables.get(varname, default)

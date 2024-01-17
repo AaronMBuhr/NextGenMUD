@@ -54,7 +54,7 @@ ZONES:
                 predicate: "arrives."
             script: |
               echoto %S% You trip as you enter.
-              echoexcept %S% %S% trips as %q% enters.
+              echoexcept %S% $cap(%s%) trips as %q% enters.
           - type: catch_say
             criteria: 
               - subject: "%*%"

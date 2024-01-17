@@ -21,6 +21,8 @@ ZONES:
             destination: crystal_cave
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria: 
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -28,6 +30,8 @@ ZONES:
             script: |
               echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -82,6 +86,8 @@ ZONES:
           #   destination: fairy_meadow
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -110,6 +116,8 @@ ZONES:
             script: |
               echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -138,6 +146,8 @@ ZONES:
             destination: twilight_thicket
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -145,6 +155,8 @@ ZONES:
             script: |
               echo The waterfall's whispers intensify, recounting ancient tales lost to time.
           - type: catch_look
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -152,6 +164,8 @@ ZONES:
             script: |
               echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
           - type: catch_any
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -177,6 +191,8 @@ ZONES:
             destination: enchanted_glade
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -211,6 +227,8 @@ ZONES:
             destination: whispering_waterfall
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -245,6 +263,8 @@ ZONES:
             destination: enchanted_glade
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -279,6 +299,8 @@ ZONES:
             destination: silver_stream
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -313,6 +335,8 @@ ZONES:
             destination: frosty_glen
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -320,6 +344,8 @@ ZONES:
             script: |
               echo A sense of ancient wisdom seems to emanate from the oak, its presence grounding and profound.
           - type: catch_look
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -327,6 +353,8 @@ ZONES:
             script: |
               echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
           - type: catch_any
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -347,6 +375,8 @@ ZONES:
             destination: ancient_oak
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -381,6 +411,8 @@ ZONES:
             destination: luminescent_lake
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -415,6 +447,8 @@ ZONES:
             destination: moonlit_clearing
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -449,6 +483,8 @@ ZONES:
             destination: enchanted_glade
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -491,6 +527,8 @@ ZONES:
             destination: verdant_valley
         triggers:
           - type: timer_tick
+            flags:
+              - only_when_pc_room
             criteria:
               - subject: "%{time_elapsed}"
                 operator: "numgte"
@@ -536,6 +574,16 @@ CHARACTERS:
             level: 1
         hit_dice: 1d4+1
         triggers:
+          - type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 10
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 20
+            script: |
+              leaverandom stayinzone
           - type: catch_any
             criteria:
               - subject: "%*%"
@@ -573,5 +621,44 @@ CHARACTERS:
         dodge_dice: 5d10+30
         critical_chance: 0.05
         critical_multiplier: 2
-        experience_points: 10
+        experience_points: 20
+
+      - id: deer
+        name: deer
+        article: a
+        description: >
+          A peaceful brown deer.
+        attributes:
+          strength: 6
+          dexterity: 12
+          constitution: 6
+          intelligence: 2
+          wisdom: 2
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6+2
+        damage_resistances:
+          unholy: 0
+          pyschic: 0.5
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bite
+            potential_damage:
+            - damage_type: piercing
+              damage_dice: 1d4+2
+        hit_modifier: 0
+        dodge_dice: 2d10+30
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 20
+        triggers:
+          - type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 10
+            script: |
+              leaverandom stayinzone
 

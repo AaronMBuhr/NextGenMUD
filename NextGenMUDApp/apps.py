@@ -38,3 +38,4 @@ class NextGenMUDAppConfig(AppConfig):
 # - instead of set_vars dupes, just change '*'
 # - make room say be "You hear" or something
 # - process_command command stack funky
+# - could optimize pc-in-zone checking
