@@ -161,7 +161,7 @@ class ComprehensiveGameState:
             for room, room_data in zone_data.rooms.items():
                 room_data.create_reference()
                 # print(f"room_data: {room_data}")
-                logger.critical("init spawndata")
+                logger.debug3("init spawndata")
                 for spawndata in room_data.spawn_data:
                     logger.critical(f"spawndata: {spawndata}")
                     spawndata.owner = room_data

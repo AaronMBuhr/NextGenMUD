@@ -1328,31 +1328,31 @@ class CommandHandler(CommandHandlerInterface):
         stay_in_zone = (pieces[0].lower() == "stayinzone")
         valid_directions = []
         if stay_in_zone:
-            logger.critical("stayinzone")
-            logger.critical("exits: " + str(actor.location_room.exits))
+            logger.debug3("stayinzone")
+            logger.debug3("exits: " + str(actor.location_room.exits))
             for direction, dest_room_id in actor._location_room.exits.items():
-                logger.critical("dest_room_id: " + dest_room_id)
+                logger.debug3("dest_room_id: " + dest_room_id)
                 if "." in dest_room_id:
                     dest_zone_id, dest_room_id = dest_room_id.split(".")
-                    logger.critical("got .")
-                    logger.critical(f"dest_zone_id: {dest_zone_id}, dest_room_id: {dest_room_id}")
+                    logger.debug3("got .")
+                    logger.debug3(f"dest_zone_id: {dest_zone_id}, dest_room_id: {dest_room_id}")
                 else:
                     dest_zone_id = actor.location_room.zone.id
-                logger.critical("dest_zone_id: " + dest_zone_id)
-                logger.critical("actor.location_room.zone.id: " + actor.location_room.zone.id)
+                logger.debug3("dest_zone_id: " + dest_zone_id)
+                logger.debug3("actor.location_room.zone.id: " + actor.location_room.zone.id)
                 if dest_zone_id == actor.location_room.zone.id:
                     valid_directions.append(direction)
         else:
-            logger.critical("not stayinzone")
+            logger.debug3("not stayinzone")
             valid_directions = actor.location_room.exits.keys()
-        logger.critical("valid_exits: " + str(valid_directions))
+        logger.debug3("valid_exits: " + str(valid_directions))
         num_exits = len(valid_directions)
         if num_exits == 0:
             await actor.send_text(CommTypes.DYNAMIC, "There are no exits here.")
             return
         exit_num = random.randint(0, num_exits - 1)
         msg = f"You randomly decide to go {valid_directions[exit_num]}."
-        logger.critical("msg: " + msg)
+        logger.debug3("msg: " + msg)
         vars = set_vars(actor, actor, None, msg)
         await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         await CoreActionsInterface.get_instance().world_move(actor, valid_directions[exit_num])

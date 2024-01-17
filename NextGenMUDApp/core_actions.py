@@ -107,7 +107,7 @@ class CoreActions(CoreActionsInterface):
 
     async def world_move(self, actor: Actor, direction: str):
         logger = CustomDetailLogger(__name__, prefix="worldMove()> ")
-        logger.debug(f"actor: {actor}")
+        logger.debug3(f"actor: {actor}")
 
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to move.")
@@ -310,11 +310,11 @@ class CoreActions(CoreActionsInterface):
         critical = random.randint(1,100) < actor.critical_chance
         logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
-        msg = f"You {"critically" if critical else ""} {attack.attack_verb} {target.art_name} with {attack.attack_noun}!"
+        msg = f"You {"critically " if critical else ""}{attack.attack_verb} {target.art_name} with {attack.attack_noun}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
-        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb}s you with {attack.attack_noun}!"
+        msg = f"{actor.art_name_cap} {"critically " if critical else ""}{attack.attack_verb} you with {attack.attack_noun}!"
         await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
-        msg = f"{actor.art_name_cap} {"critically" if critical else ""} {attack.attack_verb}s {target.name} with {attack.attack_noun}!"
+        msg = f"{actor.art_name_cap} {"critically " if critical else ""}{attack.attack_verb} {target.name} with {attack.attack_noun}!"
         await actor.location_room.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(actor.location_room, actor, target, msg),
                                         exceptions=[actor, target], game_state=self.game_state)
