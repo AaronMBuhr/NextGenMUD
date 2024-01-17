@@ -159,8 +159,13 @@ class Object(Actor, ObjectInterface):
         self.object_flags.remove_Flags(flags)
         return True
    
-    def set_in_room(self, room: RoomInterface):
-        self.location_room = room
+    @property
+    def location_room(self) -> 'Room':
+        return self.in_actor if isinstance(self.in_actor, RoomInterface) else None
+
+    @location_room.setter
+    def location_room(self, room: 'Room'):
+        self.in_actor = room
         
     def set_in_actor(self, actor: Actor):
         self.in_actor = actor
@@ -187,7 +192,7 @@ class Corpse(Object):
         self.character = character
         self.object_flags.add_flags(ObjectFlags.IS_CONTAINER)
         self.definition_zone = None
-        self.location_room = room
+        self._location_room = room
         self.zone = room.zone
         self.weight = 10
         self.original_id = character.definition_zone.id + "." + character.id

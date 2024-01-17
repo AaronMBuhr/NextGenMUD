@@ -174,18 +174,12 @@ class ComprehensiveGameState:
                             raise Exception(f"Character definition for {spawndata.id} not found.")
                             continue
                         for i in range(spawndata.desired_quantity):
-                            print("==============")
-                            print(character_def.name)
                             new_character = Character.create_from_definition(character_def)
-                            print(new_character)
-                            print("***********************************")
-                            print(new_character.name)
-                            print("***********************************")
                             new_character.spawned_by = spawndata
                             self.characters.append(new_character)
                             spawndata.owner.add_character(new_character)
                             spawndata.spawned.append(new_character)
-                            logger.critical(f"new_character: {new_character} added to room {new_character.location_room.rid}")
+                            logger.critical(f"new_character: {new_character} added to room {new_character._location_room.rid}")
                 for trig_type in room_data.triggers_by_type:
                     for trig in room_data.triggers_by_type[trig_type]:
                         logger.debug3("enabling trigger")
@@ -205,11 +199,11 @@ class ComprehensiveGameState:
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor.location_room
+            start_room = actor._location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor.location_room:
-            start_room = actor.location_room
+        elif isinstance(actor, Object) and actor._location_room:
+            start_room = actor._location_room
 
         if not start_room:
             return None
@@ -229,6 +223,9 @@ class ComprehensiveGameState:
         def can_see(char: Character, target: Character) -> bool:
             if char == target:
                 return True
+            if char.actor_type != ActorType.CHARACTER or target.actor_type != ActorType.CHARACTER:
+                return True
+            # TODO:L: maybe handle invisible objects
             if target.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE) \
             or target.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE):
                 if not char.has_temp_flags(TemporaryCharacterFlags.SEE_INVISIBLE) \
@@ -283,11 +280,11 @@ class ComprehensiveGameState:
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor.location_room
+            start_room = actor._location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor.location_room:
-            start_room = actor.location_room
+        elif isinstance(actor, Object) and actor._location_room:
+            start_room = actor._location_room
 
         if not start_room:
             return ""
@@ -504,7 +501,7 @@ class ComprehensiveGameState:
         room.add_character(new_character)
         if spawned_by:
             spawned_by.spawned.append(new_character)
-        logger.debug3(f"Spawning {new_character.rid} added to room {new_character.location_room.rid}")
+        logger.debug3(f"Spawning {new_character.rid} added to room {new_character._location_room.rid}")
 
     def respawn_character(self, owner: Actor, vars: dict):
         logger = CustomDetailLogger(__name__, prefix="respawn_character()> ")

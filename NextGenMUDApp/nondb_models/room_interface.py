@@ -35,3 +35,4 @@ class RoomInterface:
     @abstractmethod
     def get_characters(self) -> List['Character']:
         raise NotImplementedError
+    

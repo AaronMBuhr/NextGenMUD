@@ -19,7 +19,7 @@ class Room(Actor, RoomInterface):
         self.zone = None
         self.characters = []
         self.contents = []
-        self.location_room = self
+        self._location_room = self
         self.triggers_by_type = {}
         self.spawn_data = []
 
@@ -111,19 +111,19 @@ class Room(Actor, RoomInterface):
 
     def remove_character(self, character: 'Character'):
         self.characters.remove(character)
-        character.set_in_room(None)
+        character.location_room = None
 
     def add_character(self, character: 'Character'):
         self.characters.append(character)
-        character.set_in_room(self)
+        character.location_room = self
 
     def remove_object(self, obj: ObjectInterface):
         self.contents.remove(obj)
-        obj.set_in_room(None)
+        obj.location_room = None
 
     def add_object(self, obj: ObjectInterface):
         self.contents.append(obj)
-        obj.set_in_room(self)
+        obj.location_room = self
 
     @property
     def art_name(self):
@@ -135,4 +135,13 @@ class Room(Actor, RoomInterface):
     
     def get_characters(self) -> List['Character']:
         return self.characters
-    
+
+    @property
+    def location_room(self) -> 'Room':
+        return self
+
+    @location_room.setter
+    def location_room(self, room: 'Room'):
+        raise Exception("can't set location_room for a room")
+        
+

@@ -23,4 +23,4 @@ class ObjectInterface(ActorInterface):
     @abstractmethod
     def set_equip_location(self, loc: EquipLocation):
         raise NotImplementedError
-    
+

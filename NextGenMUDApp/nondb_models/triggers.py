@@ -4,23 +4,24 @@ from enum import Enum
 import re
 import time
 from .actors import Actor
+from .character_interface import PermanentCharacterFlags
 from ..constants import Constants
 from ..comprehensive_game_state_interface import GameStateInterface
-from .trigger_interface import TriggerInterface, TriggerType
+from .trigger_interface import TriggerInterface, TriggerType, TriggerFlags
 from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
 
 
 class TriggerCriteria:
     def __init__(self) -> None:
-        self.subject_ = None
-        self.operator_ = None
-        self.predicate_ = None
+        self.subject = None
+        self.operator = None
+        self.predicate = None
     
     def to_dict(self):
-        return {'subject_': self.subject_, 'operator_': self.operator_, 'predicate_': self.predicate_ }
+        return {'subject_': self.subject, 'operator_': self.operator, 'predicate_': self.predicate }
     
     def shortdesc(self):
-        return f"{self.subject_},{self.operator_},{self.predicate_}"
+        return f"{self.subject},{self.operator},{self.predicate}"
 
     def __repr__(self):
         fields_dict = self.to_dict()
@@ -31,9 +32,9 @@ class TriggerCriteria:
         # logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.from_dict()> ")
         # logger.debug3(f"values: {values}")
         # print(values)
-        self.subject_ = values['subject']
-        self.operator_ = values['operator']
-        self.predicate_ = values['predicate']
+        self.subject = values['subject']
+        self.operator = values['operator']
+        self.predicate = values['predicate']
         return self
         # print(self.to_dict())
 
@@ -41,21 +42,21 @@ class TriggerCriteria:
     def evaluate(self, vars: dict, game_state: GameStateInterface) -> bool:
         logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
         logger.debug3(f"vars: {vars}")
-        logger.debug3(f"checking {self.subject_},{self.operator_},{self.predicate_}")
+        logger.debug3(f"checking {self.subject},{self.operator},{self.predicate}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
         # predicate = execute_functions(replace_vars(self.predicate_, vars))
-        if type(self.subject_) is str:
-            subject = evaluate_functions_in_line(replace_vars(self.subject_, vars), vars, game_state)
+        if type(self.subject) is str:
+            subject = evaluate_functions_in_line(replace_vars(self.subject, vars), vars, game_state)
         else:
-            subject = self.subject_
-        if type(self.predicate_) is str:
-            predicate = evaluate_functions_in_line(replace_vars(self.predicate_, vars), vars, game_state)
+            subject = self.subject
+        if type(self.predicate) is str:
+            predicate = evaluate_functions_in_line(replace_vars(self.predicate, vars), vars, game_state)
         else:
-            predicate = self.predicate_
+            predicate = self.predicate
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
-        logger.debug3(f"checking calculated {subject},{self.operator_},{predicate}")
-        result = evaluate_if_condition(subject, self.operator_, predicate)
+        logger.debug3(f"checking calculated {subject},{self.operator},{predicate}")
+        result = evaluate_if_condition(subject, self.operator, predicate)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
         # elif self.operator_.lower() == 'matches':
@@ -94,6 +95,11 @@ class Trigger(TriggerInterface):
         self.trigger_type_: TriggerType[values['type'].upper()]
         self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values['criteria']]
         self.script_ = values['script']
+        if 'flags' in values:
+            flags = ','.join(values['flags'])
+            self.flags = TriggerFlags.from_names(flags)
+        else:
+            self.flags = TriggerFlags(0)
         return self
     
     @classmethod
@@ -123,10 +129,14 @@ class Trigger(TriggerInterface):
         raise Exception("Trigger.run() must be overridden.")
 
     def enable(self):
+        self.reset_timer()
         self.disabled_ = False
 
     def disable(self):
         self.disabled_ = True
+
+    def are_flags_set(self, flags: TriggerFlags) -> bool:
+        return self.flags.are_flags_set(flags)
 
     async def execute_trigger_script(self, actor: 'Actor', vars: dict, game_state: GameStateInterface = None) -> None:
         logger = CustomDetailLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
@@ -162,7 +172,7 @@ class TriggerCatchAny(Trigger):
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
         if self.disabled_:
             return False
-        vars = {**vars, 
+        vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
         logger.debug3("evaluating")
@@ -199,21 +209,42 @@ class TriggerTimerTick(Trigger):
         super().disable()
         TriggerTimerTick.timer_tick_triggers_.remove(self)    
 
+    def reset_timer(self):
+        self.last_ticked_ = time.time()
+
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
         logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.run()> ")
         if self.disabled_:
             logger.debug3("disabled")
             return False
-        logger.debug3(f"running, actor: {actor.name} ({actor.rid}) text: {text}")
-        if not Actor.get_reference(actor.reference_number):
+        if not Actor.get_reference(actor.reference_number) or actor.is_deleted:
             TriggerTimerTick.timer_tick_triggers_.remove(self)
             logger.debug3("actor no longer exists")
             return False
+        if self.flags.are_flags_set(TriggerFlags.ONLY_WHEN_PC_ROOM):
+            pc_here = False
+            for ch in actor.location_room.get_characters():
+                if ch.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                    pc_here = True
+                    break
+            if not pc_here:
+                logger.debug3("pc not in room")
+                return False
+        if self.flags.are_flags_set(TriggerFlags.ONLY_WHEN_PC_ZONE):
+            pc_in_zone = False
+            for player in game_state.players_:
+                if player.location_room.zone == actor.location_room.zone:
+                    pc_in_zone = True
+                    break
+            if not pc_in_zone:
+                logger.debug3("pc not in zone")
+                return False
+        logger.debug3(f"running, actor: {actor.name} ({actor.rid}) text: {text}")
         logger.debug3(f"actor: {actor.rid}")
         time_elapsed = time.time() - self.last_ticked_
         logger.debug3(f"time_elapsed: {time_elapsed}")
-        vars = {**vars, 
+        vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
         vars['time_elapsed'] = time_elapsed
@@ -225,8 +256,6 @@ class TriggerTimerTick(Trigger):
         logger.debug3("executing script")
         self.last_ticked_ = time.time()
         logger.debug3(f"script: {self.script_}")
-        for c in actor.characters:
-            logger.debug3(c.rid)
         await self.execute_trigger_script(actor, vars, game_state)
         return True
 
@@ -240,7 +269,7 @@ class TriggerCatchLook(Trigger):
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchLook.run()> ")
         if self.disabled_:
             return False
-        vars = {**vars, 
+        vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
         logger.debug3("evaluating")
@@ -261,7 +290,7 @@ class TriggerCatchSay(Trigger):
         logger = CustomDetailLogger(__name__, prefix="TriggerCatchSay.run()> ")
         if self.disabled_:
             return False
-        vars = {**vars, 
+        vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
         logger.debug3("evaluating")

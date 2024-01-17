@@ -86,14 +86,16 @@ class ActorInterface(ABC):
     def get_vars(self, name: str) -> dict:    
         raise NotImplementedError
     
+    @property
     @abstractmethod
-    def get_room(self) -> 'Room':
+    def location_room(self) -> 'Room':
         raise NotImplementedError
-    
+
+    @location_room.setter
     @abstractmethod
-    def set_room(self, room: 'Room') -> 'Room':
-        raise NotImplementedError
-    
+    def location_room(self, room: 'Room'):
+        raise NotImplementedError    
+
     @abstractmethod
     def get_temp_var(self, varname, default):
         raise NotImplementedError
