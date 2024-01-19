@@ -20,7 +20,7 @@ class ConnectionManager:
 
         new_connection = Connection(consumer)
         # await new_connection.send("static", "Welcome to NextGenMUD!")
-        self.live_game_state.connections_.append(new_connection)
+        self.live_game_state.connections.append(new_connection)
         await self.load_in_character(new_connection)
         return new_connection
 
@@ -31,8 +31,8 @@ class ConnectionManager:
         logger.debug("loading in character")
         chardef = self.live_game_state.world_definition_.find_character_definition("test_player")
         new_player = Character.create_from_definition(chardef)
-        new_player.connection_ = connection
-        new_player.connection_.character = new_player
+        new_player.connection = connection
+        new_player.connection.character = new_player
         new_player.name_ = "Test Player"
         new_player.description_ = "A test player."
         new_player.pronoun_subject_ = "he"
@@ -48,10 +48,10 @@ class ConnectionManager:
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
-        for c in self.live_game_state.connections_:
+        for c in self.live_game_state.connections:
             if c.consumer_ == consumer:
                 self.remove_character(c)
-                self.live_game_state.connections_.remove(c)
+                self.live_game_state.connections.remove(c)
                 return
             
 

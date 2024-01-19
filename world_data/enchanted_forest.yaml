@@ -13,12 +13,10 @@ ZONES:
           sky. Their branches, heavy with luminous leaves, intertwine above, creating
           a natural dome that filters sunlight into a kaleidoscope of gentle greens and golds.
 
-          Exits: south, east
+          Exits: east
         exits:
-          south:
-            destination: debug_zone.starting_room_2
           east:
-            destination: crystal_cave
+            destination: moonlit_clearing
         triggers:
           - type: timer_tick
             flags:
@@ -81,7 +79,7 @@ ZONES:
           Exits: east
         exits:
           east:
-            destination: whispering_waterfall
+            destination: enchanted_glade
           # west:
           #   destination: fairy_meadow
         triggers:
@@ -138,12 +136,10 @@ ZONES:
           oasis. The air here is fresh and invigorating, tinged with the scent of damp earth
           and blossoming flora.
 
-          Exits: east, west
+          Exits: west
         exits:
-          east:
-            destination: fairy_meadow
           west:
-            destination: twilight_thicket
+            destination: echo_pond
         triggers:
           - type: timer_tick
             flags:
@@ -183,11 +179,9 @@ ZONES:
           of grass seemingly alive with energy. It's a place where the mundane meets the magical, and
           visitors often feel a sense of joy and wonder.
 
-          Exits: north, south
+          Exits: west
         exits:
-          north:
-            destination: whispering_waterfall
-          south:
+          west:
             destination: enchanted_glade
         triggers:
           - type: timer_tick
@@ -224,12 +218,14 @@ ZONES:
         description: >
           Twilight Thicket, a realm of perpetual dusk, lies on the outskirts of the Enchanted Forest. Here, the light is always soft and dim, filtering through the dense canopy in gentle beams. The undergrowth is thick and full of mystery, with strange, luminous fungi dotting the forest floor. Sounds are muffled in this part of the forest, as if the very air is reluctant to disturb the peace. The thicket feels timeless, a place where hours pass like minutes, enveloping visitors in its tranquil embrace.
 
-          Exits: east, north
+          Exits: north, south, west
         exits:
-          east:
-            destination: moonlit_clearing
           north:
-            destination: whispering_waterfall
+            destination: silver_stream
+          south:
+            destination: golden_grove
+          west:
+            destination: ancient_oak
         triggers:
           - type: timer_tick
             flags:
@@ -260,12 +256,12 @@ ZONES:
         description: >
           The Moonlit Clearing is a serene, open space, bathed in the gentle glow of a perpetual full moon, even during the day. The moonlight casts a silvery sheen over everything, making the clearing sparkle with a surreal, dreamlike quality. Soft, lush grass carpets the ground, inviting visitors to sit and gaze at the stars visible through the clear night sky. The edges of the clearing are bordered by tall, whispering trees that seem to guard this sacred space. The air here is cool and crisp, carrying the faint scent of jasmine and night-blooming flowers.
 
-          Exits: south, west
+          Exits: east, west
         exits:
-          south:
-            destination: twilight_thicket
+          east:
+            destination: misty_copse
           west:
-            destination: enchanted_glade
+            destination: mystical_glade
         triggers:
           - type: timer_tick
             flags:
@@ -301,11 +297,11 @@ ZONES:
         description: >
           Echo Pond is a small, secluded body of water nestled within the Enchanted Forest. The pond's surface is so clear and still it mirrors the sky and surrounding foliage perfectly, creating an almost surreal symmetry. The unique acoustics of the area mean that even the slightest sound is echoed back, imbuing the pond with a mystical, auditory magic. The banks of the pond are soft with moss and dotted with delicate, colorful wildflowers. Dragonflies skim the water's surface, and occasionally, a fish leaps, creating ripples that disrupt the perfect reflection.
 
-          Exits: north, east
+          Exits: east, west
         exits:
-          north:
-            destination: moonlit_clearing
           east:
+            destination: whispering_waterfall
+          west:
             destination: silver_stream
         triggers:
           - type: timer_tick
@@ -337,12 +333,12 @@ ZONES:
         description: >
           The Ancient Oak stands majestically in the heart of the Enchanted Forest, its massive trunk and sprawling branches a testament to its centuries-old existence. The bark is gnarled and etched with patterns that seem to tell a story of time itself. A small, mysterious door in the trunk suggests a hidden world within. The air around the oak is heavy with the scent of earth and wood, and the rustling of its leaves sounds like ancient whispers. This majestic tree is a natural guardian of the forest, inspiring awe and reverence in all who gaze upon it.
 
-          Exits: southeast, southwest
+          Exits: east, west
         exits:
-          southeast:
-            destination: verdant_valley
-          southwest:
-            destination: frosty_glen
+          east:
+            destination: twilight_thicket
+          west:
+            destination: whispering_pines
         triggers:
           - type: timer_tick
             flags:
@@ -377,12 +373,12 @@ ZONES:
         description: >
           The Whispering Pines is a serene grove of tall pine trees, their needles creating a soft, whispering sound as the wind blows through them. The ground is carpeted with a thick layer of fragrant pine needles, softening footsteps and adding to the tranquil ambiance. Sunlight filters through the canopy, casting dappled shadows on the forest floor. The air is crisp and invigorating, filled with the resinous scent of pine. This grove feels like a sanctuary, offering peace and a deep connection with nature.
 
-          Exits: northeast, northwest
+          Exits: east, west
         exits:
-          northeast:
-            destination: echo_pond
-          northwest:
+          east:
             destination: ancient_oak
+          west:
+            destination: debug_zone.starting_room_2
         triggers:
           - type: timer_tick
             flags:
@@ -413,12 +409,14 @@ ZONES:
         description: >
           Silver Stream is a gently flowing watercourse that traverses the Enchanted Forest, its waters sparkling like liquid silver under the sunlight. The stream's banks are lined with smooth stones and lush greenery, creating a picturesque setting. The sound of the flowing water is soothing, offering a melody that speaks of tranquility and timelessness. Small fish can be seen darting in the clear water, and occasionally, a bird dips down to skim the surface. This stream is a haven for wildlife and a peaceful retreat for all who visit.
 
-          Exits: southwest, southeast
+          Exits: north, south, east
         exits:
-          southwest:
+          north:
+            destination: misty_copse
+          south:
+            destination: twilight_thicket
+          east:
             destination: echo_pond
-          southeast:
-            destination: luminescent_lake
         triggers:
           - type: timer_tick
             flags:
@@ -449,12 +447,14 @@ ZONES:
         description: >
           The Enchanted Glade is a magical clearing, alive with an ethereal light that seems to emanate from every leaf and blade of grass. The light shifts and changes, casting a soft glow that gives the glade a dreamlike quality. Flowers of all colors bloom in abundance here, their petals shimmering as if sprinkled with fairy dust. The air is filled with the gentle music of nature, a symphony of bird songs, rustling leaves, and the distant trickle of a stream. This glade is a place of beauty and serenity, a reminder of the magic that lies hidden in the natural world.
 
-          Exits: north, east
+          Exits: north, east, west
         exits:
           north:
-            destination: fairy_meadow
+            destination: golden_grove
           east:
-            destination: moonlit_clearing
+            destination: fairy_meadow
+          west:
+            destination: crystal_cave
         triggers:
           - type: timer_tick
             flags:
@@ -485,11 +485,11 @@ ZONES:
         description: >
           The Golden Grove is a breathtaking sight, especially during the golden hours of dawn and dusk. Each tree in the grove has leaves that shimmer with a golden hue, casting a warm, inviting light throughout the area. The ground is carpeted with fallen golden leaves, creating a soft, rustling blanket that crunches underfoot. The atmosphere in the grove is one of tranquility and timelessness, as if the grove itself is basking in eternal autumn. Sunbeams filter through the canopy, enhancing the golden glow and creating a serene, almost mystical environment.
 
-          Exits: south, west
+          Exits: north, south
         exits:
+          north:
+            destination: twilight_thicket
           south:
-            destination: sunbeam_clearing
-          west:
             destination: enchanted_glade
         triggers:
           - type: timer_tick
@@ -529,12 +529,14 @@ ZONES:
           and fresh, carrying with it the scent of damp earth and ancient
           wood.
 
-          Exits: northeast, southeast
+          Exits: north, south, west
         exits:
-          northeast:
-            destination: frosty_glen
-          southeast:
-            destination: verdant_valley
+          north:
+            destination: gloomy_graveyard.forest_road_s
+          south:
+            destination: silver_stream
+          west:
+            destination: moonlit_clearing
         triggers:
           - type: timer_tick
             flags:
@@ -619,9 +621,9 @@ CHARACTERS:
             script: |
               emote squeaks a greeting.
         damage_resistances:
-          bludgeoning: 2
+          bludgeoning: 0.5
           unholy: 0
-          pyschic: 0.5
+          psychic: 2
         natural_attacks:
           - attack_noun: bite
             attack_verb: bites
@@ -653,7 +655,7 @@ CHARACTERS:
         hit_dice: 1d6+2
         damage_resistances:
           unholy: 0
-          pyschic: 0.5
+          psychic: 0.5
         natural_attacks:
           - attack_noun: bite
             attack_verb: bites
@@ -693,7 +695,7 @@ CHARACTERS:
         hit_dice: 1d8+2
         damage_resistances:
           unholy: 0
-          pyschic: 0.5
+          psychic: 0.5
         natural_attacks:
           - attack_noun: her wand
             attack_verb: zaps

@@ -8,7 +8,7 @@ class DescriptiveFlags(IntFlag):
     @classmethod
     def field_name(cls, index: int) -> str:
         try:
-            return cls.field_name(index)
+            return cls.field_name_unsafe(index)
         except IndexError:
             return "unknown_flag"
 

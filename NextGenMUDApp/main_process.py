@@ -4,6 +4,7 @@ from .communication import Connection
 from custom_detail_logger import CustomDetailLogger
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 import threading
+from .nondb_models.character_interface import PermanentCharacterFlags
 from .nondb_models.triggers import TriggerTimerTick
 import time
 from .constants import Constants
@@ -39,7 +40,7 @@ class MainProcess:
         last_fighting_tick = time.time()
         while True:
             start_tick_time = time.time()
-            for conn in cls._game_state.connections_:
+            for conn in cls._game_state.connections:
                 logger.debug3("processing input queue")
                 if len(conn.input_queue) > 0:
                     input = conn.input_queue.popleft()
@@ -87,3 +88,15 @@ class MainProcess:
         #         logger.error(f"KeyError processing command {command}")
         #         conn.send("dynamic", "Command failure.")
         await CommandHandlerInterface.get_instance().process_command(conn.character, input)
+
+    @classmethod
+    async def check_aggressive_near_players(cls):
+        logger = CustomDetailLogger(__name__, prefix="check_aggressive_near_players()> ")
+        logger.debug3("checking aggressive near players")
+        for p in cls._game_state.players:
+            logger.debug3(f"checking player {p.name}")
+            for char in p.location_room.get_characters():
+                if char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) and cls._game_state.can_see(char, p):
+                    logger.debug3(f"aggressive char {char.name} sees player {p.name}")
+                    await CoreActionsInterface.get_instance().do_aggro(char)
+        logger.debug3("done checking aggressive near players")

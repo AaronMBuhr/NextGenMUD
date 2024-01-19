@@ -48,44 +48,48 @@ class Room(Actor, RoomInterface):
 
     def from_yaml(self, zone, yaml_data: str):
         logger = CustomDetailLogger(__name__, prefix="Room.from_yaml()> ")
-        self.name = yaml_data['name']
-        self.description = yaml_data['description']
-        self.zone = zone
+        try:
+            self.name = yaml_data['name']
+            self.description = yaml_data['description']
+            self.zone = zone
 
-        for direction, exit_info in yaml_data['exits'].items():
-            # logger.debug3(f"loading direction: {direction}")
-            self.exits[direction] = exit_info['destination']
+            for direction, exit_info in yaml_data['exits'].items():
+                # logger.debug3(f"loading direction: {direction}")
+                self.exits[direction] = exit_info['destination']
 
-        if 'characters' in yaml_data:
-            logger.debug3("characters found")
-            for character in yaml_data['characters']:
-                logger.debug3(f"character: {character}")
-                if not "." in character['id']:
-                    spawn_id = self.zone.id + "." + character['id']
-                else:
-                    spawn_id = character['id']
-                logger.debug(f"spawn_id: {spawn_id}")
-                # print(repr(character))
-                respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
-                                            character['respawn time min'], character['respawn time max'])
-                self.spawn_data.append(respawn)
+            if 'characters' in yaml_data:
+                logger.debug3("characters found")
+                for character in yaml_data['characters']:
+                    logger.debug3(f"character: {character}")
+                    if not "." in character['id']:
+                        spawn_id = self.zone.id + "." + character['id']
+                    else:
+                        spawn_id = character['id']
+                    logger.debug(f"spawn_id: {spawn_id}")
+                    # print(repr(character))
+                    respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
+                                                character['respawn time min'], character['respawn time max'])
+                    self.spawn_data.append(respawn)
 
-        if 'triggers' in yaml_data:
-            # print(f"triggers: {yaml_data['triggers']}")
-            # raise NotImplementedError("Triggers not implemented yet.")
-            # for trigger_type, trigger_info in yaml_data['triggers'].items():
-            #     # logger.debug3(f"loading trigger_type: {trigger_type}")
-            #     if not trigger_type in self.triggers_by_type_:
-            #         self.triggers_by_type_[trigger_type] = []
-            #     self.triggers_by_type_[trigger_type] += trigger_info
-            for trig in yaml_data['triggers']:
-                # logger.debug3(f"loading trigger_type: {trigger_type}")
-                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                # print(new_trigger.to_dict())
-                if not new_trigger.trigger_type_ in self.triggers_by_type:
-                    self.triggers_by_type[new_trigger.trigger_type_] = []
-                self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
-
+            if 'triggers' in yaml_data:
+                # print(f"triggers: {yaml_data['triggers']}")
+                # raise NotImplementedError("Triggers not implemented yet.")
+                # for trigger_type, trigger_info in yaml_data['triggers'].items():
+                #     # logger.debug3(f"loading trigger_type: {trigger_type}")
+                #     if not trigger_type in self.triggers_by_type_:
+                #         self.triggers_by_type_[trigger_type] = []
+                #     self.triggers_by_type_[trigger_type] += trigger_info
+                for trig in yaml_data['triggers']:
+                    # logger.debug3(f"loading trigger_type: {trigger_type}")
+                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                    # print(new_trigger.to_dict())
+                    if not new_trigger.trigger_type_ in self.triggers_by_type:
+                        self.triggers_by_type[new_trigger.trigger_type_] = []
+                    self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
+        except:
+            logger.error("Exception in Room.from_yaml()")
+            logger.error("yaml_data: " + str(yaml_data))
+            raise
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] =None, already_substituted: bool = False,

@@ -22,6 +22,9 @@ class NextGenMUDAppConfig(AppConfig):
 # HIGH priority
 # - handle "you die"
 # - get all
+# - saving throws!
+# - aggro not working
+# - up/down not working
                 
 # MEDIUM priority
 # - handle capitalization
@@ -30,6 +33,7 @@ class NextGenMUDAppConfig(AppConfig):
 # - need an ON_SPAWN trigger
 # - not sure players are being handled right
 # - make attack and kill allow you to switch targets
+# - at some point going to need to handle pc vs pc interaction
                         
 # LOW priority
 # - handle possessive pronouns

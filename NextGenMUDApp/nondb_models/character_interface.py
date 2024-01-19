@@ -8,10 +8,11 @@ class PermanentCharacterFlags(DescriptiveFlags):
     CAN_DUAL_WIELD = 2**2
     IS_INVISIBLE = 2**3
     SEE_INVISIBLE = 2**4
+    DARKVISION = 2**5
 
     @classmethod
     def field_name_unsafe(cls, idx):
-        return ["is pc", "can dual wield"][idx]
+        return ["is pc", "is aggressive", "can dual wield", "is invisible", "see invisible", "darkvision"][idx]
 
 
 class TemporaryCharacterFlags(DescriptiveFlags):
@@ -24,10 +25,12 @@ class TemporaryCharacterFlags(DescriptiveFlags):
     IS_HIDDEN = 2**6
     SEE_INVISIBLE = 2**7
     IS_INVISIBLE = 2**8
+    DARKVISION = 2**9
 
     @classmethod
     def field_name_unsafe(cls, idx):
-        return ["is dead", "is sitting", "is sleeping", "is stunned"][idx]
+        return ["is dead", "is sitting", "is sleeping", "is stunned", "is disarmed", "is stealthed", "is hidden",
+                "see invisible", "is invisible", "darkvision"][idx]
 
 
 class GamePermissionFlags(DescriptiveFlags):
