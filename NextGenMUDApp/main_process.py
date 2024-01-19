@@ -56,9 +56,10 @@ class MainProcess:
                 last_fighting_tick = time.time()
                 await cls.handle_periodic_fighting_tick()
             # logger.debug3("sleeping")
+            cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
+            await cls.check_aggressive_near_players()
             time_taken = time.time() - start_tick_time
             sleep_time = Constants.GAME_TICK_SEC - time_taken
-            cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
             if sleep_time > 0:
                 time.sleep(sleep_time)
             # TODO:H: hit point recovery

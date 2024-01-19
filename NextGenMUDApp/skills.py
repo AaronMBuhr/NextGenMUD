@@ -6,7 +6,7 @@ from .constants import CharacterClassRole
 from .core_actions_interface import CoreActionsInterface
 from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, \
     CharacterStateStealthed, CharacterStateStunned, CharacterStateBleeding, CharacterStateHitBonus, \
-    CharacterStateDodgeBonus
+    CharacterStateDodgeBonus, CharacterStateShielded
 from .nondb_models.actors import Actor
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, PotentialDamage
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
@@ -93,13 +93,19 @@ class Skills:
             MageSkills.CAST_MAGIC_MISSILE: 1,
             MageSkills.CAST_LIGHT: 1,
             MageSkills.CAST_SHIELD: 1,
-            MageSkills.CAST_SLEEP: 1
+            MageSkills.CAST_SLEEP: 1,
+            MageSkills.CAST_RESIST_MAGIC: 1
         },
         CharacterClassRole.CLERIC: {
             ClericSkills.CURE_LIGHT_WOUNDS: 1,
             ClericSkills.CURE_SERIOUS_WOUNDS: 1,
             ClericSkills.CURE_CRITICAL_WOUNDS: 1,
-            ClericSkills.HEAL: 1
+            ClericSkills.HEAL: 1,
+            ClericSkills.ANIMATE_DEAD: 1,
+            ClericSkills.SMITE: 1,
+            ClericSkills.BLESS: 1,
+            ClericSkills.AEGIS: 1,
+            ClericSkills.SANCTUARY: 1
         }
     }
 
@@ -319,7 +325,7 @@ class Skills:
                 msg = f"{actor.art_name_cap} rallies you!"
                 vars = set_vars(actor, actor, target, msg)
                 target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            whomever = f"{actor.pronoun_object}self" if target == actor else target.art_name}"
+            whomever = f"{actor.pronoun_object}self" if target == actor else target.art_name
             msg = f"{actor.art_name} rallies {whomever}!"
             vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
@@ -504,7 +510,7 @@ class Skills:
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.EVADE],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateHitBonus(target, actor, "evading", dodge_bonus, tick_created=game_tick)
+            new_state = CharacterStateDodgeBonus(target, actor, "evading", dodge_bonus, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             msg = f"You focus on evading blows!"
             vars = set_vars(actor, actor, target, msg)
@@ -552,7 +558,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} casts a fireball at {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls.game_state)
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.FIRE)
             for c in actor.location_room:
                 if c != actor and c != target:
@@ -592,7 +598,7 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} casts a magic missile at {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls.game_state)
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.ARCANE)
             return True
         else:
@@ -617,18 +623,23 @@ class Skills:
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} casts a shield spell on {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls.game_state)
             reductions = DamageReduction(reductions_by_type={
                 DamageType.BLUDGEONING: DAMAGE_REDUCTION_AMOUNT,
                 DamageType.PIERCING: DAMAGE_REDUCTION_AMOUNT,
                 DamageType.SLASHING: DAMAGE_REDUCTION_AMOUNT
-            }
-            new_state = CharacterStateDamageReduction(target, actor, "shielded", DAMAGE_REDUCTION_AMOUNT, tick_created=game_tick)
+            })
+            new_state = CharacterStateShielded(target, actor, "magic shielded", resistances=None, reductions=reductions,
+                                               tick_created=game_tick)
             new_state.apply_state(game_tick, 0)
             return True
         else:
             await cls.do_spell_fizzile(actor, target, "shield", cls.game_state)
             return False
+
+    @classmethod
+    async def do_mage_cast_sleep(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+        actor.send_text(CommTypes.DYNAMIC, "Casting sleep is not yet implemented!", cls.game_state)
 
 
     @classmethod

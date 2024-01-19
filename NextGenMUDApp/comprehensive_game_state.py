@@ -118,7 +118,7 @@ class ComprehensiveGameState:
                 for zonedef in yaml_data["CHARACTERS"]:
                     for chardef in zonedef["characters"]:
                         ch = Character(chardef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
-                        ch.from_yaml(chardef)
+                        ch.from_yaml(chardef, zonedef["zone"])
                         ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN)
                         logger.debug(f"loaded character: {ch.id}")
                         self.world_definition.characters[ch.id] = ch
@@ -136,9 +136,9 @@ class ComprehensiveGameState:
                 #         self.world_definition_.characters_[ch.id] = ch
                 for zonedef in yaml_data["OBJECTS"]:
                     for objdef in zonedef["objects"]:
-                        obj = Object(objdef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
-                        obj.from_yaml(objdef)
-                        self.world_definition.objects[obj.id] = obj
+                        obj = Object(objdef["id"], zonedef["zone"], create_reference=False)
+                        obj.from_yaml(objdef, self)
+                        self.world_definition.objects[zonedef["zone"] + "." + obj.id] = obj
                 logger.debug("Objects loaded")
             # except Exception as e:
             #     logger.error(f"Error loading yaml file {yaml_file}: {e}")
@@ -172,9 +172,8 @@ class ComprehensiveGameState:
                         if not character_def:
                             logger.warning(f"Character definition for {spawndata.id} not found.")
                             raise Exception(f"Character definition for {spawndata.id} not found.")
-                            continue
                         for i in range(spawndata.desired_quantity):
-                            new_character = Character.create_from_definition(character_def)
+                            new_character = Character.create_from_definition(character_def, self)
                             new_character.spawned_by = spawndata
                             self.characters.append(new_character)
                             spawndata.owner.add_character(new_character)
@@ -220,35 +219,15 @@ class ComprehensiveGameState:
 
         candidates = []
 
-        def can_see(char: Character, target: Character) -> bool:
-            if char == target:
-                return True
-            if char.actor_type != ActorType.CHARACTER or target.actor_type != ActorType.CHARACTER:
-                return True
-            # TODO:L: maybe handle invisible objects
-            if target.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE) \
-            or target.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE):
-                if not char.has_temp_flags(TemporaryCharacterFlags.SEE_INVISIBLE) \
-                and not char.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE):
-                    return False
-            if target.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
-                stealth_states = [s for s in target.get_states() if isinstance(s) == CharacterStateStealthed]
-                if len(stealth_states) == 0:
-                    # TODO:L: this probably should log an error message
-                    return False
-                if not char in stealth_states[0].vars_['seen_by']:
-                    return False
-            return True
-
         # Helper function to add candidates from a room
         def add_candidates_from_room(actor, room):
             for char in room.get_characters():
-                if char.id.startswith(target_name) and can_see(char, actor):
+                if char.id.startswith(target_name) and self.can_see(char, actor):
                     candidates.append(char)
                 else:
                     namepieces = char.name.split(' ')
                     for piece in namepieces:
-                        if piece.startswith(target_name) and can_see(char, actor):
+                        if piece.startswith(target_name) and self.can_see(char, actor):
                             candidates.append(char)
 
         # Search in the current room
@@ -511,7 +490,7 @@ class ComprehensiveGameState:
         self.spawn_character(character_def, owner, spawn_data)
 
     def get_zone_by_id(self, zone_id: str) -> Zone:
-        return self.zones[zone_id]
+        return self.zones[zone_id] if zone_id in self.zones else None
     
     def add_character_fighting(self, character: Character):
         self.characters_fighting.append(character)
@@ -543,6 +522,30 @@ class ComprehensiveGameState:
         if not source_actor:
             return ""
         return source_actor.get_permvar(var_name, "")
+    
+    def get_world_definition(self) -> WorldDefinition:
+        return self.world_definition
+
+    def can_see(self, char: Character, target: Character) -> bool:
+        if char == target:
+            return True
+        if char.actor_type != ActorType.CHARACTER or target.actor_type != ActorType.CHARACTER:
+            return True
+        # TODO:L: maybe handle invisible objects
+        if target.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE) \
+        or target.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE):
+            if not char.has_temp_flags(TemporaryCharacterFlags.SEE_INVISIBLE) \
+            and not char.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE):
+                return False
+        if target.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
+            stealth_states = [s for s in target.get_states() if isinstance(s) == CharacterStateStealthed]
+            if len(stealth_states) == 0:
+                # TODO:L: this probably should log an error message
+                return False
+            if not char in stealth_states[0].vars_['seen_by']:
+                return False
+        return True
+
 
 
 live_game_state = ComprehensiveGameState()
