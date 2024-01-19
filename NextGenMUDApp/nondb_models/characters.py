@@ -6,7 +6,8 @@ from .actor_interface import ActorType, ActorInterface
 from .actor_states import Cooldown
 from .actors import Actor
 from .attacks_and_damage import AttackData, DamageResistances, DamageType, PotentialDamage
-from .character_interface import CharacterInterface, EquipLocation, GamePermissionFlags, PermanentCharacterFlags, TemporaryCharacterFlags    
+from .character_interface import CharacterInterface, EquipLocation, GamePermissionFlags, PermanentCharacterFlags, \
+    TemporaryCharacterFlags, CharacterAttributes
 from ..communication import CommTypes
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
@@ -89,78 +90,88 @@ class Character(Actor, CharacterInterface):
     def from_yaml(self, yaml_data: str):
         from .triggers import Trigger
         logger = CustomDetailLogger(__name__, prefix="Character.from_yaml()> ")
-        # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
-        # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
-        self.name = yaml_data['name']
-        self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
-        self.description = yaml_data['description'] if 'description' in yaml_data else ''
-        self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
-        self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
-        self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
-        self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
-        # if 'character_flags' in yaml_data:
-        #     for flag in yaml_data['character_flags']:
-        #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])
-        if 'character_flags' in yaml_data:
-            for flag in yaml_data['character_flags']:
-                try:
-                    self.permanent_character_flags = self.permanent_character_flags.add_flag_name(flag)
-                except KeyError as e:
-                    logger.error(f"Error: {flag.upper()} is not a valid CharacterFlag. Details: {e}")
-        if 'experience_points' in yaml_data:
-            self.experience_points = yaml_data['experience_points']
-        # need attributes
-        # need classes
-        hit_point_parts = get_dice_parts(yaml_data['hit_dice'])
-        self.hit_dice, self.hit_dice_size, self.hit_point_bonus = hit_point_parts[0], hit_point_parts[1], hit_point_parts[2]
-        # need character flags
-        # need damage resistances
-        # print(yaml_data['natural_attacks'])
-        for atk in yaml_data['natural_attacks']:
-            new_attack = AttackData()
-            new_attack.attack_noun = atk['attack_noun']
-            new_attack.attack_verb = atk['attack_verb']
-            for dmg in atk['potential_damage']:
-                dice_parts = get_dice_parts(dmg['damage_dice'])
-                num_dice, dice_size, dice_bonus = dice_parts[0],dice_parts[1],dice_parts[2]
-                new_attack.potential_damage_.append(PotentialDamage(DamageType[dmg['damage_type'].upper()], num_dice, dice_size, dice_bonus))
-            self.natural_attacks.append(new_attack)
-        # print(type(self.hit_dice_))
-        # print(type(self.hit_dice_size_))
-        # print(type(self.hit_point_bonus_))
-        self.max_hit_points = roll_dice(self.hit_dice, self.hit_dice_size, self.hit_point_bonus)
-        self.current_hit_points = self.max_hit_points
-        self.hit_modifier = yaml_data['hit_modifier']
-        dodge_parts = get_dice_parts(yaml_data['dodge_dice'])
-        self.dodge_dice_number, self.dodge_dice_size, self.dodge_modifier = dodge_parts[0], dodge_parts[1], dodge_parts[2]
-        self.critical_chance = yaml_data['critical_chance']
-        self.critical_multiplier = yaml_data['critical_multiplier']
-        if 'triggers' in yaml_data:
-            for trig in yaml_data['triggers']:
-                logger.debug(f"got trigger for {self.name}: {trig}")
-                # logger.debug3(f"loading trigger_type: {trigger_type}")
-                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                if not new_trigger.trigger_type_ in self.triggers_by_type:
-                    self.triggers_by_type[new_trigger.trigger_type_] = []
-                self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
-        # unnecessary?
-        # if 'triggers' in yaml_data:
-        #     # print(f"triggers: {yaml_data['triggers']}")
-        #     # raise NotImplementedError("Triggers not implemented yet.")
-        #     # for trigger_type, trigger_info in yaml_data['triggers'].items():
-        #     #     # logger.debug3(f"loading trigger_type: {trigger_type}")
-        #     #     if not trigger_type in self.triggers_by_type_:
-        #     #         self.triggers_by_type_[trigger_type] = []
-        #     #     self.triggers_by_type_[trigger_type] += trigger_info
-        #     logger.critical(f"def triggers first: {self.triggers_by_type_}")
-        #     for trig in yaml_data['triggers']:
-        #         logger.critical("in for loop for trigger")
-        #         # logger.debug3(f"loading trigger_type: {trigger_type}")
-        #         new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-        #         if not new_trigger.trigger_type_ in self.triggers_by_type_:
-        #             self.triggers_by_type_[new_trigger.trigger_type_] = []
-        #         self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
-        #     logger.critical(f"def triggers: {self.triggers_by_type_}")
+        try:
+            # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
+            # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
+            self.name = yaml_data['name']
+            self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
+            self.description = yaml_data['description'] if 'description' in yaml_data else ''
+            self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
+            self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
+            self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+            self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
+            # if 'character_flags' in yaml_data:
+            #     for flag in yaml_data['character_flags']:
+            #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])
+            if 'permanent_flags' in yaml_data:
+                for flag in yaml_data['permanent_flags']:
+                    try:
+                        self.permanent_character_flags = self.permanent_character_flags.add_flag_name(flag)
+                    except KeyError as e:
+                        logger.error(f"Error: {flag.upper()} is not a valid CharacterFlag. Details: {e}")
+            if 'experience_points' in yaml_data:
+                self.experience_points = yaml_data['experience_points']
+            for resist_name, resist_amount in yaml_data.get('damage_resistances', {}).items():
+                self.damage_resistances.profile[DamageType[resist_name.upper()]] = resist_amount
+            for reduce_name, reduce_amount in yaml_data.get('damage_reductions', {}).items():
+                self.damage_reduction.profile[DamageType[reduce_name.upper()]] = reduce_amount
+
+            print(yaml_data.get('attributes', []))
+            for attr_name, attr_amount in yaml_data.get('attributes', {}).items():
+                self.attributes[CharacterAttributes[attr_name.upper()]] = attr_amount
+            # need classes
+            hit_point_parts = get_dice_parts(yaml_data['hit_dice'])
+            self.hit_dice, self.hit_dice_size, self.hit_point_bonus = hit_point_parts[0], hit_point_parts[1], hit_point_parts[2]
+            # print(yaml_data['natural_attacks'])
+            for atk in yaml_data['natural_attacks']:
+                new_attack = AttackData()
+                new_attack.attack_noun = atk['attack_noun']
+                new_attack.attack_verb = atk['attack_verb']
+                for dmg in atk['potential_damage']:
+                    dice_parts = get_dice_parts(dmg['damage_dice'])
+                    num_dice, dice_size, dice_bonus = dice_parts[0],dice_parts[1],dice_parts[2]
+                    new_attack.potential_damage_.append(PotentialDamage(DamageType[dmg['damage_type'].upper()], num_dice, dice_size, dice_bonus))
+                self.natural_attacks.append(new_attack)
+            # print(type(self.hit_dice_))
+            # print(type(self.hit_dice_size_))
+            # print(type(self.hit_point_bonus_))
+            self.max_hit_points = roll_dice(self.hit_dice, self.hit_dice_size, self.hit_point_bonus)
+            self.current_hit_points = self.max_hit_points
+            self.hit_modifier = yaml_data['hit_modifier']
+            dodge_parts = get_dice_parts(yaml_data['dodge_dice'])
+            self.dodge_dice_number, self.dodge_dice_size, self.dodge_modifier = dodge_parts[0], dodge_parts[1], dodge_parts[2]
+            self.critical_chance = yaml_data['critical_chance']
+            self.critical_multiplier = yaml_data['critical_multiplier']
+            if 'triggers' in yaml_data:
+                for trig in yaml_data['triggers']:
+                    logger.debug(f"got trigger for {self.name}: {trig}")
+                    # logger.debug3(f"loading trigger_type: {trigger_type}")
+                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                    if not new_trigger.trigger_type_ in self.triggers_by_type:
+                        self.triggers_by_type[new_trigger.trigger_type_] = []
+                    self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
+            # unnecessary?
+            # if 'triggers' in yaml_data:
+            #     # print(f"triggers: {yaml_data['triggers']}")
+            #     # raise NotImplementedError("Triggers not implemented yet.")
+            #     # for trigger_type, trigger_info in yaml_data['triggers'].items():
+            #     #     # logger.debug3(f"loading trigger_type: {trigger_type}")
+            #     #     if not trigger_type in self.triggers_by_type_:
+            #     #         self.triggers_by_type_[trigger_type] = []
+            #     #     self.triggers_by_type_[trigger_type] += trigger_info
+            #     logger.critical(f"def triggers first: {self.triggers_by_type_}")
+            #     for trig in yaml_data['triggers']:
+            #         logger.critical("in for loop for trigger")
+            #         # logger.debug3(f"loading trigger_type: {trigger_type}")
+            #         new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+            #         if not new_trigger.trigger_type_ in self.triggers_by_type_:
+            #             self.triggers_by_type_[new_trigger.trigger_type_] = []
+            #         self.triggers_by_type_[new_trigger.trigger_type_].append(new_trigger)
+            #     logger.critical(f"def triggers: {self.triggers_by_type_}")
+        except:
+            logger.error("Error loading character from yaml.")
+            logger.error("yaml_data: " + str(yaml_data))
+            raise
 
     @property
     def art_name(self):
@@ -296,13 +307,17 @@ class Character(Actor, CharacterInterface):
     def get_character_states_by_type(self, cls) -> List['ActorState']:
         return [state for state in self.current_states if isinstance(state, cls)]
 
-
     def add_state(self, state: 'ActorState') -> bool:
         self.current_states.append(state)
         return True
 
     def remove_state(self, state: 'ActorState') -> bool:
         self.current_states.remove(state)
+        return True
+    
+    def remove_states_by_flag(self, flags: TemporaryCharacterFlags) -> bool:
+        for state in self.get_character_states_by_flag(flags):
+            self.remove_state(state)
         return True
 
     def total_levels(self):

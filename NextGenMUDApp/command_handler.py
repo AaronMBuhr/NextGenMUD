@@ -760,9 +760,9 @@ class CommandHandler(CommandHandlerInterface):
                 msg_parts.append(
     # IS_ADMIN
     f"""
-    Hit Points: {actor.current_hit_points_} / {actor.max_hit_points_}""")
+    Hit Points: {actor.current_hit_points} / {actor.max_hit_points}""")
                 if not target.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                    msg_parts.append(f" ({target.hit_dice_}d{target.hit_dice_size_}+{target.hit_modifier_})\n")
+                    msg_parts.append(f" ({target.hit_dice}d{target.hit_dice_size}+{target.hit_modifier})\n")
                 else: # PC
                     msg_parts.append("\n")
                 msg_parts.append(
@@ -778,14 +778,14 @@ class CommandHandler(CommandHandlerInterface):
             msg_parts.append(
     # ALWAYS
     f"""
-    Hit Modifier: {target.hit_modifier_}  /  Critical Hit: {target.critical_chance_}% (Critical Damage: {target.critical_multiplier_}x)
-    Dodge Chance: {target.dodge_dice_number_}d{target.dodge_dice_size_}+{target.dodge_modifier_}""")
+    Hit Modifier: {target.hit_modifier}  /  Critical Hit: {target.critical_chance}% (Critical Damage: {target.critical_multiplier}x)
+    Dodge Chance: {target.dodge_dice_number}d{target.dodge_dice_size}+{target.dodge_modifier}""")
 
             if actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
                 msg_parts.append(
     # IS_ADMIN
     f"""
-    Character Flags: {target.permanent_character_flags_.to_comma_separated()}
+    Character Flags: {target.permanent_character_flags.to_comma_separated()}
     Triggers ({sum(len(lst) for lst in target.triggers_by_type.values())}): 
     {"\n".join([f"{key}:\n{',\n'.join([ v.shortdesc() for v in values])}" for key, values in target.triggers_by_type.items()])}
     Temp variables:
@@ -818,7 +818,7 @@ class CommandHandler(CommandHandlerInterface):
                 await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
         elif actor.actor_type == ActorType.ROOM:
             logger.debug(f"room: {actor.rid}")
-            room: Room = actor
+            room: 'Room' = actor
             if len(room.contents) == 0:
                 msg_parts.append(" nothing.")
             else:
@@ -994,6 +994,11 @@ class CommandHandler(CommandHandlerInterface):
         if actor.actor_type != ActorType.CHARACTER:
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can equip things.")
             return
+        if actor.fighting_whom != None:
+            msg = "You can't equip while fighting!"
+            vars = set_vars(actor, actor, actor, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            return
         if input == "":
             # await actor.send_text(CommTypes.DYNAMIC, "Equip what?")
             await cls.cmd_equip_list(actor, input)
@@ -1123,6 +1128,11 @@ class CommandHandler(CommandHandlerInterface):
 
         if actor.actor_type != ActorType.CHARACTER:
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can unequip things.")
+            return
+        if actor.fighting_whom != None:
+            msg = "You can't unequip while fighting!"
+            vars = set_vars(actor, actor, actor, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return
         if input == "":
             await actor.send_text(CommTypes.DYNAMIC, "Unequip what?")

@@ -40,12 +40,12 @@ ZONES:
         description: >
           The second room where all new characters begin their adventures.
           
-          Exits: north, south
+          Exits: south, east
         exits:
-          north:
-            destination: enchanted_forest.mystical_glade
           south:
             destination: starting_room
+          east:
+            destination: enchanted_forest.whispering_pines
         triggers:
           - type: catch_any
             criteria: 

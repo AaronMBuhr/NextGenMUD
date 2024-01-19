@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from .nondb_models.actors import Actor
+from .nondb_models.attacks_and_damage import DamageType
 
 class CoreActionsInterface(metaclass=ABCMeta):
 
@@ -20,3 +22,6 @@ class CoreActionsInterface(metaclass=ABCMeta):
             cls._instance = CoreActions()
         return cls._instance    
 
+    async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True) -> int:
+        pass
+    

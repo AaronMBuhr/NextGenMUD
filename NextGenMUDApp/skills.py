@@ -4,11 +4,15 @@ from .basic_types import DescriptiveFlags
 from .communication import CommTypes
 from .constants import CharacterClassRole
 from .core_actions_interface import CoreActionsInterface
-from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, CharacterStateStealthed, CharacterStateStunned
+from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, \
+    CharacterStateStealthed, CharacterStateStunned, CharacterStateBleeding, CharacterStateHitBonus, \
+    CharacterStateDodgeBonus
 from .nondb_models.actors import Actor
-from .nondb_models.character_interface import CharacterAttributes, EquipLocation, PermanentCharacterFlags, TemporaryCharacterFlags
+from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, PotentialDamage
+from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
+    PermanentCharacterFlags, TemporaryCharacterFlags
 from .nondb_models.characters import Character, CharacterSkill
-from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds
+from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
 
 
 
@@ -19,6 +23,7 @@ class FighterSkills(Enum):
     DISARM = 4
     SLAM = 5
     RALLY = 6
+    REND = 7
 
     def __str__(self):
         return self.name.replace("_", " ").title()
@@ -30,6 +35,7 @@ class MageSkills(Enum):
     CAST_SHIELD = 4
     CAST_SLEEP = 5
     CAST_CHARM = 6
+    CAST_RESIST_MAGIC = 7
 
     def __str__(self):
         return self.name[5:].replace("_", " ").title()
@@ -52,6 +58,8 @@ class ClericSkills(Enum):
     ANIMATE_DEAD = 5
     SMITE = 6
     BLESS = 7
+    AEGIS = 8
+    SANCTUARY = 9
 
     def __str__(self):
         return self.name.replace("_", " ").title()
@@ -70,7 +78,8 @@ class Skills:
             FighterSkills.INTIMIDATE: 1,
             FighterSkills.DISARM: 1,
             FighterSkills.SLAM: 1,
-            FighterSkills.RALLY: 1
+            FighterSkills.RALLY: 1,
+            FighterSkills.REND: 1
         },
         CharacterClassRole.ROGUE: {
 
@@ -107,37 +116,41 @@ class Skills:
     async def do_fighter_mighty_kick(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
         KICK_DURATION_MIN = ticks_from_seconds(3)
         KICK_DURATION_MAX = ticks_from_seconds(6)
-        kick_duration = random.randint(KICK_DURATION_MIN, KICK_DURATION_MAX) * actor.levels[CharacterClassRole.FIGHTER] / target.total_levels()
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        kick_duration = random.randint(KICK_DURATION_MIN, KICK_DURATION_MAX) \
+            * actor.levels[CharacterClassRole.FIGHTER] / target.total_levels()
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = roll_dice(target.dodge_dice_number_, target.dodge_dice_size_, target.dodge_dice_modifier_)
-        if cls.do_skill_check(actor, actor.skills_by_class_[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK], difficulty_modifier - attrib_mod + target_mod):
-            new_state = CharacterStateForcedSitting(target, actor, "kicked", game_tick, kick_duration)
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK],
+                              difficulty_modifier - attrib_mod + target_mod):
+            new_state = CharacterStateForcedSitting(target, actor, "kicked", tick_created=game_tick)
             new_state.apply_state(game_tick, kick_duration)
             msg = f"You kick {target.art_name} to the ground!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} kicks you to the ground!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} kicks %t% to the ground!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to kick {target.art_name}, but %r% dodges!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to kick you, but you dodge!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to kick {target.art_name}, but {target.pronoun_subject} dodges!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
 
     @classmethod
-    async def do_fighter_demoralizing_shout(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_fighter_demoralizing_shout(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                                            difficulty_modifier=0, game_tick=0) -> bool:
         DEMORALIZING_SHOUT_DURATION_MIN = ticks_from_seconds(6)
         DEMORALIZING_SHOUT_DURATION_MAX = ticks_from_seconds(12)
         DEMORALIZING_SHOUT_HIT_PENALTY_MIN = 10
@@ -145,31 +158,35 @@ class Skills:
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(DEMORALIZING_SHOUT_DURATION_MIN, DEMORALIZING_SHOUT_DURATION_MAX) * level_mult
         hit_penalty = random.randint(DEMORALIZING_SHOUT_HIT_PENALTY_MIN, DEMORALIZING_SHOUT_HIT_PENALTY_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        if cls.do_skill_check(actor, actor.skills_by_class_[CharacterClassRole.FIGHTER][FighterSkills.DEMORALIZING_SHOUT], difficulty_modifier - attrib_mod + target_mod):
-            new_state = CharacterStateHitPenalty(target, actor, "demoralized", hit_penalty, game_tick)
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.DEMORALIZING_SHOUT],
+                              difficulty_modifier - attrib_mod + target_mod):
+            new_state = CharacterStateHitPenalty(target, actor, "demoralized", hit_penalty, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             msg = f"You shout at {target.art_name}, demoralizing {target.pronoun_object}!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name} shouts at you, demoralizing you!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name} shouts at {target.art_name}, demoralizing {target.pronoun_object}!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to shout at {target.art_name}, but {target.pronoun_object} resists!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to shout at you, but you resist!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to shout at {target.art_name}, but {target.pronoun_subject} resists!"
-            set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target],
+                                      game_state=cls.game_state)
             return False
 
 
@@ -182,88 +199,180 @@ class Skills:
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(INTIMIDATE_DURATION_MIN, INTIMIDATE_DURATION_MIN) * level_mult
         dodge_penalty = random.randint(INTIMIDATE_DODGE_PENALTY_MIN, INTIMIDATE_DODGE_PENALTY_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        if cls.do_skill_check(actor, actor.skills_by_class_[CharacterClassRole.FIGHTER][FighterSkills.INTIMIDATE], difficulty_modifier - attrib_mod + target_mod):
-            new_state = CharacterStateHitPenalty(target, actor, "intimidated", dodge_penalty, game_tick)
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.INTIMIDATE],
+                              difficulty_modifier - attrib_mod + target_mod):
+            new_state = CharacterStateHitPenalty(target, actor, "intimidated", dodge_penalty, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             msg = f"You intimidate {target.art_name}, making {target.pronoun_possessive} attacks less accurate!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             actor.echo(CommTypes.DYNAMIC, msg, vars)
             msg = f"{actor.art_name_cap} intimidates you, making your attacks less accurate!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             target.echo(CommTypes.DYNAMIC, msg, vars)
             msg = f"{actor.art_name_cap} intimidates {target.art_name}, making {target.pronoun_possessive} attacks less accurate!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars)
             return True
         else:
             msg = f"You try to intimidate {target.art_name}, but {actor.pronoun_subject} resists!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = "{actor.art_name_cap} tries to intimidate you, but you resist!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = "{actor.art_name_cap} tries to intimidate {target.art_name}, but {target.pronoun_subject_} resists!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
             return False
         
 
     @classmethod
-    async def do_fighter_disarm(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_fighter_disarm(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                                difficulty_modifier=0, game_tick=0) -> bool:
         DISARM_DURATION_MIN = ticks_from_seconds(3)
         DISARM_DURATION_MAX = ticks_from_seconds(6)
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(DISARM_DURATION_MIN, DISARM_DURATION_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.DISARM], difficulty_modifier - attrib_mod + target_mod):
-            new_state = CharacterStateForcedSitting(target, actor, "disarmed", game_tick, duration)
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.DISARM],
+                              difficulty_modifier - attrib_mod + target_mod):
+            new_state = CharacterStateForcedSitting(target, actor, "disarmed", tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             msg = f"You disarm {target.art_name}!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} disarms you!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} disarms {target.art_name}!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
 
     @classmethod
-    async def do_fighter_slam(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_fighter_slam(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                              difficulty_modifier=0, game_tick=0) -> bool:
         SLAM_DURATION_MIN = ticks_from_seconds(1)
         SLAM_DURATION_MAX = ticks_from_seconds(4)
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(SLAM_DURATION_MIN, SLAM_DURATION_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        if cls.do_skill_check(actor, actor.skills_by_class_[CharacterClassRole.FIGHTER][FighterSkills.SLAM], difficulty_modifier - attrib_mod + target_mod):
-            new_state = CharacterStateStunned(target, actor, "slammed", game_tick, duration)
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        target_mod = (target.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.SLAM],
+                              difficulty_modifier - attrib_mod + target_mod):
+            new_state = CharacterStateStunned(target, actor, "slammed", tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             msg = f"You slam {target.art_name}, making {target.pronoun_object} easier to hit!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} intimidates you, making you easier to hit!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} intimidates {target.art_name}, making {target.pronoun_object} easier to hit!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return True
         else:
             msg = f"You try to intimidate {target.art_name}, but {target.pronoun_subject} resists!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to intimidate you, but you resist!"
-            set_vars(actor, actor, target, msg)
+            vars = set_vars(actor, actor, target, msg)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to intimidate %t%, but %t%s resists!"
-            set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target],
+                                      game_state=cls.game_state)
             return False
+
+    
+    @classmethod
+    async def do_fighter_rally(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                                            difficulty_modifier=0, game_tick=0) -> bool:
+        RALLY_DURATION_MIN = ticks_from_seconds(6)
+        RALLY_DURATION_MAX = ticks_from_seconds(12)
+        RALLY_HIT_BONUS_MIN = 4
+        RALLY_HIT_BONUS_MAX = 8
+        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / 4
+        duration = random.randint(RALLY_DURATION_MIN, RALLY_DURATION_MAX)
+        hit_bonus = random.randint(RALLY_HIT_BONUS_MIN, RALLY_HIT_BONUS_MAX) * level_mult
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.RALLY],
+                              difficulty_modifier - attrib_mod):
+            new_state = CharacterStateHitBonus(target, actor, "rallied", hit_bonus, tick_created=game_tick)
+            new_state.apply_state(game_tick, duration)
+            whomever = "yourself" if target == actor else target.art_name
+            msg = f"You rally {whomever}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            if target != actor:
+                msg = f"{actor.art_name_cap} rallies you!"
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            whomever = f"{actor.pronoun_object}self" if target == actor else target.art_name}"
+            msg = f"{actor.art_name} rallies {whomever}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return True
+        else:
+            whomever = "yourself" if target == actor else target.art_name
+            msg = f"You try to rally {whomever}, but fail!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            if target != actor:
+                msg = f"{actor.art_name_cap} tries to rally you, but it doesn't work!"
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            whomever = f"{actor.pronoun_object}self" if target == actor else target.art_name
+            msg = f"{actor.art_name_cap} tries to rally {whomever}, but fails!"
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target],
+                                      game_state=cls.game_state)
+            return False
+
+    @classmethod 
+    async def do_fighter_rend(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                              difficulty_modifier=0, game_tick=0) -> bool:
+        REND_DURATION_MIN = ticks_from_seconds(4)
+        REND_DURATION_MAX = ticks_from_seconds(10)
+        REND_PERIODIC_DAMAGE_MIN = 1
+        REND_PERIODIC_DAMAGE_MAX = 4
+        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.REND],
+                              difficulty_modifier - attrib_mod):
+            duration = random.randint(REND_DURATION_MIN, REND_DURATION_MAX) * level_mult
+            level_mult = actor.levels_[CharacterClassRole.FIGHTER] / 2
+            damage = (random.randint(REND_PERIODIC_DAMAGE_MIN, REND_PERIODIC_DAMAGE_MAX) + (attrib_mod / 2)) * level_mult
+            msg = f"You tear open bloody wounds on {target.art_name}, for {damage} damage! {target.pronoun_subject} starts bleeding!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} tears open bloody wounds on you, for {damage} damage! You are bleeding!"
+            vars = set_vars(actor, actor, target, msg)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} tears open bloody wounds on {target.art_name}! {firstcap(target.pronoun_subject)} starts bleeding!"
+            vars = set_vars(actor, actor, target, msg)
+            CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, 
+                                                                     DescriptiveFlags.DAMAGE_TYPE_RAW, do_msg=False)
+            new_state = CharacterStateBleeding(target, actor, "bleeding", game_tick, duration)
+            new_state.apply_state(game_tick, duration)
+            return True
+        else:
+            msg = f"Your attempt to rend didn't succeed!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return False
+
 
     @classmethod
     async def do_rogue_backstab(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
@@ -290,28 +399,28 @@ class Skills:
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         attrib_mod = (actor.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         difficulty_modifier = attrib_mod + (level_mult * 10)
-        if cls.do_skill_check(actor, actor.skills_by_class_[CharacterClassRole.ROGUE][RogueSkills.BACKSTAB], difficulty_modifier):
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.BACKSTAB], difficulty_modifier):
             damage = roll_dice(mhw.damage_dice_number_, mhw.damage_dice_size_, mhw.damage_dice_modifier_) * BACKSTAB_DAMAGE_MULT
             msg = f"You backstab {target.art_name} for {damage} damage!"
-            set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
+            vars = set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} backstabs you for {damage} damage!"
-            set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
+            vars = set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} backstabs {target.art_name}!"
-            set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
+            vars = set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            await CoreActionsInterface.get_instance().do_damage(actor, target, damage, mhw.damage_type_)
+            await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, mhw.damage_type_)
             return True
         else:
             msg = f"You try to backstab {target.art_name}, but fumble your attack!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to backstab you, but fumbles {actor.pronoun_possessive} attack!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             msg = f"{actor.art_name_cap} tries to backstab {target.art_name}, but fumbles {actor.pronoun_possessive} attack!"
-            set_vars(actor, actor, target, msg, cls.game_state)
+            vars = set_vars(actor, actor, target, msg, cls.game_state)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
@@ -324,7 +433,7 @@ class Skills:
         if last_cooldown:
             secs_remaining = seconds_from_ticks(last_cooldown.ticks_remaining(game_tick))
             msg = f"You can't retry stealth for another {secs_remaining} seconds!"
-            set_vars(actor, actor, target, msg, {'d': secs_remaining})
+            vars = set_vars(actor, actor, target, msg, {'d': secs_remaining})
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
         
@@ -346,7 +455,7 @@ class Skills:
         level_mult = sneaker.levels_[CharacterClassRole.ROGUE] / viewer.total_levels_()
         attrib_mod = (sneaker.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         difficulty_modifier = attrib_mod + (level_mult * 10)
-        return cls.do_skill_check(sneaker, sneaker.skills_by_class_[CharacterClassRole.ROGUE][RogueSkills.STEALTH], difficulty_modifier)
+        return cls.do_skill_check(sneaker, sneaker.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.STEALTH], difficulty_modifier)
     
 
     @classmethod
@@ -366,14 +475,14 @@ class Skills:
                 continue
             if not cls.stealthcheck(sneaker, viewer):
                 msg = f"You notice {sneaker.art_name} trying to hide!"
-                set_vars(sneaker, sneaker, viewer, msg, cls.game_state)
+                vars = set_vars(sneaker, sneaker, viewer, msg, cls.game_state)
                 viewer.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
                 if viewer.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE):
                     msg = f"{viewer.art_name} notices you and attacks!"
-                    set_vars(sneaker, viewer, sneaker, msg)
+                    vars = set_vars(sneaker, viewer, sneaker, msg)
                     sneaker.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls.game_state)
                     msg = f"{viewer.art_name_cap} notices {sneaker.art_name} and attacks!"
-                    set_vars(sneaker, sneaker, viewer, msg)
+                    vars = set_vars(sneaker, sneaker, viewer, msg)
                     sneaker._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[sneaker, viewer], game_state=cls.game_state)
                     cls.remove_stealth(sneaker)
                     CoreActionsInterface.get_instance().start_fighting(viewer,sneaker)
@@ -382,28 +491,145 @@ class Skills:
         
 
     @classmethod
-    async def do_rogue_evade(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
-        pass
+    async def do_rogue_evade(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+                             difficulty_modifier=0, game_tick=0) -> bool:
+        EVADE_DURATION_MIN = ticks_from_seconds(6)
+        EVADE_DURATION_MAX = ticks_from_seconds(12)
+        EVADE_DODGE_BONUS_MIN = 4
+        EVADE_DODGE_BONUS_MAX = 8
+        level_mult = actor.levels_[CharacterClassRole.ROGUE] / 4
+        duration = random.randint(EVADE_DURATION_MIN, EVADE_DURATION_MAX)
+        dodge_bonus = random.randint(EVADE_DODGE_BONUS_MIN, EVADE_DODGE_BONUS_MAX) * level_mult
+        attrib_mod = (actor.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.EVADE],
+                              difficulty_modifier - attrib_mod):
+            new_state = CharacterStateHitBonus(target, actor, "evading", dodge_bonus, tick_created=game_tick)
+            new_state.apply_state(game_tick, duration)
+            msg = f"You focus on evading blows!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return True
+        else:
+            msg = f"You try being evasive, but fail!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return False
 
     @classmethod
     async def do_rogue_pickpocket(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
-        pass
+        actor.send_text(CommTypes.DYNAMIC, "Pickpocketing is not yet implemented!", cls.game_state)
+        return False
+
+
+    @classmethod
+    async def do_spell_fizzile(actor: Actor, target: Actor, spell_name: str, vars: dict=None,
+                               game_state: 'ComprehensiveGameState'=None):
+        msg = f"Your {spell_name} spell fizzles!"
+        vars = set_vars(actor, actor, target, msg)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, game_state)
+        msg = f"{actor.art_name_cap}'s {spell_name} spell fizzles!"
+        vars = set_vars(actor, actor, target, msg)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
 
     @classmethod
     async def do_mage_cast_fireball(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
-        pass
+        FIREBALL_DMG_DICE_LEVEL_MULT = 1/4
+        FIREBALL_DMG_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
+        FIREBALL_DMG_DICE_SIZE = 6
+        attrib_mod = (actor.attributes_[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        FIREBALL_DMG_BONUS = attrib_mod * actor.levels_[CharacterClassRole.MAGE] / 8
+
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.CAST_FIREBALL],
+                              difficulty_modifier - attrib_mod):
+            damage = roll_dice(FIREBALL_DMG_DICE_NUM, FIREBALL_DMG_DICE_SIZE) + FIREBALL_DMG_BONUS
+            msg = f"You cast a fireball at {target.art_name}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a fireball at you!"
+            vars = set_vars(actor, actor, target, msg)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a fireball at {target.art_name}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.FIRE)
+            for c in actor.location_room:
+                if c != actor and c != target:
+                    msg = f"Your fireball also hits {c.art_name}!"
+                    vars = set_vars(actor, actor, c, msg, { 'd': damage })
+                    actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                    msg = f"{actor.art_name_cap}'s fireball also hits you!"
+                    vars = set_vars(actor, actor, c, msg, { 'd': damage })
+                    c.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                    msg = f"{actor.art_name_cap}'s fireball also hits {c.art_name}!"
+                    vars = set_vars(actor, actor, c, msg, { 'd': damage })
+                    actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls.game_state)
+                    await CoreActionsInterface.get_instance().do_calculated_damage(actor, c, damage, DamageType.FIRE)
+            return True
+        else:
+            await cls.do_spell_fizzile(actor, target, "fireball", cls.game_state)
+            return False
+
 
     @classmethod
     async def do_mage_cast_magic_missile(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
-        pass
+        MAGIC_MISSILE_DMG_DICE_LEVEL_MULT = 1/4
+        MAGIC_MISSILE_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT
+        MAGIC_MISSILE__DMG_DICE_SIZE = 6
+        attrib_mod = (actor.attributes_[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        MAGIC_MISSILE_DMG_BONUS = attrib_mod * actor.levels_[CharacterClassRole.MAGE] / 4
+
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.CAST_FIREBALL],
+                              difficulty_modifier - attrib_mod):
+            damage = roll_dice(MAGIC_MISSILE_DICE_NUM, MAGIC_MISSILE__DMG_DICE_SIZE) + MAGIC_MISSILE_DMG_BONUS
+            msg = f"You cast a magic missile at {target.art_name}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a magic missile at you!"
+            vars = set_vars(actor, actor, target, msg)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a magic missile at {target.art_name}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.ARCANE)
+            return True
+        else:
+            await cls.do_spell_fizzile(actor, target, "magic missile", cls.game_state)
+            return False
 
     @classmethod
     async def do_mage_cast_light(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+        actor.send_text(CommTypes.DYNAMIC, "Casting light is not yet implemented!", cls.game_state)
         pass
 
     @classmethod
     async def do_mage_cast_shield(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
-        pass
+        DAMAGE_REDUCTION_AMOUNT = actor.levels_[CharacterClassRole.MAGE]
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.CAST_SHIELD],
+                              difficulty_modifier):
+            msg = f"You cast a shield spell on yourself!"
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a shield spell on you! You feel shielded!"
+            vars = set_vars(actor, actor, target, msg)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            msg = f"{actor.art_name_cap} casts a shield spell on {target.art_name}!"
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target] cls.game_state)
+            reductions = DamageReduction(reductions_by_type={
+                DamageType.BLUDGEONING: DAMAGE_REDUCTION_AMOUNT,
+                DamageType.PIERCING: DAMAGE_REDUCTION_AMOUNT,
+                DamageType.SLASHING: DAMAGE_REDUCTION_AMOUNT
+            }
+            new_state = CharacterStateDamageReduction(target, actor, "shielded", DAMAGE_REDUCTION_AMOUNT, tick_created=game_tick)
+            new_state.apply_state(game_tick, 0)
+            return True
+        else:
+            await cls.do_spell_fizzile(actor, target, "shield", cls.game_state)
+            return False
+
 
     @classmethod
     async def do_cleric_cure_light_wounds(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
@@ -428,6 +654,7 @@ class Skills:
         {'commands': ["disarm", "disarming", "disarmer", "disarmament", "disarmament"], 'skill': FighterSkills.DISARM, "function": do_fighter_disarm},
         {'commands': ["slam", "slamming", "slammer", "slammed", "slammed"], 'skill': FighterSkills.SLAM, "function": do_fighter_slam},
         {'commands': ["rally", "rallying", "rallier", "rallied", "rallied"], 'skill': FighterSkills.RALLY, "function": do_fighter_rally},
+        {'commands': ["rend", "rending", "render", "rended", "rended"], 'skill': FighterSkills.REND, "function": do_fighter_rend},
         {'commands': ["backstab", "backstabbing", "backstabber", "backstabbed", "backstabbed"], 'skill': RogueSkills.BACKSTAB, "function": do_rogue_backstab},
         {'commands': ["stealth", "stealthy", "stealthily", "stealthiness", "stealthiness"], 'skill': RogueSkills.STEALTH, "function": do_rogue_stealth},
         {'commands': ["evade", "evading", "evader", "evaded", "evaded"], 'skill': RogueSkills.EVADE, "function": do_rogue_evade},

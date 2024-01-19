@@ -183,7 +183,10 @@ SCRIPT_FUNCTIONS = {
     "hasiteminv": lambda a,b,c,gs: does_char_have_item_inv(a, b, gs),
     "hasitemeq": lambda a,b,c,gs: does_char_have_item_equipped(a, b, gs),
     "hasitem" : lambda a,b,c,gs: does_char_have_item_anywhere(a, b, gs),
-
+    "locroom": lambda a,b,c,gs: gs.find_target_character(a).current_room_.name_,
+    "loczone": lambda a,b,c,gs: gs.find_target_character(a).current_room_.zone_.name_,
+    "olocroom": lambda a,b,c,gs: gs.find_target_object(a).current_room_.name_,
+    "oloczone": lambda a,b,c,gs: gs.find_target_object(a).current_room_.zone_.name_,
 }
 
 # TODO:M: make these handle containers

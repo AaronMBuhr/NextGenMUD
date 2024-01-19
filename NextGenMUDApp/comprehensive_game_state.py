@@ -62,7 +62,7 @@ class ComprehensiveGameState:
         self.world_definition: WorldDefinition = WorldDefinition()
         self.characters: List[Character] = []
         self.players : List[Character] = []
-        self.connections_ : List[Connection] = []
+        self.connections : List[Connection] = []
         self.characters_fighting : List[Character] = []
         self.zones = {}
         self.world_clock_tick = 0
@@ -410,7 +410,7 @@ class ComprehensiveGameState:
 
         new_connection = Connection(consumer)
         # await new_connection.send("static", "Welcome to NextGenMUD!")
-        self.connections_.append(new_connection)
+        self.connections.append(new_connection)
         await self.load_in_character(new_connection)
         return new_connection
 
@@ -440,10 +440,10 @@ class ComprehensiveGameState:
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
-        for c in self.connections_:
+        for c in self.connections:
             if c.consumer_ == consumer:
                 self.remove_character(c)
-                self.connections_.remove(c)
+                self.connections.remove(c)
                 return
 
     def remove_player_by_connection(self, connection: Connection):

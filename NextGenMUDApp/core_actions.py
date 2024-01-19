@@ -127,7 +127,10 @@ class CoreActions(CoreActionsInterface):
             raise Exception("Actor must be of type CHARACTER to move.")
         
         if not direction in actor.location_room.exits:
-            raise Exception(f"Location {actor.location_room.id} does not have an exit in direction {direction}")
+            msg = "You can't go that direction from here."
+            vars = set_vars(actor, actor, actor, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            return
         
         if actor.fighting_whom != None:
             msg = "You can't move while fighting!"
@@ -285,23 +288,31 @@ class CoreActions(CoreActionsInterface):
             self.game_state.remove_character(dying_actor)
 
 
-    async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType):
+    async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True):
         logger = CustomDetailLogger(__name__, prefix="do_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to do damage.")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to do damage.")
+        
+        if damage < 1 and damage > 0.5:
+            damage = 1
+        elif damage < 1:
+            damage = 0
+        else:
+            damage = int(damage)
         target.current_hit_points -= damage
-        msg = f"You do {damage} {damage_type.word()} damage to {target.art_name}!"
-        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
-        msg = f"{actor.art_name_cap} does {damage} {damage_type.word()} damage to you!"
-        await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
-        msg = (f"{actor.art_name_cap} does "
-            f"{damage} {damage_type.word()} damage to {target.art_name}!")
-        await actor.location_room.echo(CommTypes.DYNAMIC, msg,
-                                        set_vars(actor.location_room, actor, target, msg),
-                                        exceptions=[actor, target], game_state=self.game_state)
+        if do_msg:
+            msg = f"You do {damage} {damage_type.word()} damage to {target.art_name}!"
+            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
+            msg = f"{actor.art_name_cap} does {damage} {damage_type.word()} damage to you!"
+            await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
+            msg = (f"{actor.art_name_cap} does "
+                f"{damage} {damage_type.word()} damage to {target.art_name}!")
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg,
+                                            set_vars(actor.location_room, actor, target, msg),
+                                            exceptions=[actor, target], game_state=self.game_state)
         if target.current_hit_points <= 0:
             await self.do_die(target, actor)
         else:
@@ -315,6 +326,18 @@ class CoreActions(CoreActionsInterface):
                 await target.location_room.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(target.location_room, target, target, msg),
                                                 exceptions=[target], game_state=self.game_state)
+                
+
+    async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True) -> int:
+        logger = CustomDetailLogger(__name__, prefix="do_calculated_damage()> ")
+        logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
+        if actor.actor_type != ActorType.CHARACTER:
+            raise Exception("Actor must be of type CHARACTER to do damage.")
+        if target.actor_type != ActorType.CHARACTER:
+            raise Exception("Target must be of type CHARACTER to do damage.")
+        damage = damage * target.damage_resistances.get(damage_type) - target.damage_reduction.get(damage_type)
+        await self.do_damage(actor, target, damage, damage_type, do_msg)
+        return damage
 
 
     async def do_single_attack(self, actor: Actor, target: Actor, attack: AttackData) -> int:
@@ -361,9 +384,7 @@ class CoreActions(CoreActionsInterface):
             damage = dp.roll_damage()
             if critical:
                 damage *= (100 + actor.critical_damage_bonus) / 100
-            dmg_mult = target.damage_resistances.get(dp.damage_type)
-            damage = damage * dmg_mult - target.damage_reduction.get(dp.damage_type)
-            await self.do_damage(actor, target, damage, dp.damage_type)
+            await self.do_calculated_damage(actor, target, damage, dp.damage_type)
             total_damage += damage
             logger.critical(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
         logger.critical(f"total damage: {total_damage}")
@@ -430,7 +451,8 @@ class CoreActions(CoreActionsInterface):
                 await c.location_room.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(c.location_room, c, c.fighting_whom, msg),
                                             exceptions=[c, c.fighting_whom], game_state=self.game_state)
-
+            if c.fighting_whom != None and c.fighting_whom.fighting_whom == None and c.fighting_whom.current_hit_points > 0:
+                await self.start_fighting(c.fighting_whom, c)
     
     async def do_aggro(self, actor: Actor):
         from NextGenMUDApp.skills import Skills

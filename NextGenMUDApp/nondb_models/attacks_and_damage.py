@@ -1,27 +1,28 @@
 from enum import Enum
 import random
-from typing import List
+from typing import Dict, List
 from custom_detail_logger import CustomDetailLogger
 from ..utility import get_dice_parts
 
 
 class DamageType(Enum):
-    SLASHING = 1
-    PIERCING = 2
-    BLUDGEONING = 3
-    FIRE = 4
-    COLD = 5
-    LIGHTNING = 6
-    ACID = 7
-    POISON = 8
-    DISEASE = 9
-    HOLY = 10
-    UNHOLY = 11
-    ARCANE = 12
-    PSYCHIC = 13
-    FORCE = 14
-    NECROTIC = 15
-    RADIANT = 16
+    RAW = 1
+    SLASHING = 2
+    PIERCING = 3
+    BLUDGEONING = 4
+    FIRE = 5
+    COLD = 6
+    LIGHTNING = 7
+    ACID = 8
+    POISON = 9
+    DISEASE = 10
+    HOLY = 11
+    UNHOLY = 12
+    ARCANE = 13
+    PSYCHIC = 14
+    FORCE = 15
+    NECROTIC = 16
+    RADIANT = 17
 
     def word(self):
         return self.name.lower()
@@ -38,11 +39,14 @@ class DamageType(Enum):
 
 
 class DamageResistances:
-    def __init__(self, profile=None):
+    def __init__(self, profile=None, resistances_by_type: Dict[DamageType, int]=None):
         if profile:
             self.profile = profile
         else:
             self.profile = {loc: 1 for loc in DamageType}
+        if resistances_by_type:
+            for damage_type, amount in resistances_by_type.items():
+                self.profile[damage_type] = amount
 
     def to_dict(self):
         # return {EquipLocation[loc].name.lower(): dt.name.lower() for loc, dt in self.profile.items()}
@@ -53,13 +57,25 @@ class DamageResistances:
    
     def get(self, damage_type: DamageType):
         return self.profile[damage_type]
+    
+    def add_resistances(self, more_resistances: 'DamageResistances'):
+        for damage_type, amount in more_resistances.profile.items():
+            self.profile[damage_type] *= amount
+
+    def minus_resistances(self, more_resistances: 'DamageResistances'):
+        for damage_type, amount in more_resistances.profile.items():
+            self.profile[damage_type] /= amount
+    
 
 class DamageReduction:
-    def __init__(self, profile=None):
+    def __init__(self, profile=None, reductions_by_type: Dict[DamageType, int]=None):
         if profile:
             self.profile = profile
         else:
             self.profile = {loc: 0 for loc in DamageType}
+        if reductions_by_type:
+            for damage_type, amount in reductions_by_type.items():
+                self.profile[damage_type] = amount
 
     def set(self, damage_type: DamageType, amount: float):
         self.profile[damage_type] = amount
@@ -69,6 +85,14 @@ class DamageReduction:
 
     def to_dict(self):
         return repr(self.profile)
+    
+    def add_reduction(self, more_reduction: 'DamageReduction'):
+        for damage_type, amount in more_reduction.profile.items():
+            self.profile[damage_type] += amount
+
+    def minus_reduction(self, more_reduction: 'DamageReduction'):
+        for damage_type, amount in more_reduction.profile.items():
+            self.profile[damage_type] -= amount
 
 class PotentialDamage:
     def __init__(self, damage_type: DamageType, damage_dice_number: int, damage_dice_type: int, damage_dice_bonus: int):

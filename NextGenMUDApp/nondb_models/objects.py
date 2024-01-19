@@ -57,48 +57,54 @@ class Object(Actor, ObjectInterface):
         }
     
     def from_yaml(self, yaml_data: str):
-        self.name = yaml_data['name']
-        self.description_ = yaml_data['description']
-        self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
-        self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
-        self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
-        self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
-        self.weight = yaml_data['weight']
-        self.value = yaml_data['value']
-        if 'equip_locations' in yaml_data:
-            for el in yaml_data['equip_locations']:
-                self.equip_locations.append(EquipLocation.string_to_enum(el))
-        if 'attack_bonus' in yaml_data:
-            self.attack_bonus = yaml_data['attack_bonus']
-        if 'damage_type' in yaml_data:
-            self.damage_type = DamageType[yaml_data['damage_type'].upper()] if 'damage_type' in yaml_data else None
-            dmg_parts = get_dice_parts(yaml_data['damage'])
-            self.damage_num_dice = dmg_parts[0]
-            self.damage_dice_size = dmg_parts[1]
-            self.damage_bonus = dmg_parts[2]
-        self.dodge_penalty = yaml_data['dodge_penalty'] if 'dodge_penalty' in yaml_data else 0
-        if 'damage_resistances' in yaml_data:
-            for dt, mult in yaml_data['damage_resistances'].items():
-                self.damage_resistances.set(DamageType[dt.upper()], mult)
-        if 'damage_reduction' in yaml_data:
-            for dt, amount in yaml_data['damage_reduction'].items():
-                self.damage_reduction.set(DamageType[dt.upper()], amount)
+        logger = CustomDetailLogger(__name__, prefix="Object.from_yaml()> ")
+        try:
+            self.name = yaml_data['name']
+            self.description_ = yaml_data['description']
+            self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
+            self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
+            self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
+            self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+            self.weight = yaml_data['weight']
+            self.value = yaml_data['value']
+            if 'equip_locations' in yaml_data:
+                for el in yaml_data['equip_locations']:
+                    self.equip_locations.append(EquipLocation.string_to_enum(el))
+            if 'attack_bonus' in yaml_data:
+                self.attack_bonus = yaml_data['attack_bonus']
+            if 'damage_type' in yaml_data:
+                self.damage_type = DamageType[yaml_data['damage_type'].upper()] if 'damage_type' in yaml_data else None
+                dmg_parts = get_dice_parts(yaml_data['damage'])
+                self.damage_num_dice = dmg_parts[0]
+                self.damage_dice_size = dmg_parts[1]
+                self.damage_bonus = dmg_parts[2]
+            self.dodge_penalty = yaml_data['dodge_penalty'] if 'dodge_penalty' in yaml_data else 0
+            if 'damage_resistances' in yaml_data:
+                for dt, mult in yaml_data['damage_resistances'].items():
+                    self.damage_resistances.set(DamageType[dt.upper()], mult)
+            if 'damage_reduction' in yaml_data:
+                for dt, amount in yaml_data['damage_reduction'].items():
+                    self.damage_reduction.set(DamageType[dt.upper()], amount)
 
-        if 'triggers' in yaml_data:
-            # print(f"triggers: {yaml_data['triggers']}")
-            # raise NotImplementedError("Triggers not implemented yet.")
-            # for trigger_type, trigger_info in yaml_data['triggers'].items():
-            #     # logger.debug3(f"loading trigger_type: {trigger_type}")
-            #     if not trigger_type in self.triggers_by_type_:
-            #         self.triggers_by_type_[trigger_type] = []
-            #     self.triggers_by_type_[trigger_type] += trigger_info
-            for trig in yaml_data['triggers']:
-                # logger.debug3(f"loading trigger_type: {trigger_type}")
-                new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                if not new_trigger.trigger_type_ in self.triggers_by_type:
-                    self.triggers_by_type[new_trigger.trigger_type_] = []
-                self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
-    
+            if 'triggers' in yaml_data:
+                # print(f"triggers: {yaml_data['triggers']}")
+                # raise NotImplementedError("Triggers not implemented yet.")
+                # for trigger_type, trigger_info in yaml_data['triggers'].items():
+                #     # logger.debug3(f"loading trigger_type: {trigger_type}")
+                #     if not trigger_type in self.triggers_by_type_:
+                #         self.triggers_by_type_[trigger_type] = []
+                #     self.triggers_by_type_[trigger_type] += trigger_info
+                for trig in yaml_data['triggers']:
+                    # logger.debug3(f"loading trigger_type: {trigger_type}")
+                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                    if not new_trigger.trigger_type_ in self.triggers_by_type:
+                        self.triggers_by_type[new_trigger.trigger_type_] = []
+                    self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
+        except:
+            logger.error("Error loading object from yaml")
+            logger.error("yaml_data: " + str(yaml_data))
+            raise
+
     def add_object(self, obj: 'Object', force=False):
         self.contents.append(obj)
         obj.in_actor = self
