@@ -9,6 +9,7 @@ from .attacks_and_damage import AttackData, DamageResistances, DamageType, Poten
 from .character_interface import CharacterInterface, EquipLocation, GamePermissionFlags, PermanentCharacterFlags, \
     TemporaryCharacterFlags, CharacterAttributes
 from ..communication import CommTypes
+from ..comprehensive_game_state_interface import GameStateInterface
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
 from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice, evaluate_functions_in_line
@@ -44,9 +45,9 @@ class CharacterClass:
 
 class Character(Actor, CharacterInterface):
     
-    def __init__(self, id: str, definition_zone: 'Zone', name: str = "", create_reference=True):
+    def __init__(self, id: str, definition_zone_id: str, name: str = "", create_reference=True):
         super().__init__(ActorType.CHARACTER, id, name=name, create_reference=create_reference)
-        self.definition_zone = definition_zone
+        self.definition_zone_id = definition_zone_id
         self.description = ""
         self.attributes = {}
         self._location_room = None
@@ -85,15 +86,18 @@ class Character(Actor, CharacterInterface):
         self.cooldowns: List[Cooldown] = []
         self.experience_points: int = 0
         self.group_id: str = None
+        self.starting_eq = None
+        self.starting_inv = None
 
 
-    def from_yaml(self, yaml_data: str):
+    def from_yaml(self, yaml_data: str, definition_zone_id: str):
         from .triggers import Trigger
         logger = CustomDetailLogger(__name__, prefix="Character.from_yaml()> ")
         try:
             # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
             # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
             self.name = yaml_data['name']
+            self.definition_zone_id = definition_zone_id
             self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
             self.description = yaml_data['description'] if 'description' in yaml_data else ''
             self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
@@ -142,7 +146,11 @@ class Character(Actor, CharacterInterface):
             self.dodge_dice_number, self.dodge_dice_size, self.dodge_modifier = dodge_parts[0], dodge_parts[1], dodge_parts[2]
             self.critical_chance = yaml_data['critical_chance']
             self.critical_multiplier = yaml_data['critical_multiplier']
-            if 'triggers' in yaml_data:
+            if 'equipment' in yaml_data:
+                self.starting_eq = yaml_data['equipment']
+            if 'inventory' in yaml_data:
+                self.starting_inv = yaml_data['inventory']
+            if 'triggers' in yaml_data: 
                 for trig in yaml_data['triggers']:
                     logger.debug(f"got trigger for {self.name}: {trig}")
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
@@ -212,7 +220,7 @@ class Character(Actor, CharacterInterface):
         return retval
 
     @classmethod
-    def create_from_definition(cls, char_def: 'Character') -> 'Character':
+    def create_from_definition(cls, char_def: 'Character', game_state: GameStateInterface=None,include_items: bool = True) -> 'Character':
         logger = CustomDetailLogger(__name__, prefix="Character.create_from_definition()> ")
         print(f"char_def: {char_def}")
         logger.critical(f"char def triggers: {char_def.triggers_by_type}")
@@ -226,6 +234,45 @@ class Character(Actor, CharacterInterface):
         new_char.connection = None
         new_char.fighting_whom = None
         new_char.equipped = {loc: None for loc in EquipLocation}
+        if new_char.starting_eq and include_items:
+            for eq_id in new_char.starting_eq:
+                if "." not in eq_id:
+                    eq_id = f"{new_char.definition_zone_id}.{eq_id}"
+                new_obj_def = game_state.world_definition.find_object_definition(eq_id)
+                if not new_obj_def:
+                    logger.error(f"Could not find object definition for {eq_id}")
+                    continue
+                new_obj = ObjectInterface.create_from_definition(new_obj_def, game_state)
+                if not new_obj:
+                    logger.error(f"Could not create object from definition for {eq_id}")
+                    continue
+                if new_char.equipped[new_obj.equip_location] != None:
+                    if new_obj.equip_location == EquipLocation.LEFT_FINGER \
+                    and new_char.equipped[EquipLocation.RIGHT_FINGER] == None:
+                        new_char.equip_item(EquipLocation.RIGHT_FINGER, new_obj)
+                    elif new_obj.equip_location == EquipLocation.RIGHT_FINGER \
+                    and new_char.equipped[EquipLocation.LEFT_FINGER] == None:
+                        new_char.equip_item(EquipLocation.LEFT_FINGER, new_obj)
+                    elif new_obj.equip_location == EquipLocation.MAIN_HAND \
+                    and new_char.equipped[EquipLocation.OFF_HAND] == None:
+                        new_char.equip_item(EquipLocation.OFF_HAND, new_obj)
+                    else:
+                        logger.error("equip_location already in self.equipped_")
+                else:
+                    new_char.equip_item(new_obj.equip_location, new_obj)
+        if new_char.starting_inv and include_items:
+            for inv_id in new_char.starting_inv:
+                if "." not in inv_id:
+                    inv_id = f"{new_char.definition_zone_id}.{inv_id}"
+                new_obj_def = game_state.world_definition.find_object_definition(inv_id)
+                if not new_obj_def:
+                    logger.error(f"Could not find object definition for {inv_id}")
+                    continue
+                new_obj = ObjectInterface.create_from_definition(new_obj_def, game_state)
+                if not new_obj:
+                    logger.error(f"Could not create object from definition for {inv_id}")
+                    continue
+                new_char.add_object(new_obj)
         for trig_type, trig_data in new_char.triggers_by_type.items():
             for trig in trig_data:
                 logger.debug(f"enabling trigger: {trig.to_dict()}")

@@ -1175,6 +1175,8 @@ CHARACTERS:
         hit_dice: 1d8+2
         permanent_flags:
           - is_aggressive
+        equipment:
+          - rusty sword
         triggers:
           - type: timer_tick
             criteria:

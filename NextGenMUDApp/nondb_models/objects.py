@@ -5,6 +5,7 @@ from .actor_interface import ActorType
 from .actors import Actor
 from .character_interface import CharacterInterface, EquipLocation
 from ..communication import CommTypes
+from ..comprehensive_game_state_interface import GameStateInterface
 from .attacks_and_damage import DamageType, DamageResistances, DamageReduction
 from .object_interface import ObjectInterface, ObjectFlags
 from .room_interface import RoomInterface
@@ -14,9 +15,9 @@ from ..utility import get_dice_parts, replace_vars, firstcap, evaluate_functions
 
 
 class Object(Actor, ObjectInterface):
-    def __init__(self, id: str, zone: 'Zone', name: str = "", create_reference=False):
+    def __init__(self, id: str, definition_zone_id: str, name: str = "", create_reference=False):
         super().__init__(ActorType.OBJECT, id, name=name, create_reference=create_reference)
-        self.definition_zone: 'Zone' = zone
+        self.definition_zone_id: str = definition_zone_id
         self.name: str = name
         self.article = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
         self.zone: 'Zone' = None
@@ -44,7 +45,7 @@ class Object(Actor, ObjectInterface):
             'id': self.id,
             'name': self.name,
             'article': self.article,
-            'definition zone': self.definition_zone.id,
+            'definition zone id': self.definition_zone_id,
             'equip_locations': [ loc.name.lower() for loc in self.equip_locations ],
             'damage_resistances': self.damage_resistances.to_dict(),
             'damage_reduction': self.damage_reduction,
@@ -56,10 +57,11 @@ class Object(Actor, ObjectInterface):
             'value': self.value
         }
     
-    def from_yaml(self, yaml_data: str):
+    def from_yaml(self, yaml_data: str, definition_zone_id: str,game_state: GameStateInterface = None):
         logger = CustomDetailLogger(__name__, prefix="Object.from_yaml()> ")
         try:
             self.name = yaml_data['name']
+            self.definition_zone_id = definition_zone_id
             self.description_ = yaml_data['description']
             self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
             self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
@@ -195,16 +197,16 @@ class Corpse(Object):
 
     def __init__(self, character: CharacterInterface, room: RoomInterface):
         id = character.id + "_corpse"
-        super().__init__(id, character.definition_zone, name=f"{character.art_name_cap}'s corpse", create_reference=True)
+        super().__init__(id, character.definition_zone_id, name=f"{character.art_name_cap}'s corpse", create_reference=True)
         self.article = ""
         self.description = f"The corpse of {character.art_name} lies here. It makes you feel sad..."
         self.character = character
         self.object_flags.add_flags(ObjectFlags.IS_CONTAINER)
-        self.definition_zone = None
+        self.definition_zone_id = None
         self._location_room = room
         self.zone = room.zone
         self.weight = 10
-        self.original_id = character.definition_zone.id + "." + character.id
+        self.original_id = character.definition_zone_id + "." + character.id
 
     def to_dict(self):
         return {

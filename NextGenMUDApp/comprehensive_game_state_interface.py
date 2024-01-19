@@ -84,3 +84,10 @@ class GameStateInterface:
     def get_perm_var(cls, source_actor_ptr: str, var_name: str) -> str:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_world_definition(self) -> 'WorldDefinition':
+        raise NotImplementedError
+    
+    @abstractmethod
+    def can_see(char: 'Character', target: 'Character') -> bool:
+        raise NotImplementedError
