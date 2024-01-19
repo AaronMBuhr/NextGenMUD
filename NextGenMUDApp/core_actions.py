@@ -3,7 +3,7 @@ import random
 from .config import Config, default_app_config
 from .constants import Constants
 from .communication import CommTypes
-from .core_actions_interface     import CoreActionsInterface
+from .core_actions_interface import CoreActionsInterface
 from .comprehensive_game_state_interface import GameStateInterface
 from .nondb_models.character_interface import EquipLocation
 from .nondb_models.actors import ActorType, Actor
@@ -317,6 +317,7 @@ class CoreActions(CoreActionsInterface):
             await self.do_die(target, actor)
         else:
             if target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
+                target.remove_states_by_flag(TemporaryCharacterFlags.IS_SLEEPING)
                 target.remove_temp_flags(TemporaryCharacterFlags.IS_SLEEPING)
                 msg = f"{target.art_name_cap} wakes up!"
                 await target.echo(CommTypes.DYNAMIC, msg, set_vars(target, target, target, msg), game_state=self.game_state)
@@ -457,7 +458,7 @@ class CoreActions(CoreActionsInterface):
     async def do_aggro(self, actor: Actor):
         from NextGenMUDApp.skills import Skills
         logger = CustomDetailLogger(__name__, prefix="do_aggro()> ")
-        logger.debug(f"actor: {actor}")
+        logger.debug3(f"actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to aggro.")
         if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
@@ -472,9 +473,12 @@ class CoreActions(CoreActionsInterface):
             msg = "You can't aggro while stunned!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return
+        elif actor.fighting_whom != None:
+            # looks like this could be spammy so no msg
+            return
         for c in actor.location_room.characters:
-            if c != actor and c.actor_type == ActorType.CHARACTER:
-
+            if c != actor and c.actor_type == ActorType.CHARACTER \
+                and c.has_perm_flags(PermanentCharacterFlags.IS_PC):
                 if (c.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE) \
                 or c.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE)) \
                 and not actor.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE) \

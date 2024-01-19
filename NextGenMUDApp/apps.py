@@ -34,6 +34,8 @@ class NextGenMUDAppConfig(AppConfig):
 # - not sure players are being handled right
 # - make attack and kill allow you to switch targets
 # - at some point going to need to handle pc vs pc interaction
+# - need to give stealth some kind of re-check cooldown
+#   then use can_see for do_aggro
                         
 # LOW priority
 # - handle possessive pronouns
