@@ -12,6 +12,7 @@ from ..communication import CommTypes
 from ..comprehensive_game_state_interface import GameStateInterface
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
+from ..skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills
 from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice, evaluate_functions_in_line
 
 
@@ -107,6 +108,24 @@ class Character(Actor, CharacterInterface):
             # if 'character_flags' in yaml_data:
             #     for flag in yaml_data['character_flags']:
             #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])
+            if 'class' in yaml_data:
+                for role, role_data in yaml_data['class'].items():
+                    self.levels_by_role[CharacterClassRole[role.upper()]] = role_data['level']
+                    self.skill_levels_by_role[CharacterClassRole[role.upper()]] = {}
+                    if 'skills' in role_data:
+                        for skill, skill_data in role_data['skills'].items():
+                            role_enum = CharacterClassRole[role.upper()]
+                            if role_enum == CharacterClassRole.FIGHTER:
+                                skills = FighterSkills
+                            elif role_enum == CharacterClassRole.ROGUE:
+                                skills = RogueSkills
+                            elif role_enum == CharacterClassRole.MAGE:
+                                skills = MageSkills
+                            elif role_enum == CharacterClassRole.CLERIC:
+                                skills = ClericSkills
+                            else:
+                                raise Exception("Invalid character class role.")
+                            self.skill_levels_by_role[CharacterClassRole[role.upper()]][skills[skill.upper()]] = skill_data['level']
             if 'permanent_flags' in yaml_data:
                 for flag in yaml_data['permanent_flags']:
                     try:

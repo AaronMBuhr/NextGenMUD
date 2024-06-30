@@ -110,7 +110,7 @@ class CharacterStateForcedSitting(ActorState):
         return retval
 
 
-    def remove_state(self, force=False) -> bool:
+    async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
         if any([s for s in self.actor.current_states if s is not self \
@@ -130,7 +130,7 @@ class CharacterStateForcedSitting(ActorState):
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                CoreActionsInterface.get_instance().do_aggro(self.actor)
+                await CoreActionsInterface.get_instance().do_aggro(self.actor)
 
         return True
 
@@ -169,7 +169,7 @@ class CharacterStateForcedSleeping(ActorState):
         return retval
 
 
-    def remove_state(self, force=False) -> bool:
+    async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
         if any([s for s in self.actor.current_states \
@@ -189,7 +189,7 @@ class CharacterStateForcedSleeping(ActorState):
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                CoreActionsInterface.get_instance().do_aggro(self.actor)
+                await CoreActionsInterface.get_instance().do_aggro(self.actor)
         return True
         
     def perform_tick(self, tick_num: int) -> bool:
@@ -225,7 +225,7 @@ class CharacterStateStunned(ActorState):
                                           exceptions=[self.actor, self.source_actor], game_state=self.game_state)
         return retval
 
-    def remove_state(self, force=False) -> bool:
+    async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
         if any([s for s in self.actor.current_states \
@@ -380,7 +380,7 @@ class CharacterStateDisarmed(ActorState):
         return retval
     
 
-    def remove_state(self, force=True) -> bool:
+    async def remove_state(self, force=True) -> bool:
         if not force and any([s for s in self.actor.current_states if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
             return False
         mhw = self.vars["mhw"]

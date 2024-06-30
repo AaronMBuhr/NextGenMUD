@@ -1,4 +1,5 @@
 from custom_detail_logger import CustomDetailLogger
+import math
 import random
 from .config import Config, default_app_config
 from .constants import Constants
@@ -100,11 +101,13 @@ class CoreActions(CoreActionsInterface):
             for r in room.zone.rooms.values():
                 # reset trigger timers
                 reset_triggers_by_room(r)                   
-        self.do_aggro(actor)
+        await self.do_aggro(actor)
         if actor.fighting_whom == None and actor.group_id is not None \
             and not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             for c in room.get_characters():
-                if c.group_id == actor.group_id and c.fighting_whom != None:
+                if c != actor and c.group_id == actor.group_id and c.fighting_whom != None \
+                    and not c.has_perm_flags(PermanentCharacterFlags.IS_PC) \
+                        and c.fighting_whom != actor:
                     msg = f"You join the attack against {c.fighting_whom.art_name}!"
                     vars = set_vars(actor, actor, c.fighting_whom, msg)
                     await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
@@ -219,6 +222,19 @@ class CoreActions(CoreActionsInterface):
                 self.game_state.add_character_fighting(c)
                 
 
+    def fight_next_opponent(self, actor: Actor):
+        logger = CustomDetailLogger(__name__, prefix="fight_next_opponent()> ")
+        logger.debug(f"actor: {actor}")
+        if actor.actor_type != ActorType.CHARACTER:
+            raise Exception("Actor must be of type CHARACTER to fight next opponent.")
+        if actor.fighting_whom != None:
+            # raise Exception("Actor must not be fighting anyone to fight next opponent.")
+            return
+        for c in actor.location_room.get_characters():
+            if c.fighting_whom == actor:
+                self.start_fighting(actor, c)
+                break
+
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
         # TODO:L: maybe do "x kills you"
         from .nondb_models.objects import Corpse
@@ -245,47 +261,49 @@ class CoreActions(CoreActionsInterface):
                                                 exceptions=[dying_actor], game_state=self.game_state)
         if dying_actor in self.game_state.get_characters_fighting():
             self.game_state.remove_character_fighting(dying_actor)
-        if killer:
-            killer.fighting_whom = None
-            self.game_state.remove_character_fighting(killer)
-        for c in self.game_state.get_characters_fighting():
-            if killer and c.fighting_whom == killer:
-                self.start_fighting(killer, c)
-            if c.fighting_whom == dying_actor:
-                c.fighting_whom = None
-
         dying_actor.fighting_whom = None
         dying_actor.current_hit_points = 0
         room = dying_actor.location_room
+
+        those_fighting = [c for c in room.get_characters() if c.fighting_whom == dying_actor]
+        if not dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            xp_amount = dying_actor.experience_points
+            logger.critical(f"those_fighting: {those_fighting}")
+            total_levels = sum([c.total_levels() for c in those_fighting])
+            logger.critical(f"total_levels: {total_levels}")
+            for c in those_fighting:
+                this_xp = math.ceil(xp_amount * c.total_levels() / total_levels)
+                c.experience_points += this_xp
+                msg = f"You gain {this_xp} experience points!"
+                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=self.game_state)
+
+        for c in those_fighting:
+            c.fighting_whom = None
+            if c in self.game_state.get_characters_fighting():
+                self.game_state.remove_character_fighting(c)
+            self.fight_next_opponent(c)
+
         dying_actor.location_room.remove_character(dying_actor)
         corpse = Corpse(dying_actor, room)
         corpse.transfer_inventory()
         room.add_object(corpse)
         for c in room.characters:
-            logger.debug(f"{c.rid} is refreshing room")
-            await self.do_look_room(c, room)
-        if not dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            xp_amount = dying_actor.experience_points
-            those_fighting = [c for c in room.get_characters() if c.fighting_whom == dying_actor]
-            total_levels = sum([c.total_levels() for c in those_fighting])
-            for c in those_fighting:
-                this_xp = xp_amount * c.total_levels() / total_levels
-                c.experience_points += this_xp
-                msg = f"You gain {this_xp} experience points!"
-                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=self.game_state)
-            dying_actor.is_deleted = True
-            if dying_actor.spawned_from:
-                dying_actor.spawned_from.spawned.remove(dying_actor)
-                if dying_actor.spawned_from.current_quantity < dying_actor.spawned_from.desired_quantity:
-                    character_def = self.game_state.get_world_definition().find_character_definition(dying_actor.id)
-                    if character_def:
-                        in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
-                                                      + random.randint(0, dying_actor.spawned_from.respawn_time_max 
-                                                                       - dying_actor.spawned_from.respawn_time_min))
-                        vars = { 'spawn_data': dying_actor.spawned_from }
-                        self.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
-                                                            vars=vars, func=lambda a,v: self.game_state.respawn_character(a,v))
-            self.game_state.remove_character(dying_actor)
+            if c != dying_actor and c.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                logger.debug(f"{c.rid} is refreshing room")
+                await self.do_look_room(c, room)
+        if dying_actor.spawned_from:
+            dying_actor.spawned_from.spawned.remove(dying_actor)
+            if dying_actor.spawned_from.current_quantity < dying_actor.spawned_from.desired_quantity:
+                character_def = self.game_state.get_world_definition().find_character_definition(dying_actor.id)
+                if character_def:
+                    in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
+                                                    + random.randint(0, dying_actor.spawned_from.respawn_time_max 
+                                                                    - dying_actor.spawned_from.respawn_time_min))
+                    vars = { 'spawn_data': dying_actor.spawned_from }
+                    self.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
+                                                        vars=vars, func=lambda a,v: self.game_state.respawn_character(a,v))
+        self.game_state.remove_character(dying_actor)
+        dying_actor.is_deleted = True
 
 
     async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True):
@@ -395,7 +413,7 @@ class CoreActions(CoreActionsInterface):
     async def process_fighting(self):
         logger = CustomDetailLogger(__name__, prefix="process_fighting()> ")
         logger.debug3("beginning")
-        logger.debug3(f"num characters_fighting_: {len(self.game_state.get_characters_fighting())}")
+        logger.critical(f"num characters_fighting_: {len(self.game_state.get_characters_fighting())}")
         for c in self.game_state.get_characters_fighting():
             total_dmg = 0
             if c.equipped[EquipLocation.MAIN_HAND] != None \
@@ -458,27 +476,39 @@ class CoreActions(CoreActionsInterface):
     async def do_aggro(self, actor: Actor):
         from NextGenMUDApp.skills import Skills
         logger = CustomDetailLogger(__name__, prefix="do_aggro()> ")
-        logger.debug3(f"actor: {actor}")
+        logger.critical(f"actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
+            logger.critical(f"{actor.rid} is not character")
             raise Exception("Actor must be of type CHARACTER to aggro.")
+        if not actor.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE):
+            logger.critical(f"{actor.rid} is not aggressive")
+            # not aggressive
+            return
         if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
+            logger.critical(f"{actor.rid} is sitting")
             msg = "You can't aggro while sitting!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
+            logger.critical(f"{actor.rid} is sleeping")
             msg = "You can't aggro while sleeping!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
+            logger.critical(f"{actor.rid} is stunned")
             msg = "You can't aggro while stunned!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return
         elif actor.fighting_whom != None:
             # looks like this could be spammy so no msg
+            logger.critical(f"{actor.rid} is fighting")
             return
         for c in actor.location_room.characters:
             if c != actor and c.actor_type == ActorType.CHARACTER \
                 and c.has_perm_flags(PermanentCharacterFlags.IS_PC):
+
+                logger.critical(f"{actor.rid} checking {c.rid}")
+
                 if (c.has_perm_flags(PermanentCharacterFlags.IS_INVISIBLE) \
                 or c.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE)) \
                 and not actor.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE) \
@@ -488,18 +518,19 @@ class CoreActions(CoreActionsInterface):
                 if c.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
                     if Skills.stealthcheck(c, actor):
                         continue
-                    
+
+                logger.critical(f"{actor.rid} aggroing {c.rid}")
                 msg = f"You attack {c.art_name}!"
-                set_vars(actor, actor, c, msg)
-                actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                vars = set_vars(actor, actor, c, msg)
+                await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"{actor.art_name_cap} attacks you!"
-                set_vars(actor, actor, c, msg)
-                c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                vars = set_vars(actor, actor, c, msg)
+                await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"{actor.art_name_cap} attacks {c.art_name}!"
-                set_vars(actor, actor, c, msg)
-                actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=self.game_state)
-                await self.start_fighting(c, actor)
+                vars = set_vars(actor, actor, c, msg)
+                await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=self.game_state)
                 await self.start_fighting(actor, c)
+                await self.start_fighting(c, actor)
                 return
 
 
