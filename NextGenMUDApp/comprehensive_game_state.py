@@ -493,6 +493,8 @@ class ComprehensiveGameState:
         return self.zones[zone_id] if zone_id in self.zones else None
     
     def add_character_fighting(self, character: Character):
+        if character in self.characters_fighting:
+            raise Exception(f"Character {character.rid} already in characters_fighting.")
         self.characters_fighting.append(character)
 
     def get_characters_fighting(self) -> List[Character]:

@@ -48,16 +48,18 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
         logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.receive()> ")
-        logger.debug(f"message: {message}")
+        logger.debug3(f"message: {message}")
         self.input_queue_.append(message)
 
 
-    # def send(self, text_data):
-    #     super().send(text_data=text_data)
-    #     # await self.send(text_data=json.dumps({ 
-    #     #     'text_type': 'static',
-    #     #     'text': 'Hello World!'
-    #     # }))
+    async def send(self, text_data):
+        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.send()> ")
+        logger.warning(f"text_data: {text_data}")
+        await super().send(text_data=text_data)
+        # await self.send(text_data=json.dumps({ 
+        #     'text_type': 'static',
+        #     'text': 'Hello World!'
+        # }))
 
     #     # await self.send(text_data=json.dumps({
     #     #     'text_type': 'dynamic',

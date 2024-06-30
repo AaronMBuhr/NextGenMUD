@@ -117,10 +117,10 @@ CHARACTERS:
           wisdom: 10
           charisma: 10
         class:
-          Fighter:
+          fighter:
             level: 1
         hit_dice: 100
-        character_flags:
+        permanent_flags:
           - is_pc
         natural_attacks:
           - attack_noun: punch

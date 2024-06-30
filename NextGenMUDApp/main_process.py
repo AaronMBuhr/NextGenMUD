@@ -37,8 +37,9 @@ class MainProcess:
     async def main_game_loop(cls):
         logger = CustomDetailLogger(__name__, prefix="main_game_loop()> ")
         logger.debug3("Game loop started")
-        last_fighting_tick = time.time()
+        last_fighting_tick = cls._game_state.world_clock_tick
         while True:
+            logger.critical(f"tick {cls._game_state.world_clock_tick}")
             start_tick_time = time.time()
             for conn in cls._game_state.connections:
                 logger.debug3("processing input queue")
@@ -51,9 +52,15 @@ class MainProcess:
                 # print(trig.actor_.rid)
                 # print(trig.actor_)
                 await trig.run(trig.actor_, "", {}, cls._game_state)
-            if time.time() > last_fighting_tick + (Constants.GAME_TICK_SEC * Constants.TICKS_PER_ROUND):
-                logger.debug3("fighting tick")
-                last_fighting_tick = time.time()
+            if len(cls._game_state.players) > 0: # and cls._game_state.players[0].fighting_whom != None:
+                await cls._game_state.players[0].send_text("dynamic", f"tick: {cls._game_state.world_clock_tick}")
+            if cls._game_state.world_clock_tick > last_fighting_tick + Constants.TICKS_PER_ROUND:
+                logger.critical("fighting tick")
+                if len(cls._game_state.players) > 0: # and cls._game_state.players[0].fighting_whom != None:
+                    await cls._game_state.players[0].send_text("dynamic", f"fighting tick: {cls._game_state.world_clock_tick}")
+                    for c in cls._game_state.characters_fighting:
+                        await cls._game_state.players[0].send_text("dynamic", "   fighting: " + c.rid)
+                last_fighting_tick = cls._game_state.world_clock_tick
                 await cls.handle_periodic_fighting_tick()
             # logger.debug3("sleeping")
             cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
@@ -97,7 +104,8 @@ class MainProcess:
         for p in cls._game_state.players:
             logger.debug3(f"checking player {p.name}")
             for char in p.location_room.get_characters():
-                if char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) and cls._game_state.can_see(char, p):
-                    logger.debug3(f"aggressive char {char.name} sees player {p.name}")
+                if char != p and char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
+                    and char.fighting_whom == None and cls._game_state.can_see(char, p):
+                    logger.critical(f"aggressive char {char.name} sees player {p.name}")
                     await CoreActionsInterface.get_instance().do_aggro(char)
         logger.debug3("done checking aggressive near players")
