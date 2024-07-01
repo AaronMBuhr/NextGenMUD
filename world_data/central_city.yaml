@@ -1,0 +1,2561 @@
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  city_gates:
+    name: Grand City Gates
+    description: >
+      You stand before the impressive Grand City Gates, the main entrance to the sprawling 
+      metropolis known as Central City. The gates are a masterpiece of engineering and 
+      artistry, rising nearly thirty feet high and spanning the width of a wide cobblestone 
+      road. Crafted from thick oak and reinforced with intricate ironwork, the gates bear 
+      the city's coat of arms: a golden sun rising over silver towers.
+
+      To the north, beyond the gates, you can see the bustle of the city's Market Square. 
+      The sounds of haggling merchants and the aroma of fresh bread waft through the air. 
+      To the south, a well-traveled road leads into the mysterious Forest of Whispers, its 
+      dense foliage a stark contrast to the urban landscape.
+
+      Guards in polished armor stand at attention on either side of the gates, keeping a 
+      watchful eye on all who enter and exit the city.
+
+      Exits: north, south, east, west
+    exits:
+      north:
+        destination: market_square
+      south:
+#        destination: forest_of_whispers.entrance
+        destination: city_gates
+      west:
+        destination: debug_zone.starting_room
+      east:
+        destination: enchanted_forest.whispering_pines
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo The massive city gates creak as they open to allow a merchant caravan to pass through.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A town crier bellows, "Hear ye, hear ye! The Council of Elders will convene at noon tomorrow to discuss the recent trade agreements!"
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "guard"
+        script: |
+          echo The city guard stands at attention, their armor gleaming in the sunlight. They regard you with a mixture of caution and curiosity.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "bow"
+        script: |
+          echo As you bow, one of the guards nods respectfully in acknowledgment.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "password"
+        script: |
+          echo The guards exchange a quick glance but remain silent, their expressions unreadable.
+    characters:
+      - id: city_guard
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: traveling_merchant
+        quantity: 1
+        respawn time min: 30
+        respawn time max: 90
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  market_square:
+    name: Bustling Market Square
+    description: >
+      You find yourself in the heart of Central City's Bustling Market Square, a vibrant 
+      and chaotic hub of commerce and social activity. The large, cobblestone plaza is 
+      alive with the sights, sounds, and smells of a thriving medieval marketplace.
+
+      Colorful stalls and tents line the edges of the square, offering everything from 
+      fresh produce and baked goods to exotic spices and finely crafted jewelry. Merchants 
+      loudly hawk their wares, their voices competing with the general din of haggling 
+      customers and laughing children.
+
+      In the center of the square stands an ornate fountain, its waters sparkling in the 
+      sunlight. It serves as a popular meeting spot for locals and travelers alike. Street 
+      performers - jugglers, musicians, and storytellers - entertain the crowds, adding to 
+      the festive atmosphere.
+
+      The imposing silhouette of the Town Hall looms to the north, while the Grand City 
+      Gates lie to the south. To the east, you see the entrance to Merchant Row, and to 
+      the west, the quaint Artisan Alley beckons with promises of unique crafts.
+
+      Exits: north, south, east, west
+    exits:
+      north:
+        destination: fountain_plaza
+      south:
+        destination: city_gates
+      east:
+        destination: merchant_row
+      west:
+        destination: artisan_alley
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 10
+        script: |
+          echo A group of children runs past, laughing and playing a game of tag amidst the bustling crowd.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo A street performer begins juggling flaming torches, drawing gasps and applause from a growing crowd.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fountain"
+        script: |
+          echo The central fountain is a marvel of craftsmanship, depicting heroic figures from the city's history. Coins glitter at the bottom, tossed by those hoping for good fortune.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "haggle"
+        script: |
+          echo As you attempt to haggle, the merchant's eyes light up with the thrill of negotiation. "Ah, a savvy customer! Let's see if we can strike a deal, shall we?"
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "price"
+        script: |
+          echo A nearby merchant overhears and calls out, "Best prices in all of Central City, right here! Come and see for yourself!"
+      - type: catch_any
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "perform"
+        script: |
+          echo Your impromptu performance catches the attention of nearby marketgoers. A small crowd begins to gather, watching with interest.
+    characters:
+      - id: market_merchant
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: street_performer
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: city_guard
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: local_shopper
+        quantity: 4
+        respawn time min: 15
+        respawn time max: 45
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  fountain_plaza:
+    name: Central Fountain Plaza
+    description: >
+      You stand in the Central Fountain Plaza, the elegant heart of Central City. This 
+      expansive circular area is paved with polished marble stones, creating intricate 
+      patterns that radiate outward from the centerpiece - a magnificent, multi-tiered 
+      fountain.
+
+      The fountain itself is a marvel of engineering and artistry. Water cascades down 
+      from the top tier, where a golden statue of the city's founder stands proudly. 
+      Each subsequent tier features beautifully sculpted figures representing the virtues 
+      of wisdom, courage, justice, and compassion. The soothing sound of flowing water 
+      fills the air, providing a peaceful counterpoint to the city's hustle and bustle.
+
+      Surrounding the plaza are well-maintained gardens with colorful flower beds and 
+      meticulously trimmed hedges. Ornate benches offer respite to weary travelers and 
+      locals alike. Tall lampposts stand at regular intervals, their crystal globes 
+      promising to illuminate the plaza beautifully at night.
+
+      To the north, you see the imposing facade of the Town Hall. The bustling Market 
+      Square lies to the south. To the east, the elegant mansions of the Noble Quarter 
+      beckon, while the serene Temple District can be found to the west.
+
+      Exits: north, south, east, west
+    exits:
+      north:
+        destination: town_hall
+      south:
+        destination: market_square
+      east:
+        destination: noble_quarter
+      west:
+        destination: temple_district
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A gentle breeze carries a spray of mist from the fountain, momentarily creating a small rainbow in the sunlight.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A group of nobles strolls by, engaged in animated conversation about the latest city politics.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fountain"
+        script: |
+          echo Upon closer inspection, you notice that the water in the fountain seems to shimmer with an unusual, almost magical quality. Small, iridescent fish dart about in the lower basins.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sit"
+        script: |
+          echo As you sit on one of the ornate benches, you feel a sense of tranquility wash over you. The bench is surprisingly comfortable, as if designed to perfectly fit the human form.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "wish"
+        script: |
+          echo As the word 'wish' leaves your lips, you notice a slight ripple in the fountain's water, as if in response to your words.
+      - type: catch_any
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "coin"
+        script: |
+          echo You toss a coin into the fountain. It arcs through the air, catching the sunlight before plinking into the water with a satisfying splash. For a moment, you could swear the statue's eyes twinkled.
+    characters:
+      - id: city_noble
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: fountain_caretaker
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: relaxing_citizen
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: wandering_minstrel
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  merchant_row:
+    name: Colorful Merchant Row
+    description: >
+      You find yourself on Merchant Row, a long, winding street that serves as the 
+      commercial backbone of Central City. The narrow cobblestone path is flanked on 
+      both sides by a dizzying array of shops, stalls, and emporiums, each competing 
+      for attention with vibrant signs and eye-catching displays.
+
+      Brightly colored awnings extend from the buildings, providing shade and shelter 
+      for the goods displayed beneath them. The air is thick with a potpourri of scents: 
+      the sweet aroma of fresh pastries mingles with the earthy smell of leather goods 
+      and the sharp tang of exotic spices.
+
+      Merchants call out to passersby, extolling the virtues of their wares. You see 
+      shops selling everything from fine silks and jewelry to practical tools and 
+      household goods. A glassblower's workshop catches your eye, its windows displaying 
+      delicate, rainbow-hued creations.
+
+      The constant haggling and bartering create a lively backdrop of chatter and 
+      negotiation. Money changes hands frequently, accompanied by the jingle of coins 
+      and the rustle of goods being wrapped.
+
+      To the west, you can see the open expanse of the Market Square. The street 
+      continues eastward, leading towards the Dockside District where you can hear 
+      the distant calls of seagulls.
+
+      Exits: west, east
+    exits:
+      west:
+        destination: market_square
+      east:
+        destination: dockside_district
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 12
+        script: |
+          echo A merchant unfurls a bolt of shimmering silk, the fabric catching the light and sending rainbow reflections dancing across the street.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The enticing aroma of freshly baked bread wafts from a nearby bakery, making your mouth water.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "shop"
+        script: |
+          echo As you peer into the shop, you're amazed by the variety of goods on display. Exotic items from far-off lands sit beside locally crafted wares, creating a treasure trove of potential purchases.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "haggle"
+        script: |
+          echo The merchant's eyes light up at your attempt to haggle. "Ah, a discerning customer! Let's see if we can come to an agreement that pleases us both, shall we?"
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "price"
+        script: |
+          echo Nearby merchants perk up at the mention of prices. One calls out, "Whatever they're offering, I'll beat it! Come see my wares, friend!"
+      - type: catch_any
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "buy"
+        script: |
+          echo As you express interest in making a purchase, you notice other shoppers glancing your way, curious about what caught your attention.
+    characters:
+      - id: skilled_merchant
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: window_shopper
+        quantity: 4
+        respawn time min: 15
+        respawn time max: 45
+      - id: street_vendor
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: city_guard
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  artisan_alley:
+    name: Skilled Artisan Alley
+    description: >
+      You find yourself in Skilled Artisan Alley, a narrow, winding lane that serves as 
+      the creative heart of Central City. Unlike the bustling Merchant Row, this area 
+      exudes a quieter, more focused energy. The cobblestone path is worn smooth by 
+      centuries of foot traffic, and the buildings lean in slightly, their upper stories 
+      nearly touching above your head.
+
+      Each workshop along the alley is a world unto itself, specializing in a unique 
+      craft. The rhythmic clanging of a blacksmith's hammer mingles with the gentle 
+      whir of a potter's wheel. Intricate wooden carvings adorn the façade of a 
+      woodworker's shop, while delicate glass figurines catch the light in a glassblower's 
+      window.
+
+      The air is rich with the scents of creation: the earthy aroma of fresh clay, the 
+      sharp tang of metal being worked, and the sweet smell of freshly cut wood. Artisans 
+      can be seen through open doorways, bent over their work with intense concentration.
+
+      Here and there, small groups gather to admire finished pieces displayed proudly 
+      in shop windows. The occasional "ooh" and "aah" punctuates the industrious 
+      atmosphere as a master craftsman demonstrates their skill.
+
+      To the east, you can see the open expanse of the Market Square. The alley continues 
+      westward, leading towards the Craftsmen Square where larger workshops are located.
+
+      Exits: east, west
+    exits:
+      east:
+        destination: market_square
+      west:
+        destination: craftsmen_square
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A master glassblower emerges from his workshop, carefully carrying a newly created, still-glowing piece of art.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The sound of a beautiful melody drifts from a luthier's shop, as a newly crafted instrument is tested.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "workshop"
+        script: |
+          echo Peering into the workshop, you're amazed by the intricate tools and half-finished projects scattered about. The artisan's skill is evident in every detail.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "craft"
+        script: |
+          echo Your interest in crafting catches the attention of a nearby artisan. They smile warmly, clearly pleased to see someone appreciating their art.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "commission"
+        script: |
+          echo At the mention of a commission, several artisans perk up, their eyes sparkling with creative possibilities.
+      - type: catch_any
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "apprentice"
+        script: |
+          echo A young apprentice, overhearing your interest, looks up from their work with hopeful eyes, eager to showcase their developing skills.
+    characters:
+      - id: master_artisan
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: eager_apprentice
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+      - id: art_enthusiast
+        quantity: 2
+        respawn time min: 20
+        respawn time max: 50
+      - id: wandering_minstrel
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  town_hall:
+    name: Imposing Town Hall
+    description: >
+      You stand in the grand foyer of Central City's Imposing Town Hall. The building 
+      exudes an air of authority and history, with its soaring ceilings, polished marble 
+      floors, and ornate woodwork. Massive columns support the upper floors, their 
+      capitals intricately carved with scenes from the city's founding.
+
+      The walls are adorned with portraits of past mayors and city leaders, their stern 
+      gazes seeming to follow you as you move. Elaborate tapestries depicting significant 
+      events in the city's history hang between tall, arched windows that flood the space 
+      with natural light.
+
+      A grand staircase sweeps upward to the Council Chambers on the upper floor. The 
+      busy sounds of city governance fill the air - the shuffling of papers, hushed 
+      conversations, and the occasional proclamation being read aloud.
+
+      To the left and right, you see corridors leading to various administrative offices. 
+      Clerks and officials hurry back and forth, carrying scrolls and important-looking 
+      documents. The atmosphere is one of purposeful activity and civic duty.
+
+      The main entrance to the south leads back to the Central Fountain Plaza, while the 
+      staircase going up leads to the Council Chambers.
+
+      Exits: south, up
+    exits:
+      south:
+        destination: fountain_plaza
+      up:
+        destination: council_chambers
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A town crier enters the hall and unrolls a scroll, calling out, "Hear ye, hear ye! By order of the Council, all citizens are reminded to pay their taxes by the month's end!"
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A group of nobles exits the Council Chambers, engaged in heated debate about the latest city ordinance.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "portrait"
+        script: |
+          echo The portrait you examine shows a stern-faced individual in official robes. A plaque beneath reads, "Mayor Aldric the Just, who guided our city through the Great Plague."
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "petition"
+        script: |
+          echo A nearby clerk overhears your mention of a petition and approaches. "Petitions can be filed at the Office of Civic Affairs, down the left corridor," they inform you helpfully.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "mayor"
+        script: |
+          echo At the mention of the mayor, several heads turn in your direction. A guard steps closer, listening intently to your words.
+    characters:
+      - id: city_guard
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: city_noble
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: town_clerk
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: local_citizen
+        quantity: 2
+        respawn time min: 15
+        respawn time max: 45
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  council_chambers:
+    name: Ornate Council Chambers
+    description: >
+      You enter the Ornate Council Chambers, the very heart of Central City's governance. 
+      The room is a testament to the city's wealth and power, with its opulent decor and 
+      imposing architecture. A massive, circular table dominates the center of the room, 
+      crafted from a single piece of polished oak and inlaid with intricate designs 
+      representing the city's various districts.
+
+      Tall, arched windows line the walls, their stained glass depicting scenes from the 
+      city's history. When sunlight streams through, it casts a kaleidoscope of colors 
+      across the chamber. Ornate tapestries hang between the windows, further muffling 
+      sound and lending an air of solemnity to the space.
+
+      Around the table are high-backed chairs, each bearing the crest of a different 
+      noble house or guild. At the head of the table, a slightly larger, more ornate 
+      chair stands - clearly the seat of the city's mayor.
+
+      The domed ceiling above is a masterpiece of artistry, with a fresco depicting 
+      the founding of Central City. Chandeliers of crystal and gold hang from sturdy 
+      chains, providing warm, flickering light.
+
+      A balcony runs along the upper level of the room, allowing observers to watch 
+      the proceedings below. The air is heavy with the scent of old parchment and 
+      beeswax candles.
+
+      The only exit is a grand staircase leading down to the main hall of the Town Hall.
+
+      Exits: down
+    exits:
+      down:
+        destination: town_hall
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo The doors open as a group of council members enters, their voices hushed in serious discussion. They take their seats around the grand table.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo A scribe hurries in, arms full of scrolls and ledgers. They begin arranging the documents on the table, preparing for the next council session.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "table"
+        script: |
+          echo As you examine the council table, you notice that the inlaid design is actually a detailed map of Central City, with tiny gemstones marking important locations.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sit"
+        script: |
+          echo As you move to sit, a guard steps forward, shaking his head. "I'm sorry, but only council members are permitted to be seated at the table," he says firmly but politely.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "law"
+        script: |
+          echo Your mention of law catches the attention of a nearby council member. They regard you with interest, clearly curious about your thoughts on city governance.
+    characters:
+      - id: city_noble
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: city_guard
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: town_clerk
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+      - id: master_artisan
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  noble_quarter:
+    name: Elegant Noble Quarter
+    description: >
+      You find yourself in the Elegant Noble Quarter of Central City. Wide, clean streets 
+      are lined with opulent mansions and manicured gardens. Ornate fountains and statues 
+      adorn small parks and intersections. The air is perfumed with the scent of exotic 
+      flowers. Well-dressed nobles and their attendants move about with purposeful grace.
+      
+      Exits: west, north, east
+    exits:
+      west:
+        destination: fountain_plaza
+      north:
+        destination: high_garden
+      east:
+        destination: mansion_row
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A luxurious carriage pulled by white horses rolls by, its occupants hidden behind silk curtains.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo The sound of classical music drifts from one of the nearby mansions, hinting at a sophisticated gathering within.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "mansion"
+        script: |
+          echo The mansion you examine is a masterpiece of architecture, its facade adorned with intricate carvings and gold leaf accents.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "greet"
+        script: |
+          echo As you attempt to greet a passing noble, they regard you with a mixture of curiosity and mild disdain before continuing on their way.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "party"
+        script: |
+          echo At the mention of a party, a few nearby nobles turn their heads, their interest piqued by the possibility of a social gathering.
+    characters:
+      - id: city_noble
+        quantity: 4
+        respawn time min: 30
+        respawn time max: 60
+      - id: city_guard
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: servant
+        quantity: 3
+        respawn time min: 20
+        respawn time max: 50
+      - id: wandering_minstrel
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  temple_district:
+    name: Serene Temple District
+    description: >
+      You stand in the Serene Temple District of Central City. The air is thick with the 
+      scent of incense and the soft murmur of prayers. Towering temples and shrines of 
+      various faiths line the streets, their spires reaching towards the heavens. 
+      Pilgrims, priests, and acolytes move about with purpose, their colorful robes 
+      adding splashes of color to the serene atmosphere.
+
+      Exits: east, north, west
+    exits:
+      east:
+        destination: fountain_plaza
+      north:
+        destination: grand_cathedral
+      west:
+        destination: monastery_grounds
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo The sound of melodious chanting emerges from one of the nearby temples, filling the air with a sense of tranquility.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo A group of pilgrims passes by, their faces serene as they make their way to one of the shrines.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "temple"
+        script: |
+          echo The temple you examine is an architectural marvel, its facade adorned with intricate religious symbols and statues of deities.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pray"
+        script: |
+          echo As you begin to pray, you feel a sense of calm wash over you. The ambient sounds of the district seem to fade away, leaving you in a moment of peace.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "blessing"
+        script: |
+          echo At the mention of a blessing, a nearby acolyte turns to you with a gentle smile, offering a quiet word of benediction.
+    characters:
+      - id: priest
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: pilgrim
+        quantity: 4
+        respawn time min: 20
+        respawn time max: 50
+      - id: city_guard
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: local_citizen
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  dockside_district:
+    name: Busy Dockside District
+    description: >
+      You find yourself in the Busy Dockside District of Central City. The air is thick 
+      with the smell of salt water and fish. Weathered wooden piers stretch out into the 
+      harbor, where ships of all sizes are moored. Sailors, merchants, and dockworkers 
+      bustle about, loading and unloading cargo. The constant cries of seagulls and the 
+      creaking of ship timbers fill the air. Taverns and shops catering to seafarers line 
+      the waterfront, their signs swaying in the sea breeze.
+
+      Exits: west, north, east
+    exits:
+      west:
+        destination: merchant_row
+      north:
+        destination: harbor_front
+      east:
+        destination: fishmonger_alley
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo A ship's bell rings out across the harbor, signaling the arrival of a merchant vessel.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A group of burly dockworkers passes by, carrying heavy crates from a newly docked ship.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "ship"
+        script: |
+          echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo A nearby sailor chuckles at your interest in swimming. "I wouldn't recommend it, friend. These waters are for ships, not people," he warns good-naturedly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "voyage"
+        script: |
+          echo At the mention of a voyage, several heads turn in your direction. A grizzled captain pipes up, "Looking for passage, are ye? I might have a berth available."
+    characters:
+      - id: sailor
+        quantity: 4
+        respawn time min: 30
+        respawn time max: 60
+      - id: merchant
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: dockworker
+        quantity: 3
+        respawn time min: 20
+        respawn time max: 50
+      - id: city_guard
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  craftsmen_square:
+    name: Skilled Craftsmen Square
+    description: >
+      You stand in the Skilled Craftsmen Square, the heart of Central City's artisan 
+      community. The square is alive with the sounds of industry: the rhythmic pounding 
+      of hammers, the hiss of hot metal in water, and the scraping of chisels on wood. 
+      Large workshops line the perimeter, their wide doors open to reveal masters and 
+      apprentices hard at work. The air is filled with a mix of scents - freshly cut wood, 
+      hot metal, and tanned leather. In the center of the square, a large fountain 
+      depicts the patron deity of craftsmen, its waters used by many to cool their 
+      creations.
+
+      Exits: east, north
+    exits:
+      east:
+        destination: artisan_alley
+      north:
+        destination: blacksmith_forge
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A group of apprentices rushes past, carrying a newly completed piece of furniture, likely on its way to a wealthy patron.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The square erupts in cheers as a master craftsman unveils their latest creation - a stunningly intricate clockwork automaton.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "workshop"
+        script: |
+          echo The workshop you examine is a hive of activity. Craftsmen of all ages work diligently, their hands moving with practiced precision as they shape raw materials into works of art.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "apprentice"
+        script: |
+          echo Your interest in apprenticeship catches the attention of a nearby master craftsman. They look you up and down, considering whether you might have the makings of a skilled artisan.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "commission"
+        script: |
+          echo At the mention of a commission, several craftsmen perk up, their eyes gleaming with the prospect of a new challenge.
+    characters:
+      - id: master_artisan
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: eager_apprentice
+        quantity: 4
+        respawn time min: 20
+        respawn time max: 50
+      - id: merchant
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+      - id: local_citizen
+        quantity: 2
+        respawn time min: 15
+        respawn time max: 45
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  high_garden:
+    name: Lush High Garden
+    description: >
+      You find yourself in the Lush High Garden, an oasis of tranquility in the heart of 
+      Central City. This meticulously maintained garden is a favorite retreat for the 
+      city's nobility. Winding paths of crushed white stone meander through beds of 
+      vibrant flowers and expertly trimmed topiaries. Ornate fountains and delicate 
+      statuary are scattered throughout, their gentle sounds mixing with the chirping of 
+      exotic birds. The air is sweet with the fragrance of blooming flowers and aromatic 
+      herbs. Elegantly dressed nobles stroll along the paths or sit on ornate benches, 
+      engaged in quiet conversation.
+
+      Exits: south, north
+    exits:
+      south:
+        destination: noble_quarter
+      north:
+        destination: royal_palace
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 22
+        script: |
+          echo A pair of peacocks struts across the path, their magnificent tail feathers on full display.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 35
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The delicate chimes of a nearby crystal wind sculpture create a soothing melody as a gentle breeze passes through the garden.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "flower"
+        script: |
+          echo The flower you examine is a rare and beautiful specimen, its petals an array of vibrant colors unlike any you've seen before.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sit"
+        script: |
+          echo As you sit on one of the ornate benches, you feel a sense of calm wash over you. The bench seems perfectly placed to provide a stunning view of the garden.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "beautiful"
+        script: |
+          echo Your words of admiration catch the ear of a nearby noble, who smiles and nods in agreement. "Indeed, the High Garden is one of our city's greatest treasures," they say proudly.
+    characters:
+      - id: city_noble
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: royal_gardener
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: servant
+        quantity: 2
+        respawn time min: 20
+        respawn time max: 50
+      - id: city_guard
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  mansion_row:
+    name: Opulent Mansion Row
+    description: >
+      You find yourself on Opulent Mansion Row, the most prestigious residential street 
+      in Central City. The wide, immaculately clean cobblestone street is lined with 
+      grand mansions, each more impressive than the last. Ornate iron gates and high 
+      stone walls protect lush private gardens. The architecture is a breathtaking 
+      display of wealth and artistry, with marble columns, gilded accents, and 
+      intricately carved facades. Well-dressed servants hurry about on errands, while 
+      guards stand watchful at the gates. The soft clop of hooves on stone occasionally 
+      breaks the refined quiet as a noble's carriage passes by.
+
+      Exits: west, east
+    exits:
+      west:
+        destination: noble_quarter
+      east:
+        destination: high_tower
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+        script: |
+          echo A finely dressed noble emerges from one of the mansions, attended by a small retinue of servants.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 40
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The sound of exquisite music drifts from an open window, hinting at a sophisticated gathering within one of the mansions.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "mansion"
+        script: |
+          echo The mansion you examine is a true masterpiece of architecture. Its facade is adorned with intricate carvings, and you catch a glimpse of a beautiful garden through the ornate iron gates.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "enter"
+        script: |
+          echo As you show interest in entering one of the mansions, a guard steps forward with a stern look. "This is private property, citizen. Move along," he says firmly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "invitation"
+        script: |
+          echo At the mention of an invitation, a few nearby servants exchange glances, clearly curious about potential social events they haven't heard about yet.
+    characters:
+      - id: city_noble
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: servant
+        quantity: 4
+        respawn time min: 20
+        respawn time max: 50
+      - id: city_guard
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: wandering_minstrel
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  grand_cathedral:
+    name: Majestic Grand Cathedral
+    description: >
+      You stand in awe before the Majestic Grand Cathedral, the spiritual heart of 
+      Central City. Its towering spires seem to touch the heavens, while intricate 
+      flying buttresses support walls of exquisite stained glass. The massive oak doors 
+      stand open, inviting the faithful and curious alike. Inside, the vaulted ceilings 
+      soar overhead, supported by massive stone columns. The air is heavy with the scent 
+      of incense, and the soft murmur of prayers echoes throughout. Sunlight streams 
+      through the stained glass windows, casting colorful patterns across the stone floor. 
+      Priests and acolytes move about their duties, while worshippers kneel in quiet 
+      contemplation.
+
+      Exits: south, up
+    exits:
+      south:
+        destination: temple_district
+      up:
+        destination: bell_tower
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+        script: |
+          echo The cathedral's choir begins to sing, their harmonious voices filling the vast space with ethereal music.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 45
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo A procession of priests moves through the cathedral, swinging censers that fill the air with fragrant incense.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "window"
+        script: |
+          echo The stained glass window you examine depicts a scene from religious lore, its vibrant colors telling a story of divine intervention and mortal faith.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pray"
+        script: |
+          echo As you begin to pray, you feel a sense of peace wash over you. The ambient sounds of the cathedral seem to fade away, leaving you in a moment of spiritual connection.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "blessing"
+        script: |
+          echo At the mention of a blessing, a nearby priest turns to you with a gentle smile. "May the light of the divine shine upon you," he intones softly.
+    characters:
+      - id: priest
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: acolyte
+        quantity: 4
+        respawn time min: 30
+        respawn time max: 60
+      - id: pilgrim
+        quantity: 5
+        respawn time min: 20
+        respawn time max: 50
+      - id: city_noble
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  monastery_grounds:
+    name: Peaceful Monastery Grounds
+    description: >
+      You find yourself in the Peaceful Monastery Grounds, a serene enclave within the 
+      bustling city. High stone walls surround a complex of simple yet elegant buildings, 
+      creating an atmosphere of quiet contemplation. Well-tended gardens filled with 
+      medicinal herbs and vibrant flowers line the cobblestone paths. A central courtyard 
+      features a tranquil pond, its surface broken only by the occasional ripple from 
+      ornamental koi. Monks in simple robes move quietly about their duties, while the 
+      soft sound of chanting drifts from an nearby chapel. The air is fragrant with 
+      the scent of incense and blooming flowers.
+
+      Exits: east, down
+    exits:
+      east:
+        destination: temple_district
+      down:
+        destination: hidden_catacombs
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 28
+        script: |
+          echo A group of monks passes by in silent meditation, their eyes downcast and hands clasped in prayer.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 42
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The gentle sound of a prayer bell rings out across the grounds, its clear tone seeming to purify the very air.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "garden"
+        script: |
+          echo The garden you examine is meticulously maintained, with neat rows of medicinal herbs and vibrant flowers. A monk tends to the plants with careful, practiced movements.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "meditate"
+        script: |
+          echo As you begin to meditate, you feel a sense of calm wash over you. The peaceful atmosphere of the monastery seems to deepen, enveloping you in tranquility.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "knowledge"
+        script: |
+          echo Your mention of knowledge catches the attention of a nearby monk. He approaches quietly, saying, "Seeking knowledge is a noble pursuit. Our library may have what you seek."
+    characters:
+      - id: monk
+        quantity: 5
+        respawn time min: 30
+        respawn time max: 60
+      - id: pilgrim
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: scholar
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: gardener
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  harbor_front:
+    name: Bustling Harbor Front
+    description: >
+      You stand on the Bustling Harbor Front of Central City, a hive of maritime activity. 
+      The air is thick with the smell of salt water and the cries of seagulls. Long wooden 
+      piers stretch out into the water, where ships of all sizes are moored - from small 
+      fishing boats to large merchant vessels. Sailors and dockworkers rush about, loading 
+      and unloading cargo. Fishmongers hawk their fresh catch, while merchants haggle 
+      over exotic goods newly arrived from distant lands. The constant creaking of ship 
+      timbers and the slap of waves against the shore provide a rhythmic backdrop to the 
+      bustling scene.
+
+      Exits: south, east
+    exits:
+      south:
+        destination: dockside_district
+      east:
+        destination: lighthouse_point
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 23
+        script: |
+          echo A large merchant ship slowly pulls into the harbor, its sails billowing as the crew works to bring it to dock.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 37
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A group of burly dockworkers marches past, carrying heavy crates from a newly arrived ship to a nearby warehouse.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "ship"
+        script: |
+          echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo A grizzled old sailor overhears your interest in swimming. "I wouldn't recommend it, landlubber. These waters are for ships, not pleasure," he warns with a chuckle.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "voyage"
+        script: |
+          echo At the mention of a voyage, several sailors turn their heads in your direction. One calls out, "Looking for passage, are ye? I'm sure we can find a ship that suits your needs!"
+    characters:
+      - id: sailor
+        quantity: 4
+        respawn time min: 20
+        respawn time max: 50
+      - id: merchant
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: dockworker
+        quantity: 5
+        respawn time min: 15
+        respawn time max: 45
+      - id: city_guard
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  fishmonger_alley:
+    name: Pungent Fishmonger Alley
+    description: >
+      You find yourself in Pungent Fishmonger Alley, a narrow, winding street dedicated 
+      to the city's seafood trade. The air is heavy with the briny scent of the sea and 
+      the unmistakable odor of fish. Wooden stalls line both sides of the cobblestone 
+      street, their counters laden with ice and the day's catch. Fishmongers loudly hawk 
+      their wares, competing to be heard over the general din. Cats prowl between the 
+      stalls, hoping for scraps. The ground is slick with water and fish scales, and 
+      colorful awnings provide shade for both vendors and customers.
+
+      Exits: west, north
+    exits:
+      west:
+        destination: dockside_district
+      north:
+        destination: fish_market
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A fishmonger bellows, "Fresh catch! Straight from the bay this morning! Come and get your fish while they're still flapping!"
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 35
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo A cart laden with blocks of ice rumbles down the alley, delivering fresh supplies to the fishmongers.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fish"
+        script: |
+          echo The fish you examine looks impressively fresh, its scales glistening in the light. The fishmonger notices your interest and begins extolling its quality and flavor.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "smell"
+        script: |
+          echo As you comment on the smell, a nearby fishmonger chuckles. "Aye, it's the smell of honest work and good eating! You'll get used to it, or you'll learn to love it!"
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "recipe"
+        script: |
+          echo Your mention of a recipe catches the ear of a fishmonger. "Looking to cook up something special? I've got just the fish for you, and I'll even throw in some cooking tips!"
+    characters:
+      - id: fishmonger
+        quantity: 5
+        respawn time min: 30
+        respawn time max: 60
+      - id: customer
+        quantity: 4
+        respawn time min: 15
+        respawn time max: 45
+      - id: street_vendor
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: stray_cat
+        quantity: 3
+        respawn time min: 20
+        respawn time max: 50
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  blacksmith_forge:
+    name: Sweltering Blacksmith Forge
+    description: >
+      You stand in the Sweltering Blacksmith Forge, the heart of Central City's 
+      metalworking industry. The air is thick with heat and the acrid smell of hot metal. 
+      The rhythmic clanging of hammers on anvils fills the air, punctuated by the hiss of 
+      steam as hot metal meets water. Massive forges glow with intense heat, their fires 
+      stoked by apprentices. Skilled blacksmiths work tirelessly, shaping metal into 
+      tools, weapons, and works of art. Racks of finished products line the walls, 
+      showcasing the smiths' impressive craftsmanship.
+
+      Exits: south, west
+    exits:
+      south:
+        destination: craftsmen_square
+      west:
+        destination: molten_peaks.entrance
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo A blacksmith pulls a glowing piece of metal from the forge and begins to shape it with powerful hammer blows, sending sparks flying.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo An apprentice rushes past, carefully carrying a bucket of water to cool a freshly forged piece.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "forge"
+        script: |
+          echo The forge burns with an intense heat, the flames dancing hypnotically as they heat metal to malleability. The blacksmith works with practiced precision, their movements a testament to years of experience.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "weapon"
+        script: |
+          echo Your interest in weapons catches the eye of a nearby blacksmith. "Looking for a new blade? We forge the finest in all the land," they say with pride.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "commission"
+        script: |
+          echo At the mention of a commission, several blacksmiths look up from their work, intrigued by the potential challenge.
+    characters:
+      - id: master_blacksmith
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: apprentice_smith
+        quantity: 4
+        respawn time min: 30
+        respawn time max: 60
+      - id: merchant
+        quantity: 1
+        respawn time min: 45
+        respawn time max: 90
+      - id: city_guard
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  royal_palace:
+    name: Resplendent Royal Palace
+    description: >
+      You stand in awe before the Resplendent Royal Palace, the crown jewel of Central 
+      City. Towering spires and gleaming domes rise majestically against the sky, their 
+      gold and silver accents catching the sunlight. The palace facade is a masterpiece 
+      of architecture, adorned with intricate carvings, colorful frescoes, and delicate 
+      stained glass windows. Immaculate gardens surround the palace, filled with exotic 
+      plants and elaborate fountains. Guards in ornate armor stand at attention at every 
+      entrance, their weapons polished to a mirror shine. The air is perfumed with the 
+      scent of rare flowers, and the soft sound of courtly music drifts from within.
+
+      Exits: south, up
+    exits:
+      south:
+        destination: high_garden
+      up:
+        destination: throne_room
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+        script: |
+          echo A procession of richly dressed nobles passes by, their fine silks rustling as they make their way into the palace.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 40
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The palace gates open with a grand flourish as a royal carriage departs, its occupants hidden behind ornate curtains.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "guard"
+        script: |
+          echo The palace guard you observe stands perfectly still, their armor gleaming in the sunlight. Their eyes, however, are alert and watchful, missing nothing.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "enter"
+        script: |
+          echo As you show interest in entering the palace, a guard steps forward. "The palace is only open to those with royal invitation or official business," they state firmly but politely.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "audience"
+        script: |
+          echo At the mention of an audience, a nearby courtier turns to you with interest. "Seeking an audience with royalty? That's not easily granted, but perhaps I could advise you on the proper channels."
+    characters:
+      - id: royal_guard
+        quantity: 4
+        respawn time min: 60
+        respawn time max: 120
+      - id: courtier
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: servant
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+      - id: city_noble
+        quantity: 2
+        respawn time min: 50
+        respawn time max: 100
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  high_tower:
+    name: Arcane High Tower
+    description: >
+      You stand at the base of the Arcane High Tower, a structure that seems to defy the 
+      laws of nature. The tower stretches impossibly high into the sky, its upper levels 
+      shrouded in mist and swirling magical energies. The walls are made of a strange, 
+      iridescent stone that shifts colors as you watch. Runes and arcane symbols cover 
+      every surface, occasionally glowing with inner light. The air crackles with magical 
+      energy, causing the hairs on your arms to stand on end. Robed figures hurry in and 
+      out of the tower's entrance, their arms often full of ancient tomes or mysterious 
+      artifacts.
+
+      Exits: west, up
+    exits:
+      west:
+        destination: mansion_row
+      up:
+        destination: wizards_study
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 22
+        script: |
+          echo A flash of multicolored light emanates from one of the tower's windows, followed by a muffled explosion and a puff of purple smoke.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 35
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo The tower briefly shimmers and seems to fade from view, only to reappear moments later. A nearby mage mutters, "Temporal flux. Perfectly normal."
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "rune"
+        script: |
+          echo As you examine the runes, they seem to shift and change before your eyes. You feel a slight tingling sensation in your fingertips.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "spell"
+        script: |
+          echo Your mention of spells catches the attention of a passing apprentice. They eye you curiously, as if assessing your magical potential.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "magic"
+        script: |
+          echo At the word 'magic', several nearby mages turn to look at you. One approaches, saying, "Interested in the arcane arts, are we? It's not for the faint of heart, you know."
+    characters:
+      - id: archmage
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+      - id: apprentice_mage
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+      - id: magical_researcher
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: magical_creature
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  bell_tower:
+    name: Echoing Bell Tower
+    description: >
+      You find yourself in the Echoing Bell Tower, high above the Grand Cathedral. The 
+      circular room is open to the elements, with large arched openings providing a 
+      breathtaking view of Central City in all directions. Massive bronze bells hang 
+      from sturdy wooden beams overhead, their surfaces patinated with age. The air is 
+      crisp and clean at this height, carrying the faint scents of the city below. 
+      Pigeons coo softly from their nests in the rafters, and the wind whistles gently 
+      through the openings. A thick rope hangs down the center of the room, used to 
+      ring the bells for various religious and civic occasions.
+
+      Exits: down
+    exits:
+      down:
+        destination: grand_cathedral
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+        script: |
+          echo The bells suddenly come to life, their deep, resonant tones filling the air and vibrating through your body. The sound echoes across the city below.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 45
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo A flock of pigeons takes flight from the rafters, startled by some unseen disturbance, their wings fluttering loudly in the enclosed space.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "bell"
+        script: |
+          echo The bell you examine is enormous up close, its surface covered in intricate religious symbols and dedications. You can see your distorted reflection in the polished bronze.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "ring"
+        script: |
+          echo As you reach for the bell rope, a voice calls out, "Hold there! The bells are only rung at appointed times or in emergencies. Best leave it be, friend."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "view"
+        script: |
+          echo Your comment about the view draws the attention of the bell keeper. "Aye, it's a sight to behold," they say, pointing out landmarks in the city below.
+    characters:
+      - id: bell_keeper
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: acolyte
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: pilgrim
+        quantity: 1
+        respawn time min: 30
+        respawn time max: 60
+      - id: city_guard
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  hidden_catacombs:
+    name: Mysterious Hidden Catacombs
+    description: >
+      You find yourself in the Mysterious Hidden Catacombs beneath the monastery. The air 
+      is cool and damp, heavy with the musty scent of age. Flickering torches cast 
+      dancing shadows on rough-hewn stone walls, revealing ancient inscriptions and 
+      faded frescoes. Narrow passageways branch off in all directions, their depths 
+      shrouded in darkness. The bones of the long-dead rest in alcoves along the walls, 
+      silent witnesses to countless centuries. Water drips somewhere in the distance, 
+      its echo creating an eerie ambiance. The atmosphere is thick with an almost 
+      palpable sense of history and hidden knowledge.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: monastery_grounds
+      east:
+        # destination: crystalline_caverns.entrance
+        destination: hidden_catacombs
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+        script: |
+          echo A cold breeze whispers through the catacombs, causing the torch flames to flicker and dance. For a moment, the shadows seem to move of their own accord.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 40
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The sound of chanting drifts faintly through the passageways, its source impossible to pinpoint. The ethereal voices seem to speak of ancient secrets.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "inscription"
+        script: |
+          echo As you examine the inscription, the symbols seem to shift and change. You feel a slight dizziness, as if the very act of reading is altering your perception.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo As your hand nears one of the ancient relics, you feel a tingling sensation in your fingertips. A nearby monk clears his throat warningly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "secret"
+        script: |
+          echo Your words about secrets echo strangely in the catacombs. For a moment, it almost seems as if the very walls are listening.
+    characters:
+      - id: monk
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: scholar
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+      - id: pilgrim
+        quantity: 1
+        respawn time min: 45
+        respawn time max: 90
+      - id: ghostly_figure
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  lighthouse_point:
+    name: Guiding Lighthouse Point
+    description: >
+      You stand at the Guiding Lighthouse Point, the easternmost tip of Central City's 
+      harbor. A tall, white-washed stone tower rises before you, its beacon shining 
+      brightly even in daylight. The air is filled with the cry of seagulls and the 
+      rhythmic crashing of waves against the rocky shore. Salt spray mists the air, 
+      leaving a fine layer of moisture on everything. The lighthouse itself is surrounded 
+      by a small, well-kept garden, a stark contrast to the wild, tumultuous sea beyond. 
+      From this vantage point, you can see ships of all sizes entering and leaving the 
+      harbor, guided by the lighthouse's unwavering light.
+
+      Exits: west
+    exits:
+      west:
+        destination: harbor_front
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 28
+        script: |
+          echo The lighthouse's beam sweeps across the water, its light briefly illuminating a distant ship on the horizon.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 42
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo A strong gust of wind blows in from the sea, carrying with it the scent of brine and adventure.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "ship"
+        script: |
+          echo You spot a majestic ship in the distance, its sails full as it makes its way towards the harbor. The lighthouse's beam sweeps over it, guiding its path.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "climb"
+        script: |
+          echo As you show interest in climbing the lighthouse, the keeper shakes his head. "Sorry, friend. The tower's off-limits to visitors. Safety regulations, you understand."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "storm"
+        script: |
+          echo At the mention of storms, the lighthouse keeper nods gravely. "Aye, we've seen our share of tempests here. But this old light has never failed to guide ships to safe harbor."
+    characters:
+      - id: lighthouse_keeper
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+      - id: sailor
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: fisherman
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
+      - id: seagull
+        quantity: 5
+        respawn time min: 15
+        respawn time max: 45
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  fish_market:
+    name: Lively Fish Market
+    description: >
+      You find yourself in the heart of Central City's Lively Fish Market. The air is 
+      thick with the briny scent of the sea and the unmistakable odor of fresh fish. 
+      Rows of stalls stretch as far as the eye can see, each overflowing with the day's 
+      catch displayed on beds of crushed ice. Fishmongers call out their wares, their 
+      voices competing with the general hubbub of haggling customers. The ground is 
+      slick with water and scattered fish scales, requiring careful footing. Colorful 
+      awnings provide shade, their edges flapping in the sea breeze. At the far end, 
+      you can see larger stalls where whole tuna and other large fish are being expertly 
+      filleted for eager customers.
+
+      Exits: south
+    exits:
+      south:
+        destination: fishmonger_alley
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A fishmonger holds up a massive, silver-scaled fish, shouting, "Fresh caught this morning! You won't find a finer specimen in all the city!"
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 35
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo The crowd suddenly surges toward one stall as word spreads of a rare and exotic fish just put on display.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fish"
+        script: |
+          echo The fish you examine looks remarkably fresh, its eyes clear and scales glistening. The fishmonger notices your interest and begins extolling its quality and flavor.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "haggle"
+        script: |
+          echo As you start to haggle, the fishmonger's eyes light up with the thrill of negotiation. "Ah, a discerning customer! Let's see if we can strike a deal, shall we?"
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "recipe"
+        script: |
+          echo Your mention of a recipe catches the ear of a nearby fishmonger. "Looking to cook up something special? I've got just the fish for you, and I'll even throw in my grandmother's secret seasoning blend!"
+    characters:
+      - id: fishmonger
+        quantity: 5
+        respawn time min: 30
+        respawn time max: 60
+      - id: customer
+        quantity: 8
+        respawn time min: 15
+        respawn time max: 45
+      - id: city_guard
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+      - id: street_vendor
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  throne_room:
+    name: Opulent Throne Room
+    description: >
+      You stand in awe within the Opulent Throne Room, the very heart of power in Central 
+      City. The vast chamber is a masterpiece of architectural grandeur and artistic 
+      beauty. Soaring marble columns support a vaulted ceiling adorned with intricate 
+      frescoes depicting the city's history. Massive chandeliers of gold and crystal 
+      cast a warm glow over the room. The walls are hung with rich tapestries and the 
+      banners of noble houses. At the far end of the room, atop a raised dais, sits the 
+      royal throne - a magnificent seat of gold and precious gems, backed by an 
+      enormous stained-glass window that bathes the area in colored light. The polished 
+      floor reflects the opulence above, creating an almost dizzying effect.
+
+      Exits: down
+    exits:
+      down:
+        destination: royal_palace
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+        script: |
+          echo A herald's voice rings out, announcing the arrival of a noble dignitary. The assembled courtiers bow respectfully as the figure enters.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 45
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The soft strains of courtly music fill the air as a group of minstrels begins to play from a secluded alcove.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "throne"
+        script: |
+          echo As you examine the throne, you're struck by its intricate craftsmanship. Every inch is covered in delicate engravings and inlaid with precious stones. It's as much a work of art as it is a seat of power.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "bow"
+        script: |
+          echo As you bow, you notice the courtiers around you doing the same. A nearby noble nods approvingly at your show of respect.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "audience"
+        script: |
+          echo At the mention of an audience, a royal advisor approaches you. "Seeking an audience with the crown? I'm afraid it's not that simple, but perhaps we could discuss your business?"
+    characters:
+      - id: royal_guard
+        quantity: 4
+        respawn time min: 60
+        respawn time max: 120
+      - id: courtier
+        quantity: 5
+        respawn time min: 30
+        respawn time max: 60
+      - id: noble
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: royal_advisor
+        quantity: 2
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  wizards_study:
+    name: Cluttered Wizard's Study
+    description: >
+      You find yourself in the Cluttered Wizard's Study at the top of the Arcane High 
+      Tower. The circular room is a chaotic whirlwind of magical paraphernalia. Towering 
+      bookshelves line the walls, crammed with ancient tomes and scrolls. Peculiar 
+      instruments of brass and glass crowd every surface, occasionally emitting puffs 
+      of colored smoke or quiet chimes. Bubbling potions simmer in delicate glassware, 
+      filling the air with strange, ever-changing scents. Mystical symbols and diagrams 
+      cover the floor and ceiling, glowing faintly. A large window offers a breathtaking 
+      view of the city below, though it's partially obscured by floating, shimmering 
+      magical formulae. The very air seems to crackle with arcane energy.
+
+      Exits: down
+    exits:
+      down:
+        destination: high_tower
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+        script: |
+          echo A book suddenly floats off a shelf, flips open, and begins turning its own pages rapidly before snapping shut and returning to its place.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 40
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo A small explosion erupts from one of the bubbling cauldrons, filling the room with sweet-smelling purple smoke that quickly dissipates.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "book"
+        script: |
+          echo As you look at the book, the letters on its spine seem to rearrange themselves. You blink, and they settle back into their original configuration.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo Just as you're about to touch one of the magical artifacts, a disembodied voice warns, "I wouldn't do that if I were you. Unless you fancy being turned into a toad, of course."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "spell"
+        script: |
+          echo At the mention of a spell, several nearby books flutter their pages excitedly, as if eager to share their arcane knowledge.
+    characters:
+      - id: archmage
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+      - id: apprentice_mage
+        quantity: 2
+        respawn time min: 45
+        respawn time max: 90
+      - id: magical_familiar
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: enchanted_object
+        quantity: 3
+        respawn time min: 30
+        respawn time max: 60
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  guard_barracks:
+    name: Disciplined Guard Barracks
+    description: >
+      You enter the Disciplined Guard Barracks, the headquarters of Central City's 
+      peacekeeping force. The large, rectangular room is a model of military efficiency 
+      and order. Neat rows of bunk beds line the walls, each impeccably made. Weapon 
+      racks filled with polished swords, spears, and crossbows stand at regular intervals. 
+      The air carries the scent of leather and metal polish. Notice boards covered with 
+      duty rosters, wanted posters, and city regulations are prominently displayed. 
+      At one end, a heavy door leads to the armory, while a sturdy desk for the watch 
+      captain dominates the other. The room buzzes with the constant activity of guards 
+      preparing for their shifts or returning from patrol.
+
+      Exits: east, south
+    exits:
+      east:
+        destination: training_grounds
+      south:
+        destination: city_jail
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A squad of guards marches in, their armor clanking rhythmically as they return from their patrol of the city streets.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 35
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 40
+        script: |
+          echo The watch captain's voice rings out, calling the roll and assigning duties for the next shift.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "weapon"
+        script: |
+          echo The weapons are meticulously maintained, each one a lethal work of art. A nearby guard eyes you warily as you examine them.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "join"
+        script: |
+          echo Your interest in joining the guard catches the attention of a recruiter. "Thinking of enlisting, eh? It's a noble calling, but not for the faint of heart."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "crime"
+        script: |
+          echo At the mention of crime, several guards perk up, their hands instinctively moving to their weapon hilts. The watch captain approaches, asking, "Is there something you'd like to report, citizen?"
+    characters:
+      - id: city_guard
+        quantity: 6
+        respawn time min: 30
+        respawn time max: 60
+      - id: watch_captain
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+      - id: guard_recruit
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: armorer
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  training_grounds:
+    name: Bustling Training Grounds
+    description: >
+      You stand in the Bustling Training Grounds of Central City's guard force. The large, 
+      open area is alive with activity. One section is dedicated to archery, with 
+      straw targets set up at various distances. Another area features training dummies 
+      for sword practice, while a sandy pit is set aside for hand-to-hand combat drills. 
+      The clash of practice weapons and the thud of arrows hitting targets fill the air. 
+      Instructors bark orders and offer critiques to groups of recruits and veteran 
+      guards alike. The perimeter is lined with weapon racks, water barrels, and benches 
+      for resting between drills. Despite the intensity of the training, there's an 
+      underlying sense of camaraderie among the guards.
+
+      Exits: west
+    exits:
+      west:
+        destination: guard_barracks
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 22
+        script: |
+          echo A group of recruits begins a synchronized sword drill, their practice blades whistling through the air in unison.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 38
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo An archery instructor calls out, "Hold!" The air fills with the simultaneous twang of bowstrings as a volley of arrows is released at the targets.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "weapon"
+        script: |
+          echo The training weapons are well-worn but carefully maintained. They're blunted for safety, but still look capable of delivering a solid blow.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "train"
+        script: |
+          echo Your interest in training catches the eye of a grizzled instructor. "Want to try your hand, citizen? We're always looking for new recruits with fighting spirit."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "duel"
+        script: |
+          echo At the mention of a duel, several guards turn to look at you with interest. One calls out, "If it's a friendly spar you're after, I'd be happy to oblige. With the captain's permission, of course."
+    characters:
+      - id: city_guard
+        quantity: 4
+        respawn time min: 30
+        respawn time max: 60
+      - id: guard_instructor
+        quantity: 2
+        respawn time min: 60
+        respawn time max: 120
+      - id: guard_recruit
+        quantity: 5
+        respawn time min: 20
+        respawn time max: 50
+      - id: weapon_master
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  city_jail:
+    name: Secure City Jail
+    description: >
+      You find yourself in the Secure City Jail, a stark contrast to the lively streets 
+      above. The air is cool and damp, with a faint musty odor. Thick stone walls are 
+      lined with iron-barred cells, each secured with heavy locks. Torches in wall 
+      sconces cast flickering shadows, creating an atmosphere of gloom. A sturdy desk 
+      sits near the entrance, where guards process prisoners and maintain records. 
+      The occasional clink of chains or muffled conversation breaks the oppressive 
+      silence. A board on the wall displays wanted posters and notices of recent 
+      arrests. Despite its grim purpose, the jail is kept reasonably clean, reflecting 
+      the city guard's commitment to maintaining order with a degree of humanity.
+
+      Exits: north
+    exits:
+      north:
+        destination: guard_barracks
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+        script: |
+          echo The sound of keys jangling echoes through the jail as a guard makes their rounds, checking each cell methodically.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 40
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A new prisoner is brought in, escorted by two guards. The captive is quickly processed and led to an empty cell.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "cell"
+        script: |
+          echo The cell is small and sparsely furnished, with a simple cot and a bucket in the corner. The iron bars look thick and sturdy, designed to discourage any thoughts of escape.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "prisoner"
+        script: |
+          echo As you show interest in the prisoners, a guard steps closer, watching you carefully. "Move along, citizen. This isn't a place for sightseeing," he warns gruffly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "innocent"
+        script: |
+          echo At the claim of innocence, a weary-looking jailer chuckles. "That's what they all say, friend. Tell it to the magistrate."
+    characters:
+      - id: city_guard
+        quantity: 3
+        respawn time min: 45
+        respawn time max: 90
+      - id: jailer
+        quantity: 1
+        respawn time min: 75
+        respawn time max: 150
+      - id: prisoner
+        quantity: 4
+        respawn time min: 60
+        respawn time max: 120
+      - id: visiting_magistrate
+        quantity: 1
+        respawn time min: 120
+        respawn time max: 240
+
+name: Central City
+description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
+rooms:
+  sewers_entrance:
+    name: Dank Sewers Entrance
+    description: >
+      You stand at the entrance to Central City's vast sewer system. A large, circular 
+      stone archway leads into darkness, the faint sound of running water echoing from 
+      within. The air is thick with humidity and carries a pungent odor that makes your 
+      nose wrinkle. Slick moss covers parts of the walls, and the stones are stained 
+      with years of moisture and grime. A few guttering torches provide minimal 
+      illumination, casting long shadows that seem to move of their own accord. Rats 
+      scurry in the corners, their eyes glinting in the dim light. A worn sign warns 
+      against unauthorized entry, but it's clear from the footprints in the muck that 
+      not everyone heeds this warning.
+
+      Exits: up, down
+    exits:
+      up:
+        destination: market_square
+      down:
+        destination: underground_tunnels
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+        script: |
+          echo A gust of foul air wafts up from the depths of the sewer, carrying with it the sounds of distant splashing.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 45
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 35
+        script: |
+          echo The scraping sound of claws on stone echoes from the darkness, followed by the squeaking of what sounds like a very large rat.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "water"
+        script: |
+          echo The water flowing into the sewer entrance is a murky, unpleasant-looking stream. Various bits of debris float on its surface, heading deeper into the tunnels.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "enter"
+        script: |
+          echo As you move to enter the sewer, a passing city guard calls out, "Careful down there, citizen. It's easy to get lost in those tunnels, and not everything you meet will be friendly."
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "secret"
+        script: |
+          echo At the mention of secrets, you notice a shadowy figure further down the tunnel perk up and then quickly disappear into the darkness.
+    characters:
+      - id: sewer_worker
+        quantity: 1
+        respawn time min: 60
+        respawn time max: 120
+      - id: city_guard
+        quantity: 1
+        respawn time min: 90
+        respawn time max: 180
+      - id: suspicious_character
+        quantity: 1
+        respawn time min: 45
+        respawn time max: 90
+      - id: giant_rat
+        quantity: 2
+        respawn time min: 30
+        respawn time max: 60
