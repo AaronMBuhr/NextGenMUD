@@ -1,0 +1,2476 @@
+name: City Sewers
+description: The dank and filthy sewers of the imperial city. The stench is unbearable.
+rooms:
+  sewer_entrance:
+    name: Sewer Entrance
+    description: >
+      You stand at the entrance to the Imperial City's vast sewer system. A large, 
+      circular stone archway looms before you, its edges slick with moisture and 
+      adorned with moss. The pungent odor of waste and stagnant water assaults your 
+      nostrils. Flickering torches mounted on the walls cast eerie shadows, revealing 
+      glimpses of the dank passageways that stretch into the darkness below. 
+      Occasional echoes of dripping water and scurrying creatures reach your ears, 
+      hinting at the challenges that await in the depths.
+
+      Exits: down, out
+    exits:
+      down:
+        destination: main_junction
+      out:
+        destination: imperial_city.sewers_entrance
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A gust of foul air wafts up from the depths, carrying the unmistakable stench of the sewers.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The distant sound of rushing water echoes from deep within the sewer system.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "torch"
+        script: |
+          echo The torch flickers weakly, its flame struggling against the damp air of the sewers.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "smell"
+        script: |
+          echo You instantly regret trying to smell anything here. The stench is overwhelming.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your voice echoes ominously through the sewer entrance, but only silence answers back.
+    creatures:
+      - id: giant_rat
+        quantity: 2
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: giant_roach
+        quantity: 1
+        respawn_time_min: 30
+        respawn_time_max: 90  main_junction:
+
+  main_junction:
+    name: Main Sewer Junction
+    description: >
+      You find yourself in a vast, circular chamber that serves as the main junction 
+      for the Imperial City's sewer system. Massive stone pillars, slick with moisture 
+      and adorned with patches of phosphorescent fungi, support the vaulted ceiling 
+      high above. Multiple tunnels branch out in all directions, their dark mouths 
+      gaping like hungry beasts. The air is thick with the stench of decay and the 
+      constant sound of rushing water. Channels of murky, foul-smelling liquid 
+      converge in the center of the room, forming a swirling whirlpool that 
+      disappears into an ominous drain.
+
+      Exits: up, north, south, east, west
+    exits:
+      up:
+        destination: sewer_entrance
+      north:
+        destination: northern_tunnel
+      south:
+        destination: southern_tunnel
+      east:
+        destination: eastern_tunnel
+      west:
+        destination: western_tunnel
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo The sound of rushing water grows momentarily louder, echoing off the chamber walls.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A piece of unidentifiable debris floats by in one of the water channels, quickly disappearing into the central whirlpool.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fungi"
+        script: |
+          echo The phosphorescent fungi glow with an eerie, pale blue light, providing just enough illumination to navigate the chamber.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo Swimming in these foul waters would be extremely unwise and potentially deadly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "echo"
+        script: |
+          $if($random(1,2),eq,1) {
+            echo Your words echo back at you, distorted and haunting in the vast chamber.
+          } else {
+            echo The echoes of your voice seem to awaken something in the shadows. You hear a distant skittering sound.
+          }
+    creatures:
+      - id: giant_rat
+        quantity: 3
+        respawn_time_min: 15
+        respawn_time_max: 45
+      - id: slime
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 45
+        respawn_time_max: 120
+  
+  northern_tunnel:
+    name: Northern Sewer Tunnel
+    description: >
+      You find yourself in a long, arched tunnel stretching northward into the gloom. 
+      The walls, made of ancient stonework, are slick with moisture and patches of 
+      slimy growth. Brackish water flows sluggishly through a central channel, carrying 
+      with it an assortment of refuse and detritus. Rusty iron brackets hold sputtering 
+      torches at irregular intervals, casting flickering shadows that dance across the 
+      curved ceiling. The air is thick with the musty odor of decay and stagnant water. 
+      Occasionally, you hear the distant splash of unseen creatures moving through the 
+      murky depths.
+
+      Exits: south, north
+    exits:
+      south:
+        destination: main_junction
+      north:
+        destination: waste_processing_chamber
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo A cold draft whistles through the tunnel, carrying with it the echoes of distant dripping water.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo Something large splashes in the water channel, momentarily disturbing the sluggish flow.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "torch"
+        script: |
+          echo The torch flickers weakly, its flame struggling against the damp air. The rusted bracket holding it looks ready to give way at any moment.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "drink"
+        script: |
+          echo The very thought of drinking this foul water turns your stomach. It would be extremely unwise and potentially deadly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your greeting echoes down the tunnel, fading into an eerie silence. Then, from somewhere in the darkness, you hear what sounds like a faint, mocking echo of your voice.
+    creatures:
+      - id: giant_rat
+        quantity: 2
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 40
+        respawn_time_max: 100
+      - id: slime
+        quantity: 1
+        respawn_time_min: 30
+        respawn_time_max: 90
+
+  waste_processing_chamber:
+    name: Waste Processing Chamber
+    description: >
+      You enter a large, circular chamber that serves as a primitive waste processing 
+      area for the Imperial City's sewage system. The air is thick with noxious fumes 
+      and the unmistakable stench of decay. Massive stone grinders, powered by an 
+      unseen water wheel, churn slowly in the center of the room, breaking down solid 
+      waste. Channels of murky water feed into and out of the chamber through grated 
+      openings. The walls are lined with crude stone shelves holding an assortment of 
+      alchemical mixtures in clay jars - presumably used to treat the waste. Sputtering 
+      torches cast an eerie, green-tinged light, reflecting off the slime-coated surfaces. 
+      The constant grinding noise and gurgling of water creates a cacophony that echoes 
+      throughout the chamber.
+
+      Exits: south, east, west
+    exits:
+      south:
+        destination: northern_tunnel
+      east:
+        destination: filtration_room
+      west:
+        destination: sludge_pit
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo The grinding stones emit a loud groan as they crush a particularly large piece of debris.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A burst of foul gas erupts from one of the water channels, causing you to gag momentarily.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "jar"
+        script: |
+          echo The clay jars are labeled with crude symbols. You recognize some as basic alchemical notations for acids and bases.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo You think better of touching anything in this foul chamber. Who knows what diseases lurk in the waste?
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "help"
+        script: |
+          echo Your cry for help is drowned out by the grinding of stones and rushing of water. If anyone heard you, they gave no sign.
+    creatures:
+      - id: giant_rat
+        quantity: 3
+        respawn_time_min: 15
+        respawn_time_max: 45
+      - id: slime
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 45
+        respawn_time_max: 120
+
+  filtration_room:
+    name: Filtration Room
+    description: >
+      You enter a long, rectangular chamber that appears to be a crude attempt at 
+      water filtration. The room is dominated by a series of large, tiered stone 
+      basins filled with layers of sand, gravel, and charcoal. Murky water trickles 
+      down from one basin to the next, gradually becoming clearer, though still far 
+      from pure. The walls are lined with racks of clay pots containing various 
+      mineral salts and powders used in the filtration process. The air is thick 
+      with humidity and the pungent smell of algae and mineral deposits. Guttering 
+      torches cast a wavering light, revealing patches of bioluminescent mold growing 
+      in the darker corners. The constant sound of trickling water echoes off the 
+      stone walls, occasionally punctuated by the drip of water from the vaulted ceiling.
+
+      Exits: west, down
+    exits:
+      west:
+        destination: waste_processing_chamber
+      down:
+        destination: underground_stream
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A large bubble rises to the surface of one of the basins and bursts, releasing a brief whiff of sulfur.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You hear a muffled splash from the underground stream below, followed by an unsettling gurgling sound.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "basin"
+        script: |
+          echo As you peer into the basin, you notice small, pale creatures darting between the layers of filtration material.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "drink"
+        script: |
+          echo Despite the filtration process, this water is still far from safe to drink. The thought alone makes your stomach churn.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your voice echoes strangely in the humid air, distorted by the constant sound of trickling water.
+    creatures:
+      - id: giant_frog
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: slime
+        quantity: 1
+        respawn_time_min: 40
+        respawn_time_max: 100
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 50
+        respawn_time_max: 120
+
+  sludge_pit:
+    name: Sludge Pit
+    description: >
+      You find yourself at the edge of a vast, circular pit filled with a thick, 
+      bubbling morass of sludge and waste. The stench here is overwhelming, a miasma 
+      of decay and noxious gases that burns your nostrils and makes your eyes water. 
+      The walls of the pit are slick with a greenish-black slime, and narrow walkways 
+      of ancient stone circle the edge, their surfaces treacherously slippery. 
+      Occasional geysers of gas erupt from the sludge, releasing clouds of foul vapor. 
+      Dim, sickly green light emanates from patches of bioluminescent fungi clinging 
+      to the walls, casting eerie shadows across the roiling surface of the pit. The 
+      constant gurgle and squelch of the sludge creates a nauseating backdrop of sound.
+
+      Exits: east, down
+    exits:
+      east:
+        destination: waste_processing_chamber
+      down:
+        destination: muck_cavern
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A large bubble swells on the surface of the sludge before bursting with a sickening 'plop', releasing a cloud of foul gas.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo Something large and unseen moves beneath the surface of the sludge, creating a series of ripples that lap at the edges of the pit.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fungi"
+        script: |
+          echo The bioluminescent fungi pulsate slowly, their eerie green light seeming to throb in time with the bubbling of the sludge.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "jump"
+        script: |
+          echo The thought of jumping into the sludge pit fills you with dread. It would surely mean a quick and unpleasant death.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "help"
+        script: |
+          echo Your cry for help is swallowed by the gurgling of the sludge. If anything heard you, it's probably not something you'd want to come to your aid.
+    creatures:
+      - id: giant_leech
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: slime
+        quantity: 3
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: giant_frog
+        quantity: 1
+        respawn_time_min: 45
+        respawn_time_max: 120
+        
+  underground_stream:
+    name: Underground Stream
+    description: >
+      You find yourself in a long, winding cavern carved out by an underground stream. 
+      The air here is cooler and less fetid than in the upper sewers, with a damp, 
+      earthy smell. The stream, surprisingly clear compared to the foul waters above, 
+      rushes along a deep channel cut into the cavern floor. Worn stone paths line 
+      both sides of the stream, their surfaces slick with moisture. The walls of the 
+      cavern glitter with tiny crystals and veins of mineral deposits, catching and 
+      reflecting the light from your torch. Patches of luminescent moss add a soft, 
+      blue-green glow to the darker recesses. The constant sound of rushing water 
+      echoes off the stone walls, occasionally punctuated by the splash of unseen 
+      creatures in the stream.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: filtration_room
+      east:
+        destination: waterfall_chamber
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A school of pale, eyeless fish suddenly darts past in the stream, their scales glinting in the dim light.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A cool breeze wafts through the cavern, carrying with it the distant sound of falling water.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "crystal"
+        script: |
+          echo As you examine the crystals more closely, you notice they seem to pulse faintly with an inner light.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "drink"
+        script: |
+          echo While the water looks clearer here, drinking from an unknown underground source could still be dangerous.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your voice echoes off the cavern walls, mixing with the sound of rushing water in an eerie chorus.
+    creatures:
+      - id: giant_frog
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: giant_crayfish
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 150
+
+  muck_cavern:
+    name: Muck-Filled Cavern
+    description: >
+      You stand at the edge of a vast, natural cavern that has become a repository for 
+      the city's foulest waste. The floor is a treacherous expanse of deep, sticky muck 
+      that bubbles and shifts ominously. Tendrils of noxious vapor rise from the surface, 
+      creating a hazy, sickly atmosphere. The cavern walls, barely visible through the 
+      miasma, are coated with a slick, iridescent film that glistens in the dim light. 
+      Sparse patches of sickly, mutated fungi cling to the higher portions of the walls, 
+      providing meager illumination with their pale, unhealthy glow. The air is thick 
+      with the overpowering stench of decay and the muffled sounds of things moving 
+      beneath the muck's surface.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: sludge_pit
+      east:
+        destination: fungal_grove
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A large bubble swells and bursts in the muck, releasing a cloud of foul gas that momentarily thickens the air.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo Something large and unseen moves beneath the surface of the muck, creating ripples that spread across the cavern floor.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fungi"
+        script: |
+          echo The mutated fungi seem to recoil as you look at them, their sickly glow flickering erratically.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo The very thought of swimming in this muck fills you with revulsion. It would be incredibly dangerous and likely fatal.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "help"
+        script: |
+          echo Your cry for help is muffled by the thick, foul air. Only the burbling muck seems to answer, mockingly.
+    creatures:
+      - id: giant_leech
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: slime
+        quantity: 3
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: muck_beast
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  waterfall_chamber:
+    name: Sewer Waterfall Chamber
+    description: >
+      You enter a massive, cathedral-like cavern dominated by a thundering waterfall. 
+      The water, a mix of the clearer underground stream and the fouler sewage from 
+      above, cascades down a jagged rock face, creating a constant mist that fills 
+      the air. The floor is a series of tiered pools, each slightly cleaner than the 
+      last as the water's movement provides a natural filtration. Phosphorescent 
+      algae cling to the wet walls, bathing the chamber in an eerie, blue-green glow. 
+      The roar of the falling water is deafening, yet underneath you can hear the 
+      gurgle of unseen underground streams. A narrow, slippery ledge hugs the wall, 
+      offering precarious passage around the chamber.
+
+      Exits: west, down
+    exits:
+      west:
+        destination: underground_stream
+      down:
+        destination: whirlpool_room
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A sudden surge in the waterfall's flow sends a spray of mist across the chamber, momentarily obscuring your vision.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You glimpse a large, pale fish leaping up the tiered pools, struggling against the current.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "algae"
+        script: |
+          echo As you examine the phosphorescent algae, its glow intensifies, creating mesmerizing patterns on the wet stone.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo Swimming here would be extremely dangerous. The current looks strong enough to sweep you over the edge to the chambers below.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "echo"
+        script: |
+          $if($random(1,2),eq,1) {
+            echo You shout, but your voice is completely drowned out by the roar of the waterfall.
+          } else {
+            echo Your voice echoes strangely, seeming to come from all directions at once before fading into the waterfall's roar.
+          }
+    creatures:
+      - id: giant_frog
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: cave_fish
+        quantity: 3
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: water_elemental
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  fungal_grove:
+    name: Bioluminescent Fungal Grove
+    description: >
+      You step into a surreal underground chamber that seems to pulse with alien life. 
+      The entire cavern is filled with an enormous variety of bioluminescent fungi, 
+      creating a magical landscape of soft, otherworldly light. Massive mushrooms tower 
+      overhead, their caps glowing in hues of blue, green, and purple. Delicate, 
+      lace-like mycelium networks cover the walls, pulsing with gentle waves of 
+      phosphorescence. The floor is a carpet of smaller fungi, their light shifting 
+      subtly beneath your feet. The air is thick with spores, creating a misty 
+      atmosphere that dances with tiny, glowing particles. A constant, barely audible 
+      hum seems to emanate from the fungi themselves, creating an eerie background noise.
+
+      Exits: west, south
+    exits:
+      west:
+        destination: muck_cavern
+      south:
+        destination: rat_nest
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A cluster of nearby fungi suddenly brightens, releasing a small cloud of glowing spores that drift lazily through the air.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo You hear a soft rustling sound, and notice that some of the fungi seem to be slowly moving, their stalks bending and swaying.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "mushroom"
+        script: |
+          echo As you examine the mushroom more closely, you notice intricate patterns on its surface that seem to shift and change as you watch.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "eat"
+        script: |
+          echo The idea of eating any of these strange fungi seems extremely unwise. There's no telling what effects they might have.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo As you speak, the fungi around you seem to react, their glow intensifying briefly before fading back to normal.
+    creatures:
+      - id: giant_slug
+        quantity: 2
+        respawn_time_min: 40
+        respawn_time_max: 100
+      - id: spore_creature
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: fungal_shambler
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  whirlpool_room:
+    name: Whirlpool Room
+    description: >
+      You enter a circular chamber dominated by a massive, swirling whirlpool at its center. 
+      The room's walls are smooth, worn by centuries of rushing water. The deafening roar 
+      of the vortex fills the air, punctuated by the occasional sound of debris being 
+      sucked into its depths. A narrow, slippery ledge hugs the outer wall, offering a 
+      treacherous path around the room. Phosphorescent algae cling to the wet stones, 
+      casting an eerie, wavering light that dances with the motion of the water. Mist 
+      hangs heavy in the air, and occasional sprays from the whirlpool keep everything 
+      perpetually damp. The sheer power of the swirling waters creates a palpable sense 
+      of danger.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: waterfall_chamber
+      east:
+        destination: flooded_corridor
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo The whirlpool suddenly intensifies, its roar growing louder as it sucks down a large piece of debris.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A powerful surge of water splashes over the ledge, making the footing even more treacherous.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "whirlpool"
+        script: |
+          echo As you gaze into the swirling vortex, you feel a momentary vertigo, as if the whirlpool might pull you in at any moment.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo Swimming here would be certain death. The power of the whirlpool would suck you in instantly.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "help"
+        script: |
+          echo Your cry for help is completely drowned out by the roar of the whirlpool. You doubt anyone could hear you over this din.
+    creatures:
+      - id: water_elemental
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: giant_crab
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: vortex_spirit
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+
+  rat_nest:
+    name: Giant Rat Nest
+    description: >
+      You've stumbled into a vast chamber that serves as a breeding ground for the sewer's 
+      giant rat population. The air is thick with the musky odor of rodents and the 
+      sickly-sweet smell of decay. The floor is covered in a layer of gnawed bones, 
+      discarded refuse, and rat droppings. Countless tunnels and burrows riddle the 
+      walls, their dark openings seeming to watch you like hundreds of eyes. Tattered 
+      remnants of clothing, bits of wood, and other scavenged items are woven into 
+      massive, grotesque nests that litter the chamber. The constant sound of squeaking, 
+      scratching, and scurrying echoes throughout the space, occasionally punctuated by 
+      vicious-sounding fights over territory or food.
+
+      Exits: north, east
+    exits:
+      north:
+        destination: fungal_grove
+      east:
+        destination: crumbling_passage
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A chorus of angry squeaks erupts from one of the nests as rats fight over a piece of moldy food.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo You hear a loud gnawing sound, and watch as a rat the size of a large dog emerges from one of the tunnels, dragging a bone.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "nest"
+        script: |
+          echo As you examine the nest more closely, you notice it's constructed partially from gnawed human bones. A chill runs down your spine.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "food"
+        script: |
+          echo The mere thought of eating anything in this filthy, disease-ridden chamber turns your stomach.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "cheese"
+        script: |
+          echo At the mention of cheese, you hear a flurry of excited squeaks, and several beady eyes turn in your direction.
+    creatures:
+      - id: giant_rat
+        quantity: 5
+        respawn_time_min: 15
+        respawn_time_max: 45
+      - id: rat_swarm
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: rat_king
+        quantity: 1
+        respawn_time_min: 120
+        respawn_time_max: 360
+
+  flooded_corridor:
+    name: Flooded Corridor
+    description: >
+      You wade into a long, partially submerged corridor. Murky water reaches up to your 
+      waist, its surface occasionally broken by unidentifiable objects floating past. 
+      The stone walls, slick with algae and slime, rise high above, meeting in a vaulted 
+      ceiling lost in shadows. Flickering torches, placed at irregular intervals, struggle 
+      to stay lit in the damp air, casting wavering reflections on the water's surface. 
+      The sound of dripping water echoes constantly, punctuated by the occasional splash 
+      of something moving beneath the surface. Debris and years of accumulated filth 
+      cling to the walls, marking past water levels. The air is thick with humidity and 
+      the musty smell of stagnant water.
+
+      Exits: west, east
+    exits:
+      west:
+        destination: whirlpool_room
+      east:
+        destination: pump_room
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo Something large moves beneath the water, creating a wake that sloshes against the walls.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A section of the ceiling crumbles, sending debris splashing into the water around you.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "water"
+        script: |
+          echo As you peer into the murky water, you catch glimpses of pale, eyeless fish darting in the depths.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "swim"
+        script: |
+          echo Swimming in this foul water would be unwise. The current is stronger than it appears, and who knows what lurks beneath the surface.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your voice echoes off the water's surface, creating an eerie, warbling effect that fades into the distance.
+    creatures:
+      - id: giant_leech
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: sewer_crocodile
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: water_snake
+        quantity: 3
+        respawn_time_min: 25
+        respawn_time_max: 75
+
+  crumbling_passage:
+    name: Crumbling Stone Passage
+    description: >
+      You find yourself in a narrow, winding passage where the very stone seems to be 
+      giving way to time and decay. Ancient brickwork, once sturdy and imposing, now 
+      crumbles at the slightest touch. The ceiling is worryingly low, with stalactites 
+      of calcified sewage hanging precariously overhead. The floor is treacherous, 
+      littered with fallen debris and slick with a constant trickle of foul water. 
+      Faint shafts of light penetrate through cracks in the walls, revealing dancing 
+      motes of dust and spores. The air is thick with the musty smell of aged stone 
+      and the earthy scent of encroaching soil. Every few moments, you hear the 
+      unsettling sound of shifting stone or falling pebbles, a reminder of the passage's 
+      instability.
+
+      Exits: west, down
+    exits:
+      west:
+        destination: rat_nest
+      down:
+        destination: ancient_crypt
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A shower of small stones and dust rains down from the ceiling, forcing you to shield your eyes.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo You hear a loud crack, and a section of the wall nearby shifts slightly, sending a chill down your spine.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "crack"
+        script: |
+          echo Peering into a large crack in the wall, you catch a glimpse of something moving in the darkness beyond. You quickly step back.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo As you touch the crumbling stone, a piece breaks off in your hand, disintegrating into gritty powder.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your voice echoes strangely in the confined space, seeming to trigger a series of small stone falls further down the passage.
+    creatures:
+      - id: cave_spider
+        quantity: 3
+        respawn_time_min: 25
+        respawn_time_max: 75
+      - id: stone_mite
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: rubble_dweller
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  pump_room:
+    name: Ancient Pump Room
+    description: >
+      You enter a vast, circular chamber dominated by an enormous, ancient water pump. 
+      The contraption, a marvel of medieval engineering, stands at the center of the room, 
+      its massive gears and pistons creaking and groaning as they laboriously churn the 
+      sewer waters. Thick, corroded pipes snake across the walls and ceiling, occasionally 
+      releasing jets of steam or droplets of foul water. The stone floor is slick with 
+      moisture and algae, making footing treacherous. Flickering torches cast dancing 
+      shadows across the intricate machinery, glinting off pools of stagnant water. The 
+      air is thick with the smell of rust, mold, and the underlying stench of sewage. 
+      The constant, rhythmic thumping of the pump creates a hypnotic backdrop, punctuated 
+      by the occasional clang of metal or hiss of escaping steam.
+
+      Exits: west, south
+    exits:
+      west:
+        destination: flooded_corridor
+      south:
+        destination: maintenance_shaft
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo The pump suddenly groans louder, its gears grinding ominously before settling back into its regular rhythm.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A pipe near you suddenly bursts, releasing a spray of foul water before sputtering out.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pump"
+        script: |
+          echo As you examine the pump, you notice strange, archaic symbols carved into its base, barely visible beneath years of grime.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo You reach out to touch the pump, feeling the vibrations of its constant motion. The metal is surprisingly warm.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "stop"
+        script: |
+          echo For a brief moment, the pump's rhythm seems to falter, as if responding to your command, before resuming its relentless pumping.
+    creatures:
+      - id: rust_monster
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: steam_sprite
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: gear_golem
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  ancient_crypt:
+    name: Forgotten Sewer Crypt
+    description: >
+      You descend into a grim, forgotten chamber that appears to be an ancient crypt, 
+      bizarrely integrated into the sewer system. The walls are lined with recesses 
+      containing moldering coffins and scattered bones. Elaborate, yet heavily eroded 
+      stone sarcophagi occupy the center of the room, their lids slightly ajar. The air 
+      is thick with the musty scent of decay and stagnant water. Patches of 
+      phosphorescent fungi provide an eerie, pale blue illumination, casting long 
+      shadows across the crypts. Trickles of sewage seep through cracks in the walls, 
+      forming foul puddles on the uneven stone floor. Faded inscriptions and worn 
+      bas-reliefs on the walls hint at the chamber's former grandeur and the identity 
+      of those interred here. An oppressive silence hangs in the air, broken only by 
+      the occasional drip of water and your own cautious footsteps.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: crumbling_passage
+      east:
+        destination: bone_pile
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A cold breeze whispers through the crypt, carrying with it the faint sound of mournful whispers.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo The lid of a nearby sarcophagus shifts slightly with a grating sound, then falls still.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "inscription"
+        script: |
+          echo As you study the faded inscription, you make out words like "guardian", "eternal vigil", and "seal", sending a chill down your spine.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "open"
+        script: |
+          echo The very thought of opening one of these ancient coffins fills you with dread. Some things are better left undisturbed.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "rest"
+        script: |
+          echo As you speak of rest, the atmosphere in the crypt seems to grow heavier, as if the long-dead occupants are listening.
+    creatures:
+      - id: skeletal_warrior
+        quantity: 2
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: ghost
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: tomb_rat
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+
+  maintenance_shaft:
+    name: Vertical Maintenance Shaft
+    description: >
+      You find yourself in a towering vertical shaft that seems to stretch endlessly 
+      upward and downward. This massive cylinder, clearly designed for maintenance 
+      access, is a dizzying maze of rickety wooden platforms, rusted iron ladders, 
+      and precariously hanging ropes. The walls are slick with moisture and studded 
+      with protruding pipes of various sizes, some leaking and others emitting bursts 
+      of steam. Dim, flickering lanterns are sporadically placed along the shaft, 
+      barely illuminating the yawning darkness above and below. The air is thick with 
+      humidity and the echoes of dripping water. Occasionally, unseen mechanisms creak 
+      and groan, sending vibrations through the entire structure. The shaft seems to 
+      serve as a central artery for the sewer system, with narrow tunnels branching 
+      off at various levels.
+
+      Exits: north, down
+    exits:
+      north:
+        destination: pump_room
+      down:
+        destination: lower_tunnels
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 18
+        script: |
+          echo A sudden gust of wind howls through the shaft, causing the wooden platforms to creak ominously.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo Something large and unseen scurries across a platform far above, sending a shower of rust and debris raining down.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "ladder"
+        script: |
+          echo The iron ladder looks dangerously corroded. You wonder if it could support your weight.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "jump"
+        script: |
+          echo The thought of jumping in this shaft is terrifying. The bottom, if there is one, is lost in darkness.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "hello"
+        script: |
+          echo Your greeting echoes up and down the shaft, repeating and distorting until it fades into an eerie whisper.
+    creatures:
+      - id: pipe_crawler
+        quantity: 2
+        respawn_time_min: 40
+        respawn_time_max: 100
+      - id: rust_bat
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: shadow_lurker
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  bone_pile:
+    name: Mysterious Bone Pile
+    description: >
+      You enter a chamber that sends a chill down your spine. The room is dominated by an 
+      enormous, haphazard pile of bones that reaches nearly to the ceiling. Skulls, 
+      ribcages, and limb bones of various sizes and species are jumbled together in a 
+      macabre monument. The pile seems to shift and settle occasionally, as if alive. 
+      Dim, sickly light filters through gaps in the bone structure, casting eerie 
+      shadows across the damp stone walls. The air is thick with the musty odor of 
+      ancient decay and the metallic tinge of old blood. Scraps of rotted clothing and 
+      rusted weapons are visible among the osseous debris. The floor around the pile is 
+      slick with a film of unidentifiable slime. An oppressive silence hangs in the air, 
+      broken only by the occasional clatter of shifting bones and your own nervous breathing.
+
+      Exits: west, south
+    exits:
+      west:
+        destination: ancient_crypt
+      south:
+        destination: smugglers_den
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo The bone pile shifts suddenly, sending a small avalanche of skulls clattering to the floor.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo A cold, unnatural wind sweeps through the chamber, carrying with it the faint sound of agonized whispers.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "skull"
+        script: |
+          echo As you examine one of the skulls, its eye sockets seem to glow briefly with a malevolent red light.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "take"
+        script: |
+          echo As you reach out to take a bone, the entire pile trembles ominously. Perhaps it's best not to disturb it.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "who"
+        script: |
+          echo Your question echoes in the chamber. For a moment, the bone pile seems to vibrate in response, as if trying to answer.
+    creatures:
+      - id: bone_construct
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: marrow_leech
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: necromancer_shade
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+
+  lower_tunnels:
+    name: Lower Sewer Tunnels
+    description: >
+      You find yourself in a maze-like network of narrow, winding tunnels that form the 
+      lowest level of the sewer system. The ceiling here is oppressively low, forcing 
+      taller individuals to stoop. The walls are slick with a foul-smelling slime, and 
+      the floor is covered in a shallow layer of murky, stagnant water that sloshes 
+      around your feet with every step. Thick roots from trees far above have broken 
+      through in places, creating natural, if precarious, handholds. The air is dense 
+      with humidity and the pungent odor of decay. Bioluminescent fungi provide sparse, 
+      eerie illumination, casting shifting shadows that play tricks on your eyes. The 
+      constant drip of water and the distant echo of rushing streams create a 
+      disorienting backdrop of sound. Debris from the upper levels collects here, 
+      forming small islands of refuse throughout the tunnels.
+
+      Exits: up, east, west
+    exits:
+      up:
+        destination: maintenance_shaft
+      east:
+        destination: slime_pools
+      west:
+        destination: echoing_chamber
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A sudden surge of water rushes through the tunnel, momentarily rising to your knees before receding.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You hear a series of splashes in the darkness ahead, as if something large is moving through the water towards you.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "root"
+        script: |
+          echo As you examine the root, you notice it seems to twitch and move slightly, as if alive and aware of your presence.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "drink"
+        script: |
+          echo The mere thought of drinking this foul water makes your stomach churn. It would surely lead to a nasty illness, if not worse.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "lost"
+        script: |
+          echo Your voice echoes through the tunnels. For a moment, you hear what sounds like a mocking laugh in response, but it's gone as quickly as it came.
+    creatures:
+      - id: sewer_troll
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: giant_leech
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: tunnel_serpent
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  smugglers_den:
+    name: Abandoned Smugglers' Den
+    description: >
+      You enter a spacious cavern that bears clear signs of recent human habitation. 
+      This hidden chamber was once a bustling smugglers' hideout, now abandoned in haste. 
+      Rickety wooden platforms and makeshift piers extend over a dark, slow-moving 
+      underground river. Rotting crates and barrels are stacked haphazardly, some 
+      spilling their mysterious contents onto the damp stone floor. Rusty hooks and 
+      frayed ropes hang from the low ceiling, once used for moving contraband. Moldy 
+      straw is scattered about, remnants of bedding and packing material. The walls 
+      are marked with crude symbols and tally marks, a secret language of the criminal 
+      underworld. A few sputtering torches cast flickering shadows, revealing glimpses 
+      of vermin scurrying in the corners. The air is thick with the musty smell of 
+      damp wood, mold, and the lingering scent of illicit goods.
+
+      Exits: north, down
+    exits:
+      north:
+        destination: bone_pile
+      down:
+        destination: secret_passage
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A section of the wooden platform creaks and groans, threatening to give way under its own weight.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You hear the sound of a barrel toppling over in the darkness, followed by the scurrying of many tiny feet.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "crate"
+        script: |
+          echo As you peer into an open crate, you see the glint of glass vials filled with an unknown, swirling liquid.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "search"
+        script: |
+          echo Your search reveals little of value. It seems the smugglers took their most precious goods when they fled.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "password"
+        script: |
+          echo As you speak the word 'password', you hear a faint click from somewhere in the room, as if a hidden mechanism has been activated.
+    creatures:
+      - id: giant_rat
+        quantity: 3
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: smuggler_ghost
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: shadow_thief
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  slime_pools:
+    name: Glowing Slime Pools
+    description: >
+      You enter a vast, cavern-like chamber dominated by a series of bubbling pools 
+      filled with viscous, luminescent slime. The pools cast an eerie, pulsating light 
+      in various hues of green, blue, and purple, creating a surreal, alien landscape. 
+      The air is thick with an acrid, chemical smell that burns your nostrils and makes 
+      your eyes water. Tendrils of mist rise from the surface of the pools, twisting 
+      into bizarre shapes before dissipating. The stone floor is slick and treacherous, 
+      coated with a thin film of the glowing substance. Stalactites drip a glowing 
+      ooze from the ceiling, forming new, small pools where they land. The walls are 
+      etched with strange, swirling patterns that seem to move in the corner of your 
+      eye. A constant, low gurgling sound fills the air, punctuated by occasional 
+      plops and squelches from the pools.
+
+      Exits: west, south
+    exits:
+      west:
+        destination: lower_tunnels
+      south:
+        destination: alchemical_dumping_ground
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A large bubble swells on the surface of one of the pools before bursting with a loud 'plop', releasing a cloud of glowing mist.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo The colors of the pools suddenly shift, swirling into new patterns and hues before settling again.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "slime"
+        script: |
+          echo As you examine the slime closely, you see tiny, squirming organisms moving within it. The longer you look, the more you feel drawn to the hypnotic movements.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo You resist the urge to touch the glowing slime. Its unnatural light and movement suggest it could be extremely dangerous.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "magic"
+        script: |
+          echo As you speak the word 'magic', the pools pulse brightly in response, their light momentarily intensifying.
+    creatures:
+      - id: slime_elemental
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: mutant_newt
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: ooze_horror
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+
+  echoing_chamber:
+    name: Echoing Chamber
+    description: >
+      You enter an enormous, dome-shaped cavern that seems to capture and amplify every 
+      sound. The chamber is largely empty, save for a few stone pillars that rise from 
+      floor to ceiling, their surfaces worn smooth by time and moisture. The walls are 
+      covered in a lattice of tiny cracks and fissures, creating complex patterns that 
+      seem to shift in the dim light. A thin layer of water covers the floor, reflecting 
+      the sparse illumination and creating a mirror-like effect that makes the chamber 
+      appear twice its actual size. Droplets of water fall from the ceiling at irregular 
+      intervals, each creating a cascade of echoes that reverberate throughout the space. 
+      The air is cool and damp, carrying a slight mineral scent. Every footstep, every 
+      breath, is magnified and distorted, creating an unsettling audio landscape.
+
+      Exits: east, north
+    exits:
+      east:
+        destination: lower_tunnels
+      north:
+        destination: bat_roost
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A distant rumble, perhaps from far above in the city, is caught and amplified by the chamber, transforming into an ominous, thunderous sound.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You hear what sounds like whispered voices coming from all directions, but the words are indistinct and fade quickly.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pillar"
+        script: |
+          echo As you examine the pillar, you notice faint inscriptions near its base. They appear to be musical notes, barely visible after years of erosion.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sing"
+        script: |
+          echo Your singing is caught by the chamber's acoustics, amplified and distorted into an otherworldly chorus that seems to come from everywhere at once.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+          predicate: "echo"
+        script: |
+          $if($random(1,2),eq,1) {
+            echo Your word echoes through the chamber, repeating and distorting until it becomes unrecognizable.
+          } else {
+            echo The chamber seems to latch onto your word, repeating it with increasing volume until it's almost deafening, then suddenly falling silent.
+          }
+    creatures:
+      - id: echo_bat
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: sound_elemental
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: whispering_shade
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+
+  secret_passage:
+    name: Secret Underground Passage
+    description: >
+      You find yourself in a narrow, winding tunnel that bears the hallmarks of 
+      intentional construction rather than natural formation. The walls are smooth 
+      stone, fitted tightly together with barely visible seams. The ceiling is low, 
+      forcing taller individuals to stoop. Faint, magical glowstones are set at 
+      irregular intervals, providing just enough light to navigate by. The air is 
+      surprisingly fresh, suggesting some form of magical or mechanical ventilation. 
+      The floor is worn smooth from years of secretive traffic, with occasional 
+      scuff marks hinting at recent use. Every so often, you pass small alcoves 
+      that might serve as hiding spots or rest areas. The tunnel seems to slope 
+      gently upward, perhaps leading towards the city above. An atmosphere of 
+      secrecy and intrigue permeates the passage.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: smugglers_den
+      east:
+        destination: forgotten_treasury
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo You hear the faint echo of footsteps from somewhere in the passage, but they quickly fade away.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A sudden draft extinguishes one of the glowstones momentarily, plunging a section of the passage into darkness before it reignites.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "alcove"
+        script: |
+          echo As you examine the alcove, you notice faint markings on the wall - perhaps a code or message left for other passage users.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "knock"
+        script: |
+          echo Your knock produces a series of echoes that seem to travel far down the passage. For a moment, you think you hear a responding knock, but then silence returns.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "open"
+        script: |
+          echo As you speak the word 'open', you hear a faint click from somewhere in the walls, as if a hidden mechanism has been activated.
+    creatures:
+      - id: shadow_scout
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: whisper_sprite
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: illusory_guardian
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  alchemical_dumping_ground:
+    name: Alchemical Waste Dumping Ground
+    description: >
+      You enter a large, circular chamber that reeks of noxious chemicals and magical 
+      residue. The room is a chaotic mess of broken glass, twisted metal, and pools of 
+      bubbling, multi-colored liquids. Massive iron pipes protrude from the ceiling and 
+      walls, constantly dripping a variety of alchemical waste into the chamber. The 
+      floor is a patchwork of different materials - some areas are corroded metal, others 
+      are warped stone, and a few spots seem to be transmuted into entirely foreign 
+      substances. Eerie, unnatural light pulses from some of the larger waste pools, 
+      casting shifting shadows across the room. The air shimmers with barely visible 
+      magical energies, and occasional sparks of wild magic crackle between pools. 
+      Mutated fungi and crystalline growths sprout from the walls, feeding on the 
+      magical pollution.
+
+      Exits: north, west
+    exits:
+      north:
+        destination: slime_pools
+      west:
+        destination: mutant_lair
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A sudden geyser of multicolored liquid erupts from one of the pipes, splattering the area with glowing droplets.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A bolt of wild magic arcs between two pools, briefly illuminating the chamber in a flash of prismatic light.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pool"
+        script: |
+          echo As you examine the pool, you see swirling patterns forming and dissolving rapidly on its surface. The longer you look, the more you feel a strange tingling sensation.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "drink"
+        script: |
+          echo The mere thought of drinking anything in this room fills you with dread. The magical contamination here could have horrific effects.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "transmute"
+        script: |
+          echo As you speak the word 'transmute', a nearby puddle of liquid suddenly changes color and consistency, releasing a puff of iridescent smoke.
+    creatures:
+      - id: ooze_elemental
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: mutant_rat
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: chaos_wisp
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+
+  bat_roost:
+    name: Giant Sewer Bat Roost
+    description: >
+      You enter a vast, vertical chamber that stretches far above your head, disappearing 
+      into darkness. The walls are pockmarked with countless ledges, crevices, and small 
+      caves, creating a honeycomb-like structure. The air is thick with the pungent smell 
+      of guano and the musty odor of bat fur. A constant, high-pitched chittering echoes 
+      throughout the chamber, occasionally punctuated by the leathery flap of enormous 
+      wings. Streams of water trickle down the walls, feeding small pools on the uneven 
+      floor. Patches of phosphorescent fungi provide sparse, eerie illumination, their 
+      soft glow revealing glimpses of massive, shadowy forms clinging to the walls or 
+      swooping through the air. The floor is treacherously slippery, covered in a thick 
+      layer of guano and the bones of the bats' unfortunate prey.
+
+      Exits: south, down
+    exits:
+      south:
+        destination: echoing_chamber
+      down:
+        destination: guano_pit
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A massive shape detaches from the wall above, its wings creating a gust of wind as it swoops down into the darkness below.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo The chittering suddenly intensifies, reaching a fever pitch before abruptly falling silent. The silence is almost more unnerving than the noise.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "bat"
+        script: |
+          echo As you peer into the darkness, you see a pair of enormous, glowing eyes staring back at you. They blink once, then vanish.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "climb"
+        script: |
+          echo The thought of climbing the slimy, guano-covered walls fills you with dread. It would be extremely dangerous, if not impossible.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "echo"
+        script: |
+          echo Your word echoes through the chamber, causing a wave of agitation among the bats. The air fills with the sound of rustling wings and alarmed squeaks.
+    creatures:
+      - id: giant_sewer_bat
+        quantity: 3
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: bat_swarm
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: guano_beetle
+        quantity: 4
+        respawn_time_min: 20
+        respawn_time_max: 60
+
+  forgotten_treasury:
+    name: Forgotten Imperial Treasury Vault
+    description: >
+      You step into a grand chamber that stands in stark contrast to the rest of the 
+      sewer system. This forgotten vault, once part of the Imperial Treasury, speaks 
+      of ancient wealth and power. The walls are lined with ornate shelves and niches, 
+      many still holding tarnished goblets, corroded coins, and gem-encrusted items 
+      dulled by time. Massive iron chests, some partially open and spilling their 
+      contents, are scattered about the room. The ceiling arches high above, supported 
+      by columns adorned with faded gold leaf. A thick layer of dust covers everything, 
+      and cobwebs stretch between artifacts. The air is stale and dry, preserving the 
+      remnants of lost riches. Faint magical glows emanate from some objects, hinting 
+      at enchantments that have outlasted their creators. Despite the obvious looting 
+      that has occurred, the sheer volume of wealth left behind is staggering.
+
+      Exits: west, south
+    exits:
+      west:
+        destination: secret_passage
+      south:
+        destination: trapped_corridor
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo A shimmer of magic ripples across the room, causing some of the artifacts to glow briefly before fading back to dormancy.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo You hear the faint sound of coins shifting, as if an unseen hand is sifting through one of the treasure piles.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "chest"
+        script: |
+          echo As you examine the chest, you notice intricate locking mechanisms and what appear to be magical wards etched into its surface.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "take"
+        script: |
+          echo As you reach for an item, you feel a tingling sensation in your hand. A faint voice seems to whisper, "Are you worthy?"
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "gold"
+        script: |
+          echo At the mention of gold, you hear a faint, spectral chuckle echoing through the chamber.
+    creatures:
+      - id: treasure_guardian
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: gold_mite
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: ghostly_accountant
+        quantity: 1
+        respawn_time_min: 60
+        respawn_time_max: 180
+
+  mutant_lair:
+    name: Sewer Mutant Lair
+    description: >
+      You enter a nightmarish chamber that seems to pulsate with unnatural life. This 
+      vast cavern has been twisted by years of exposure to alchemical waste and wild 
+      magic. The walls are covered in a thick, mucus-like substance that glows with a 
+      sickly green light. Bizarre, fleshy growths protrude from the floor and ceiling, 
+      some twitching as if alive. Pools of bubbling, mutagenic sludge dot the area, 
+      emitting noxious fumes that swirl in the air. Half-formed creatures can be seen 
+      floating in some of these pools. The air is thick with the stench of decay and 
+      chemicals, making it difficult to breathe. Eerie, guttural sounds echo throughout 
+      the chamber, hinting at the presence of its mutated inhabitants. Piles of gnawed 
+      bones and discarded refuse suggest the eating habits of the lair's occupants.
+
+      Exits: east, south
+    exits:
+      east:
+        destination: alchemical_dumping_ground
+      south:
+        destination: undercity_entrance
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A nearby fleshy growth suddenly convulses and splits open, releasing a cloud of glowing spores into the air.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 25
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+        script: |
+          echo You hear a series of splashes followed by a chorus of inhuman screeches, as if something has emerged from one of the mutagenic pools.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pool"
+        script: |
+          echo As you peer into the mutagenic pool, you see a half-formed creature staring back at you with too many eyes. It reaches out with a misshapen limb before sinking back into the sludge.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo The urge to touch anything in this horrific place is quickly overwhelmed by your sense of self-preservation. Who knows what transformations might occur from mere contact?
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "human"
+        script: |
+          echo At the word 'human', you hear a cacophony of angry growls and screeches from the shadows. The mutants seem to react violently to reminders of their former selves.
+    creatures:
+      - id: sewer_mutant
+        quantity: 3
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: mutant_abomination
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: parasitic_slime
+        quantity: 2
+        respawn_time_min: 30
+        respawn_time_max: 90
+
+  guano_pit:
+    name: Massive Guano Pit
+    description: >
+      You find yourself on the edge of an enormous, bowl-shaped chamber, its center 
+      dropping away into a vast pit filled with bat guano. The stench is overwhelming, 
+      a potent mix of ammonia and decay that burns your nostrils and makes your eyes 
+      water. The walls of the pit are slick with moisture and covered in a patchwork 
+      of strange, pale fungi. Narrow, treacherous ledges spiral down the sides of the 
+      pit, disappearing into the murky depths below. The constant patter of falling 
+      guano from the bat roost above creates an unsettling backdrop of sound. Occasionally, 
+      pockets of methane ignite spontaneously, sending brief flashes of eerie blue flame 
+      across the surface of the guano. The air is thick and humid, filled with swirling 
+      motes that glint in what little light penetrates this far down.
+
+      Exits: up, east
+    exits:
+      up:
+        destination: bat_roost
+      east:
+        destination: methane_cavern
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A large bubble forms on the surface of the guano pit, swelling grotesquely before bursting with a sickening pop and releasing a cloud of noxious gas.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A sudden ignition of methane sends a column of blue flame shooting upwards, briefly illuminating the entire chamber in an otherworldly light.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fungi"
+        script: |
+          echo As you examine the fungi more closely, you notice they seem to be slowly moving, their pale tendrils reaching out as if sensing your presence.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "climb"
+        script: |
+          echo The thought of climbing down into the guano pit fills you with dread. The ledges look precarious, and who knows what lurks in those fetid depths?
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fire"
+        script: |
+          echo At the mention of fire, a nearby pocket of methane ignites, causing a small explosion that sends bits of burning guano flying in all directions.
+    creatures:
+      - id: guano_beetle
+        quantity: 5
+        respawn_time_min: 20
+        respawn_time_max: 60
+      - id: methane_floater
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: guano_golem
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+
+  trapped_corridor:
+    name: Trap-Filled Corridor
+    description: >
+      You enter a long, narrow corridor that practically screams danger. The walls, 
+      floor, and ceiling are made of intricately fitted stonework, each block carved 
+      with strange symbols and runes. Scorch marks, deep gouges, and dark stains hint 
+      at the fate of previous visitors. The air is thick with tension, and you can 
+      almost feel the weight of unseen eyes watching your every move. Dim, flickering 
+      magical lights cast shifting shadows that seem to dance and reach out menacingly. 
+      At regular intervals, you see pressure plates, tripwires, and suspicious-looking 
+      holes in the walls - clear signs of lethal traps. The corridor stretches on, 
+      a gauntlet of hidden dangers protecting whatever lies beyond.
+
+      Exits: north, east
+    exits:
+      north:
+        destination: forgotten_treasury
+      east:
+        destination: guardian_chamber
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A stone tile suddenly sinks slightly under its own weight, followed by the ominous sound of gears grinding somewhere within the walls.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A dart suddenly shoots out from a tiny hole in the wall, embedding itself in the opposite surface with a menacing thud.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "rune"
+        script: |
+          echo As you study the rune, it begins to glow faintly. You quickly avert your gaze, feeling a slight tingle of magical energy.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "jump"
+        script: |
+          echo You consider jumping, but the thought of triggering a pressure plate or tripwire makes you reconsider. Careful steps seem much wiser.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "disarm"
+        script: |
+          echo At the word 'disarm', you hear a series of clicks and whirrs from the walls. For a moment, the tension in the air seems to lessen, but then it returns full force.
+    creatures:
+      - id: mechanical_sentinel
+        quantity: 2
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: phase_spider
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: mimic
+        quantity: 1
+        respawn_time_min: 120
+        respawn_time_max: 300
+
+  undercity_entrance:
+    name: Undercity Entrance
+    description: >
+      You stand before an imposing archway that marks the boundary between the sewers 
+      and the fabled Undercity. The arch is carved from ancient stone, adorned with 
+      weathered reliefs depicting a bustling subterranean civilization. Faint, pulsing 
+      runes along the archway's edge emit a soft, bluish glow. The passage beyond is 
+      shrouded in an unnatural mist that seems to swirl and retreat as you watch. The 
+      air here feels different - cooler and charged with an otherworldly energy. The 
+      constant background noise of the sewers fades away, replaced by distant, 
+      indecipherable whispers carried on unfelt breezes. The stone floor is worn smooth 
+      by countless feet, hinting at the traffic between these two underground realms. 
+      Dim, flickering lights can be seen in the misty distance beyond the arch, 
+      promising a vast, unexplored world.
+
+      Exits: north, down
+    exits:
+      north:
+        destination: mutant_lair
+      down:
+        destination: undercity_caverns.sewer_entrance
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo The mist beyond the archway momentarily parts, offering a fleeting glimpse of towering structures and moving shadows before closing again.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo A gust of wind rushes through the archway, carrying with it the faint sound of distant, ethereal music that quickly fades away.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "rune"
+        script: |
+          echo As you study the runes, they begin to pulse more rapidly. You feel a gentle tug, as if the archway is inviting you to step through.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "enter"
+        script: |
+          echo As you consider entering the Undercity, the mist seems to reach out towards you, tendrils curling around your feet before retreating.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "Undercity"
+        script: |
+          echo When you speak the word 'Undercity', the runes on the archway flare brightly, and you hear what sounds like a distant, welcoming chime.
+    creatures:
+      - id: mist_wraith
+        quantity: 2
+        respawn_time_min: 60
+        respawn_time_max: 180
+      - id: undercity_scout
+        quantity: 1
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: boundary_guardian
+        quantity: 1
+        respawn_time_min: 120
+        respawn_time_max: 300
+
+  methane_cavern:
+    name: Methane-Filled Cavern
+    description: >
+      You enter a vast, dome-shaped cavern where the air is thick with the pungent smell 
+      of methane. The atmosphere is hazy, filled with swirling, greenish-gray vapors 
+      that make it difficult to see more than a few feet ahead. Occasional flashes of 
+      bioluminescence punctuate the gloom, revealing glimpses of strange, gas-adapted 
+      flora clinging to the walls. The floor is uneven and treacherous, covered in a 
+      slippery film of condensation and organic matter. Bubbling pools of murky liquid 
+      dot the landscape, periodically releasing bursts of gas that contribute to the 
+      flammable atmosphere. The constant hiss and gurgle of escaping gas creates an 
+      eerie backdrop of sound. High above, barely visible through the haze, 
+      stalactites drip a foul-smelling liquid. The oppressive heat and humidity make 
+      breathing laborious, and every movement risks igniting the volatile gases.
+
+      Exits: west
+    exits:
+      west:
+        destination: guano_pit
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 15
+        script: |
+          echo A large bubble rises in one of the pools, bursting with a loud 'plop' and releasing a cloud of noxious gas.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 20
+        script: |
+          echo A sudden spark of static electricity causes a brief flash of flame, illuminating the cavern for a split second before being snuffed out.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "flora"
+        script: |
+          echo As you examine the gas-adapted plants, you notice they seem to be slowly moving, their tendrils waving in unfelt currents of gas.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "light"
+        script: |
+          echo The mere thought of creating a light in this methane-filled cavern fills you with dread. It could cause a catastrophic explosion!
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "explosion"
+        script: |
+          echo At the mention of 'explosion', you hear a low, ominous rumble from deep within the cavern, as if the very word might trigger a disaster.
+    creatures:
+      - id: gas_floater
+        quantity: 3
+        respawn_time_min: 30
+        respawn_time_max: 90
+      - id: methane_breather
+        quantity: 2
+        respawn_time_min: 45
+        respawn_time_max: 120
+      - id: spark_mite
+        quantity: 4
+        respawn_time_min: 20
+        respawn_time_max: 60
+
+  guardian_chamber:
+    name: Ancient Guardian Chamber
+    description: >
+      You enter a vast, circular chamber that exudes an aura of ancient power and 
+      forgotten majesty. The walls are adorned with intricate bas-reliefs depicting 
+      epic battles and mystical rituals, their details still sharp despite centuries 
+      of neglect. Towering statues of armored warriors stand in alcoves around the 
+      perimeter, their empty eyes seeming to follow your movements. In the center of 
+      the room stands a massive, intricately carved stone dais, surrounded by concentric 
+      circles of runic inscriptions that pulse with a faint, bluish light. The air is 
+      thick with the smell of old stone and the tingle of dormant magic. Dust motes 
+      dance in shafts of ethereal light that seem to have no source. An oppressive 
+      silence hangs over the chamber, broken only by the occasional whisper of unseen 
+      wind or the grinding of stone against stone.
+
+      Exits: west
+    exits:
+      west:
+        destination: trapped_corridor
+    triggers:
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria: 
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 20
+        script: |
+          echo The runic inscriptions on the floor suddenly flare brightly, sending a wave of magical energy pulsing through the chamber.
+      - type: timer_tick
+        flags:
+          - only_when_pc_room
+        criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 30
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+        script: |
+          echo One of the warrior statues seems to shift slightly, the grinding of stone echoing ominously before falling still once more.
+      - type: catch_look
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "statue"
+        script: |
+          echo As you examine the statue, you could swear its eyes briefly flickered with an inner light. A chill runs down your spine.
+      - type: catch_any
+        criteria: 
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+        script: |
+          echo As you consider touching anything in the chamber, you feel a palpable sense of warning, as if the very air is cautioning against such action.
+      - type: catch_say
+        criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "awaken"
+        script: |
+          echo At the word 'awaken', the entire chamber seems to tremble slightly, and you hear what sounds like a deep, distant inhalation.
+    creatures:
+      - id: stone_guardian
+        quantity: 1
+        respawn_time_min: 120
+        respawn_time_max: 360
+      - id: spectral_sentinel
+        quantity: 2
+        respawn_time_min: 90
+        respawn_time_max: 240
+      - id: runic_construct
+        quantity: 1
+        respawn_time_min: 150
+        respawn_time_max: 400
