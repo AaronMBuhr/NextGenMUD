@@ -69,8 +69,12 @@ rooms:
       - id: giant_roach
         quantity: 1
         respawn_time_min: 30
-        respawn_time_max: 90  main_junction:
-
+        respawn_time_max: 90
+      - id: giant_leech
+        quantity: 1
+        respawn_time_min: 45
+        respawn_time_max: 120
+  
   main_junction:
     name: Main Sewer Junction
     description: >
@@ -1683,7 +1687,7 @@ rooms:
         criteria:
           - subject: "%{*}"
             operator: contains
-          predicate: "echo"
+            predicate: "echo"
         script: |
           $if($random(1,2),eq,1) {
             echo Your word echoes through the chamber, repeating and distorting until it becomes unrecognizable.

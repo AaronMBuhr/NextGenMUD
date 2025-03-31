@@ -1,5 +1,5 @@
 import copy
-from custom_detail_logger import CustomDetailLogger
+from ..custom_detail_logger import CustomDetailLogger
 from typing import List
 from .actor_interface import ActorType
 from .actors import Actor

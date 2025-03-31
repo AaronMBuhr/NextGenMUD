@@ -1,11 +1,11 @@
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 import itertools
 import logging
 from num2words import num2words
 import random
 import re
 from typing import Callable, List
-from yaml_dumper import YamlDumper
+from .yaml_dumper import YamlDumper
 import yaml
 from .command_handler_interface import CommandHandlerInterface
 from .communication import CommTypes
@@ -44,6 +44,10 @@ class CommandHandler(CommandHandlerInterface):
         "getlogfilter": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_getlogfilter(char, input),
         "deltempvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_deltempvar(char, input),
         "delpermvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_delpermvar(char, input),
+        "save": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_save(char, input),
+        "load": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_load(char, input),
+        "saves": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_saves(char, input),
+        "deletesave": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_deletesave(char, input),
 
         # normal commands
         "north": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
@@ -1368,3 +1372,81 @@ class CommandHandler(CommandHandlerInterface):
         vars = set_vars(actor, actor, None, msg)
         await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         await CoreActionsInterface.get_instance().world_move(actor, valid_directions[exit_num])
+        
+    async def cmd_save(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_save()> ")
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can save games.")
+            return
+            
+        save_name = input.strip() if input.strip() else "default"
+        
+        # Save the game state
+        success = cls._game_state.save_game_state(actor.name, save_name)
+        
+        if success:
+            await actor.send_text(CommTypes.DYNAMIC, f"Game saved as '{save_name}'.")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, f"Failed to save game as '{save_name}'.")
+    
+    async def cmd_load(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_load()> ")
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can load games.")
+            return
+            
+        if not input.strip():
+            await actor.send_text(CommTypes.DYNAMIC, "Load which save? Use 'saves' command to list available saves.")
+            return
+            
+        save_name = input.strip()
+        
+        # Load the game state
+        success = cls._game_state.load_game_state(actor.name, save_name)
+        
+        if success:
+            await actor.send_text(CommTypes.DYNAMIC, f"Game '{save_name}' loaded successfully.")
+            # Refresh the player's view of their current location
+            await CoreActionsInterface.get_instance().do_look_room(actor, actor._location_room)
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, f"Failed to load game '{save_name}'. Save not found or error occurred.")
+    
+    async def cmd_saves(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_saves()> ")
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can list saves.")
+            return
+            
+        # Get list of saves
+        saves_list = cls._game_state.list_game_saves(actor.name)
+        
+        if not saves_list:
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have any saved games.")
+            return
+            
+        # Format the output
+        msg_parts = ["Your saved games:\n"]
+        for i, (save_name, timestamp) in enumerate(saves_list, 1):
+            msg_parts.append(f"{i}. {save_name} - {timestamp.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            
+        await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+    
+    async def cmd_deletesave(cls, actor: Actor, input: str):
+        logger = CustomDetailLogger(__name__, prefix="cmd_deletesave()> ")
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can delete saves.")
+            return
+            
+        if not input.strip():
+            await actor.send_text(CommTypes.DYNAMIC, "Delete which save? Use 'saves' command to list available saves.")
+            return
+            
+        save_name = input.strip()
+        
+        # Delete the save
+        success = cls._game_state.delete_game_save(actor.name, save_name)
+        
+        if success:
+            await actor.send_text(CommTypes.DYNAMIC, f"Save '{save_name}' deleted.")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, f"Failed to delete save '{save_name}'. Save not found.")

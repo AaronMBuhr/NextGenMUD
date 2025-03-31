@@ -1,4 +1,4 @@
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 import math
 import random
 from .config import Config, default_app_config

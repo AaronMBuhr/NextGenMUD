@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import copy
-from custom_detail_logger import CustomDetailLogger
+from ..custom_detail_logger import CustomDetailLogger
 from enum import Enum, auto, IntFlag
 import json
 import random
