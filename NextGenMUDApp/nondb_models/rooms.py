@@ -2,7 +2,7 @@ from typing import Dict, List
 from .actor_interface import ActorType, ActorSpawnData
 from .actors import Actor
 from ..communication import CommTypes
-from custom_detail_logger import CustomDetailLogger
+from ..custom_detail_logger import CustomDetailLogger
 from .object_interface import ObjectInterface
 from .room_interface import RoomInterface
 from .triggers import Trigger

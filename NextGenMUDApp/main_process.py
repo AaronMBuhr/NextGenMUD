@@ -1,7 +1,7 @@
 import asyncio
 from .command_handler_interface import CommandHandlerInterface
 from .communication import Connection
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 import threading
 from .nondb_models.character_interface import PermanentCharacterFlags

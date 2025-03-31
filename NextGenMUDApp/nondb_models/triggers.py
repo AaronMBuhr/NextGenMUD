@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from custom_detail_logger import CustomDetailLogger
+from ..custom_detail_logger import CustomDetailLogger
 from enum import Enum
 import re
 import time

@@ -1,12 +1,13 @@
 import copy
 import fnmatch
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 from django.conf import settings
 import json
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 import yaml
-from yaml_dumper import YamlDumper
+from .yaml_dumper import YamlDumper
+from .game_save_utils import save_game, load_game, list_saves, delete_save, create_player
 from .nondb_models.actor_interface import ActorType, ActorSpawnData
 from .nondb_models.actor_states import ActorState, CharacterStateStealthed
 from .nondb_models.actors import Actor
@@ -527,6 +528,142 @@ class ComprehensiveGameState:
     
     def get_world_definition(self) -> WorldDefinition:
         return self.world_definition
+        
+    def save_game_state(self, player_name: str, save_name: str) -> bool:
+        """Save the current game state to the database"""
+        logger = CustomDetailLogger(__name__, prefix="save_game_state()> ")
+        try:
+            # Create a dictionary representation of the game state
+            game_state = {
+                'world_clock_tick': self.world_clock_tick,
+                'players': [{
+                    'id': player.id,
+                    'name': player.name,
+                    'description': player.description_,
+                    'location': player._location_room.rid if player._location_room else None,
+                    'attributes': {
+                        'strength': player.attributes.strength,
+                        'dexterity': player.attributes.dexterity,
+                        'constitution': player.attributes.constitution,
+                        'intelligence': player.attributes.intelligence,
+                        'wisdom': player.attributes.wisdom,
+                        'charisma': player.attributes.charisma
+                    },
+                    'stats': {
+                        'level': player.level_,
+                        'experience': player.experience_,
+                        'health': player.health_,
+                        'max_health': player.max_health_,
+                        'mana': player.mana_,
+                        'max_mana': player.max_mana_
+                    },
+                    'inventory': [{
+                        'id': obj.id,
+                        'name': obj.name,
+                        'description': obj.description_
+                    } for obj in player.contents],
+                    'equipment': {
+                        str(loc.name): {
+                            'id': obj.id,
+                            'name': obj.name
+                        } if obj else None for loc, obj in player.equipment_.items()
+                    }
+                } for player in self.players if player.name == player_name],
+                # Add other state you want to save
+            }
+            
+            # Use the save_game utility to store in the database
+            save_game(player_name, save_name, game_state)
+            logger.info(f"Game saved for player {player_name} as '{save_name}'")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving game state: {e}")
+            return False
+    
+    def load_game_state(self, player_name: str, save_name: str) -> bool:
+        """Load a game state from the database"""
+        logger = CustomDetailLogger(__name__, prefix="load_game_state()> ")
+        try:
+            # Load the game state from database
+            game_state = load_game(player_name, save_name)
+            if not game_state:
+                logger.warning(f"No save found for player {player_name} with name '{save_name}'")
+                return False
+                
+            # Find the player to load the data into
+            target_player = None
+            for player in self.players:
+                if player.name == player_name:
+                    target_player = player
+                    break
+                    
+            if not target_player:
+                logger.warning(f"Player {player_name} not found in current game state")
+                return False
+                
+            # Load player data from the saved state
+            if 'players' in game_state and len(game_state['players']) > 0:
+                player_data = game_state['players'][0]
+                
+                # Set basic attributes
+                target_player.name = player_data['name']
+                target_player.description_ = player_data['description']
+                
+                # Load player location if needed
+                if player_data['location']:
+                    # Parse the location format (zone.room_id)
+                    parts = player_data['location'].split('.')
+                    if len(parts) >= 2:
+                        zone_id = parts[0]
+                        room_id = '.'.join(parts[1:])
+                        
+                        # Find the target room
+                        zone = self.get_zone_by_id(zone_id)
+                        if zone and room_id in zone.rooms:
+                            # Move player to the room
+                            if target_player._location_room:
+                                target_player._location_room.remove_character(target_player)
+                            zone.rooms[room_id].add_character(target_player)
+                
+                # Set attributes
+                if 'attributes' in player_data:
+                    attrs = player_data['attributes']
+                    target_player.attributes.strength = attrs.get('strength', target_player.attributes.strength)
+                    target_player.attributes.dexterity = attrs.get('dexterity', target_player.attributes.dexterity)
+                    target_player.attributes.constitution = attrs.get('constitution', target_player.attributes.constitution)
+                    target_player.attributes.intelligence = attrs.get('intelligence', target_player.attributes.intelligence)
+                    target_player.attributes.wisdom = attrs.get('wisdom', target_player.attributes.wisdom)
+                    target_player.attributes.charisma = attrs.get('charisma', target_player.attributes.charisma)
+                
+                # Set stats
+                if 'stats' in player_data:
+                    stats = player_data['stats']
+                    target_player.level_ = stats.get('level', target_player.level_)
+                    target_player.experience_ = stats.get('experience', target_player.experience_)
+                    target_player.health_ = stats.get('health', target_player.health_)
+                    target_player.max_health_ = stats.get('max_health', target_player.max_health_)
+                    target_player.mana_ = stats.get('mana', target_player.mana_)
+                    target_player.max_mana_ = stats.get('max_mana', target_player.max_mana_)
+                
+                # TODO: Handle inventory and equipment loading
+            
+            # Set world clock if needed
+            if 'world_clock_tick' in game_state:
+                self.world_clock_tick = game_state['world_clock_tick']
+                
+            logger.info(f"Game loaded for player {player_name} from save '{save_name}'")
+            return True
+        except Exception as e:
+            logger.error(f"Error loading game state: {e}")
+            return False
+    
+    def list_game_saves(self, player_name: str) -> List[tuple]:
+        """List all save games for a player"""
+        return list_saves(player_name)
+    
+    def delete_game_save(self, player_name: str, save_name: str) -> bool:
+        """Delete a save game"""
+        return delete_save(player_name, save_name)
 
     def can_see(self, char: Character, target: Character) -> bool:
         if char == target:

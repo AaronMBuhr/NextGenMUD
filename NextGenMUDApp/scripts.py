@@ -1,4 +1,4 @@
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 from .command_handler import CommandHandler
 from .command_handler_interface import CommandHandlerInterface
 from .constants import Constants

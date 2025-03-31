@@ -1,4 +1,4 @@
-from custom_detail_logger import CustomDetailLogger
+from .custom_detail_logger import CustomDetailLogger
 from enum import IntFlag
 import re
 import random

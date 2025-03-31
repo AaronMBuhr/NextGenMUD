@@ -1,7 +1,7 @@
 from enum import Enum
 import random
 from typing import Dict, List
-from custom_detail_logger import CustomDetailLogger
+from ..custom_detail_logger import CustomDetailLogger
 from ..utility import get_dice_parts
 
 
