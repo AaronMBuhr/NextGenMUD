@@ -44,7 +44,7 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         logger.debug("disconnecting and removing character")
         try:
             if MyWebsocketConsumer.game_state is not None:
-                await MyWebsocketConsumer.game_state.remove_character(self)
+                MyWebsocketConsumer.game_state.remove_connection(self)
             # Clear the input queue
             self.input_queue_.clear()
         except Exception as e:

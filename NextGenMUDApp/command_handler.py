@@ -102,7 +102,7 @@ class CommandHandler(CommandHandlerInterface):
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
         try:
-            if input.strip().split() == "":
+            if input.strip() == "":
                 msg = "Did you want to do something?"
             elif actor.actor_type == ActorType.CHARACTER and actor.is_dead():
                 msg = "You are dead.  You can't do anything."
@@ -121,22 +121,23 @@ class CommandHandler(CommandHandlerInterface):
                 parts = split_preserving_quotes(input)
                 if len(parts) == 0:
                     msg = "Did you want to do something?"
-                command = parts[0]
-                emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
-                if not command in cls.command_handlers and emote_command == None:
-                    logger.debug3(f"Unknown command: {command}")
-                    msg = "Unknown command"
                 else:
-                    try:
-                        logger.debug3(f"Evaluating command: {command}")
-                        if emote_command:
-                            await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
-                        else:
-                            await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
-                    except KeyError:
-                        logger.error(f"KeyError processing command {command}")
-                        msg = "Command failure."
-                        raise
+                    command = parts[0]
+                    emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
+                    if not command in cls.command_handlers and emote_command == None:
+                        logger.debug3(f"Unknown command: {command}")
+                        msg = "Unknown command"
+                    else:
+                        try:
+                            logger.debug3(f"Evaluating command: {command}")
+                            if emote_command:
+                                await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
+                            else:
+                                await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
+                        except KeyError:
+                            logger.error(f"KeyError processing command {command}")
+                            msg = "Command failure."
+                            raise
         except:
             logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
             raise
