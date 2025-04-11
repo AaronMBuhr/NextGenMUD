@@ -1,12 +1,11 @@
 import copy
 import fnmatch
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from django.conf import settings
 import json
 import os
 from typing import List, Dict, Optional
 import yaml
-from .yaml_dumper import YamlDumper
 from .game_save_utils import save_game, load_game, list_saves, delete_save, create_player
 from .nondb_models.actor_interface import ActorType, ActorSpawnData
 from .nondb_models.actor_states import ActorState, CharacterStateStealthed
@@ -73,7 +72,7 @@ class ComprehensiveGameState:
 
 
     def Initialize(self):
-        logger = CustomDetailLogger(__name__, prefix="Initialize()> ")
+        logger = StructuredLogger(__name__, prefix="Initialize()> ")
 
         self.world_definition.zones = {}
 
@@ -189,7 +188,7 @@ class ComprehensiveGameState:
     
 
     def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False) -> Character:
-        logger = CustomDetailLogger(__name__, prefix="find_target_character()> ")
+        logger = StructuredLogger(__name__, prefix="find_target_character()> ")
         # search_world automatically turns on search_zone
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
@@ -320,7 +319,7 @@ class ComprehensiveGameState:
 
     def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
                            start_room: 'Room' = None, start_zone: Zone = None, search_world=False) -> Object:
-        logger = CustomDetailLogger(__name__, prefix="find_target_object()> ")
+        logger = StructuredLogger(__name__, prefix="find_target_object()> ")
 
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
@@ -328,7 +327,7 @@ class ComprehensiveGameState:
             return actor
 
         def check_object(obj) -> bool:
-            logger = CustomDetailLogger(__name__, prefix="find_target_object.check_object()> ")
+            logger = StructuredLogger(__name__, prefix="find_target_object.check_object()> ")
             if obj.id.startswith(target_name):
                 return True
             for pieces in obj.name.split(' '):
@@ -381,7 +380,7 @@ class ComprehensiveGameState:
 
     
     async def start_connection(self, consumer: 'MyWebsocketConsumer'):
-        logger = CustomDetailLogger(__name__, prefix="startConnection()> ")
+        logger = StructuredLogger(__name__, prefix="startConnection()> ")
         logger.debug("init new connection")
         await consumer.send(text_data=json.dumps({ 
             'text_type': 'dynamic',
@@ -396,7 +395,7 @@ class ComprehensiveGameState:
 
 
     async def load_in_character(self, connection: Connection):
-        logger = CustomDetailLogger(__name__, prefix="loadInCharacter()> ")
+        logger = StructuredLogger(__name__, prefix="loadInCharacter()> ")
         logger.debug("loading in character")
         chardef = self.world_definition.find_character_definition("test_player")
         if not chardef:
@@ -430,26 +429,26 @@ class ComprehensiveGameState:
         if connection.character in self.players:
             self.players.remove(connection.character)
         else:
-            logger = CustomDetailLogger(__name__, prefix="remove_player_by_connection()> ")
+            logger = StructuredLogger(__name__, prefix="remove_player_by_connection()> ")
             logger.warning(f"Removing player by connection, but player not found in players list: {connection.character}.")
 
     def remove_player_by_character(self, character: Character):
         if character in self.players:
             self.players.remove(character)
         else:
-            logger = CustomDetailLogger(__name__, prefix="remove_player_by_character()> ")
+            logger = StructuredLogger(__name__, prefix="remove_player_by_character()> ")
             logger.warning(f"Removing player by character, but player not found in players list: {character}.")
 
     def remove_character(self, character: Character):
         if character in self.characters:
             self.characters.remove(character)
         else:
-            logger = CustomDetailLogger(__name__, prefix="remove_character()> ")
+            logger = StructuredLogger(__name__, prefix="remove_character()> ")
             logger.warning(f"Removing character, but character not found in characters list: {character}.")
 
     def add_scheduled_action(self, actor: Actor, name: str, scheduled_tick: int = None, in_ticks: int = None, 
                              vars: Dict[str, str]=None, func: callable = None):
-        logger = CustomDetailLogger(__name__, prefix="add_scheduled_task()> ")
+        logger = StructuredLogger(__name__, prefix="add_scheduled_task()> ")
         if not scheduled_tick and not in_ticks:
             raise Exception("Must specify either scheduled_tick or in_ticks.")
         elif scheduled_tick and in_ticks:
@@ -462,7 +461,7 @@ class ComprehensiveGameState:
         self.scheduled_actions[scheduled_tick].append(action)
 
     def perform_scheduled_actions(self, tick: int):
-        logger = CustomDetailLogger(__name__, prefix="perform_scheduled_actions()> ")
+        logger = StructuredLogger(__name__, prefix="perform_scheduled_actions()> ")
         if tick in self.scheduled_actions:
             for action in self.scheduled_actions[tick]:
                 if action.actor_ and Actor.is_deleted(action.actor_):
@@ -473,7 +472,7 @@ class ComprehensiveGameState:
             del self.scheduled_actions[tick]
 
     def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
-        logger = CustomDetailLogger(__name__, prefix="spawn_character()> ")
+        logger = StructuredLogger(__name__, prefix="spawn_character()> ")
         new_character = Character.create_from_definition(character_def)
         new_character.spawned_by = spawned_by
         self.characters.append(new_character)
@@ -483,7 +482,7 @@ class ComprehensiveGameState:
         logger.debug3(f"Spawning {new_character.rid} added to room {new_character._location_room.rid}")
 
     def respawn_character(self, owner: Actor, vars: dict):
-        logger = CustomDetailLogger(__name__, prefix="respawn_character()> ")
+        logger = StructuredLogger(__name__, prefix="respawn_character()> ")
         spawn_data = vars['spawned_from']
         character_def = self.world_definition.find_character_definition(spawn_data.id)
         if character_def == None:
@@ -531,7 +530,7 @@ class ComprehensiveGameState:
         
     def save_game_state(self, player_name: str, save_name: str) -> bool:
         """Save the current game state to the database"""
-        logger = CustomDetailLogger(__name__, prefix="save_game_state()> ")
+        logger = StructuredLogger(__name__, prefix="save_game_state()> ")
         try:
             # Create a dictionary representation of the game state
             game_state = {
@@ -582,7 +581,7 @@ class ComprehensiveGameState:
     
     def load_game_state(self, player_name: str, save_name: str) -> bool:
         """Load a game state from the database"""
-        logger = CustomDetailLogger(__name__, prefix="load_game_state()> ")
+        logger = StructuredLogger(__name__, prefix="load_game_state()> ")
         try:
             # Load the game state from database
             game_state = load_game(player_name, save_name)

@@ -1,7 +1,7 @@
 import asyncio
 from .command_handler_interface import CommandHandlerInterface
 from .communication import Connection
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 import threading
 from .nondb_models.character_interface import PermanentCharacterFlags
@@ -17,7 +17,7 @@ class MainProcess:
 
     @classmethod
     def start_main_process(cls):
-        logger = CustomDetailLogger(__name__, prefix="start_main_process()> ")
+        logger = StructuredLogger(__name__, prefix="start_main_process()> ")
         # seems to do nothing:
         # logger.setLevel(logging.WARNING)
         # logger.set_detail_level(3)
@@ -35,47 +35,47 @@ class MainProcess:
 
     @classmethod
     async def main_game_loop(cls):
-        logger = CustomDetailLogger(__name__, prefix="main_game_loop()> ")
+        logger = StructuredLogger(__name__, prefix="main_game_loop()> ")
         logger.debug3("Game loop started")
         last_fighting_tick = cls._game_state.world_clock_tick
         while True:
-            logger.critical(f"tick {cls._game_state.world_clock_tick}")
+            logger.debug3(f"tick {cls._game_state.world_clock_tick}")
             start_tick_time = time.time()
+            # Process input queues
             for conn in cls._game_state.connections:
                 logger.debug3("processing input queue")
                 if len(conn.input_queue) > 0:
                     input = conn.input_queue.popleft()
                     logger.debug3(f"input: {input}")
                     await cls.process_input(conn, input)
+            
+            # Process timer tick triggers
             for trig in TriggerTimerTick.timer_tick_triggers_: 
                 logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
-                # print(trig.actor_.rid)
-                # print(trig.actor_)
                 await trig.run(trig.actor_, "", {}, cls._game_state)
-            if len(cls._game_state.players) > 0: # and cls._game_state.players[0].fighting_whom != None:
-                await cls._game_state.players[0].send_text("dynamic", f"tick: {cls._game_state.world_clock_tick}")
+
+            # Handle fighting ticks
             if cls._game_state.world_clock_tick > last_fighting_tick + Constants.TICKS_PER_ROUND:
-                logger.critical("fighting tick")
-                if len(cls._game_state.players) > 0: # and cls._game_state.players[0].fighting_whom != None:
-                    await cls._game_state.players[0].send_text("dynamic", f"fighting tick: {cls._game_state.world_clock_tick}")
-                    for c in cls._game_state.characters_fighting:
-                        await cls._game_state.players[0].send_text("dynamic", "   fighting: " + c.rid)
+                logger.debug3("fighting tick")
+                if len(cls._game_state.characters_fighting) > 0:
+                    await cls.handle_periodic_fighting_tick()
                 last_fighting_tick = cls._game_state.world_clock_tick
-                await cls.handle_periodic_fighting_tick()
-            # logger.debug3("sleeping")
+
+            # Process scheduled actions and check aggressive NPCs
             cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
             await cls.check_aggressive_near_players()
+
+            # Sleep for remaining tick time
             time_taken = time.time() - start_tick_time
             sleep_time = Constants.GAME_TICK_SEC - time_taken
             if sleep_time > 0:
                 time.sleep(sleep_time)
-            # TODO:H: hit point recovery
             cls._game_state.world_clock_tick += 1
 
 
     @classmethod
     async def handle_periodic_fighting_tick(cls):
-        logger = CustomDetailLogger(__name__, prefix="handle_periodic_fighting_tick()> ")
+        logger = StructuredLogger(__name__, prefix="handle_periodic_fighting_tick()> ")
         logger.debug3("handling periodic fighting tick")
         # logger.set_detail_level(1)
         # logger.debug3("handling periodic fighting tick")
@@ -84,7 +84,7 @@ class MainProcess:
 
     @classmethod
     async def process_input(cls, conn: Connection, input: str):
-        logger = CustomDetailLogger(__name__, prefix="processInput()> ")
+        logger = StructuredLogger(__name__, prefix="processInput()> ")
         logger.debug3(f"processing input for character {conn.character.name}: {input}")
         # command = input.split(" ")[0]
         # if not command in command_handlers:
@@ -99,7 +99,7 @@ class MainProcess:
 
     @classmethod
     async def check_aggressive_near_players(cls):
-        logger = CustomDetailLogger(__name__, prefix="check_aggressive_near_players()> ")
+        logger = StructuredLogger(__name__, prefix="check_aggressive_near_players()> ")
         logger.debug3("checking aggressive near players")
         for p in cls._game_state.players:
             logger.debug3(f"checking player {p.name}")

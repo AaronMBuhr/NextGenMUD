@@ -1,5 +1,5 @@
 import copy
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from enum import Enum
 from typing import Dict, List
 from .actor_interface import ActorType, ActorInterface
@@ -93,7 +93,7 @@ class Character(Actor, CharacterInterface):
 
     def from_yaml(self, yaml_data: str, definition_zone_id: str):
         from .triggers import Trigger
-        logger = CustomDetailLogger(__name__, prefix="Character.from_yaml()> ")
+        logger = StructuredLogger(__name__, prefix="Character.from_yaml()> ")
         try:
             # self.game_permission_flags_.set_flag(GamePermissionFlags.IS_ADMIN)
             # self.game_permission_flags_.set_flag(GamePermissionFlags.CAN_INSPECT)
@@ -209,7 +209,7 @@ class Character(Actor, CharacterInterface):
         return article_plus_name(self.article, self.name, cap=True)
     
     async def send_text(self, text_type: CommTypes, text: str) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="Character.sendText()> ")
+        logger = StructuredLogger(__name__, prefix="Character.sendText()> ")
         logger.debug3(f"sendText: {text}")
         if self.connection:
             logger.debug3(f"connection exists, sending text to {self.name}")
@@ -220,27 +220,30 @@ class Character(Actor, CharacterInterface):
             logger.debug3("no connection")
             return False
 
-    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
-                   exceptions: List['Actor'] = None, already_substituted: bool = False,
+    async def echo(self, text_type: CommTypes, text: str, vars: dict = None, \
+                   exceptions: List['Actor'] = None, already_substituted: bool = False,\
                    game_state: 'ComprehensiveGameState' = None, skip_triggers: bool = False) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="Character.echo()> ")
-        logger.debug3("text before " + text)
-        if not already_substituted:
-            text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.debug3("text after " + text)
+        logger = StructuredLogger(__name__, prefix="Character.echo()> ")
+        logger.debug3(f"text before: {text}")  # Use f-string to handle potential None
+        if not already_substituted and text is not None: # Ensure text is not None before processing
+            processed_text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
+        else:
+            processed_text = text # Assign original text (or None) if no processing needed
+        logger.debug3(f"text after: {processed_text}") # Use f-string
         if exceptions and self in exceptions:
             retval = False
         else:
             retval = True
-            logger.debug3("sending text: " + text)
-            await self.send_text(text_type, text)
+            if processed_text is not None: # Only send if text is not None
+                logger.debug3(f"sending text: {processed_text}") # Use f-string
+                await self.send_text(text_type, processed_text)
         logger.debug3("running super")
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
+        await super().echo(text_type, processed_text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
         return retval
 
     @classmethod
     def create_from_definition(cls, char_def: 'Character', game_state: GameStateInterface=None,include_items: bool = True) -> 'Character':
-        logger = CustomDetailLogger(__name__, prefix="Character.create_from_definition()> ")
+        logger = StructuredLogger(__name__, prefix="Character.create_from_definition()> ")
         print(f"char_def: {char_def}")
         logger.critical(f"char def triggers: {char_def.triggers_by_type}")
         new_char = copy.deepcopy(char_def)

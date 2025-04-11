@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import copy
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from enum import Enum, auto, IntFlag
 import json
 import random
@@ -36,7 +36,7 @@ class Actor(ActorInterface):
             self.create_reference()
 
     def create_reference(self) -> str:
-        logger = CustomDetailLogger(__name__, prefix="Actor.create_reference()> ")
+        logger = StructuredLogger(__name__, prefix="Actor.create_reference()> ")
         logger.debug3(f"creating reference for {self.name} ({self.id})")
         reference_prefix = self.actor_type.name[0]  # First character of ActorType
         self.reference_number = reference_prefix + str(Actor.current_reference_num_)
@@ -88,13 +88,15 @@ class Actor(ActorInterface):
                    exceptions: List['Actor'] = None, already_substituted: bool = False,
                    game_state: 'GameStateInterface' = None, skip_triggers: bool = False) -> bool:
         # note that you probably want to run this last in the child class implementation
-        logger = CustomDetailLogger(__name__, prefix="Actor.echo()> ")
+        logger = StructuredLogger(__name__, prefix="Actor.echo()> ")
         logger.debug3("running")
         logger.debug3(f"text before: {text}")
         logger.debug3(f"vars: {vars}")
+        # Ensure text is a string before processing
+        processed_text = text if text is not None else ""
         if not already_substituted:
-            text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.debug3(f"text after: {text}")
+            processed_text = evaluate_functions_in_line(replace_vars(processed_text, vars), vars, game_state)
+        logger.debug3(f"text after: {processed_text}")
         # check room triggers
         if exceptions and self in exceptions:
             return False
@@ -107,7 +109,7 @@ class Actor(ActorInterface):
                     logger.debug3(f"checking trigger_type: {trigger_type}")
                     for trigger in self.triggers_by_type[trigger_type]:
                         logger.debug3(f"checking trigger: {trigger.to_dict()}")
-                        await trigger.run(self, text, vars, game_state)
+                        await trigger.run(self, processed_text, vars, game_state)
         return True
     
     def mark_deleted(self):

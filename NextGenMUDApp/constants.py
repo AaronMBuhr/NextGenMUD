@@ -1,6 +1,6 @@
 from typing import Dict
 import yaml
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from .basic_types import DescriptiveFlags
 
 

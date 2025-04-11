@@ -2,7 +2,7 @@ from typing import Dict, List
 from .actor_interface import ActorType, ActorSpawnData
 from .actors import Actor
 from ..communication import CommTypes
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from .object_interface import ObjectInterface
 from .room_interface import RoomInterface
 from .triggers import Trigger
@@ -47,7 +47,7 @@ class Room(Actor, RoomInterface):
         return self.__repr__()
 
     def from_yaml(self, zone, yaml_data: str):
-        logger = CustomDetailLogger(__name__, prefix="Room.from_yaml()> ")
+        logger = StructuredLogger(__name__, prefix="Room.from_yaml()> ")
         try:
             self.name = yaml_data['name']
             self.description = yaml_data['description']
@@ -94,13 +94,13 @@ class Room(Actor, RoomInterface):
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] =None, already_substituted: bool = False,
                    game_state: 'GameStateInterface' = None, skip_triggers: bool = False) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="Room.echo()> ")
+        logger = StructuredLogger(__name__, prefix="Room.echo()> ")
         if text == False:
             raise Exception("text False")
-        logger.debug3("text before " + text)
-        if not already_substituted:
+        logger.debug3(f"text before: {text if text is not None else 'None'}")
+        if not already_substituted and text is not None:
             text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.debug3("text after " + text)
+        logger.debug3(f"text after: {text if text is not None else 'None'}")
         logger.debug3(f"checking characters: {self.characters}")
         # if len(self.characters_) > 0:
         #     raise Exception("we found a character!")
@@ -108,10 +108,10 @@ class Room(Actor, RoomInterface):
             logger.debug3(f"checking character {c.name}")
             if exceptions is None or c not in exceptions:
                 logger.debug3(f"sending '{text}' to {c.name}")
-                await c.echo(text_type, text, vars, exceptions, already_substituted=True,game_state=game_state, skip_triggers=skip_triggers)
-        logger.debug3("running super, text: " + text)
-        await super().echo(text_type, text, vars, exceptions, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
-        return True
+                await c.echo(text_type, text, vars, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
+        logger.debug3(f"running super, text: {text if text is not None else 'None'}")
+        # Run Actor.echo to send the message to the room itself if it has a connection
+        return await super().echo(text_type, text, vars, exceptions, already_substituted, game_state, skip_triggers)
 
     def remove_character(self, character: 'Character'):
         self.characters.remove(character)

@@ -1,5 +1,5 @@
 import copy
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from typing import List
 from .actor_interface import ActorType
 from .actors import Actor
@@ -58,7 +58,7 @@ class Object(Actor, ObjectInterface):
         }
     
     def from_yaml(self, yaml_data: str, definition_zone_id: str,game_state: GameStateInterface = None):
-        logger = CustomDetailLogger(__name__, prefix="Object.from_yaml()> ")
+        logger = StructuredLogger(__name__, prefix="Object.from_yaml()> ")
         try:
             self.name = yaml_data['name']
             self.definition_zone_id = definition_zone_id
@@ -118,7 +118,7 @@ class Object(Actor, ObjectInterface):
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] = None, already_substituted:bool = False,
                    game_state=None, skip_triggers: bool = False) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="Object.echo()> ")
+        logger = StructuredLogger(__name__, prefix="Object.echo()> ")
         logger.critical("text before " + text)
         if not already_substituted:
             text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)

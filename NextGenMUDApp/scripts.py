@@ -1,4 +1,4 @@
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from .command_handler import CommandHandler
 from .command_handler_interface import CommandHandlerInterface
 from .constants import Constants
@@ -15,7 +15,7 @@ class ScriptHandler:
 
     @classmethod
     async def run_script(cls, actor: Actor, script: str, vars: dict, game_state: ComprehensiveGameState = None):
-        logger = CustomDetailLogger(__name__, prefix="run_script()> ")
+        logger = StructuredLogger(__name__, prefix="run_script()> ")
         logger.debug3(f"actor.rid: {actor.rid}, script: {script}, vars: {vars}")
         script = replace_vars(script, vars).strip()
         logger.debug3(f"after replace_vars: {script}")
@@ -53,7 +53,7 @@ class ScriptHandler:
 
     @classmethod
     async def process_line(cls, actor: Actor, script: str, vars: dict):
-        logger = CustomDetailLogger(__name__, prefix="cls.process_line()> ")
+        logger = StructuredLogger(__name__, prefix="cls.process_line()> ")
         # Process the first command or line
         end = script.find('\n') if '\n' in script else len(script)
         line = script[:end].strip()
@@ -73,7 +73,7 @@ class ScriptHandler:
     @classmethod
     def evaluate_condition(cls, actor: Actor, if_subject: str, if_operator: str,
                            if_predicate: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="cls.evaluate_condition()> ")
+        logger = StructuredLogger(__name__, prefix="cls.evaluate_condition()> ")
         logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
         return evaluate_if_condition(if_subject, if_operator, if_predicate)
 

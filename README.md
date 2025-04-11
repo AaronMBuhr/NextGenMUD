@@ -25,14 +25,16 @@ NextGenMUD is built on the following architecture:
 - **Command Handler**: Processes player inputs and manages command execution
 - **World Definition**: YAML-based system for defining game worlds, characters, and objects
 - **Trigger System**: Event-driven system for creating interactive environments
+- **Structured Logging**: Advanced logging system with context tracking and multiple debug levels
 
 ## Getting Started
 
 ### Prerequisites
 
 - Python 3.8+
-- Django 3.2+
-- Channels 3.0+ (for WebSockets)
+- Django 5.0+
+- Channels 4.0+ (for WebSockets)
+- Structlog 23.2.0+ (for structured logging)
 
 ### Installation
 
@@ -133,6 +135,20 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Structured Logging System
+
+NextGenMUD includes a powerful structured logging system based on the `structlog` library. This system provides:
+
+- **Structured data** - Include key-value pairs in log messages for better filtering and analysis
+- **Multiple debug levels** - Use debug(), debug2(), and debug3() for fine-grained control
+- **Source context** - Automatic inclusion of source file, function name, and line number
+- **Progress indicators** - Visual indicators for long-running operations
+- **Message capturing** - Ability to capture and replay log messages
+- **Prefix filtering** - Filter log messages based on prefixes
+- **Exception handling** - Detailed exceptions with source information
+
+For more information, see the [logger_readme.md](NextGenMUDApp/logger_readme.md) file.
 
 ## Acknowledgments
 
