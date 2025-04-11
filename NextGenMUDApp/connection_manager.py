@@ -48,12 +48,26 @@ class ConnectionManager:
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
+        logger = StructuredLogger(__name__, prefix="remove_connection()> ")
         for c in self.live_game_state_.connections:
             if c.consumer_ == consumer:
+                logger.debug(f"Found connection to remove")
                 self.remove_character(c)
                 self.live_game_state_.connections.remove(c)
                 return
-            
+        logger.warning(f"Could not find connection to remove for consumer: {consumer}")
+
 
     def remove_character(self, connection: Connection):
-        self.live_game_state_.players.remove(connection.character)
+        if connection.character:
+            # Remove from combat if fighting
+            if connection.character.fighting_whom is not None:
+                CoreActionsInterface.get_instance().stop_fighting(connection.character)
+            
+            # Remove from players list
+            if connection.character in self.live_game_state_.players:
+                self.live_game_state_.players.remove(connection.character)
+            
+            # Clear the connection reference in the character
+            connection.character.connection = None
+            connection.character = None

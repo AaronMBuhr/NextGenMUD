@@ -1,0 +1,65 @@
+body {
+    font-family: 'Roboto Mono', monospace;
+    background-color: #1a1a1a;
+    background-image: url("../images/dungeon-window-background.859593a95a60.png");
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    color: #f5f5f5;
+    text-align: center;
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 10px;
+}
+
+.text-box {
+    width: 95%;
+    margin: 10px auto;
+    padding: 5px;
+    background-color: #3a3a3a;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#staticText, #dynamicText {
+    height: 15em;
+    overflow-y: scroll;
+}
+
+#inputText {
+    width: 75%;
+}
+
+#submitButton {
+    width: 20%;
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+#submitButton:hover {
+    background-color: #45a049;
+}
+
+#debugLog {
+    height: 10em;
+    width: 95%;
+    margin: 10px auto;
+    padding: 5px;
+    background-color: #2a2a2a;
+    color: #ff4444;
+    border: none;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: left;
+    overflow-y: scroll;
+}
