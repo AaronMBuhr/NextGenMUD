@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from enum import Enum
 import re
 import time
@@ -29,18 +29,18 @@ class TriggerCriteria:
         return f"{self.__class__.__name__}({fields_info})"
 
     def from_dict(self, values: dict):
-        # logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.from_dict()> ")
-        # logger.debug3(f"values: {values}")
-        # print(values)
+        logger = StructuredLogger(__name__, prefix="TriggerCriteria.from_dict()> ")
+        logger.debug3(f"values: {values}")
+        print(values)
         self.subject = values['subject']
         self.operator = values['operator']
         self.predicate = values['predicate']
         return self
-        # print(self.to_dict())
+        print(self.to_dict())
 
     @abstractmethod
     def evaluate(self, vars: dict, game_state: GameStateInterface) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerCriteria.evaluate()> ")
         logger.debug3(f"vars: {vars}")
         logger.debug3(f"checking {self.subject},{self.operator},{self.predicate}")
         # subject = execute_functions(replace_vars(self.subject_, vars))
@@ -91,7 +91,7 @@ class Trigger(TriggerInterface):
         return f"{self.__class__.__name__}({fields_info})"
 
     def from_dict(self, values: dict):
-        logger = CustomDetailLogger(__name__, prefix="Trigger.from_dict()> ")
+        logger = StructuredLogger(__name__, prefix="Trigger.from_dict()> ")
         self.trigger_type_: TriggerType[values['type'].upper()]
         self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values['criteria']]
         self.script_ = values['script']
@@ -104,7 +104,7 @@ class Trigger(TriggerInterface):
     
     @classmethod
     def new_trigger(cls, trigger_type, actor: 'Actor'):
-        logger = CustomDetailLogger(__name__, prefix="Trigger.new_trigger()> ")
+        logger = StructuredLogger(__name__, prefix="Trigger.new_trigger()> ")
         if type(trigger_type) == str:
             trigger_type = TriggerType[trigger_type.upper()]
         if trigger_type == TriggerType.CATCH_ANY:
@@ -139,7 +139,7 @@ class Trigger(TriggerInterface):
         return self.flags.are_flags_set(flags)
 
     async def execute_trigger_script(self, actor: 'Actor', vars: dict, game_state: GameStateInterface = None) -> None:
-        logger = CustomDetailLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
+        logger = StructuredLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
         # for line in self.script_.splitlines():
         #     logger.debug3(f"running script line: {line}")
         #     await process_command(actor, line, vars)
@@ -169,7 +169,7 @@ class TriggerCatchAny(Trigger):
         super().__init__(TriggerType.CATCH_ANY, actor)
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
-        logger = CustomDetailLogger(__name__, prefix="TriggerCatchAny.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerCatchAny.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 
@@ -190,7 +190,7 @@ class TriggerTimerTick(Trigger):
     timer_tick_triggers_ = []
 
     def __init__(self, actor: 'Actor') -> None:
-        logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
         logger.debug3(f"__init__ actor: {actor.id}")
         if not actor or actor == None:
             raise Exception("actor is None")
@@ -214,7 +214,7 @@ class TriggerTimerTick(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
-        logger = CustomDetailLogger(__name__, prefix="TriggerTimerTick.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerTimerTick.run()> ")
         if self.disabled_:
             logger.debug3("disabled")
             return False
@@ -266,7 +266,7 @@ class TriggerCatchLook(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
-        logger = CustomDetailLogger(__name__, prefix="TriggerCatchLook.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerCatchLook.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 
@@ -287,7 +287,7 @@ class TriggerCatchSay(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor
-        logger = CustomDetailLogger(__name__, prefix="TriggerCatchSay.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerCatchSay.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 

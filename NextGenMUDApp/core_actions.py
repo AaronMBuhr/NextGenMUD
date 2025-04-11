@@ -1,4 +1,4 @@
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 import math
 import random
 from .config import Config, default_app_config
@@ -22,7 +22,7 @@ class CoreActions(CoreActionsInterface):
     game_state: GameStateInterface = GameStateInterface.get_instance()
 
     async def do_look_room(self, actor: Actor, room: Room):
-        logger = CustomDetailLogger(__name__, prefix="do_look_room()> ")
+        logger = StructuredLogger(__name__, prefix="do_look_room()> ")
         logger.debug3("starting")
         # await actor.send_text(CommTypes.STATIC, room.description)
         logger.debug3("room parts")
@@ -50,25 +50,25 @@ class CoreActions(CoreActionsInterface):
 
         
     async def do_look_character(self, actor: Actor, target: 'Character'):
-        logger = CustomDetailLogger(__name__, prefix="do_look_character()> ")
-        msg = firstcap(target.description) + "\n" + f"{firstcap(target.pronounsubject)} is {target.get_status_description()}"
+        logger = StructuredLogger(__name__, prefix="do_look_character()> ")
+        msg = firstcap(target.description) + "\n" + f"{firstcap(target.pronoun_subject)} is {target.get_status_description()}"
         await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
 
 
     async def do_look_object(self, actor: Actor, target: 'Object'):
-        logger = CustomDetailLogger(__name__, prefix="do_look_object()> ")
+        logger = StructuredLogger(__name__, prefix="do_look_object()> ")
         msg_parts = [ target.description ]
         if target.has_flags(ObjectFlags.IS_CONTAINER) and not target.has_flags(ObjectFlags.IS_CONTAINER_LOCKED):
             if len(target.contents) == 0:
-                msg_parts.append(firstcap(target.pronounsubject) + " is empty.")
+                msg_parts.append(firstcap(target.pronoun_subject) + " is empty.")
             else:
-                msg_parts.append(firstcap(target.pronounsubject) + " contains:\n" + Object.collapse_name_multiples(target.contents, "\n"))
+                msg_parts.append(firstcap(target.pronoun_subject) + " contains:\n" + Object.collapse_name_multiples(target.contents, "\n"))
         msg = '\n'.join(msg_parts)
         await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
 
 
     async def arrive_room(self, actor: Actor, room: Room, room_from: Room = None):
-        logger = CustomDetailLogger(__name__, prefix="arriveRoom()> ")
+        logger = StructuredLogger(__name__, prefix="arriveRoom()> ")
         logger.debug3(f"actor: {actor}, room: {room}, room_from: {room_from}")
 
         def reset_triggers_by_room(room: Room):
@@ -123,7 +123,7 @@ class CoreActions(CoreActionsInterface):
 
 
     async def world_move(self, actor: Actor, direction: str):
-        logger = CustomDetailLogger(__name__, prefix="worldMove()> ")
+        logger = StructuredLogger(__name__, prefix="worldMove()> ")
         logger.debug3(f"actor: {actor}")
 
         if actor.actor_type != ActorType.CHARACTER:
@@ -159,7 +159,7 @@ class CoreActions(CoreActionsInterface):
 
 
     # async def do_echo(actor: Actor, comm_type: CommTypes, text: str):
-    #     logger = CustomDetailLogger(__name__, prefix="do_echo()> ")
+    #     logger = StructuredLogger(__name__, prefix="do_echo()> ")
     #     logger.debug(f"actor: {actor}, text: {text}")
     #     if actor.actor_type == ActorType.CHARACTER and actor.connection_ != None: 
     #         await actor.send_text(comm_type, text)
@@ -171,7 +171,7 @@ class CoreActions(CoreActionsInterface):
 
     # @classmethod
     # async def do_tell(self, actor: Actor, target: Actor, text: str):
-    #     logger = CustomDetailLogger(__name__, prefix="do_tell()> ")
+    #     logger = StructuredLogger(__name__, prefix="do_tell()> ")
     #     logger.debug(f"actor: {actor}, target: {target}, text: {text}")
     #     do_echo(actor, CommTypes.DYNAMIC, f"You tell {target.name}, \"{text}\"")
     #     do_echo(target, CommTypes.DYNAMIC, f"{actor.name} tells you, \"{text}\"")
@@ -183,7 +183,7 @@ class CoreActions(CoreActionsInterface):
 
 
     async def start_fighting(self, subject: Actor, target: Actor):
-        logger = CustomDetailLogger(__name__, prefix="start_fighting()> ")
+        logger = StructuredLogger(__name__, prefix="start_fighting()> ")
         logger.debug(f"subject: {subject}, target: {target}")
         if subject.actor_type != ActorType.CHARACTER:
             raise Exception("Subject must be of type CHARACTER to start fighting.")
@@ -223,7 +223,7 @@ class CoreActions(CoreActionsInterface):
                 
 
     def fight_next_opponent(self, actor: Actor):
-        logger = CustomDetailLogger(__name__, prefix="fight_next_opponent()> ")
+        logger = StructuredLogger(__name__, prefix="fight_next_opponent()> ")
         logger.debug(f"actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to fight next opponent.")
@@ -238,7 +238,7 @@ class CoreActions(CoreActionsInterface):
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
         # TODO:L: maybe do "x kills you"
         from .nondb_models.objects import Corpse
-        logger = CustomDetailLogger(__name__, prefix="do_die()> ")
+        logger = StructuredLogger(__name__, prefix="do_die()> ")
         msg = f"You die!"
         await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg), game_state=self.game_state)
 
@@ -307,7 +307,7 @@ class CoreActions(CoreActionsInterface):
 
 
     async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True):
-        logger = CustomDetailLogger(__name__, prefix="do_damage()> ")
+        logger = StructuredLogger(__name__, prefix="do_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to do damage.")
@@ -348,7 +348,7 @@ class CoreActions(CoreActionsInterface):
                 
 
     async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True) -> int:
-        logger = CustomDetailLogger(__name__, prefix="do_calculated_damage()> ")
+        logger = StructuredLogger(__name__, prefix="do_calculated_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to do damage.")
@@ -362,7 +362,7 @@ class CoreActions(CoreActionsInterface):
     async def do_single_attack(self, actor: Actor, target: Actor, attack: AttackData) -> int:
         # TODO:M: figure out weapons
         # TODO:L: deal with nouns and verbs correctly
-        logger = CustomDetailLogger(__name__, prefix="do_single_attack()> ")
+        logger = StructuredLogger(__name__, prefix="do_single_attack()> ")
         logger.critical(f"actor: {actor.rid}, target: {target.rid}")
         logger.critical(f"attackdata: {attack.to_dict()}")
         if actor.actor_type != ActorType.CHARACTER:
@@ -411,7 +411,7 @@ class CoreActions(CoreActionsInterface):
             
 
     async def process_fighting(self):
-        logger = CustomDetailLogger(__name__, prefix="process_fighting()> ")
+        logger = StructuredLogger(__name__, prefix="process_fighting()> ")
         logger.debug3("beginning")
         logger.critical(f"num characters_fighting_: {len(self.game_state.get_characters_fighting())}")
         for c in self.game_state.get_characters_fighting():
@@ -475,7 +475,7 @@ class CoreActions(CoreActionsInterface):
     
     async def do_aggro(self, actor: Actor):
         from NextGenMUDApp.skills import Skills
-        logger = CustomDetailLogger(__name__, prefix="do_aggro()> ")
+        logger = StructuredLogger(__name__, prefix="do_aggro()> ")
         logger.critical(f"actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
             logger.critical(f"{actor.rid} is not character")

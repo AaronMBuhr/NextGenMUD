@@ -1,4 +1,4 @@
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from enum import Enum
 import json
 
@@ -41,7 +41,7 @@ class Connection:
 
     async def send(self, text_type, text_data: str):
         # raise Exception("Connection.send() #1")
-        logger = CustomDetailLogger(__name__, prefix="Connection.send()> ")
+        logger = StructuredLogger(__name__, prefix="Connection.send()> ")
         if isinstance(text_type, CommTypes):
             text_type = text_type.text
         logger.debug3(f"text_type: {text_type}")

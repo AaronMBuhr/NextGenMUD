@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-$0b-%ha3r-r%#)cw=lu%15tfz@hiilev&7zzg*w7ws4qgc8359
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
 
 
 # Application definition
@@ -127,6 +127,13 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ASGI_APPLICATION = 'NextGenMUD.asgi.application'
+
+# Channel layer configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 # LOGGING = {
 #     'version': 1,

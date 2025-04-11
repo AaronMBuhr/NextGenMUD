@@ -1,7 +1,7 @@
 from enum import Enum
 import random
 from typing import Dict, List
-from ..custom_detail_logger import CustomDetailLogger
+from ..structured_logger import StructuredLogger
 from ..utility import get_dice_parts
 
 
@@ -121,7 +121,7 @@ class PotentialDamage:
         return total_damage
     
     def calc_susceptibility(self, damage_type: DamageType, damage_profile: List[DamageResistances]) -> float:
-        logger = CustomDetailLogger(__name__, prefix="PotentialDamage.calc_susceptibility()> ")
+        logger = StructuredLogger(__name__, prefix="PotentialDamage.calc_susceptibility()> ")
         logger.debug(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
         mult = 1
         for profile in damage_profile:
@@ -162,7 +162,7 @@ class AttackData():
                  attack_noun=None, 
                  attack_verb=None
                  ):
-        logger = CustomDetailLogger(__name__, prefix="AttackData.__init__()> ")
+        logger = StructuredLogger(__name__, prefix="AttackData.__init__()> ")
         self.potential_damage_: List[PotentialDamage()] = []
         if damage_type and damage_amount:
             damage_parts = get_dice_parts(damage_amount)

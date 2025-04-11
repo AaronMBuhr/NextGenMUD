@@ -1,4 +1,4 @@
-from .custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 from enum import IntFlag
 import re
 import random
@@ -29,7 +29,7 @@ def replace_match(match, vars):
     return str(vars.get(var_name, match.group()))  # Replace with value from vars, or keep original if not found
 
 def replace_vars(script, vars: dict) -> str:
-    logger = CustomDetailLogger(__name__, prefix="replace_vars()> ")
+    logger = StructuredLogger(__name__, prefix="replace_vars()> ")
     logger.debug3("starting, script:")
     
     if not isinstance(script, str):
@@ -64,7 +64,7 @@ IF_CONDITIONS = {
 }
 
 def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
-    logger = CustomDetailLogger(__name__, prefix="evaluate_if_condition()> ")
+    logger = StructuredLogger(__name__, prefix="evaluate_if_condition()> ")
     logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
 
     if if_operator in IF_CONDITIONS:
@@ -218,7 +218,7 @@ def try_get(lst: [], idx: int, default=None):
 
 def evaluate_functions_in_line(line: str, vars: dict, game_state: 'ComprehensiveGameState') -> str:
     from .scripts import ScriptHandler
-    logger = CustomDetailLogger(__name__, prefix="evaluate_functions_in_line()> ")
+    logger = StructuredLogger(__name__, prefix="evaluate_functions_in_line()> ")
     logger.debug3(f"line: {line}")
     result_parts = []
     # Loop to find and replace all function calls in the line

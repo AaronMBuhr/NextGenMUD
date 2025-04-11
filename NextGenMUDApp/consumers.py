@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from collections import deque
-from custom_detail_logger import CustomDetailLogger
+from .structured_logger import StructuredLogger
 import json
 from . import state_handler
 
@@ -28,7 +28,7 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         return self.input_queue_
     
     async def connect(self):
-        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.connect()> ")
+        logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.connect()> ")
         logger.debug("accepting connection")
         await self.accept()
         logger.debug("connection accepted, loading character")
@@ -40,20 +40,29 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         logger.debug("character loaded")
 
     async def disconnect(self, close_code):
-        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
+        logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
         logger.debug("disconnecting and removing character")
-        await MyWebsocketConsumer.game_state.remove_character(self)
+        try:
+            if MyWebsocketConsumer.game_state is not None:
+                await MyWebsocketConsumer.game_state.remove_character(self)
+            # Clear the input queue
+            self.input_queue_.clear()
+        except Exception as e:
+            logger.error(f"Error during disconnect: {str(e)}")
+        finally:
+            # Ensure parent class disconnect is called
+            await super().disconnect(close_code)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
-        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.receive()> ")
+        logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.receive()> ")
         logger.debug3(f"message: {message}")
         self.input_queue_.append(message)
 
 
     async def send(self, text_data):
-        logger = CustomDetailLogger(__name__, prefix="MyWebsocketConsumer.send()> ")
+        logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.send()> ")
         logger.warning(f"text_data: {text_data}")
         await super().send(text_data=text_data)
         # await self.send(text_data=json.dumps({ 

@@ -15,10 +15,13 @@
             max-width: 800px;
             margin: 20px auto;
             padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
         .text-box {
             width: 95%;
-            margin: 10px auto;
+            margin: 0 auto;
             padding: 5px;
             background-color: #3a3a3a;
             color: #fff;
@@ -29,12 +32,25 @@
         #staticText, #dynamicText {
             height: 15em;
             overflow-y: scroll;
+            transition: height 0.3s ease;
+        }
+        
+        /* When debug is shown, make the text areas shorter */
+        body.debug-visible #staticText,
+        body.debug-visible #dynamicText {
+            height: 8em; /* Further reduced from 10em to 8em when debug is visible */
+        }
+        .input-area {
+            display: flex;
+            width: 95%;
+            margin: 0 auto;
+            gap: 5px;
         }
         #inputText {
-            width: 75%;
+            flex: 1;
         }
         #submitButton {
-            width: 20%;
+            width: 100px;
             padding: 5px;
             border: none;
             border-radius: 5px;
@@ -45,6 +61,43 @@
         #submitButton:hover {
             background-color: #45a049;
         }
+        #debugLog {
+            height: 10em;
+            width: 95%;
+            margin: 0 auto;
+            padding: 5px;
+            background-color: #2a2a2a;
+            color: #ff4444;
+            border: none;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            overflow-y: scroll;
+        }
+        .debug-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 95%;
+            margin: 0 auto;
+            padding: 5px 0;
+        }
+        .debug-toggle label {
+            margin-left: 5px;
+            color: #888;
+            font-size: 12px;
+        }
+        .debug-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+        /* When debug toggle is unchecked, collapse debug section height */
+        .debug-section.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -52,20 +105,34 @@
         <h1>Welcome to NextGenMUD</h1>
         <textarea id="staticText" class="text-box" readonly></textarea>
         <textarea id="dynamicText" class="text-box" readonly></textarea>
-        <textarea id="inputText" class="text-box"></textarea>
-        <button id="submitButton">Submit</button>
+        <div class="input-area">
+            <textarea id="inputText" class="text-box"></textarea>
+            <button id="submitButton">Submit</button>
+        </div>
+        <div class="debug-toggle">
+            <input type="checkbox" id="debugToggle" checked>
+            <label for="debugToggle">Show debug messages</label>
+        </div>
+        <div class="debug-section">
+            <textarea id="debugLog" class="text-box" readonly></textarea>
+        </div>
     </div>
 
     <script type="text/javascript">
+        function logDebug(message) {
+            const debugLog = document.getElementById('debugLog');
+            debugLog.value += new Date().toISOString() + ' ' + message + '\n';
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(message);
+        }
 
         function messageReceived(data) {
-            console.log('Message received:', data);
+            logDebug('Message received: ' + JSON.stringify(data));
             if (data.text_type == "clearstatic") {
                 document.getElementById('staticText').value = "";
             } else if (data.text_type == "cleardynamic") {
                 document.getElementById('dynamicText').value = "";
-            } else
-            if (data.text_type === "static") {
+            } else if (data.text_type === "static") {
                 var staticTextArea = document.getElementById('staticText');
                 staticTextArea.value += data.text + "\n";
                 staticTextArea.scrollTop = staticTextArea.scrollHeight;
@@ -77,54 +144,148 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const webSocketBridge = new WebSocket('ws://' + window.location.host + '/nextgenmud/ws/');
+            const debugToggle = document.getElementById('debugToggle');
+            const debugSection = document.querySelector('.debug-section');
+            const staticText = document.getElementById('staticText');
+            const dynamicText = document.getElementById('dynamicText');
+            const container = document.querySelector('.container');
+            const h1 = document.querySelector('h1');
+            const inputArea = document.querySelector('.input-area');
+            const debugToggleDiv = document.querySelector('.debug-toggle');
+
+            function adjustTextHeights() {
+                // Ensure container is using border-box for simpler calculations if needed
+                // container.style.boxSizing = 'border-box'; 
+
+                const containerStyle = window.getComputedStyle(container);
+                const containerPaddingTop = parseFloat(containerStyle.paddingTop) || 0;
+                const containerPaddingBottom = parseFloat(containerStyle.paddingBottom) || 0;
+                
+                // Calculate available height within the viewport for the container's content area
+                const containerRect = container.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                // Usable height calculation needs to account for elements *outside* the container if body isn't 100% height and flex
+                // Assuming body/html are set up correctly (height 100%), containerRect.top gives the space above.
+                // Let's try calculating available height *within* the container based on its current rendered height, constrained by viewport.
+                const maxContainerHeight = viewportHeight - containerRect.top - (parseFloat(containerStyle.marginTop) || 0) - (parseFloat(containerStyle.marginBottom) || 0);
+                const containerInnerHeight = Math.min(container.clientHeight, maxContainerHeight) - containerPaddingTop - containerPaddingBottom;
+
+                const h1Height = h1.offsetHeight;
+                const inputAreaHeight = inputArea.offsetHeight;
+                const debugToggleHeight = debugToggleDiv.offsetHeight;
+                const gap = 10; // From .container { gap: 10px; }
+                let debugHeight = 0;
+
+                // Crucially, get debugHeight *after* it might have been displayed by the event handler
+                if (debugToggle.checked && debugSection.classList.contains('hidden') === false) {
+                    // Make sure styles are applied before measuring
+                    // debugSection.style.display = 'flex'; // Already handled by class toggle
+                    debugHeight = debugSection.offsetHeight;
+                }
+                
+                // Calculate total height of fixed elements and gaps
+                // Gaps: between h1-static, static-dynamic, dynamic-input, input-toggle, toggle-debug
+                const numGaps = debugToggle.checked ? 5 : 4;
+                const fixedElementsHeight = h1Height + inputAreaHeight + debugToggleHeight + debugHeight + (gap * numGaps);
+                
+                // Calculate remaining height for static and dynamic boxes
+                const availableHeight = containerInnerHeight - fixedElementsHeight;
+                
+                // Distribute remaining height, ensuring non-negative values
+                const staticHeight = Math.max(0, Math.floor(availableHeight / 2));
+                const dynamicHeight = Math.max(0, availableHeight - staticHeight);
+
+                staticText.style.height = `${staticHeight}px`;
+                dynamicText.style.height = `${dynamicHeight}px`;
+                
+                // Also set a min-height on debugLog to ensure it has some size when shown
+                // This helps stabilize the offsetHeight measurement
+                const debugLog = document.getElementById('debugLog');
+                if (debugLog) {
+                    debugLog.style.minHeight = '5em'; // Give debug log a minimum size
+                }
+
+                logDebug(`Adjusted heights - Viewport: ${viewportHeight}, Container Top: ${containerRect.top.toFixed(0)}, Container Inner: ${containerInnerHeight.toFixed(0)}, Fixed+Gaps: ${fixedElementsHeight.toFixed(0)}, Available: ${availableHeight.toFixed(0)}, Static: ${staticHeight}px, Dynamic: ${dynamicHeight}px`);
+            }
+            
+            function updateDebugVisibility() {
+                if (debugToggle.checked) {
+                    debugSection.classList.remove('hidden');
+                    document.body.classList.add('debug-visible');
+                } else {
+                    debugSection.classList.add('hidden');
+                    document.body.classList.remove('debug-visible');
+                }
+            }
+            
+            // Set initial state based on checkbox
+            updateDebugVisibility();
+            // Run initial height adjustment
+            adjustTextHeights();
+            
+            // Add toggle handler
+            debugToggle.addEventListener('change', function() {
+                updateDebugVisibility();
+                // Give browser time to update DOM before height calculations
+                setTimeout(adjustTextHeights, 10);
+            });
+
+            // Optional: Adjust heights on window resize
+            window.addEventListener('resize', adjustTextHeights);
+
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = wsProtocol + '//' + window.location.host + '/nextgenmud/ws/';
+            logDebug('Connecting to WebSocket: ' + wsUrl);
+            
+            const webSocketBridge = new WebSocket(wsUrl);
 
             webSocketBridge.onopen = function(e) {
-                console.log('WebSocket connection established');
+                logDebug('WebSocket connection established');
             };
 
             webSocketBridge.onerror = function(e) {
-                console.error('WebSocket error occurred:', e);
+                logDebug('WebSocket error occurred: ' + JSON.stringify(e));
             };
 
             webSocketBridge.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                console.log('Message received:', data);
-                messageReceived(data);
+                try {
+                    const data = JSON.parse(e.data);
+                    logDebug('Raw message received: ' + e.data);
+                    messageReceived(data);
+                } catch (error) {
+                    logDebug('Error parsing message: ' + error);
+                }
             };
 
             webSocketBridge.onclose = function(e) {
-                console.error('WebSocket connection closed unexpectedly');
-            };
-
-            document.getElementById('submitButton').onclick = function() {
-                const inputText = document.getElementById('inputText').value;
-                webSocketBridge.send(JSON.stringify({ message: inputText }));
-                document.getElementById('inputText').value = ''; // Clear input box after sending
+                logDebug('WebSocket connection closed: ' + JSON.stringify(e));
             };
 
             const inputText = document.getElementById('inputText');
             const submitButton = document.getElementById('submitButton');
-
+            
             submitButton.onclick = function() {
                 sendMessage();
             };
 
             inputText.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    e.preventDefault();  // Prevent the default action to stop from submitting the form
+                    e.preventDefault();
                     sendMessage();
                 }
             });
 
             function sendMessage() {
                 const message = inputText.value;
-                webSocketBridge.send(JSON.stringify({ message: message }));
-                inputText.value = ''; // Clear input box after sending
+                logDebug('Sending message: ' + message);
+                if (webSocketBridge.readyState === WebSocket.OPEN) {
+                    webSocketBridge.send(JSON.stringify({ message: message }));
+                    inputText.value = '';
+                } else {
+                    logDebug('WebSocket is not open. Ready state: ' + webSocketBridge.readyState);
+                }
             }
-    });
-
-</script>
-
+        });
+    </script>
 </body>
 </html>

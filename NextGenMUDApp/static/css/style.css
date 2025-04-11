@@ -1,0 +1,104 @@
+html, body {
+    height: 100%; 
+    margin: 0; 
+    overflow: hidden; /* Prevent body scroll */
+}
+
+body {
+    font-family: 'Roboto Mono', monospace;
+    background-color: #1a1a1a;
+    color: #f5f5f5;
+    text-align: center;
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.text-box {
+    width: 95%;
+    margin: 0 auto;
+    padding: 5px;
+    background-color: #3a3a3a;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9375em;
+}
+
+#staticText, #dynamicText {
+    /* height: 15em; */ /* Removed fixed height for JS control */
+    overflow-y: scroll;
+}
+
+.input-area {
+    display: flex;
+    width: 95%;
+    margin: 0 auto;
+    gap: 5px;
+}
+
+#inputText {
+    flex: 1;
+}
+
+#submitButton {
+    width: 100px;
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+#submitButton:hover {
+    background-color: #45a049;
+}
+
+#debugLog {
+    /* height: 10em; */ /* Removed fixed height for JS control */
+    width: 95%;
+    margin: 0 auto;
+    padding: 5px;
+    background-color: #2a2a2a;
+    color: #ff4444;
+    border: none;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: left;
+    overflow-y: scroll;
+}
+
+.debug-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 95%;
+    margin: 0 auto;
+    padding: 5px 0;
+}
+
+.debug-toggle label {
+    margin-left: 5px;
+    color: #888;
+    font-size: 12px;
+}
+
+.debug-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+}
+
+/* Added missing hidden rule back */
+.debug-section.hidden {
+    display: none;
+}
