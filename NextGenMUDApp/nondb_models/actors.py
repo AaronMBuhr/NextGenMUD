@@ -32,6 +32,10 @@ class Actor(ActorInterface):
         self.spawned_from: ActorSpawnData = None
         self.spawned: List[Actor] = []
         self.is_deleted = False
+        self.states: List[ActorState] = []
+        self.cooldowns: List[Cooldown] = []
+        self.recovers_at = 0
+        self.recovery_time = CONSTANTS.RECOVERY_TIME
         if create_reference:
             self.create_reference()
 
@@ -79,6 +83,12 @@ class Actor(ActorInterface):
 
     async def send_text(self, text_type: CommTypes, text: str):
         pass
+
+    def apply_state(self, state: ActorState):
+        self.states.append(state)
+
+    def remove_state(self, state: ActorState):
+        self.states.remove(state)
 
     def actor_vars(self, name: str) -> dict:
         # Using dictionary comprehension to prefix keys and combine dictionaries
@@ -136,4 +146,7 @@ class Actor(ActorInterface):
     
     def get_perm_var(self, varname, default):
         return self.perm_variables.get(varname, default)
+    
+    def get_recovery_modifier(self):
+        return sum([state.recovery_modifier for state in self.states if isinstance(state, CharacterStateRecoveryModifier)])
     
