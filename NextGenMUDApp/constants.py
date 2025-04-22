@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Optional, ClassVar, Type, Any, Union, Set
 import yaml
 from .structured_logger import StructuredLogger
 from .basic_types import DescriptiveFlags
@@ -6,22 +6,90 @@ from .basic_types import DescriptiveFlags
 
 
 class CharacterClassRole(DescriptiveFlags):
-    FIGHTER = 1
-    ROGUE = 2
-    MAGE = 4
-    CLERIC = 8
+    # Base classes
+    FIGHTER: ClassVar[int] = 1
+    ROGUE: ClassVar[int] = 2
+    MAGE: ClassVar[int] = 4
+    CLERIC: ClassVar[int] = 8
+    
+    # Fighter specializations (level 20+)
+    BERSERKER: ClassVar[int] = 16   # Fighter specialization
+    GUARDIAN: ClassVar[int] = 32    # Fighter specialization
+    REAVER: ClassVar[int] = 64      # Fighter specialization
+    
+    # Rogue specializations (level 20+)
+    DUELIST: ClassVar[int] = 128    # Rogue specialization
+    ASSASSIN: ClassVar[int] = 256   # Rogue specialization
+    INFILTRATOR: ClassVar[int] = 512  # Rogue specialization
+    
+    # Mage specializations (level 20+)
+    EVOKER: ClassVar[int] = 1024    # Mage specialization
+    CONJURER: ClassVar[int] = 2048  # Mage specialization
+    ENCHANTER: ClassVar[int] = 4096 # Mage specialization
+    
+    # Cleric specializations (level 20+)
+    WARPRIEST: ClassVar[int] = 8192    # Cleric specialization
+    RESTORER: ClassVar[int] = 16384    # Cleric specialization
+    RITUALIST: ClassVar[int] = 32768   # Cleric specialization
 
-    # Remove the _name_to_value dictionary
+    # Base class to specialization mapping
+    BASE_TO_SPECIALIZATIONS: ClassVar[Dict[int, List[int]]] = {
+        FIGHTER: [BERSERKER, GUARDIAN, REAVER],
+        ROGUE: [DUELIST, ASSASSIN, INFILTRATOR],
+        MAGE: [EVOKER, CONJURER, ENCHANTER],
+        CLERIC: [WARPRIEST, RESTORER, RITUALIST]
+    }
+    
+    # Specialization to base class mapping
+    SPECIALIZATION_TO_BASE: ClassVar[Dict[int, int]] = {
+        BERSERKER: FIGHTER,
+        GUARDIAN: FIGHTER,
+        REAVER: FIGHTER,
+        DUELIST: ROGUE,
+        ASSASSIN: ROGUE,
+        INFILTRATOR: ROGUE,
+        EVOKER: MAGE,
+        CONJURER: MAGE,
+        ENCHANTER: MAGE,
+        WARPRIEST: CLERIC,
+        RESTORER: CLERIC,
+        RITUALIST: CLERIC
+    }
+    
+    @classmethod
+    def get_base_classes(cls) -> List[int]:
+        """Returns a list of all base classes"""
+        return [cls.FIGHTER, cls.ROGUE, cls.MAGE, cls.CLERIC]
+    
+    @classmethod
+    def get_specializations(cls, base_class: int) -> List[int]:
+        """Returns a list of specializations for a given base class"""
+        return cls.BASE_TO_SPECIALIZATIONS.get(base_class, [])
+    
+    @classmethod
+    def get_base_class(cls, specialization: int) -> Optional[int]:
+        """Returns the base class for a given specialization"""
+        return cls.SPECIALIZATION_TO_BASE.get(specialization)
+    
+    @classmethod
+    def is_specialization(cls, role: int) -> bool:
+        """Returns True if the role is a specialization"""
+        return role in cls.SPECIALIZATION_TO_BASE
+    
+    @classmethod
+    def is_base_class(cls, role: int) -> bool:
+        """Returns True if the role is a base class"""
+        return role in cls.BASE_TO_SPECIALIZATIONS
 
     @classmethod
-    def field_name(cls, value):
+    def field_name(cls, value: int) -> str:
         for member in cls:
             if member.value == value:
                 return member.name.lower()
         raise ValueError(f"Unknown class value: {value}")
 
     @classmethod
-    def from_field_name(cls, name):
+    def from_field_name(cls, name: str) -> 'CharacterClassRole':
         name = name.upper()
         if name in cls.__members__:
             return cls.__members__[name]
@@ -29,18 +97,19 @@ class CharacterClassRole(DescriptiveFlags):
 
 
 class Constants:
-    REFERENCE_SYMBOL = '|'
-    REFERENCE_SYMBOL_ESCAPE = '||'
-    GAME_TICK_SEC = 0.5
-    TICKS_PER_ROUND = 8
-    XP_PROGRESSION = []
-    HP_BY_CHARACTER_CLASS = {}
-    MAIN_HAND_ATTACK_PROGRESSION = {}
-    OFF_HAND_ATTACK_PROGRESSION = {}
+    REFERENCE_SYMBOL: ClassVar[str] = '|'
+    REFERENCE_SYMBOL_ESCAPE: ClassVar[str] = '||'
+    GAME_TICK_SEC: ClassVar[float] = 0.5
+    TICKS_PER_ROUND: ClassVar[int] = 8
+    XP_PROGRESSION: ClassVar[List[int]] = []
+    HP_BY_CHARACTER_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], int]] = {}
+    MAIN_HAND_ATTACK_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
+    OFF_HAND_ATTACK_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
+    RECOVERY_TICKS: ClassVar[int] = 4
 
 
     @classmethod
-    def load_from_dict(cls, constants_dict: Dict):
+    def load_from_dict(cls, constants_dict: Dict[str, Any]) -> None:
 
         # Load XP progression
         Constants.XP_PROGRESSION = constants_dict["XP_PROGRESSION"]

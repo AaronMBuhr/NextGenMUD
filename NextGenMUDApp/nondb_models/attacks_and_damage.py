@@ -60,11 +60,11 @@ class DamageResistances:
     
     def add_resistances(self, more_resistances: 'DamageResistances'):
         for damage_type, amount in more_resistances.profile.items():
-            self.profile[damage_type] *= amount
+            self.profile[damage_type] += amount
 
     def minus_resistances(self, more_resistances: 'DamageResistances'):
         for damage_type, amount in more_resistances.profile.items():
-            self.profile[damage_type] /= amount
+            self.profile[damage_type] -= amount
     
 
 class DamageReduction:

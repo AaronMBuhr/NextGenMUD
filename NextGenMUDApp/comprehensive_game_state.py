@@ -1,3 +1,4 @@
+from collections import defaultdict
 import copy
 import fnmatch
 from .structured_logger import StructuredLogger
@@ -65,9 +66,9 @@ class ComprehensiveGameState:
         self.connections : List[Connection] = []
         self.characters_fighting : List[Character] = []
         self.zones = {}
-        self.world_clock_tick = 0
-        self.scheduled_actions = {}
-        self.xp_progression = []
+        self.world_clock_tick: int = 0
+        self.scheduled_events = defaultdict(list)
+        self.xp_progression: List[int] = []
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
@@ -446,8 +447,8 @@ class ComprehensiveGameState:
             logger = StructuredLogger(__name__, prefix="remove_character()> ")
             logger.warning(f"Removing character, but character not found in characters list: {character}.")
 
-    def add_scheduled_action(self, actor: Actor, name: str, scheduled_tick: int = None, in_ticks: int = None, 
-                             vars: Dict[str, str]=None, func: callable = None):
+    def add_scheduled_event(self, actor: Actor, name: str, scheduled_tick: int = None, in_ticks: int = None, 
+                             vars: Dict[str, Any]=None, func: callable['Actor', int, 'ComprehensiveGameState', Dict[str, Any]] = None):
         logger = StructuredLogger(__name__, prefix="add_scheduled_task()> ")
         if not scheduled_tick and not in_ticks:
             raise Exception("Must specify either scheduled_tick or in_ticks.")
@@ -456,20 +457,21 @@ class ComprehensiveGameState:
         if in_ticks:
             scheduled_tick = self.world_clock_tick + in_ticks
         action = ScheduledAction(scheduled_tick, actor, name, vars, func)
-        if not scheduled_tick in self.scheduled_actions:
-            self.scheduled_actions[scheduled_tick] = []
-        self.scheduled_actions[scheduled_tick].append(action)
+        if not scheduled_tick in self.scheduled_events:
+            self.scheduled_events[scheduled_tick] = []
+        self.scheduled_events[scheduled_tick].append(action)
 
-    def perform_scheduled_actions(self, tick: int):
-        logger = StructuredLogger(__name__, prefix="perform_scheduled_actions()> ")
-        if tick in self.scheduled_actions:
-            for action in self.scheduled_actions[tick]:
-                if action.actor_ and Actor.is_deleted(action.actor_):
-                    action.actor_ = None
-                    continue
-                logger.debug(f"performing scheduled action {action.name}")
-                action.run()
-            del self.scheduled_actions[tick]
+    def perform_scheduled_events(self, tick: int):
+        logger = StructuredLogger(__name__, prefix="perform_scheduled_events()> ")
+        if tick in self.scheduled_events:
+            for event in self.scheduled_events[tick]:
+                # we'll pass through dead ppl in case the event needs it
+                # if event.actor_ and Actor.is_deleted(event.actor_):
+                #     event.actor_ = None
+                #     continue
+                logger.debug(f"performing scheduled action {event.name}")
+                event.run(event.actor, tick, self, event.vars)
+            del self.scheduled_events[tick]
 
     def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
         logger = StructuredLogger(__name__, prefix="spawn_character()> ")
@@ -683,7 +685,10 @@ class ComprehensiveGameState:
             if not char in stealth_states[0].vars_['seen_by']:
                 return False
         return True
-
+    
+    def handle_scheduled_events(self, event: ScheduledEvent):
+        for scheduled_event in self.scheduled_events[self.world_clock_tick]:
+            scheduled_event.run(self.world_clock_tick, self)
 
 
 live_game_state = ComprehensiveGameState()

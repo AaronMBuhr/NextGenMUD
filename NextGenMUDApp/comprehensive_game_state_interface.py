@@ -1,16 +1,25 @@
 from abc import abstractmethod
-from typing import Dict, List
+from typing import Any, Dict, List
 
-class ScheduledAction:
-    def __init__(self, on_tick: int, actor: 'Actor', name: str, vars: Dict[str, str], func: callable = None):
+class EventType:
+    COMBAT_TICK = "combat_tick"
+    COOLDOWN_OVER = "cooldown_over"
+    STATE_PULSE = "state_pulse"
+    CAST_FINISHED = "cast_finished"
+
+class ScheduledEvent:
+    def __init__(self, on_tick: int, event_type: EventType, actor: 'Actor', name: str, vars: Dict[str, Any], 
+                 func: callable[current_tick: int, game_state: 'ComprehensiveGameState', vars: Dict[str, Any]] = None):
+        self.event_type: EventType = event_type
         self.actor: 'Actor' = actor
-        self.vars: Dict[str, str] = vars
+        self.vars: Dict[str, Any] = vars
         self.name = name
         self.func = func
         self.on_tick: int = 0
 
-    async def run(self):
-        await self.func(self.actor, self.vars)
+    async def run(self, current_tick: int, game_state: 'ComprehensiveGameState'):
+        if self.func:
+            await self.func(current_tick, game_state, self.vars)
 
 class GameStateInterface:
 
@@ -45,7 +54,8 @@ class GameStateInterface:
         raise NotImplementedError
 
     @abstractmethod
-    def add_scheduled_action(self, actor: 'Actor', name: str, vars: Dict[str, str], func: callable = None):
+    def add_scheduled_event(self, subject: Any, name: str, vars: Dict[str, Any], 
+                            func: callable[Any, int, 'ComprehensiveGameState', Dict[str, Any]] = None):
         raise NotImplementedError
 
     @abstractmethod
@@ -91,3 +101,16 @@ class GameStateInterface:
     @abstractmethod
     def can_see(char: 'Character', target: 'Character') -> bool:
         raise NotImplementedError
+
+    @abstractmethod
+    def add_scheduled_event(self, actor: 'Actor', event_type: str, data: dict, func: callable) -> 'ScheduledEvent':
+        raise NotImplementedError
+    
+    @abstractmethod
+    def remove_scheduled_event(self, actor: 'Actor', event_type: str, tick: int) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def remove_scheduled_event(self, scheduled_event: 'ScheduledEvent') -> None:
+        raise NotImplementedError
+        

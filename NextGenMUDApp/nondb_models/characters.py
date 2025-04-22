@@ -1,7 +1,7 @@
 import copy
 from ..structured_logger import StructuredLogger
-from enum import Enum
-from typing import Dict, List
+from enum import Enum, auto
+from typing import Dict, List, Callable, Optional
 from .actor_interface import ActorType, ActorInterface
 from .actor_states import Cooldown
 from .actors import Actor
@@ -12,10 +12,11 @@ from ..communication import CommTypes
 from ..comprehensive_game_state_interface import GameStateInterface
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
-from ..skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills
+from ..skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills, Skills
 from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice, evaluate_functions_in_line
+from .actor_attitudes import ActorAttitude
 
-
+logger = StructuredLogger(__name__)
 
 class CharacterSkill():
     def __init__(self, character_class: CharacterClassRole, skill_number: int, skill_level: int=0):
@@ -43,7 +44,6 @@ class CharacterClass:
         self.level += 1
 
 
-
 class Character(Actor, CharacterInterface):
     
     def __init__(self, id: str, definition_zone_id: str, name: str = "", create_reference=True):
@@ -54,6 +54,8 @@ class Character(Actor, CharacterInterface):
         self._location_room = None
         self.contents = []
         self.levels_by_role : Dict[CharacterClassRole, int] = {}
+        self.class_priority : List[CharacterClassRole] = []
+        self.max_class_count = 3
         self.contents: List[Object] = []
         self.permanent_character_flags = PermanentCharacterFlags(0)
         self.temporary_character_flags = TemporaryCharacterFlags(0)
@@ -89,7 +91,8 @@ class Character(Actor, CharacterInterface):
         self.group_id: str = None
         self.starting_eq = None
         self.starting_inv = None
-
+        self.attitude = ActorAttitude.NEUTRAL
+        self.specializations = {}  # Maps base class to chosen specialization
 
     def from_yaml(self, yaml_data: str, definition_zone_id: str):
         from .triggers import Trigger
@@ -105,27 +108,59 @@ class Character(Actor, CharacterInterface):
             self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
             self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
+            
+            # Set attitude from YAML if provided, defaulting to NEUTRAL
+            if 'attitude' in yaml_data:
+                try:
+                    self.attitude = ActorAttitude[yaml_data['attitude'].upper()]
+                except KeyError as e:
+                    logger.error(f"Error: {yaml_data['attitude'].upper()} is not a valid ActorAttitude. Using NEUTRAL. Details: {e}")
+                    self.attitude = ActorAttitude.NEUTRAL
+            
             # if 'character_flags' in yaml_data:
-            #     for flag in yaml_data['character_flags']:
-            #         self.permanent_character_flags_.set_flag(CharacterFlags[flag.upper()])
             if 'class' in yaml_data:
+                # Clear existing class data
+                self.class_priority = []
+                self.levels_by_role = {}
+                self.skill_levels_by_role = {}
+                
+                # Track primary/secondary/tertiary class order if specified
+                if 'class_priority' in yaml_data:
+                    for role_name in yaml_data['class_priority']:
+                        try:
+                            role = CharacterClassRole[role_name.upper()]
+                            if len(self.class_priority) < self.max_class_count:
+                                self.class_priority.append(role)
+                        except KeyError as e:
+                            logger.error(f"Error: {role_name.upper()} is not a valid CharacterClassRole. Details: {e}")
+                
+                # Process class data
                 for role, role_data in yaml_data['class'].items():
-                    self.levels_by_role[CharacterClassRole[role.upper()]] = role_data['level']
-                    self.skill_levels_by_role[CharacterClassRole[role.upper()]] = {}
-                    if 'skills' in role_data:
-                        for skill, skill_data in role_data['skills'].items():
-                            role_enum = CharacterClassRole[role.upper()]
-                            if role_enum == CharacterClassRole.FIGHTER:
-                                skills = FighterSkills
-                            elif role_enum == CharacterClassRole.ROGUE:
-                                skills = RogueSkills
-                            elif role_enum == CharacterClassRole.MAGE:
-                                skills = MageSkills
-                            elif role_enum == CharacterClassRole.CLERIC:
-                                skills = ClericSkills
-                            else:
-                                raise Exception("Invalid character class role.")
-                            self.skill_levels_by_role[CharacterClassRole[role.upper()]][skills[skill.upper()]] = skill_data['level']
+                    try:
+                        role_enum = CharacterClassRole[role.upper()]
+                        self.levels_by_role[role_enum] = role_data['level']
+                        self.skill_levels_by_role[role_enum] = {}
+                        
+                        # Add to class_priority if not already there and if we have room
+                        if role_enum not in self.class_priority and len(self.class_priority) < self.max_class_count:
+                            self.class_priority.append(role_enum)
+                            
+                        if 'skills' in role_data:
+                            for skill, skill_data in role_data['skills'].items():
+                                if role_enum == CharacterClassRole.FIGHTER:
+                                    skills = FighterSkills
+                                elif role_enum == CharacterClassRole.ROGUE:
+                                    skills = RogueSkills
+                                elif role_enum == CharacterClassRole.MAGE:
+                                    skills = MageSkills
+                                elif role_enum == CharacterClassRole.CLERIC:
+                                    skills = ClericSkills
+                                else:
+                                    raise Exception("Invalid character class role.")
+                                self.skill_levels_by_role[role_enum][skills[skill.upper()]] = skill_data['level']
+                    except KeyError as e:
+                        logger.error(f"Error: {role.upper()} is not a valid CharacterClassRole. Details: {e}")
+                        
             if 'permanent_flags' in yaml_data:
                 for flag in yaml_data['permanent_flags']:
                     try:
@@ -392,6 +427,52 @@ class Character(Actor, CharacterInterface):
     def total_levels(self):
         return sum(self.levels_by_role.values())
     
+    def get_class_count(self):
+        """Return the number of classes this character has"""
+        return len(self.class_priority)
+    
+    def has_class(self, role: CharacterClassRole) -> bool:
+        """Check if the character has the specified class"""
+        return role in self.class_priority
+    
+    def get_primary_class(self) -> Optional[CharacterClassRole]:
+        """Get the character's primary class, if any"""
+        return self.class_priority[0] if len(self.class_priority) > 0 else None
+    
+    def get_secondary_class(self) -> Optional[CharacterClassRole]:
+        """Get the character's secondary class, if any"""
+        return self.class_priority[1] if len(self.class_priority) > 1 else None
+    
+    def get_tertiary_class(self) -> Optional[CharacterClassRole]:
+        """Get the character's tertiary class, if any"""
+        return self.class_priority[2] if len(self.class_priority) > 2 else None
+    
+    def get_class_level(self, role: CharacterClassRole) -> int:
+        """Get the character's level in the specified class, or 0 if they don't have the class"""
+        return self.levels_by_role.get(role, 0)
+    
+    def add_class(self, role: CharacterClassRole) -> bool:
+        """
+        Add a new class to the character
+        Returns True if successful, False if the character already has the maximum number of classes
+        """
+        if role in self.class_priority:
+            return True  # Already has this class
+        
+        if len(self.class_priority) >= self.max_class_count:
+            return False  # Already has maximum classes
+        
+        self.class_priority.append(role)
+        self.levels_by_role[role] = 1  # Start at level 1
+        self.skill_levels_by_role[role] = {}  # Initialize skills dict
+        
+        # Add skills based on level requirements
+        for skill, level in Skills.SKILL_LEVEL_REQUIREMENTS[role].items():
+            if 1 >= level:  # Starting at level 1
+                self.skill_levels_by_role[role][skill] = 0
+                
+        return True
+    
     def has_cooldown(self, cooldown_source=None, cooldown_name: str = None):
         return Cooldown.has_cooldown(self, cooldown_source, cooldown_name)
     
@@ -436,11 +517,11 @@ class Character(Actor, CharacterInterface):
         return True
     
     def remove_perm_flags(self, flags: PermanentCharacterFlags) -> bool:
-        self.permanent_character_flags.remove_Flags(flags)
+        self.permanent_character_flags.remove_flags(flags)
         return True
     
     def remove_game_flags(self, flags: GamePermissionFlags) -> bool:
-        self.game_permission_flags.remove_Flags(flags)
+        self.game_permission_flags.remove_flags(flags)
         return True
     
     def set_in_room(self, room: 'Room'):
@@ -450,33 +531,105 @@ class Character(Actor, CharacterInterface):
         return self.experience_points >= Constants.XP_PROGRESSION[self.total_levels()]
     
     def level_up(self, role: CharacterClassRole) -> bool:
-        if self.can_level():
-            self.levels_by_role[role] += 1
-            self.max_hit_points += Constants.HP_BY_CHARACTER_CLASS[role]
-            self.current_hit_points += Constants.HP_BY_CHARACTER_CLASS[role]
-            if not role in self.skill_levels_by_role:
-                self.skill_levels_by_role[role] = {}
+        """Level up the specified class. Returns True if successful, False otherwise."""
+        if role not in self.class_priority:
+            return False  # Can't level a class the character doesn't have
+        
+        if not self.can_level():
+            return False  # Not enough XP to level up
+        
+        # Increase class level
+        self.levels_by_role[role] += 1
+        current_level = self.levels_by_role[role]
+        
+        # Increase hit points based on class
+        self.max_hit_points += Constants.HP_BY_CHARACTER_CLASS[role]
+        self.current_hit_points += Constants.HP_BY_CHARACTER_CLASS[role]
+        
+        # Initialize skill dict if needed
+        if role not in self.skill_levels_by_role:
+            self.skill_levels_by_role[role] = {}
+            
+        # If this is a base class, unlock base class skills
+        if CharacterClassRole.is_base_class(role):
+            # Unlock new skills if appropriate level
             for skill, level in Skills.SKILL_LEVEL_REQUIREMENTS[role].items():
-                if self.levels_by_role[role] >= level and not skill in self.skill_levels_by_role[role]:
+                if current_level >= level and skill not in self.skill_levels_by_role[role]:
                     self.skill_levels_by_role[role][skill] = 0
-            # handle rogue dual-wielding requirement
-            highest_role = max(self.levels_by_role, key=lambda role: self.levels_by_role[role])
-            highest_main_hand_attacks_num = 0
-            highest_main_hand_attacks_role = None
-            for role, role_level in self.skill_levels_by_role.items():
-                main_hand_attacks_num = Constants.MAIN_HAND_PROGRESSION[role][role_level]
-                if main_hand_attacks_num > highest_main_hand_attacks_num:
-                    highest_main_hand_attacks_num = main_hand_attacks_num
-                    highest_main_hand_attacks_role = role
-            if role == CharacterClassRole.ROGUE and self.levels_by_role[role] >= highest_role:
-                self.num_off_hand_attacks = Constants.OFF_HAND_PROGRESSION[CharacterClassRole.ROGUE][self.levels_by_role[role]]
+            
+            # If we have a specialization, also unlock specialization skills
+            if role in self.specializations:
+                specialization = self.specializations[role]
+                for skill, level in Skills.SKILL_LEVEL_REQUIREMENTS.get(specialization, {}).items():
+                    if current_level >= level and skill not in self.skill_levels_by_role[role]:
+                        self.skill_levels_by_role[role][skill] = 0
+        
+        # Handle special class features
+        self._update_class_features()
+        
+        return True
+    
+    def _update_class_features(self):
+        """Update special features based on class levels and combinations"""
+        # Get primary class (highest level)
+        highest_level_roles = sorted(self.levels_by_role.items(), key=lambda x: x[1], reverse=True)
+        
+        # Handle number of attacks based on class levels
+        highest_main_hand_attacks_num = 0
+        highest_main_hand_attacks_role = None
+        
+        for role, role_level in self.levels_by_role.items():
+            main_hand_attacks_num = Constants.MAIN_HAND_ATTACK_PROGRESSION[role][role_level]
+            if main_hand_attacks_num > highest_main_hand_attacks_num:
+                highest_main_hand_attacks_num = main_hand_attacks_num
+                highest_main_hand_attacks_role = role
+                
+        # Set main hand attacks to the best value from any class
+        self.num_main_hand_attacks = highest_main_hand_attacks_num
+        
+        # Handle rogue dual-wielding - check if rogue is in our classes
+        if CharacterClassRole.ROGUE in self.class_priority:
+            rogue_level = self.levels_by_role[CharacterClassRole.ROGUE]
+            # Only enable dual-wielding if rogue is one of our primary classes
+            if highest_level_roles and highest_level_roles[0][0] == CharacterClassRole.ROGUE:
+                self.num_off_hand_attacks = Constants.OFF_HAND_ATTACK_PROGRESSION[CharacterClassRole.ROGUE][rogue_level]
                 self.add_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
             else:
-                self.num_off_hand_attacks = 0
-                self.remove_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
-            return True
+                # Still allow dual-wielding but with reduced effectiveness if rogue is secondary/tertiary
+                reduced_level = max(1, rogue_level // 2)  # Half as effective if not primary
+                self.num_off_hand_attacks = Constants.OFF_HAND_ATTACK_PROGRESSION[CharacterClassRole.ROGUE][reduced_level]
+                self.add_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
         else:
-            return False
+            # No rogue class, no dual wielding
+            self.num_off_hand_attacks = 0
+            self.remove_perm_flags(PermanentCharacterFlags.CAN_DUAL_WIELD)
+            
+        # Additional class feature combinations could be implemented here
+        
+    def calculate_damage_resistance(self):
+        """Recalculate damage resistances including any class-based bonuses"""
+        # Original calculation logic
+        self.current_damage_resistances = copy.deepcopy(self.damage_resistances)
+        for item in self.equipped.values():
+            if item:
+                for dt, mult in item.damage_resistances.profile.items():
+                    self.current_damage_resistances.profile[dt] = self.current_damage_resistances.profile[dt] * mult
+        
+        # Apply class-based resistances
+        # Example: Fighters get better physical resistance, Mages get better magical resistance
+        if CharacterClassRole.FIGHTER in self.class_priority:
+            fighter_level = self.levels_by_role[CharacterClassRole.FIGHTER]
+            # Reduce physical damage by 1% per level (multiplicative)
+            physical_resist_mult = 1.0 - (fighter_level * 0.01)
+            self.current_damage_resistances.profile[DamageType.PHYSICAL] *= physical_resist_mult
+            
+        if CharacterClassRole.MAGE in self.class_priority:
+            mage_level = self.levels_by_role[CharacterClassRole.MAGE]
+            # Reduce magical damage by 1% per level (multiplicative)
+            magic_resist_mult = 1.0 - (mage_level * 0.01)
+            self.current_damage_resistances.profile[DamageType.MAGICAL] *= magic_resist_mult
+            
+        # TODO:M: add status effects
 
     def gain_xp(self, xp_amount: int) -> bool:
         self.experience_points += xp_amount
@@ -489,3 +642,83 @@ class Character(Actor, CharacterInterface):
     @location_room.setter
     def location_room(self, room: 'Room'):
         self._location_room = room
+
+    def get_display_class_name(self, role: CharacterClassRole) -> str:
+        """
+        Get the display name for a class or specialization.
+        Once a character has chosen a specialization for a class, that's their displayed class.
+        """
+        # If this is a specialization, just return its name
+        if CharacterClassRole.is_specialization(role):
+            return CharacterClassRole.field_name(role)
+            
+        # If this is a base class, check if we have a specialization for it
+        if role in self.specializations and self.levels_by_role[role] >= Constants.SPECIALIZATION_LEVEL:
+            return CharacterClassRole.field_name(self.specializations[role])
+            
+        # Otherwise just return the base class name
+        return CharacterClassRole.field_name(role)
+        
+    def get_class_description(self) -> str:
+        """
+        Returns a string description of the character's class(es)
+        Example: "Level 25 Evoker/Level 10 Rogue"
+        """
+        descriptions = []
+        for role in self.class_priority:
+            level = self.levels_by_role[role]
+            class_name = self.get_display_class_name(role)
+            descriptions.append(f"Level {level} {class_name}")
+            
+        return "/".join(descriptions)
+        
+    def can_specialize(self, role: CharacterClassRole) -> bool:
+        """Check if a character can choose a specialization for a class"""
+        # Must be a base class
+        if not CharacterClassRole.is_base_class(role):
+            return False
+            
+        # Must have the class
+        if role not in self.class_priority:
+            return False
+            
+        # Must be at least level 20
+        if self.levels_by_role[role] < Constants.SPECIALIZATION_LEVEL:
+            return False
+            
+        # Must not already have a specialization for this class
+        if role in self.specializations:
+            return False
+            
+        return True
+        
+    def choose_specialization(self, base_class: CharacterClassRole, specialization: CharacterClassRole) -> bool:
+        """
+        Choose a specialization for a base class.
+        Returns True if successful, False otherwise.
+        """
+        # Check if the character can specialize
+        if not self.can_specialize(base_class):
+            return False
+            
+        # Check if the specialization is valid for this base class
+        if specialization not in CharacterClassRole.get_specializations(base_class):
+            return False
+            
+        # Set the specialization
+        self.specializations[base_class] = specialization
+        
+        # Unlock specialization skills
+        self._unlock_specialization_skills(base_class, specialization)
+        
+        return True
+        
+    def _unlock_specialization_skills(self, base_class: CharacterClassRole, specialization: CharacterClassRole):
+        """Unlock skills based on the chosen specialization and current level"""
+        # Current level in this class
+        level = self.levels_by_role[base_class]
+        
+        # Add skills for the specialization based on current level
+        for skill, req_level in Skills.SKILL_LEVEL_REQUIREMENTS.get(specialization, {}).items():
+            if level >= req_level and skill not in self.skill_levels_by_role[base_class]:
+                self.skill_levels_by_role[base_class][skill] = 0

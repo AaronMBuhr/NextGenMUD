@@ -93,7 +93,8 @@ class Room(Actor, RoomInterface):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] =None, already_substituted: bool = False,
-                   game_state: 'GameStateInterface' = None, skip_triggers: bool = False) -> bool:
+                   game_state: 'GameStateInterface' = None, skip_triggers: bool = False,
+                   filter_fn: Callable[['Actor'], bool] = lambda _: True) -> bool:
         logger = StructuredLogger(__name__, prefix="Room.echo()> ")
         if text == False:
             raise Exception("text False")
@@ -104,14 +105,16 @@ class Room(Actor, RoomInterface):
         logger.debug3(f"checking characters: {self.characters}")
         # if len(self.characters_) > 0:
         #     raise Exception("we found a character!")
-        for c in self.characters:
+        for c in filter(filter_fn, self.characters):
             logger.debug3(f"checking character {c.name}")
             if exceptions is None or c not in exceptions:
                 logger.debug3(f"sending '{text}' to {c.name}")
-                await c.echo(text_type, text, vars, already_substituted=True, game_state=game_state, skip_triggers=skip_triggers)
+                await c.echo(text_type, text, vars, already_substituted=True,
+                             game_state=game_state, skip_triggers=skip_triggers)
         logger.debug3(f"running super, text: {text if text is not None else 'None'}")
         # Run Actor.echo to send the message to the room itself if it has a connection
-        return await super().echo(text_type, text, vars, exceptions, already_substituted, game_state, skip_triggers)
+        return await super().echo(text_type, text, vars, exceptions,
+                                  already_substituted, game_state, skip_triggers)
 
     def remove_character(self, character: 'Character'):
         self.characters.remove(character)
@@ -128,6 +131,14 @@ class Room(Actor, RoomInterface):
     def add_object(self, obj: ObjectInterface):
         self.contents.append(obj)
         obj.location_room = self
+        
+    def get_nearby_combatants(self, actor: Actor) -> List[Actor]:
+        return [c for c in self.characters if c.fighting_whom == actor and c.location_room == self]
+    
+    def get_nearby_enemies(self, actor: Actor) -> List[Actor]:
+        return set([c for c in self.characters if c.fighting_whom != actor and c.location_room == self] \
+            + [c for c in self.characters if actor.attitude == ActorAttitude.HOSTILE \
+                or actor.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)])
 
     @property
     def art_name(self):
