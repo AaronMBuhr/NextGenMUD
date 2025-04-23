@@ -11,6 +11,7 @@ from ..communication import CommTypes
 from .object_interface import ObjectInterface
 from .trigger_interface import TriggerType
 from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, set_vars, evaluate_functions_in_line
+from ..command_handler_interface import CommandHandlerInterface
 
 
 class Actor(ActorInterface):
@@ -36,6 +37,7 @@ class Actor(ActorInterface):
         self.cooldowns: List[Cooldown] = []
         self.recovers_at = 0
         self.recovery_time = CONSTANTS.RECOVERY_TIME
+        self.command_queue: List[str] = []
         if create_reference:
             self.create_reference()
 
@@ -168,3 +170,26 @@ class Actor(ActorInterface):
     def get_recovery_modifier(self):
         return sum([state.recovery_modifier for state in self.states if isinstance(state, CharacterStateRecoveryModifier)])
     
+    def make_busy_until(self, game_tick: int):
+        self.recovers_at = game_tick
+        # you can only have one busy cooldown at a time
+        self.cooldowns = [c for c in self.cooldowns if c.cooldown_name != "busy"]
+        busy_cooldown = Cooldown(self, "busy", self.game_state, cooldown_source=self, cooldown_vars=None, cooldown_end_fn=become_ready)
+        busy_cooldown.start(self.game_state.current_tick, 0, game_tick)
+
+    def make_busy_for(self, game_ticks: int):
+        self.make_busy_until(self.game_state.current_tick + game_ticks)
+
+    def is_busy(self) -> bool:
+        return self.recovers_at > self.game_state.current_tick
+
+    async def become_ready(self):
+        self.recovers_at = 0
+        if self.command_queue:
+            next_command = self.command_queue.pop(0)
+            try:
+                await CommandHandlerInterface.get_instance().process_command(self, next_command)
+            except Exception as e:
+                logger = StructuredLogger(__name__, prefix="Actor.become_ready()> ")
+                logger.error(f"Error processing queued command: {e}")
+
