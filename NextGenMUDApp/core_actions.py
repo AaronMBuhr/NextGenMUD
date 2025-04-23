@@ -87,7 +87,6 @@ class CoreActions(CoreActionsInterface):
         if actor.location_room is not None:
             raise Exception("Actor must not already be in a room to arrive in a room.")
         
-        old_room = actor.location_room
         actor.location_room = room
         room.add_character(actor)
         # await room.send_text("dynamic", f"{actor.name} arrives.", exceptions=[actor])
@@ -98,11 +97,19 @@ class CoreActions(CoreActionsInterface):
         # reset trigger timers
         reset_triggers_by_room(room)
         # was this a zone change?
-        if old_room == None or old_room.zone != room.zone:
-            # go through every room in new zone
-            for r in room.zone.rooms.values():
-                # reset trigger timers
-                reset_triggers_by_room(r)                   
+        if room_from is None or room_from.zone != room.zone:
+            # Check if there are already PCs in the zone
+            pc_in_zone = False
+            for player in self.game_state.players:
+                if player.location_room and player.location_room.zone == room.zone:
+                    pc_in_zone = True
+                    break
+            # Only reset zone triggers if there are no PCs in the zone
+            if not pc_in_zone:
+                # go through every room in new zone
+                for r in room.zone.rooms.values():
+                    # reset trigger timers
+                    reset_triggers_by_room(r)                   
         await self.do_aggro(actor)
         if actor.fighting_whom == None and actor.group_id is not None \
             and not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
@@ -583,7 +590,8 @@ class CoreActions(CoreActionsInterface):
             return
         for c in actor.location_room.characters:
             if c != actor and c.actor_type == ActorType.CHARACTER \
-                and c.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                and c.has_perm_flags(PermanentCharacterFlags.IS_PC) \
+                and not c.has_game_flags(GamePermissionFlags.IS_ADMIN):  # Don't aggro admins
 
                 logger.critical(f"{actor.rid} checking {c.rid}")
 

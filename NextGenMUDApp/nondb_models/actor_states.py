@@ -70,6 +70,7 @@ class Cooldown:
     def end_cooldown(self, actor: Actor, tick: int, game_state: ComprehensiveGameState, vars: Dict[str, Any]) -> bool:
         if self.cooldown_end_fn:
             self.cooldown_end_fn(self)
+        self.actor.cooldowns.remove(self)
         return True
 
 
@@ -773,10 +774,10 @@ class CharacterStateFrozen(ActorState):
                               if s.does_add_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
             return True
         self.actor.remove_temp_flags(self.character_flags_added)
-        msg = "You don't feel sleepy anymore."
+        msg = "You unfreeze!"
         set_vars(self.actor, self.source_actor, self.actor, msg)
         self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
-        msg = f"{self.actor.art_name_cap} doesn't look sleepy anymore."
+        msg = f"{self.actor.art_name_cap} unfreezes!"
         set_vars(self.actor, self.source_actor, self.actor, msg)
         self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                     game_state=self.game_state)

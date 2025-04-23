@@ -533,43 +533,166 @@ class ComprehensiveGameState:
         """Save the current game state to the database"""
         logger = StructuredLogger(__name__, prefix="save_game_state()> ")
         try:
+            # Find the player to save
+            target_player = None
+            for player in self.players:
+                if player.name == player_name:
+                    target_player = player
+                    break
+                    
+            if not target_player:
+                logger.warning(f"Player {player_name} not found in current game state")
+                return False
+
             # Create a dictionary representation of the game state
             game_state = {
-                'world_clock_tick': self.world_clock_tick,
                 'players': [{
-                    'id': player.id,
-                    'name': player.name,
-                    'description': player.description_,
-                    'location': player._location_room.rid if player._location_room else None,
+                    'id': target_player.id,
+                    'name': target_player.name,
+                    'description': target_player.description_,
+                    'location': target_player._location_room.rid if target_player._location_room else None,
+                    
+                    # Class and level information
+                    'class_priority': [role.name for role in target_player.class_priority],
+                    'levels_by_role': {role.name: level for role, level in target_player.levels_by_role.items()},
+                    'specializations': {base.name: spec.name for base, spec in target_player.specializations.items()},
+                    
+                    # Skills
+                    'skill_levels_by_role': {
+                        role.name: {skill.name: level for skill, level in skills.items()}
+                        for role, skills in target_player.skill_levels_by_role.items()
+                    },
+                    'skill_points_available': target_player.skill_points_available,
+                    
+                    # Permanent attributes
                     'attributes': {
-                        'strength': player.attributes.strength,
-                        'dexterity': player.attributes.dexterity,
-                        'constitution': player.attributes.constitution,
-                        'intelligence': player.attributes.intelligence,
-                        'wisdom': player.attributes.wisdom,
-                        'charisma': player.attributes.charisma
+                        'strength': target_player.attributes.strength,
+                        'dexterity': target_player.attributes.dexterity,
+                        'constitution': target_player.attributes.constitution,
+                        'intelligence': target_player.attributes.intelligence,
+                        'wisdom': target_player.attributes.wisdom,
+                        'charisma': target_player.attributes.charisma
                     },
-                    'stats': {
-                        'level': player.level_,
-                        'experience': player.experience_,
-                        'health': player.health_,
-                        'max_health': player.max_health_,
-                        'mana': player.mana_,
-                        'max_mana': player.max_mana_
+                    
+                    # Permanent flags
+                    'permanent_flags': [flag.name for flag in target_player.permanent_character_flags],
+                    'game_permission_flags': [flag.name for flag in target_player.game_permission_flags],
+                    
+                    # Base stats
+                    'experience_points': target_player.experience_points,
+                    'hit_dice': target_player.hit_dice,
+                    'hit_dice_size': target_player.hit_dice_size,
+                    'hit_point_bonus': target_player.hit_point_bonus,
+                    'max_hit_points': target_player.max_hit_points,
+                    'max_carrying_capacity': target_player.max_carrying_capacity,
+                    
+                    # Combat stats
+                    'hit_modifier': target_player.hit_modifier,
+                    'dodge_dice_number': target_player.dodge_dice_number,
+                    'dodge_dice_size': target_player.dodge_dice_size,
+                    'dodge_modifier': target_player.dodge_modifier,
+                    'critical_chance': target_player.critical_chance,
+                    'critical_multiplier': target_player.critical_multiplier,
+                    'num_main_hand_attacks': target_player.num_main_hand_attacks,
+                    'num_off_hand_attacks': target_player.num_off_hand_attacks,
+                    
+                    # Resistances and reductions
+                    'damage_resistances': {
+                        dt.name: value for dt, value in target_player.damage_resistances.profile.items()
                     },
+                    'damage_reductions': {
+                        dt.name: value for dt, value in target_player.damage_reduction.items()
+                    },
+                    
+                    # Inventory and equipment
                     'inventory': [{
                         'id': obj.id,
                         'name': obj.name,
-                        'description': obj.description_
-                    } for obj in player.contents],
+                        'description': obj.description_,
+                        'weight': obj.weight,
+                        'value': obj.value,
+                        'object_flags': [flag.name for flag in obj.object_flags],
+                        'equip_locations': [loc.name for loc in obj.equip_locations],
+                        'damage_resistances': {
+                            dt.name: value for dt, value in obj.damage_resistances.profile.items()
+                        },
+                        'damage_reductions': {
+                            dt.name: value for dt, value in obj.damage_reduction.items()
+                        },
+                        'damage_type': obj.damage_type.name if obj.damage_type else None,
+                        'damage_num_dice': obj.damage_num_dice,
+                        'damage_dice_size': obj.damage_dice_size,
+                        'damage_bonus': obj.damage_bonus,
+                        'attack_bonus': obj.attack_bonus,
+                        'dodge_penalty': obj.dodge_penalty,
+                        'contents': [{
+                            'id': content.id,
+                            'name': content.name,
+                            'description': content.description_,
+                            'weight': content.weight,
+                            'value': content.value,
+                            'object_flags': [flag.name for flag in content.object_flags],
+                            'equip_locations': [loc.name for loc in content.equip_locations],
+                            'damage_resistances': {
+                                dt.name: value for dt, value in content.damage_resistances.profile.items()
+                            },
+                            'damage_reductions': {
+                                dt.name: value for dt, value in content.damage_reduction.items()
+                            },
+                            'damage_type': content.damage_type.name if content.damage_type else None,
+                            'damage_num_dice': content.damage_num_dice,
+                            'damage_dice_size': content.damage_dice_size,
+                            'damage_bonus': content.damage_bonus,
+                            'attack_bonus': content.attack_bonus,
+                            'dodge_penalty': content.dodge_penalty
+                        } for content in obj.contents] if obj.has_flags(ObjectFlags.IS_CONTAINER) else []
+                    } for obj in target_player.contents],
+                    
                     'equipment': {
-                        str(loc.name): {
+                        loc.name: {
                             'id': obj.id,
-                            'name': obj.name
-                        } if obj else None for loc, obj in player.equipment_.items()
+                            'name': obj.name,
+                            'description': obj.description_,
+                            'weight': obj.weight,
+                            'value': obj.value,
+                            'object_flags': [flag.name for flag in obj.object_flags],
+                            'equip_locations': [loc.name for loc in obj.equip_locations],
+                            'damage_resistances': {
+                                dt.name: value for dt, value in obj.damage_resistances.profile.items()
+                            },
+                            'damage_reductions': {
+                                dt.name: value for dt, value in obj.damage_reduction.items()
+                            },
+                            'damage_type': obj.damage_type.name if obj.damage_type else None,
+                            'damage_num_dice': obj.damage_num_dice,
+                            'damage_dice_size': obj.damage_dice_size,
+                            'damage_bonus': obj.damage_bonus,
+                            'attack_bonus': obj.attack_bonus,
+                            'dodge_penalty': obj.dodge_penalty,
+                            'contents': [{
+                                'id': content.id,
+                                'name': content.name,
+                                'description': content.description_,
+                                'weight': content.weight,
+                                'value': content.value,
+                                'object_flags': [flag.name for flag in content.object_flags],
+                                'equip_locations': [loc.name for loc in content.equip_locations],
+                                'damage_resistances': {
+                                    dt.name: value for dt, value in content.damage_resistances.profile.items()
+                                },
+                                'damage_reductions': {
+                                    dt.name: value for dt, value in content.damage_reduction.items()
+                                },
+                                'damage_type': content.damage_type.name if content.damage_type else None,
+                                'damage_num_dice': content.damage_num_dice,
+                                'damage_dice_size': content.damage_dice_size,
+                                'damage_bonus': content.damage_bonus,
+                                'attack_bonus': content.attack_bonus,
+                                'dodge_penalty': content.dodge_penalty
+                            } for content in obj.contents] if obj.has_flags(ObjectFlags.IS_CONTAINER) else []
+                        } if obj else None for loc, obj in target_player.equipped.items()
                     }
-                } for player in self.players if player.name == player_name],
-                # Add other state you want to save
+                }]
             }
             
             # Use the save_game utility to store in the database
@@ -625,7 +748,19 @@ class ComprehensiveGameState:
                                 target_player._location_room.remove_character(target_player)
                             zone.rooms[room_id].add_character(target_player)
                 
-                # Set attributes
+                # Load class and level information
+                target_player.class_priority = [CharacterClassRole[role] for role in player_data['class_priority']]
+                target_player.levels_by_role = {CharacterClassRole[role]: level for role, level in player_data['levels_by_role'].items()}
+                target_player.specializations = {CharacterClassRole[base]: CharacterClassRole[spec] for base, spec in player_data['specializations'].items()}
+                
+                # Load skills
+                target_player.skill_levels_by_role = {
+                    CharacterClassRole[role]: {skill: level for skill, level in skills.items()}
+                    for role, skills in player_data['skill_levels_by_role'].items()
+                }
+                target_player.skill_points_available = player_data['skill_points_available']
+                
+                # Load attributes
                 if 'attributes' in player_data:
                     attrs = player_data['attributes']
                     target_player.attributes.strength = attrs.get('strength', target_player.attributes.strength)
@@ -635,21 +770,86 @@ class ComprehensiveGameState:
                     target_player.attributes.wisdom = attrs.get('wisdom', target_player.attributes.wisdom)
                     target_player.attributes.charisma = attrs.get('charisma', target_player.attributes.charisma)
                 
-                # Set stats
-                if 'stats' in player_data:
-                    stats = player_data['stats']
-                    target_player.level_ = stats.get('level', target_player.level_)
-                    target_player.experience_ = stats.get('experience', target_player.experience_)
-                    target_player.health_ = stats.get('health', target_player.health_)
-                    target_player.max_health_ = stats.get('max_health', target_player.max_health_)
-                    target_player.mana_ = stats.get('mana', target_player.mana_)
-                    target_player.max_mana_ = stats.get('max_mana', target_player.max_mana_)
+                # Load permanent flags
+                target_player.permanent_character_flags = PermanentCharacterFlags(0)
+                for flag in player_data['permanent_flags']:
+                    target_player.permanent_character_flags = target_player.permanent_character_flags.add_flag_name(flag)
+                    
+                target_player.game_permission_flags = GamePermissionFlags(0)
+                for flag in player_data['game_permission_flags']:
+                    target_player.game_permission_flags = target_player.game_permission_flags.add_flag_name(flag)
                 
-                # TODO: Handle inventory and equipment loading
-            
-            # Set world clock if needed
-            if 'world_clock_tick' in game_state:
-                self.world_clock_tick = game_state['world_clock_tick']
+                # Load base stats
+                target_player.experience_points = player_data['experience_points']
+                target_player.hit_dice = player_data['hit_dice']
+                target_player.hit_dice_size = player_data['hit_dice_size']
+                target_player.hit_point_bonus = player_data['hit_point_bonus']
+                target_player.max_hit_points = player_data['max_hit_points']
+                target_player.max_carrying_capacity = player_data['max_carrying_capacity']
+                
+                # Load combat stats
+                target_player.hit_modifier = player_data['hit_modifier']
+                target_player.dodge_dice_number = player_data['dodge_dice_number']
+                target_player.dodge_dice_size = player_data['dodge_dice_size']
+                target_player.dodge_modifier = player_data['dodge_modifier']
+                target_player.critical_chance = player_data['critical_chance']
+                target_player.critical_multiplier = player_data['critical_multiplier']
+                target_player.num_main_hand_attacks = player_data['num_main_hand_attacks']
+                target_player.num_off_hand_attacks = player_data['num_off_hand_attacks']
+                
+                # Load resistances and reductions
+                target_player.damage_resistances = DamageResistances()
+                for dt_name, value in player_data['damage_resistances'].items():
+                    target_player.damage_resistances.profile[DamageType[dt_name]] = value
+                    
+                target_player.damage_reduction = {DamageType[dt_name]: value for dt_name, value in player_data['damage_reductions'].items()}
+                
+                # Clear existing inventory and equipment
+                target_player.contents = []
+                target_player.equipped = {loc: None for loc in EquipLocation}
+                
+                # Helper function to create an object from saved data
+                def create_object_from_save(obj_data):
+                    obj = Object(obj_data['id'], target_player.definition_zone_id, obj_data['name'])
+                    obj.description_ = obj_data['description']
+                    obj.weight = obj_data['weight']
+                    obj.value = obj_data['value']
+                    obj.object_flags = ObjectFlags(0)
+                    for flag in obj_data['object_flags']:
+                        obj.object_flags = obj.object_flags.add_flag_name(flag)
+                    obj.equip_locations = [EquipLocation[loc] for loc in obj_data['equip_locations']]
+                    obj.damage_resistances = DamageResistances()
+                    for dt_name, value in obj_data['damage_resistances'].items():
+                        obj.damage_resistances.profile[DamageType[dt_name]] = value
+                    obj.damage_reduction = {DamageType[dt_name]: value for dt_name, value in obj_data['damage_reductions'].items()}
+                    obj.damage_type = DamageType[obj_data['damage_type']] if obj_data['damage_type'] else None
+                    obj.damage_num_dice = obj_data['damage_num_dice']
+                    obj.damage_dice_size = obj_data['damage_dice_size']
+                    obj.damage_bonus = obj_data['damage_bonus']
+                    obj.attack_bonus = obj_data['attack_bonus']
+                    obj.dodge_penalty = obj_data['dodge_penalty']
+                    
+                    # Handle container contents
+                    if obj.has_flags(ObjectFlags.IS_CONTAINER):
+                        for content_data in obj_data['contents']:
+                            content = create_object_from_save(content_data)
+                            obj.add_object(content)
+                            
+                    return obj
+                
+                # Load inventory
+                for obj_data in player_data['inventory']:
+                    obj = create_object_from_save(obj_data)
+                    target_player.add_object(obj)
+                
+                # Load equipment
+                for loc_name, obj_data in player_data['equipment'].items():
+                    if obj_data:
+                        obj = create_object_from_save(obj_data)
+                        target_player.equip_item(EquipLocation[loc_name], obj)
+                
+                # Update class features based on loaded data
+                target_player._update_class_features()
                 
             logger.info(f"Game loaded for player {player_name} from save '{save_name}'")
             return True

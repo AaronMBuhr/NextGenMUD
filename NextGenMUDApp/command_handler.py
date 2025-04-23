@@ -27,6 +27,7 @@ from .nondb_models.world import WorldDefinition, Zone
 from .communication import Connection
 from .comprehensive_game_state_interface import GameStateInterface, ScheduledAction
 from .config import Config, default_app_config
+from .cooldowns import Cooldown
 
 class CommandHandler(CommandHandlerInterface):
     _game_state: ComprehensiveGameState = live_game_state
@@ -40,7 +41,9 @@ class CommandHandler(CommandHandlerInterface):
         "echoexcept": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_echoexcept(char, input),
         "settempvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_settempvar(char, input),
         "setpermvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_setpermvar(char, input),
-        "spawn": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_spawn(char,input),
+        "spawn": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_spawn(char, input),
+        "makeadmin": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_makeadmin(char, input),
+        "possess": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_possess(char, input),
         "goto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_goto(char, input),
         "list": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_list(char, input),
         "at": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_at(char, input),
@@ -53,6 +56,10 @@ class CommandHandler(CommandHandlerInterface):
         "load": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_load(char, input),
         "saves": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_saves(char, input),
         "deletesave": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_deletesave(char, input),
+        "command": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_command(char, input),
+        "stop": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_stop(char, input),
+        "walkto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_walkto(char, input),
+        "delay": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_delay(char, input),
 
         # normal commands
         "north": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
@@ -102,48 +109,62 @@ class CommandHandler(CommandHandlerInterface):
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
         try:
-            if input.strip() == "":
+            # Split input by semicolons
+            commands = [cmd.strip() for cmd in input.split(';') if cmd.strip()]
+            if not commands:
                 msg = "Did you want to do something?"
-            elif actor.actor_type == ActorType.CHARACTER and actor.is_dead():
-                msg = "You are dead.  You can't do anything."
-            elif actor.actor_type == ActorType.CHARACTER \
-                and actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
-                and not input.startswith("stand"):
-                msg = "You can't do that while you're sleeping."
-            elif actor.actor_type == ActorType.CHARACTER \
-                and actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
-                and not input.startswith("stand"):
-                msg = "You can't do that while you're sitting."
-            elif actor.actor_type == ActorType.CHARACTER \
-                and actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
-                msg = "You are stunned!"
             else:
-                parts = split_preserving_quotes(input)
-                if len(parts) == 0:
+                # Process first command normally
+                first_command = commands[0]
+                if first_command == "":
                     msg = "Did you want to do something?"
+                elif actor.actor_type == ActorType.CHARACTER and actor.is_dead():
+                    msg = "You are dead.  You can't do anything."
+                elif actor.actor_type == ActorType.CHARACTER \
+                    and actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
+                    and not first_command.startswith("stand"):
+                    msg = "You can't do that while you're sleeping."
+                elif actor.actor_type == ActorType.CHARACTER \
+                    and actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
+                    and not first_command.startswith("stand"):
+                    msg = "You can't do that while you're sitting."
+                elif actor.actor_type == ActorType.CHARACTER \
+                    and actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
+                    msg = "You are stunned!"
+                elif actor.is_busy():
+                    # Queue the first command if the actor is busy
+                    actor.command_queue.append(first_command)
+                    msg = "You are busy. Your command has been queued."
                 else:
-                    command = parts[0]
-                    emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
-                    if not command in cls.command_handlers and emote_command == None:
-                        logger.debug3(f"Unknown command: {command}")
-                        msg = "Unknown command"
+                    parts = split_preserving_quotes(first_command)
+                    if len(parts) == 0:
+                        msg = "Did you want to do something?"
                     else:
-                        try:
-                            logger.debug3(f"Evaluating command: {command}")
-                            if emote_command:
-                                await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
-                            else:
-                                await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
-                        except KeyError:
-                            logger.error(f"KeyError processing command {command}")
-                            msg = "Command failure."
-                            raise
+                        command = parts[0]
+                        emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
+                        if not command in cls.command_handlers and emote_command == None:
+                            logger.debug3(f"Unknown command: {command}")
+                            msg = "Unknown command"
+                        else:
+                            try:
+                                logger.debug3(f"Evaluating command: {command}")
+                                if emote_command:
+                                    await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
+                                else:
+                                    await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
+                            except KeyError:
+                                logger.error(f"KeyError processing command {command}")
+                                msg = "Command failure."
+                                raise
+
+                # Queue any additional commands
+                if len(commands) > 1:
+                    actor.command_queue.extend(commands[1:])
+                    if not msg:  # Only add queue message if there wasn't an error message
+                        msg = f"Queued {len(commands)-1} additional command(s)."
         except:
             logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
             raise
-        # logger.critical(f"len(executing_actors) 2: {len(cls.executing_actors)}")
-        # for ch in cls.executing_actors:
-        #     logger.critical(f"executing_actors 2: {ch}")
         if msg and actor.connection:
             await actor.send_text(CommTypes.DYNAMIC, msg)
         else:
@@ -151,9 +172,6 @@ class CommandHandler(CommandHandlerInterface):
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         if not actor.rid in cls.executing_actors:
             logger.warning(f"actor {actor.rid} not in executing_actors")
-            # logger.critical(f"len(executing_actors) 3: {len(cls.executing_actors)}")
-            # for ch in cls.executing_actors:
-            #     logger.critical(f"executing_actors 3: {ch}")
         else:
             del cls.executing_actors[actor.rid]
 
@@ -523,29 +541,109 @@ class CommandHandler(CommandHandlerInterface):
 
 
     async def cmd_spawn(cls, actor: Actor, input: str):
-        # TODO:L: what if an object in a container spawns something?
         logger = StructuredLogger(__name__, prefix="cmd_spawn()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if actor has admin permissions
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to spawn NPCs.")
+            return
+            
         if not input:
             await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
             return
-        pieces = split_preserving_quotes(input)
-        target = cls._game_state.find_target_character(actor, pieces[0])
-        if target == None:
-            target = cls._game_state.find_target_object(actor, pieces[0])
-        if target == None:
-            await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
+            
+        # Find the NPC template
+        npc_id = input.strip()
+        if "." not in npc_id:
+            npc_id = f"{actor.location_room.zone.id}.{npc_id}"
+            
+        npc_template = cls._game_state.world_definition.characters.get(npc_id)
+        if not npc_template:
+            await actor.send_text(CommTypes.DYNAMIC, f"Could not find NPC template '{npc_id}'")
             return
-        if isinstance(target, Character):
-            new_char = Character.create_from_definition(target)
-            new_char.location_room = actor.location_room
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_char.art_name}.")
-        elif isinstance(target, Object):
-            new_obj = Object.create_from_definition(target)
-            new_obj.location_room = actor.location_room
-            await actor.send_text(CommTypes.DYNAMIC, f"You spawn {new_obj.art_name}.")
-        else:
-            await actor.send_text(CommTypes.DYNAMIC, "Spawn what?")
+            
+        # Create the NPC
+        new_npc = Character.create_from_definition(npc_template, cls._game_state)
+        if not new_npc:
+            await actor.send_text(CommTypes.DYNAMIC, "Failed to create NPC")
+            return
+            
+        # Place NPC in the current room
+        await CoreActionsInterface.get_instance().arrive_room(new_npc, actor.location_room)
+        await actor.send_text(CommTypes.DYNAMIC, f"Spawned {new_npc.art_name}")
+
+    async def cmd_makeadmin(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_makeadmin()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if actor has admin permissions
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to make others admin.")
+            return
+            
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Make whom admin?")
+            return
+            
+        # Find the target character
+        target = cls._game_state.find_target_character(actor, input)
+        if not target:
+            await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
+            return
+            
+        # Add admin flags to target
+        target.add_game_flags(GamePermissionFlags.IS_ADMIN)
+        
+        # Notify the player
+        await actor.send_text(CommTypes.DYNAMIC, f"Made {target.art_name} an admin.")
+        await target.send_text(CommTypes.DYNAMIC, "You have been granted admin privileges.")
+
+    async def cmd_possess(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_possess()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if actor has admin permissions
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to possess NPCs.")
+            return
+            
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Possess whom?")
+            return
+            
+        # Find the target character
+        target = cls._game_state.find_target_character(actor, input)
+        if not target:
+            await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
+            return
+            
+        # Save the current character's state
+        old_char = actor
+        old_connection = old_char.connection
+        was_admin = old_char.has_game_flags(GamePermissionFlags.IS_ADMIN)
+        
+        # Transfer connection to new character
+        target.connection = old_connection
+        old_char.connection = None
+        
+        # Add player flags to target
+        target.add_perm_flags(PermanentCharacterFlags.IS_PC)
+        # i don't think we want to do this; if you want target to be admin, use makeadmin before possess
+        # if was_admin:
+        #     target.add_game_flags(GamePermissionFlags.IS_ADMIN)
+        
+        # Remove player flags from old character
+        old_char.remove_perm_flags(PermanentCharacterFlags.IS_PC)
+        old_char.remove_game_flags(GamePermissionFlags.IS_ADMIN)
+        
+        # Update game state
+        cls._game_state.players.remove(old_char)
+        cls._game_state.players.append(target)
+        
+        # Notify the player
+        await target.send_text(CommTypes.DYNAMIC, f"You are now possessing {target.art_name}")
+        await target.send_text(CommTypes.DYNAMIC, "Your old character has been saved. Use 'load' to return to it later.")
 
     async def cmd_goto(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_goto()> ")
@@ -959,6 +1057,8 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can save games.")
             return
             
+        # TODO: In final version, players will only get one save slot
+        # For now, allow named saves for testing purposes
         save_name = input.strip() if input.strip() else "default"
         
         # Save the game state
@@ -976,6 +1076,8 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can load games.")
             return
             
+        # TODO: In final version, players will only get one save slot
+        # For now, allow named saves for testing purposes
         if not input.strip():
             await actor.send_text(CommTypes.DYNAMIC, "Load which save? Use 'saves' command to list available saves.")
             return
@@ -1033,3 +1135,159 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, f"Save '{save_name}' deleted.")
         else:
             await actor.send_text(CommTypes.DYNAMIC, f"Failed to delete save '{save_name}'. Save not found.")
+
+    async def cmd_command(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_command()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if actor has admin permissions
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to force commands.")
+            return
+            
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Command whom to do what?")
+            return
+            
+        # Split input into target and command
+        pieces = split_preserving_quotes(input)
+        if len(pieces) < 2:
+            await actor.send_text(CommTypes.DYNAMIC, "Command whom to do what?")
+            return
+            
+        # Find the target character
+        target = cls._game_state.find_target_character(actor, pieces[0])
+        if not target:
+            await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
+            return
+            
+        # Get the command to execute
+        command = ' '.join(pieces[1:])
+        
+        # Notify the actor
+        await actor.send_text(CommTypes.DYNAMIC, f"Forcing {target.art_name} to: {command}")
+        
+        # Execute the command for the target
+        await cls.process_command(target, command)
+
+    async def cmd_stop(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_stop()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        if actor.command_queue:
+            num_commands = len(actor.command_queue)
+            actor.command_queue.clear()
+            await actor.send_text(CommTypes.DYNAMIC, f"Stopped {num_commands} queued command(s).")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, "You have no queued commands to stop.")
+
+    def find_path(cls, start_room: Room, target_room: Room) -> List[str]:
+        """Find the shortest path between two rooms using breadth-first search."""
+        if start_room == target_room:
+            return []
+            
+        # Keep track of visited rooms and their parent rooms
+        visited = {start_room: None}
+        queue = [start_room]
+        
+        while queue:
+            current = queue.pop(0)
+            
+            # Check all exits from current room
+            for direction, dest_id in current.exits.items():
+                if "." in dest_id:
+                    zone_id, room_id = dest_id.split(".")
+                else:
+                    zone_id = current.zone.id
+                    room_id = dest_id
+                    
+                next_room = cls._game_state.get_zone_by_id(zone_id).rooms[room_id]
+                
+                if next_room == target_room:
+                    # Found the target, reconstruct the path
+                    path = [direction]
+                    while current != start_room:
+                        # Find the direction that led to current room
+                        for dir, room_id in visited[current].exits.items():
+                            if "." in room_id:
+                                z_id, r_id = room_id.split(".")
+                            else:
+                                z_id = visited[current].zone.id
+                                r_id = room_id
+                            if cls._game_state.get_zone_by_id(z_id).rooms[r_id] == current:
+                                path.append(dir)
+                                break
+                        current = visited[current]
+                    return list(reversed(path))
+                    
+                if next_room not in visited:
+                    visited[next_room] = current
+                    queue.append(next_room)
+        
+        return None  # No path found
+
+    async def cmd_walkto(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_walkto()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Walk to what?")
+            return
+            
+        # Try to find target in order: characters, objects, rooms
+        target = cls._game_state.find_target_character(actor, input, search_world=True)
+        if not target:
+            target = cls._game_state.find_target_object(input, actor, search_world=True)
+        if not target:
+            target = cls._game_state.find_target_room(actor, input, actor.location_room.zone)
+            
+        if not target:
+            await actor.send_text(CommTypes.DYNAMIC, "Could not find that target.")
+            return
+            
+        # Get the target's room
+        target_room = target.location_room if hasattr(target, 'location_room') else target
+        
+        # Find path to target
+        path = cls.find_path(actor.location_room, target_room)
+        if not path:
+            await actor.send_text(CommTypes.DYNAMIC, "You can't find a path to that target.")
+            return
+            
+        # Queue the movement commands
+        for direction in path:
+            actor.command_queue.append(direction)
+            
+        await actor.send_text(CommTypes.DYNAMIC, f"Queued {len(path)} movement command(s) to reach {target.art_name}.")
+
+    async def cmd_delay(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_delay()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Delay for how many milliseconds?")
+            return
+            
+        try:
+            delay_ms = int(input)
+            if delay_ms < 0:
+                await actor.send_text(CommTypes.DYNAMIC, "Delay must be a positive number.")
+                return
+        except ValueError:
+            await actor.send_text(CommTypes.DYNAMIC, "Please specify a valid number of milliseconds.")
+            return
+            
+        # Convert milliseconds to ticks using Constants.GAME_TICK_SEC
+        tick_ms = int(Constants.GAME_TICK_SEC * 1000)  # Convert seconds to milliseconds
+        rounded_ms = round(delay_ms / tick_ms) * tick_ms
+        delay_ticks = max(1, rounded_ms // tick_ms)
+        
+        # Create and start a cooldown that doesn't make the actor busy
+        delay_cooldown = Cooldown(actor, "delay", cls._game_state, cooldown_source=actor, 
+                                 cooldown_vars=None, cooldown_end_fn=lambda: None)
+        delay_cooldown.start(cls._game_state.current_tick, 0, 
+                           cls._game_state.current_tick + delay_ticks)
+        
+        if rounded_ms != delay_ms:
+            await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {rounded_ms} milliseconds (rounded from {delay_ms}ms).")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {delay_ms} milliseconds.")
