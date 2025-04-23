@@ -1,0 +1,191 @@
+ZONES:
+  example_zone:
+    name: Example Zone
+    description: >
+      An example zone for demonstrating character attitudes.
+
+CHARACTERS:
+  - zone: example_zone
+    characters:
+    
+      - id: hostile_skeleton
+        name: hostile skeleton
+        article: a
+        description: >
+          A skeleton that attacks players on sight.
+        group_id: undead
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 10
+          constitution: 10
+          intelligence: 4
+          wisdom: 4
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8
+        natural_attacks:
+          - attack_noun: claw
+            attack_verb: claws
+            potential_damage:
+            - damage_type: slashing
+              damage_dice: 1d6
+        hit_modifier: 0
+        dodge_dice: 2d10+20
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 30
+
+      - id: unfriendly_zombie
+        name: unfriendly zombie
+        article: an
+        description: >
+          A zombie that starts peaceful but joins against any players 
+          who get involved in combat.
+        group_id: undead
+        attitude: UNFRIENDLY
+        attributes:
+          strength: 12
+          dexterity: 8
+          constitution: 12
+          intelligence: 3
+          wisdom: 3
+          charisma: 3
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8
+        natural_attacks:
+          - attack_noun: fist
+            attack_verb: punches
+            potential_damage:
+            - damage_type: bludgeoning
+              damage_dice: 1d6
+        hit_modifier: 0
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 30
+
+      - id: neutral_ghost
+        name: neutral ghost
+        article: a
+        description: >
+          A ghost that minds its own business and doesn't get involved in fights.
+        group_id: spirits
+        attitude: NEUTRAL
+        attributes:
+          strength: 6
+          dexterity: 14
+          constitution: 8
+          intelligence: 10
+          wisdom: 10
+          charisma: 10
+        class:
+          Mage:
+            level: 2
+        hit_dice: 2d6
+        natural_attacks:
+          - attack_noun: touch
+            attack_verb: touches
+            potential_damage:
+            - damage_type: cold
+              damage_dice: 1d4
+        hit_modifier: 0
+        dodge_dice: 3d10+20
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 30
+
+      - id: friendly_vampire
+        name: friendly vampire
+        article: a
+        description: >
+          A vampire that helps players who start combat against others.
+        group_id: undead
+        attitude: FRIENDLY
+        attributes:
+          strength: 14
+          dexterity: 14
+          constitution: 12
+          intelligence: 14
+          wisdom: 14
+          charisma: 16
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bites
+            potential_damage:
+            - damage_type: piercing
+              damage_dice: 1d6+2
+        hit_modifier: 10
+        dodge_dice: 3d10+30
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 50
+
+      - id: charmed_wraith
+        name: charmed wraith
+        article: a
+        description: >
+          A wraith under a charm that makes it neutral and ignore attacks on its own group.
+        group_id: spirits
+        attitude: CHARMED
+        attributes:
+          strength: 8
+          dexterity: 16
+          constitution: 8
+          intelligence: 10
+          wisdom: 12
+          charisma: 14
+        class:
+          Rogue:
+            level: 3
+        hit_dice: 3d6
+        natural_attacks:
+          - attack_noun: touch
+            attack_verb: touches
+            potential_damage:
+            - damage_type: necrotic
+              damage_dice: 1d6
+        hit_modifier: 10
+        dodge_dice: 4d10+20
+        critical_chance: 0.15
+        critical_multiplier: 3
+        experience_points: 50
+      
+      - id: dominated_banshee
+        name: dominated banshee
+        article: a
+        description: >
+          A banshee under magical domination that helps players who start combat.
+          In the future, it will be directly controllable by players.
+        group_id: spirits
+        attitude: DOMINATED
+        attributes:
+          strength: 6
+          dexterity: 14
+          constitution: 8
+          intelligence: 12
+          wisdom: 14
+          charisma: 16
+        class:
+          Mage:
+            level: 4
+        hit_dice: 4d6
+        natural_attacks:
+          - attack_noun: wail
+            attack_verb: wails at
+            potential_damage:
+            - damage_type: psychic
+              damage_dice: 2d6
+        hit_modifier: 20
+        dodge_dice: 3d10+40
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 80 

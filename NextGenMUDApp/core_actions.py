@@ -376,7 +376,7 @@ class CoreActions(CoreActionsInterface):
         dying_actor.is_deleted = True
 
 
-    async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True):
+    async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True, do_die=True) -> Tuple[int, int]:
         logger = StructuredLogger(__name__, prefix="do_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if target.actor_type != ActorType.CHARACTER:
@@ -399,7 +399,7 @@ class CoreActions(CoreActionsInterface):
             await actor.location_room.echo(CommTypes.DYNAMIC, msg,
                                             set_vars(actor.location_room, actor, target, msg),
                                             exceptions=[actor, target], game_state=self.game_state)
-        if target.current_hit_points <= 0:
+        if target.current_hit_points <= 0 and do_die:
             await self.do_die(target, actor)
         else:
             if target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
@@ -413,9 +413,10 @@ class CoreActions(CoreActionsInterface):
                 await target.location_room.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(target.location_room, target, target, msg),
                                                 exceptions=[target], game_state=self.game_state)
+        return damage, target.current_hit_points
                 
 
-    async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True) -> int:
+    async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True, do_die=True) -> Tuple[int, int]:
         logger = StructuredLogger(__name__, prefix="do_calculated_damage()> ")
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if target.actor_type != ActorType.CHARACTER:
@@ -426,8 +427,8 @@ class CoreActions(CoreActionsInterface):
         damage = damage * (1 - target_resistance) - target.damage_reduction.get(damage_type)
         if damage < 1:
             return 0
-        await self.do_damage(actor, target, damage, damage_type, do_msg)
-        return damage
+        damage, target_hp = await self.do_damage(actor, target, damage, damage_type, do_msg=do_msg, do_die=do_die)
+        return damage, target_hp
 
 
     async def do_single_attack(self, actor: Actor, target: Actor, attack: AttackData) -> int:

@@ -21,7 +21,7 @@ from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
 from .communication import Connection
-from .comprehensive_game_state_interface import GameStateInterface, ScheduledAction
+from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent
 from .config import Config, default_app_config
 from .core_actions_interface import CoreActionsInterface
 from .utility import article_plus_name
@@ -447,19 +447,18 @@ class ComprehensiveGameState:
             logger = StructuredLogger(__name__, prefix="remove_character()> ")
             logger.warning(f"Removing character, but character not found in characters list: {character}.")
 
-    def add_scheduled_event(self, actor: Actor, name: str, scheduled_tick: int = None, in_ticks: int = None, 
-                             vars: Dict[str, Any]=None, func: callable['Actor', int, 'ComprehensiveGameState', Dict[str, Any]] = None):
-        logger = StructuredLogger(__name__, prefix="add_scheduled_task()> ")
+    def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, in_ticks: int = None, 
+                             vars: Dict[str, Any]=None, func: callable[Any, int, 'ComprehensiveGameState', Dict[str, Any]] = None):
+        logger = StructuredLogger(__name__, prefix="add_scheduled_event()> ")
         if not scheduled_tick and not in_ticks:
             raise Exception("Must specify either scheduled_tick or in_ticks.")
         elif scheduled_tick and in_ticks:
-            raise Exception("Must specify either scheduled_tick or in_ticks, but not both.")
+            if scheduled_tick != self.world_clock_tick + in_ticks:
+                raise Exception("If both scheduled_tick and in_ticks provided, scheduled_tick must be the current tick plus in_ticks.")
         if in_ticks:
             scheduled_tick = self.world_clock_tick + in_ticks
-        action = ScheduledAction(scheduled_tick, actor, name, vars, func)
-        if not scheduled_tick in self.scheduled_events:
-            self.scheduled_events[scheduled_tick] = []
-        self.scheduled_events[scheduled_tick].append(action)
+        event = ScheduledEvent(scheduled_tick, type, subject, name, vars, func)
+        self.scheduled_events[scheduled_tick].append(event)
 
     def perform_scheduled_events(self, tick: int):
         logger = StructuredLogger(__name__, prefix="perform_scheduled_events()> ")
