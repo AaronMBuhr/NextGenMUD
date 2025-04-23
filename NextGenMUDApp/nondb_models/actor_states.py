@@ -9,6 +9,71 @@ from .character_interface import PermanentCharacterFlags, TemporaryCharacterFlag
 from .attacks_and_damage import DamageType, DamageResistances, DamageReduction
 from ..utility import set_vars
 
+class Cooldown:
+    def __init__(self, actor: Actor, cooldown_name: str, game_state: 'GameStateInterface',
+                 cooldown_source=None, cooldown_vars: dict=None, cooldown_end_fn: callable=None):
+        self.cooldown_source = cooldown_source
+        self.cooldown_name = cooldown_name
+        self.actor: Actor = actor
+        self.cooldown_vars: Dict = cooldown_vars
+        self.cooldown_start_tick: int = 0
+        self.cooldown_end_tick: int = 0
+        self.cooldown_duration: int = 0
+        self.cooldown_end_fn = cooldown_end_fn
+        self.game_state = game_state
+
+    @classmethod
+    def has_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return any([c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
+                    and c.cooldown_name == (cooldown_name or c.cooldown_name)])
+    
+    @classmethod
+    def current_cooldowns(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return [c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
+                    and c.cooldown_name == (cooldown_name or c.cooldown_name)]
+    
+    @classmethod
+    def last_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
+        return max([c for c in Cooldown.current_cooldowns(cooldowns, cooldown_source, cooldown_name)],
+                   key=lambda c: c.cooldown_end_tick_)
+    
+    async def start(self, current_tick: int, cooldown_duration_ticks: int = None, cooldown_end_tick: int = None) -> bool:
+        self.cooldown_start_tick = current_tick
+        if cooldown_duration_ticks:
+            self.cooldown_duration_ = cooldown_duration_ticks
+            self.cooldown_end_tick = current_tick + cooldown_duration_ticks
+        else:
+            self.cooldown_end_tick = cooldown_end_tick
+            self.cooldown_duration_ = cooldown_end_tick - current_tick
+            
+        self.actor.cooldowns.append(self)
+        self.game_state.add_scheduled_event(self, EventType.COOLDOWN_OVER, 
+                                            self.cooldown_name, self.cooldown_vars, self.end_cooldown)
+        return True
+
+    def to_dict(self):
+        return {
+            'actor': self.actor.rid,
+            'cooldown_source': self.cooldown_source,
+            'cooldown_name': self.cooldown_name,
+            'cooldown_start_tick': self.cooldown_start_tick,
+            'cooldown_end_tick': self.cooldown_end_tick,
+            'cooldown_duration': self.cooldown_end_tick - self.cooldown_start_tick
+        }
+
+    def cooldown_finished(self, current_tick: int) -> bool:
+        return current_tick >= self.cooldown_end_tick
+    
+    def ticks_remaining(self, current_tick: int) -> int:
+        return max(self.cooldown_end_tick - current_tick, 0)
+
+    def end_cooldown(self, actor: Actor, tick: int, game_state: ComprehensiveGameState, vars: Dict[str, Any]) -> bool:
+        if self.cooldown_end_fn:
+            self.cooldown_end_fn(self)
+        return True
+
+
+
 class ActorState:
 
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -48,7 +113,7 @@ class ActorState:
         return self.character_flags_removed.are_flags_set(flag)
     
     @abstractmethod
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
         """
         Returns the next tick that the state should be applied.
         duration_ticks and end_tick both None means it's indefinite
@@ -64,6 +129,11 @@ class ActorState:
         self.last_tick_acted = start_tick
         self.duration_remaining = self.tick_ending - self.tick_started
         self.actor.apply_state(self)
+        self.game_state.add_scheduled_event(self, EventType.STATE_END, self, "state_end", self.tick_ending, 
+                                            None, None, lambda a, t, s, v: self.remove_state())
+        if pulse_period_ticks:
+            self.game_state.add_scheduled_event(self, EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
+                                                self.next_tick, self.tick_period, None, lambda a, t, s, v: self.perform_pulse(t, s, v))
         return self.next_tick
 
     @abstractmethod
@@ -80,11 +150,13 @@ class ActorState:
         """
         return self.character_flags_affected.are_flags_set(flag)
     
-    def perform_tick(self, tick_num: int) -> bool:
+    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
         self.duration_remaining = max(self.start_tick_ - tick_num, 0)
         self.last_tick_acted = tick_num
-        if self.tick_ending != 0 and tick_num >= self.tick_ending:
-            self.remove_state()
+        if self.duration_remaining > 0:
+            self.next_tick = tick_num + self.tick_period
+            self.game_state.add_scheduled_event(self, EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
+                                                self.next_tick, self.tick_period, None, lambda a, t, s, v: self.perform_pulse(t, s, v))
         return True
     
     @abstractmethod
@@ -140,9 +212,6 @@ class CharacterStateForcedSitting(ActorState):
 
         return True
 
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
-
 
 class CharacterStateForcedSleeping(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -193,8 +262,6 @@ class CharacterStateForcedSleeping(ActorState):
                 await CoreActionsInterface.get_instance().do_aggro(self.actor)
         return True
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 
 class CharacterStateStunned(ActorState):
@@ -244,8 +311,6 @@ class CharacterStateStunned(ActorState):
                 CoreActionsInterface.get_instance().do_aggro(self.actor)
         return True
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 
 class CharacterStateHitPenalty(ActorState):
@@ -278,8 +343,6 @@ class CharacterStateHitPenalty(ActorState):
         else:
             return False
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateHitBonus(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None, \
@@ -310,8 +373,6 @@ class CharacterStateHitBonus(ActorState):
         else:
             return False
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 
 class CharacterStateDisarmed(ActorState):
@@ -393,8 +454,6 @@ class CharacterStateDisarmed(ActorState):
                     CoreActionsInterface.get_instance().do_aggro(self.actor)
         return retval
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateDodgePenalty(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -425,8 +484,6 @@ class CharacterStateDodgePenalty(ActorState):
         self.actor.dodge_modifier += self.affect_amount
         return super().remove_state()
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateDodgeBonus(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -456,8 +513,6 @@ class CharacterStateDodgeBonus(ActorState):
         self.actor.dodge_modifier -= self.affect_amount
         return super().remove_state()
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateDamageBonus(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -498,8 +553,6 @@ class CharacterStateDamageBonus(ActorState):
                                      exceptions=[self.actor], game_state=self.game_state)
         return super().remove_state()
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateBerserkerStance(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -532,8 +585,6 @@ class CharacterStateBerserkerStance(ActorState):
         self.actor.hit_modifier -= self.hit_bonus   
         return super().remove_state()
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
 
 class CharacterStateBleeding(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -568,8 +619,8 @@ class CharacterStateBleeding(ActorState):
                                           game_state=self.game_state)
         return retval
     
-    def perform_tick(self, tick_num: int) -> bool:
-        if retval := super().perform_tick(tick_num):
+    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num):
             msg = f"Your wounds bleed for {self.affect_amount} damage."
             set_vars(self.actor, self.source_actor, self.actor, msg)
             self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
@@ -579,27 +630,25 @@ class CharacterStateBleeding(ActorState):
                                           game_state=self.game_state)
             CoreActionsInterface.get_instance().do_damage(self.source_actor, self.actor, self.affect_amount,
                                                           DamageType.RAW, False)
-
+        return retval
 
 class CharacterStateStealthed(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
+        self.character_flags_added = TemporaryCharacterFlags.IS_STEALTHED
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        self.actor.add_temp_flags(TemporaryCharacterFlags.IS_STEALTHED)
+        self.actor.add_temp_flags(self.character_flags_added)
         self.vars = { "seen_by": [] }
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         return retval
     
     def remove_state(self) -> bool:
-        self.actor.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED)
+        self.actor.remove_temp_flags(self.character_flags_added)
         return super().remove_state()
         
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)
-    
 
 
 class CharacterStateShielded(ActorState):
@@ -615,8 +664,8 @@ class CharacterStateShielded(ActorState):
             return False
         if self.extra_resistances:
                 self.actor.damage_resistances_.add_resistances(self.resistances)
-            if self.extra_reductions:
-                self.actor.damage_reductions_.add_reductions(self.reductions)
+        if self.extra_reductions:
+            self.actor.damage_reductions_.add_reductions(self.reductions)
         return retval
     
     def remove_state(self) -> bool:
@@ -627,9 +676,6 @@ class CharacterStateShielded(ActorState):
                 self.actor.damage_reductions_.remove_reductions(self.reductions)
         return retval
     
-    def perform_tick(self, tick_num: int) -> bool:
-        return super().perform_tick(tick_num)   
-
 
 class CharacterStateCasting(ActorState):
     def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
@@ -671,68 +717,77 @@ class CharacterStateDamageResistance(ActorState):
         self.actor.damage_resistances_.remove_resistances(self.damage_resistances)
         return super().remove_state()
         
-       
-    
-class Cooldown:
-    def __init__(self, actor: Actor, cooldown_name: str, game_state: 'GameStateInterface',
-                 cooldown_source=None, cooldown_vars: dict=None, cooldown_end_fn: callable=None):
-        self.cooldown_source = cooldown_source
-        self.cooldown_name = cooldown_name
-        self.actor: Actor = actor
-        self.cooldown_vars: Dict = cooldown_vars
-        self.cooldown_start_tick: int = 0
-        self.cooldown_end_tick: int = 0
-        self.cooldown_duration: int = 0
-        self.cooldown_end_fn = cooldown_end_fn
-        self.game_state = game_state
 
-    @classmethod
-    def has_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
-        return any([c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
-                    and c.cooldown_name == (cooldown_name or c.cooldown_name)])
-    
-    @classmethod
-    def current_cooldowns(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
-        return [c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
-                    and c.cooldown_name == (cooldown_name or c.cooldown_name)]
-    
-    @classmethod
-    def last_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
-        return max([c for c in Cooldown.current_cooldowns(cooldowns, cooldown_source, cooldown_name)],
-                   key=lambda c: c.cooldown_end_tick_)
-    
-    async def start(self, current_tick: int, cooldown_duration_ticks: int = None, cooldown_end_tick: int = None) -> bool:
-        self.cooldown_start_tick = current_tick
-        if cooldown_duration_ticks:
-            self.cooldown_duration_ = cooldown_duration_ticks
-            self.cooldown_end_tick = current_tick + cooldown_duration_ticks
-        else:
-            self.cooldown_end_tick = cooldown_end_tick
-            self.cooldown_duration_ = cooldown_end_tick - current_tick
-            
-        self.actor.cooldowns.append(self)
-        self.game_state.add_scheduled_event(self, EventType.COOLDOWN_OVER, 
-                                            self.cooldown_name, self.cooldown_vars, self.end_cooldown)
+class CharacterStateBurning(ActorState):
+    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+                 state_type_name=None, tick_created=None, damage_amount: int = 0):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.damage_amount = damage_amount
+
+    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_tick(tick_num):
+            damage, target_hp = CoreActionsInterface.get_instance().do_calculated_damage(self.source_actor, self.actor, self.affect_amount,
+                                                          DamageType.FIRE, False, False)
+            if damage > 0:
+                msg = f"You burn for {self.affect_amount} damage!"
+                set_vars(self.actor, self.source_actor, self.actor, msg)
+                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"%t% burns!"
+                set_vars(self.actor, self.source_actor, self.actor, msg)
+                self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+                                            game_state=self.game_state)
+            if target_hp <= 0:
+                self.CoreActionsInterface.get_instance().do_die(self.actor, self.actor)
+        return retval
+
+
+
+class CharacterStateFrozen(ActorState):
+    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+                 state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_FROZEN)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+        if retval is not None:
+            self.actor.add_temp_flags(self.character_flags_added)
+            if self.source_actor:
+                msg = f"You freeze {self.actor}!"
+                vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
+                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"{self.source_actor.art_name_cap} freezes you!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"{self.source_actor.art_name_cap} freezes {self.actor.art_name}!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+                                          game_state=self.game_state)
+        return retval
+
+
+    async def remove_state(self, force=False) -> bool:
+        if not super().remove_state(force):
+            return False
+        if any([s for s in self.actor.current_states \
+                              if s.does_add_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+            return True
+        self.actor.remove_temp_flags(self.character_flags_added)
+        msg = "You don't feel sleepy anymore."
+        set_vars(self.actor, self.source_actor, self.actor, msg)
+        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        msg = f"{self.actor.art_name_cap} doesn't look sleepy anymore."
+        set_vars(self.actor, self.source_actor, self.actor, msg)
+        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+                                    game_state=self.game_state)
+        if self.actortype_ == ActorType.CHARACTER and self.location_room \
+            and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
+        if self.location_room \
+            and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
+            and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
+            and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                await CoreActionsInterface.get_instance().do_aggro(self.actor)
         return True
-
-    def to_dict(self):
-        return {
-            'actor': self.actor.rid,
-            'cooldown_source': self.cooldown_source,
-            'cooldown_name': self.cooldown_name,
-            'cooldown_start_tick': self.cooldown_start_tick,
-            'cooldown_end_tick': self.cooldown_end_tick,
-            'cooldown_duration': self.cooldown_end_tick - self.cooldown_start_tick
-        }
-
-    def cooldown_finished(self, current_tick: int) -> bool:
-        return current_tick >= self.cooldown_end_tick
-    
-    def ticks_remaining(self, current_tick: int) -> int:
-        return max(self.cooldown_end_tick - current_tick, 0)
-
-    def end_cooldown(self, actor: Actor, tick: int, game_state: ComprehensiveGameState, vars: Dict[str, Any]) -> bool:
-        if self.cooldown_end_fn:
-            self.cooldown_end_fn(self)
-        return True
+        
 

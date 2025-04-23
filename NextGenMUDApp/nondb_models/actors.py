@@ -89,6 +89,24 @@ class Actor(ActorInterface):
 
     def remove_state(self, state: ActorState):
         self.states.remove(state)
+        
+    def can_act(self, allow_if_hindered=False) -> bool, str:
+        if self.has_temp_flags(TemporaryCharacterFlags.IS_DEAD):
+            return False, "You are dead!"
+        if self.has_temp_flags(TemporaryCharacterFlags.IS_FROZEN):
+            return False, "You are frozen!"
+        if self.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
+            return False, "You are sleeping!"
+        if self.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
+            return False, "You are stunned!"
+        if self.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) and \
+            (
+                allow_if_hindered \
+                    or not self.has_temp_flags(TemporaryCharacterFlags.IS_SITTING)
+            ):
+            return False, "You are sitting!"
+        return True, ""
+            
 
     def actor_vars(self, name: str) -> dict:
         # Using dictionary comprehension to prefix keys and combine dictionaries

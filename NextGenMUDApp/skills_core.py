@@ -15,6 +15,73 @@ from .nondb_models.characters import Character, CharacterSkill
 from .skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
 
+from enum import Enum
+from typing import Any, Generic, TypeVar, Optional
+
+
+# Skill class definition with all properties
+class Skill:
+    def __init__(self, 
+                 name: str, 
+                 base_class: 'CharacterClassRole', 
+                 cooldown_name: Optional[str] = None,
+                 cooldown_ticks: int = 0,
+                 cast_time_ticks: int = 0,
+                 duration_min_ticks: int = 0,
+                 duration_max_ticks: int = 0,
+                 message_prepare: Optional[str] = None,
+                 message_success_subject: Optional[str] = None,
+                 message_success_target: Optional[str] = None,
+                 message_success_room: Optional[str] = None,
+                 message_failure_subject: Optional[str] = None,
+                 message_failure_target: Optional[str] = None,
+                 message_failure_room: Optional[str] = None,
+                 message_apply_subject: Optional[str] = None,
+                 message_apply_target: Optional[str] = None,
+                 message_apply_room: Optional[str] = None,
+                 message_resist_subject: Optional[str] = None,
+                 message_resist_target: Optional[str] = None,
+                 message_resist_room: Optional[str] = None):
+        self.name = name
+        self.base_class = base_class
+        self.cooldown_name = cooldown_name
+        self.cooldown_ticks = cooldown_ticks
+        self.cast_time_ticks = cast_time_ticks
+        self.duration_min_ticks = duration_min_ticks
+        self.duration_max_ticks = duration_max_ticks
+        self.message_prepare = message_prepare
+        self.message_success_subject = message_success_subject
+        self.message_success_target = message_success_target
+        self.message_success_room = message_success_room
+        self.message_failure_subject = message_failure_subject
+        self.message_failure_target = message_failure_target
+        self.message_failure_room = message_failure_room
+        self.message_apply_subject = message_apply_subject
+        self.message_apply_target = message_apply_target
+        self.message_apply_room = message_apply_room
+        self.message_resist_subject = message_resist_subject
+        self.message_resist_target = message_resist_target
+        self.message_resist_room = message_resist_room
+
+
+# Character class roles
+class CharacterClassRole(Enum):
+    FIGHTER = "fighter"
+    MAGE = "mage"
+    ROGUE = "rogue"
+    CLERIC = "cleric"
+
+# # Define all skills for Mage
+# class MageSkills(GenericEnumWithAttributes[Skill]):
+#     FIREBALL = Skill(
+#         name="fireball",
+#         base_class=CharacterClassRole.MAGE,
+#         cooldown_name="fireball",
+#         cooldown_ticks=15,
+#         # Add other properties
+#     )
+#     # Other mage skills...
+
 class Skills(SkillsInterface):
 
     game_state: 'ComprehensiveGameState' = None
@@ -149,7 +216,7 @@ class Skills(SkillsInterface):
         
         # The rest of the specializations will be added similarly
     }
-
+    
     @classmethod
     def set_game_state(cls, game_state: 'ComprehensiveGameState'):
         cls.game_state = game_state
@@ -162,26 +229,107 @@ class Skills(SkillsInterface):
         return True
 
     @classmethod
-    def do_skill_check(cls, actor: Actor, skill: CharacterSkill, difficulty_mod: int=0, args: dict=None):
-        skill_roll = random.randint(1, 100)
-        return skill_roll < skill.skill_level - difficulty_mod 
+    def check_skill_roll(cls, skill_roll: int, actor: Actor, skill: CharacterSkill, difficulty_mod: int=0) -> int:
+        return skill_roll - skill.skill_level - difficulty_mod 
     
     @classmethod
-    def is_state_actable(cls, actor: Actor):
-        if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
-            msg = f"You can't do that while you're sitting!"
-            vars = set_vars(actor, actor, actor, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            return False
-        elif actor.has_state(CharacterStateStunned):
-            msg = f"You can't do that while you're stunned!"
-            vars = set_vars(actor, actor, actor, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            return False
-        elif actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
-            msg = f"You can't do that while you're asleep!"
-            vars = set_vars(actor, actor, actor, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            return False
-        else:
-            return True
+    def does_resist(cls, actor: Actor, initiator_attribute: int, skill_level: int, target: Actor, 
+                    target_attribute: int, difficulty_modifier: int) -> tuple[bool, int]:
+        """
+        Calculate success chance for a skill check against resistance.
+        
+        Parameters:
+        - initiator_level: Level of character using skill (1-60)
+        - initiator_attribute: Relevant attribute score for skill user (1-20)
+        - skill_level: Proficiency in the skill (1-100)
+        - target_level: Level of the target resisting (1-60)
+        - target_attribute: Relevant attribute score for target (1-20)
+        - difficulty_modifier: Situational modifier (-20 to +20)
+        
+        Returns:
+        - success: Boolean indicating success or failure
+        - margin: How much the check succeeded or failed by
+        """
+        # Base success value from initiator
+        initiator_base = (skill_level * 0.6) + (initiator_attribute * 3) + (actor.level * 0.5)
+        # Base resistance value from target
+        target_base = (target_attribute * 4) + (target.level * 0.8) + (difficulty_modifier * 1.5)
+        # Random element (1-100)
+        random_roll = random.randint(1, 100)
+        # Calculate success threshold (higher means harder)
+        success_threshold = 50 + (target_base - initiator_base) * 0.5
+        # Ensure threshold stays within reasonable bounds (5-95)
+        success_threshold = max(5, min(95, success_threshold))
+        # Calculate margin of success/failure
+        margin = random_roll - success_threshold
+        # Determine if successful
+        success = random_roll >= success_threshold
+        return success, margin    
+    
+    @classmethod
+    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> bool, str:
+        if not actor.has_class(skill.CLASS):
+            return False, "You are not a member of this class!"
+        can_act, msg = actor.can_act()
+        if not can_act:
+            return False, msg
+        if cooldown_name and actor.has_cooldown(cooldown_name):
+            return False, "You can't use that skill again yet!"
+        
+        return True, ""
+
+    def send_success_message(cls, actor: Actor, targets: list[Actor],skill_data: dict, vars: dict) -> None:
+        msg = THIS_SKILL_DATA["message_success_subject"]
+        vars = set_vars(actor, actor, target, msg)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = THIS_SKILL_DATA["message_success_target"]
+        if msg and targets and len(targets) > 0:
+            for target in targets:
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_success_room"]
+        if msg:
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+        
+    def send_failure_message(cls, actor: Actor, targets: list[Actor], skill_data: dict, vars: dict) -> None:
+        msg = skill_data["message_failure_subject"]
+        vars = set_vars(actor, actor, target, msg)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_failure_target"]
+        if msg and targets and len(targets) > 0:
+            for target in targets:
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_failure_room"]
+        if msg:
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+
+    def send_apply_message(cls, actor: Actor, targets: list[Actor],skill_data: dict, vars: dict) -> None:
+        msg = THIS_SKILL_DATA["message_apply_subject"]
+        vars = set_vars(actor, actor, target, msg)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = THIS_SKILL_DATA["message_apply_target"]
+        if msg and targets and len(targets) > 0:
+            for target in targets:
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_apply_room"]
+        if msg:
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+        
+    def send_resist_message(cls, actor: Actor, targets: list[Actor], skill_data: dict, vars: dict) -> None:
+        msg = skill_data["message_resist_subject"]
+        vars = set_vars(actor, actor, target, msg)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_resist_target"]
+        if msg and targets and len(targets) > 0:
+            for target in targets:
+                vars = set_vars(actor, actor, target, msg)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        msg = skill_data["message_resist_room"]
+        if msg:
+            vars = set_vars(actor, actor, target, msg)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)

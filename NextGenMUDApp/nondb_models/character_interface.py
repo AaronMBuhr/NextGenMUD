@@ -26,6 +26,7 @@ class TemporaryCharacterFlags(DescriptiveFlags):
     SEE_INVISIBLE = 2**7
     IS_INVISIBLE = 2**8
     DARKVISION = 2**9
+    IS_FROZEN = 2**10
 
     @classmethod
     def field_name_unsafe(cls, idx):

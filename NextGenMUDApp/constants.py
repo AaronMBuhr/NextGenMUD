@@ -4,7 +4,6 @@ from .structured_logger import StructuredLogger
 from .basic_types import DescriptiveFlags
 
 
-
 class CharacterClassRole(DescriptiveFlags):
     # Base classes
     FIGHTER: ClassVar[int] = 1

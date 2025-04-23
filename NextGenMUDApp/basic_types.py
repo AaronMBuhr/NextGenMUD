@@ -1,4 +1,8 @@
-from enum import IntFlag
+from enum import Enum, IntFlag
+from typing import TypeVar, Generic, Any, Dict, Union
+
+T = TypeVar('T')  # This represents any type
+
 
 class DescriptiveFlags(IntFlag):
 
@@ -75,3 +79,57 @@ class DescriptiveFlags(IntFlag):
                 set_flags.append(flag)
         return set_flags
 
+
+class GenericEnumWithAttributes(Enum, Generic[T]):
+    """
+    A generic enum that forwards attribute access to its values.
+    Specially handles dictionary values to allow attribute-style access.
+    """
+    def __getattr__(self, name: str) -> Any:
+        if isinstance(self.value, dict) and name in self.value:
+            return self.value[name]
+        return getattr(self.value, name)
+
+    # # Example with Skills
+    # class Skill:
+    #     name: str
+    #     base_class: 'CharacterClassRole'  # Forward reference
+    #     cooldown_name: str
+    #     cooldown_ticks: int
+        
+    #     def __init__(self, 
+    #                 name: str, 
+    #                 base_class: 'CharacterClassRole', 
+    #                 cooldown_name: str, 
+    #                 cooldown_ticks: int):
+    #         self.name = name
+    #         self.base_class = base_class
+    #         self.cooldown_name = cooldown_name
+    #         self.cooldown_ticks = cooldown_ticks
+
+    # class FighterSkills(GenericEnumWithAttributes[Skill]):
+    #     MIGHTY_KICK: Skill = Skill(
+    #         name="shield bash",
+    #         base_class=CharacterClassRole.FIGHTER,
+    #         cooldown_name="shield_bash",
+    #         cooldown_ticks=10
+    #     )
+    #     DEMORALIZING_SHOUT: Skill = Skill(
+    #         name="demoralizing shout",
+    #         base_class=CharacterClassRole.FIGHTER,
+    #         cooldown_name="demoralizing_shout",
+    #         cooldown_ticks=10
+    #     )
+
+    # # Example with a dictionary-based configuration
+    # class Configuration(GenericEnumWithAttributes[Dict[str, Any]]):
+    #     DATABASE: Dict[str, Any] = {
+    #         "host": "localhost", 
+    #         "port": 5432,
+    #         "username": "admin"
+    #     }
+    #     API: Dict[str, Any] = {
+    #         "url": "https://api.example.com", 
+    #         "key": "abc123",
+    #         "timeout": 30
+    #     }
