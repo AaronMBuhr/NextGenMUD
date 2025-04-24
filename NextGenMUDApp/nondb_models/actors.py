@@ -4,7 +4,7 @@ from ..structured_logger import StructuredLogger
 from enum import Enum, auto, IntFlag
 import json
 import random
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 from .actor_interface import ActorInterface, ActorType, ActorSpawnData
 from ..basic_types import DescriptiveFlags
 from ..communication import CommTypes
@@ -12,6 +12,10 @@ from .object_interface import ObjectInterface
 from .trigger_interface import TriggerType
 from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, set_vars, evaluate_functions_in_line
 from ..command_handler_interface import CommandHandlerInterface
+if TYPE_CHECKING:
+    from .actor_states import ActorState, Cooldown
+from .character_interface import TemporaryCharacterFlags
+from ..constants import Constants as CONSTANTS
 
 
 class Actor(ActorInterface):
@@ -33,10 +37,10 @@ class Actor(ActorInterface):
         self.spawned_from: ActorSpawnData = None
         self.spawned: List[Actor] = []
         self.is_deleted = False
-        self.states: List[ActorState] = []
-        self.cooldowns: List[Cooldown] = []
+        self.states: List["ActorState"] = []
+        self.cooldowns: List["Cooldown"] = []
         self.recovers_at = 0
-        self.recovery_time = CONSTANTS.RECOVERY_TIME
+        self.recovery_ticks = CONSTANTS.RECOVERY_TICKS
         self.command_queue: List[str] = []
         if create_reference:
             self.create_reference()
@@ -86,13 +90,13 @@ class Actor(ActorInterface):
     async def send_text(self, text_type: CommTypes, text: str):
         pass
 
-    def apply_state(self, state: ActorState):
+    def apply_state(self, state: "ActorState"):
         self.states.append(state)
 
-    def remove_state(self, state: ActorState):
+    def remove_state(self, state: "ActorState"):
         self.states.remove(state)
         
-    def can_act(self, allow_if_hindered=False) -> bool, str:
+    def can_act(self, allow_if_hindered=False) -> tuple[bool, str]:
         if self.has_temp_flags(TemporaryCharacterFlags.IS_DEAD):
             return False, "You are dead!"
         if self.has_temp_flags(TemporaryCharacterFlags.IS_FROZEN):
@@ -180,8 +184,8 @@ class Actor(ActorInterface):
     def make_busy_for(self, game_ticks: int):
         self.make_busy_until(self.game_state.current_tick + game_ticks)
 
-    def is_busy(self) -> bool:
-        return self.recovers_at > self.game_state.current_tick
+    def is_busy(self, current_tick: int) -> bool:
+        return current_tick <= self.recovers_at
 
     async def become_ready(self):
         self.recovers_at = 0

@@ -12,11 +12,17 @@ from .nondb_models.attacks_and_damage import DamageType, DamageReduction, Damage
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
     PermanentCharacterFlags, TemporaryCharacterFlags
 from .nondb_models.characters import Character, CharacterSkill
-from .skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
+
+# Import skill classes from their respective files
+from .skills_fighter import FighterSkills
+from .skills_rogue import RogueSkills
+from .skills_mage import MageSkills
+from .skills_cleric import ClericSkills
 
 from enum import Enum
 from typing import Any, Generic, TypeVar, Optional
+from .skills_interface import SkillsInterface
 
 
 # Skill class definition with all properties
@@ -116,17 +122,17 @@ class Skills(SkillsInterface):
         CharacterClassRole.FIGHTER: {
             # Tier 1 (Levels 1-9)
             FighterSkills.NORMAL_STANCE: TIER1_MIN_LEVEL,
-            FighterSkills.SHIELD_BASH: TIER1_MIN_LEVEL,
-            FighterSkills.HEROIC_STRIKE: TIER1_MIN_LEVEL,
-            FighterSkills.TAUNT: TIER1_MIN_LEVEL,
-            FighterSkills.CHARGE: TIER1_MIN_LEVEL,
+            FighterSkills.SLAM: TIER1_MIN_LEVEL,
+            FighterSkills.MIGHTY_KICK: TIER1_MIN_LEVEL,
+            FighterSkills.BASH: TIER1_MIN_LEVEL,
+            FighterSkills.CLEAVE: TIER1_MIN_LEVEL,
             
             # Tier 2 (Levels 10-19)
-            FighterSkills.DUAL_WIELD: TIER2_MIN_LEVEL,
+            FighterSkills.DISARM: TIER2_MIN_LEVEL,
             FighterSkills.DEFENSIVE_STANCE: TIER2_MIN_LEVEL,
-            FighterSkills.BATTLE_SHOUT: TIER2_MIN_LEVEL,
-            FighterSkills.SECOND_WIND: TIER2_MIN_LEVEL,
-            FighterSkills.DISARM: TIER2_MIN_LEVEL
+            FighterSkills.RALLY: TIER2_MIN_LEVEL,
+            FighterSkills.SHIELD_BLOCK: TIER2_MIN_LEVEL,
+            FighterSkills.SHIELD_SWEEP: TIER2_MIN_LEVEL
         },
         
         # Rogue base skills (Tiers 1-2)
@@ -184,34 +190,34 @@ class Skills(SkillsInterface):
         CharacterClassRole.BERSERKER: {
             # Tier 3 (Levels 20-29)
             FighterSkills.BERSERKER_STANCE: TIER3_MIN_LEVEL,
-            FighterSkills.RAGE: TIER3_MIN_LEVEL,
+            FighterSkills.ENRAGE: TIER3_MIN_LEVEL,
             FighterSkills.CLEAVE: TIER3_MIN_LEVEL,
-            FighterSkills.BLOODTHIRST: TIER3_MIN_LEVEL,
-            FighterSkills.INTIMIDATE: TIER3_MIN_LEVEL,
+            FighterSkills.REND: TIER3_MIN_LEVEL,
+            FighterSkills.DEMORALIZING_SHOUT: TIER3_MIN_LEVEL,
             
             # Tier 4 (Levels 30-39)
             FighterSkills.WHIRLWIND: TIER4_MIN_LEVEL,
-            FighterSkills.RAMPAGE: TIER4_MIN_LEVEL,
+            FighterSkills.MASSACRE: TIER4_MIN_LEVEL,
             FighterSkills.EXECUTE: TIER4_MIN_LEVEL,
-            FighterSkills.DEATHWISH: TIER4_MIN_LEVEL,
+            FighterSkills.BERSERKER_STANCE: TIER4_MIN_LEVEL,
             FighterSkills.ENRAGE: TIER4_MIN_LEVEL,
             
             # Tier 5 (Levels 40-49)
-            FighterSkills.UNSTOPPABLE: TIER5_MIN_LEVEL,
-            FighterSkills.BLOODBATH: TIER5_MIN_LEVEL,
-            FighterSkills.RECKLESSNESS: TIER5_MIN_LEVEL,
-            FighterSkills.BRUTAL_STRIKE: TIER5_MIN_LEVEL,
-            FighterSkills.DEATH_WISH: TIER5_MIN_LEVEL,
+            FighterSkills.WHIRLWIND: TIER5_MIN_LEVEL,
+            FighterSkills.MASSACRE: TIER5_MIN_LEVEL,
+            FighterSkills.BERSERKER_STANCE: TIER5_MIN_LEVEL,
+            FighterSkills.ENRAGE: TIER5_MIN_LEVEL,
+            FighterSkills.EXECUTE: TIER5_MIN_LEVEL,
             
             # Tier 6 (Levels 50-59)
-            FighterSkills.BERSERKER_FURY: TIER6_MIN_LEVEL,
-            FighterSkills.TITANS_GRIP: TIER6_MIN_LEVEL,
-            FighterSkills.MEAT_CLEAVER: TIER6_MIN_LEVEL,
-            FighterSkills.BLOOD_FRENZY: TIER6_MIN_LEVEL,
+            FighterSkills.BERSERKER_STANCE: TIER6_MIN_LEVEL,
+            FighterSkills.WHIRLWIND: TIER6_MIN_LEVEL,
             FighterSkills.MASSACRE: TIER6_MIN_LEVEL,
+            FighterSkills.ENRAGE: TIER6_MIN_LEVEL,
+            FighterSkills.EXECUTE: TIER6_MIN_LEVEL,
             
             # Tier 7 (Level 60)
-            FighterSkills.AVATAR: TIER7_MIN_LEVEL
+            FighterSkills.MASSACRE: TIER7_MIN_LEVEL
         },
         
         # The rest of the specializations will be added similarly
@@ -267,9 +273,7 @@ class Skills(SkillsInterface):
         return success, margin    
     
     @classmethod
-    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> bool, str:
-        if not actor.has_class(skill.CLASS):
-            return False, "You are not a member of this class!"
+    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> tuple[bool, str]:
         can_act, msg = actor.can_act()
         if not can_act:
             return False, msg

@@ -12,7 +12,6 @@ from ..communication import CommTypes
 from ..comprehensive_game_state_interface import GameStateInterface
 from ..constants import Constants, CharacterClassRole
 from .object_interface import ObjectInterface, ObjectFlags
-from ..skills_interface import SkillsInterface, FighterSkills, RogueSkills, MageSkills, ClericSkills, Skills
 from ..utility import article_plus_name, get_dice_parts, replace_vars, roll_dice, evaluate_functions_in_line
 from .actor_attitudes import ActorAttitude
 
@@ -174,7 +173,7 @@ class Character(Actor, CharacterInterface):
             for reduce_name, reduce_amount in yaml_data.get('damage_reductions', {}).items():
                 self.damage_reduction.profile[DamageType[reduce_name.upper()]] = reduce_amount
 
-            print(yaml_data.get('attributes', []))
+            # print(yaml_data.get('attributes', []))
             for attr_name, attr_amount in yaml_data.get('attributes', {}).items():
                 self.attributes[CharacterAttributes[attr_name.upper()]] = attr_amount
             # need classes
@@ -206,7 +205,7 @@ class Character(Actor, CharacterInterface):
                 self.starting_inv = yaml_data['inventory']
             if 'triggers' in yaml_data: 
                 for trig in yaml_data['triggers']:
-                    logger.debug(f"got trigger for {self.name}: {trig}")
+                    logger.debug3(f"got trigger for {self.name}: {trig}")
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
                     new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
                     if not new_trigger.trigger_type_ in self.triggers_by_type:
@@ -279,10 +278,10 @@ class Character(Actor, CharacterInterface):
     @classmethod
     def create_from_definition(cls, char_def: 'Character', game_state: GameStateInterface=None,include_items: bool = True) -> 'Character':
         logger = StructuredLogger(__name__, prefix="Character.create_from_definition()> ")
-        print(f"char_def: {char_def}")
-        logger.critical(f"char def triggers: {char_def.triggers_by_type}")
+        logger.debug3(f"char_def: {char_def}")
+        logger.debug3(f"char def triggers: {char_def.triggers_by_type}")
         new_char = copy.deepcopy(char_def)
-        logger.critical(f"new_char triggers: {char_def.triggers_by_type}")
+        logger.debug3(f"new_char triggers: {char_def.triggers_by_type}")
         if not new_char.reference_number or new_char.reference_number == char_def.reference_number:
             new_char.create_reference()
         new_char.max_hit_points = roll_dice(new_char.hit_dice, new_char.hit_dice_size, new_char.hit_point_bonus)
@@ -297,11 +296,11 @@ class Character(Actor, CharacterInterface):
                     eq_id = f"{new_char.definition_zone_id}.{eq_id}"
                 new_obj_def = game_state.world_definition.find_object_definition(eq_id)
                 if not new_obj_def:
-                    logger.error(f"Could not find object definition for {eq_id}")
+                    logger.warning(f"Could not find object definition for {eq_id}")
                     continue
                 new_obj = ObjectInterface.create_from_definition(new_obj_def, game_state)
                 if not new_obj:
-                    logger.error(f"Could not create object from definition for {eq_id}")
+                    logger.warning(f"Could not create object from definition for {eq_id}")
                     continue
                 if new_char.equipped[new_obj.equip_location] != None:
                     if new_obj.equip_location == EquipLocation.LEFT_FINGER \
@@ -332,7 +331,7 @@ class Character(Actor, CharacterInterface):
                 new_char.add_object(new_obj)
         for trig_type, trig_data in new_char.triggers_by_type.items():
             for trig in trig_data:
-                logger.debug(f"enabling trigger: {trig.to_dict()}")
+                logger.debug3(f"enabling trigger: {trig.to_dict()}")
                 trig.actor_ = new_char
                 trig.enable()
         return new_char

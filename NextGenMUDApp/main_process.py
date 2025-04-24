@@ -20,7 +20,7 @@ class MainProcess:
         logger = StructuredLogger(__name__, prefix="start_main_process()> ")
         # seems to do nothing:
         # logger.setLevel(logging.WARNING)
-        # logger.set_detail_level(3)
+        logger.set_detail_level(1)  # Set to debug level 1
         # logger.debug(f"logging level set to {logger.getEffectiveLevel()}")
         main_process_thread = threading.Thread(target=cls.run_main_game_loop)
         main_process_thread.start()
@@ -62,7 +62,7 @@ class MainProcess:
                 last_fighting_tick = cls._game_state.world_clock_tick
 
             # Process scheduled actions and check aggressive NPCs
-            cls._game_state.perform_scheduled_actions(cls._game_state.world_clock_tick)
+            cls._game_state.perform_scheduled_events(cls._game_state.world_clock_tick)
             await cls.check_aggressive_near_players()
 
             # Sleep for remaining tick time

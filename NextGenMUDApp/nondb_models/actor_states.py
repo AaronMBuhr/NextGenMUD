@@ -1,20 +1,29 @@
 from abc import abstractmethod
-from typing import Dict, List
+from typing import Dict, List, Any, TYPE_CHECKING
 from ..command_handler_interface import CommandHandlerInterface
 from ..communication import CommTypes
 from ..core_actions_interface import CoreActionsInterface
-from .actor_interface import ActorType
-from .actors import Actor
-from .character_interface import PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags, EquipLocation
+from .actor_interface import ActorType, ActorInterface
+from .character_interface import PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags, EquipLocation, CharacterInterface
 from .attacks_and_damage import DamageType, DamageResistances, DamageReduction
 from ..utility import set_vars
+from ..comprehensive_game_state_interface import GameStateInterface
+
+if TYPE_CHECKING:
+    from .actors import Actor
+    from .characters import Character
+    from .objects import Object
+    from .rooms import Room
+    from .triggers import Trigger
+    from .zones import Zone
+    from .world import WorldDefinition
 
 class Cooldown:
-    def __init__(self, actor: Actor, cooldown_name: str, game_state: 'GameStateInterface',
+    def __init__(self, actor: ActorInterface, cooldown_name: str, game_state: GameStateInterface,
                  cooldown_source=None, cooldown_vars: dict=None, cooldown_end_fn: callable=None):
         self.cooldown_source = cooldown_source
         self.cooldown_name = cooldown_name
-        self.actor: Actor = actor
+        self.actor: ActorInterface = actor
         self.cooldown_vars: Dict = cooldown_vars
         self.cooldown_start_tick: int = 0
         self.cooldown_end_tick: int = 0
@@ -67,7 +76,7 @@ class Cooldown:
     def ticks_remaining(self, current_tick: int) -> int:
         return max(self.cooldown_end_tick - current_tick, 0)
 
-    def end_cooldown(self, actor: Actor, tick: int, game_state: ComprehensiveGameState, vars: Dict[str, Any]) -> bool:
+    def end_cooldown(self, actor: ActorInterface, tick: int, game_state: "GameStateInterface", vars: Dict[str, Any]) -> bool:
         if self.cooldown_end_fn:
             self.cooldown_end_fn(self)
         self.actor.cooldowns.remove(self)
@@ -77,10 +86,10 @@ class Cooldown:
 
 class ActorState:
 
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, vars=None,tick_created=None):
-        self.actor: Actor = actor
-        self.source_actor: Actor = source_actor
+        self.actor: ActorInterface = actor
+        self.source_actor: ActorInterface = source_actor
         self.state_type_name: str = state_type_name
         self.tick_created: int = tick_created
         self.tick_started: int = None
@@ -93,7 +102,7 @@ class ActorState:
         self.affect_amount: int = 0
         self.duration_remaining: int = 0
         self.vars = vars
-        self.game_state: 'GameStateInterface' = game_state
+        self.game_state: GameStateInterface = game_state
 
     def to_dict(self):
         return {
@@ -151,7 +160,7 @@ class ActorState:
         """
         return self.character_flags_affected.are_flags_set(flag)
     
-    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
+    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
         self.duration_remaining = max(self.start_tick_ - tick_num, 0)
         self.last_tick_acted = tick_num
         if self.duration_remaining > 0:
@@ -166,7 +175,7 @@ class ActorState:
 
 
 class CharacterStateForcedSitting(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
@@ -215,7 +224,7 @@ class CharacterStateForcedSitting(ActorState):
 
 
 class CharacterStateForcedSleeping(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
@@ -266,7 +275,7 @@ class CharacterStateForcedSleeping(ActorState):
 
 
 class CharacterStateStunned(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.character_flags_affected.add_flags(TemporaryCharacterFlags.IS_STUNNED)
@@ -315,7 +324,7 @@ class CharacterStateStunned(ActorState):
 
 
 class CharacterStateHitPenalty(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None, \
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None, \
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -346,7 +355,7 @@ class CharacterStateHitPenalty(ActorState):
         
 
 class CharacterStateHitBonus(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None, \
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None, \
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -377,7 +386,7 @@ class CharacterStateHitBonus(ActorState):
 
 
 class CharacterStateDisarmed(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
 
@@ -457,7 +466,7 @@ class CharacterStateDisarmed(ActorState):
         
 
 class CharacterStateDodgePenalty(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -487,7 +496,7 @@ class CharacterStateDodgePenalty(ActorState):
         
 
 class CharacterStateDodgeBonus(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -516,7 +525,7 @@ class CharacterStateDodgeBonus(ActorState):
         
 
 class CharacterStateDamageBonus(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -556,7 +565,7 @@ class CharacterStateDamageBonus(ActorState):
         
 
 class CharacterStateBerserkerStance(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, dodge_penalty:int = 0, hit_bonus:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.dodge_penalty = dodge_penalty
@@ -588,7 +597,7 @@ class CharacterStateBerserkerStance(ActorState):
         
 
 class CharacterStateBleeding(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -620,8 +629,8 @@ class CharacterStateBleeding(ActorState):
                                           game_state=self.game_state)
         return retval
     
-    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
-        if retval := super().perform_pulse(tick_num):
+    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_tick(tick_num):
             msg = f"Your wounds bleed for {self.affect_amount} damage."
             set_vars(self.actor, self.source_actor, self.actor, msg)
             self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
@@ -634,7 +643,7 @@ class CharacterStateBleeding(ActorState):
         return retval
 
 class CharacterStateStealthed(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.affect_amount = affect_amount
@@ -653,7 +662,7 @@ class CharacterStateStealthed(ActorState):
 
 
 class CharacterStateShielded(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor = None, 
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface = None, 
                  state_type_name=None, resistances: DamageResistances = None, reductions: DamageReduction = None,
                  vars=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, vars, tick_created)
@@ -679,8 +688,8 @@ class CharacterStateShielded(ActorState):
     
 
 class CharacterStateCasting(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
-                 state_type_name=None, tick_created=None, casting_finish_func: Callable=None):
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, tick_created=None, casting_finish_func: callable=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.casting_finish_func = casting_finish_func
         
@@ -691,7 +700,7 @@ class CharacterStateCasting(ActorState):
         
 
 class CharacterStateRecoveryModifier(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, recovery_modifier: int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.recovery_modifier = recovery_modifier
@@ -703,7 +712,7 @@ class CharacterStateRecoveryModifier(ActorState):
         
 
 class CharacterStateDamageResistance(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, damage_resistances: DamageResistances = None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.damage_resistances = damage_resistances
@@ -720,12 +729,12 @@ class CharacterStateDamageResistance(ActorState):
         
 
 class CharacterStateBurning(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None, damage_amount: int = 0):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.damage_amount = damage_amount
 
-    def perform_pulse(self, tick_num: int, game_state: 'GameStateInterface', vars: Dict[str, Any]) -> bool:
+    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
         if retval := super().perform_tick(tick_num):
             damage, target_hp = CoreActionsInterface.get_instance().do_calculated_damage(self.source_actor, self.actor, self.affect_amount,
                                                           DamageType.FIRE, False, False)
@@ -738,13 +747,13 @@ class CharacterStateBurning(ActorState):
                 self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                             game_state=self.game_state)
             if target_hp <= 0:
-                self.CoreActionsInterface.get_instance().do_die(self.actor, self.actor)
+                CoreActionsInterface.get_instance().do_die(self.actor, self.actor)
         return retval
 
 
 
 class CharacterStateFrozen(ActorState):
-    def __init__(self, actor: Actor, game_state: 'GameStateInterface', source_actor: Actor=None,
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
         self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_FROZEN)

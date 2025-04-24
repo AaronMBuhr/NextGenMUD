@@ -31,12 +31,12 @@ class TriggerCriteria:
     def from_dict(self, values: dict):
         logger = StructuredLogger(__name__, prefix="TriggerCriteria.from_dict()> ")
         logger.debug3(f"values: {values}")
-        print(values)
+        # print(values)
         self.subject = values['subject']
         self.operator = values['operator']
         self.predicate = values['predicate']
         return self
-        print(self.to_dict())
+        # print(self.to_dict())
 
     @abstractmethod
     def evaluate(self, vars: dict, game_state: GameStateInterface) -> bool:

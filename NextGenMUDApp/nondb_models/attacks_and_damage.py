@@ -170,7 +170,7 @@ class AttackData():
         elif damage_type and ((damage_num_dice and damage_dice_size) or damage_bonus):
             self.potential_damage_.append(PotentialDamage(damage_type, damage_num_dice or 0, damage_dice_size or 0, damage_bonus or 0))
         else:
-            logger.error("AttackData() called without damage_type and damage_amount or damage_type and damage_num_dice and damage_dice_size or damage_bonus")
+            logger.warning("AttackData() called without damage_type and damage_amount or damage_type and damage_num_dice and damage_dice_size or damage_bonus")
         self.attack_noun = attack_noun or "something"
         self.attack_verb = attack_verb or "hits"
         self.attack_bonus = attack_bonus
