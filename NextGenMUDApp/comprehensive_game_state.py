@@ -112,7 +112,7 @@ class ComprehensiveGameState:
                 logger.debug("Zones loaded")
 
             if "CHARACTERS" in yaml_data:
-                logger.debug("Loading characters...")
+                logger.critical("Loading characters...")
                 # print(yaml_data)
                 # for charzone in yaml_data["ZONES"]:
                 #     for chardef in yaml_data["ZONES"]["CHARACTERS"]:
@@ -120,12 +120,14 @@ class ComprehensiveGameState:
                 #         ch.from_yaml(chardef)
                 #         self.world_definition_.characters_[ch.id] = ch
                 for zonedef in yaml_data["CHARACTERS"]:
+                    logger.critical(f"loading characters for zone: {zonedef['zone']}")
                     for chardef in zonedef["characters"]:
+                        logger.critical(f"loading character: {chardef['id']}")
                         ch = Character(chardef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
                         ch.from_yaml(chardef, zonedef["zone"])
                         ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN)
-                        logger.debug(f"loaded character: {ch.id}")
-                        self.world_definition.characters[ch.id] = ch
+                        logger.critical(f"loaded character: {ch.id}")
+                        self.world_definition.characters[f"{zonedef['zone']}.{ch.id}"] = ch
 
                 logger.debug("Characters loaded")
 
@@ -192,27 +194,22 @@ class ComprehensiveGameState:
         
         # Print zone statistics
         print("\n=== WORLD LOADING STATISTICS ===")
-        for zone_id, zone_data in self.zones.items():
+        for zone_id, zone_data in self.world_definition.zones.items():
             room_count = len(zone_data.rooms)
             
-            # Count characters in this zone
+            # Count character definitions for this zone
             char_count = 0
-            for room in zone_data.rooms.values():
-                char_count += len(room.get_characters())
+            for char_id, char_def in self.world_definition.characters.items():
+                if char_def.definition_zone_id == zone_id:
+                    char_count += 1
             
-            # Count objects in this zone
+            # Count object definitions for this zone
             obj_count = 0
-            for room in zone_data.rooms.values():
-                obj_count += len(room.contents)
-                # Also count objects carried by characters
-                for char in room.get_characters():
-                    obj_count += len(char.contents)
-                    # Count equipped items
-                    for item in char.equipped.values():
-                        if item:
-                            obj_count += 1
+            for obj_key, obj_def in self.world_definition.objects.items():
+                if obj_key.startswith(f"{zone_id}."):
+                    obj_count += 1
             
-            print(f"Zone '{zone_id}': {room_count} rooms, {char_count} characters, {obj_count} objects")
+            print(f"Zone '{zone_id}': {room_count} room definitions, {char_count} character definitions, {obj_count} object definitions")
         print("===============================\n")
     
 

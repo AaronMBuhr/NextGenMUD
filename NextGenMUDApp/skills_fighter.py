@@ -143,6 +143,12 @@ class FighterSkills(GenericEnumWithAttributes):
     def get_level_requirement(self, skill_num: int) -> int:
         return 1
     
+    def get_skill_by_name(self, name: str) -> Skill:
+        for skill in self:
+            if skill.name == name:
+                return skill
+        return None
+    
     NORMAL_STANCE = Skill(
         name="normal stance",
         base_class=CharacterClassRole.FIGHTER,

@@ -83,7 +83,7 @@ class Character(Actor, CharacterInterface):
         self.current_carrying_weight = 0
         self.num_main_hand_attacks = 1
         self.num_off_hand_attacks = 0
-        self.skill_levels_by_role: Dict[CharacterClassRole, Dict[Enum, int]] = {}
+        self.skill_levels: Dict[str, int] = {}
         self.skill_points_available: int = 0
         self.cooldowns: List[Cooldown] = []
         self.experience_points: int = 0
@@ -211,6 +211,9 @@ class Character(Actor, CharacterInterface):
                     if not new_trigger.trigger_type_ in self.triggers_by_type:
                         self.triggers_by_type[new_trigger.trigger_type_] = []
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
+            if 'skills' in yaml_data:
+                for skill in yaml_data['skills']:
+                    self.skill_levels[skill['skill']] = skill['level']
             # unnecessary?
             # if 'triggers' in yaml_data:
             #     # print(f"triggers: {yaml_data['triggers']}")
