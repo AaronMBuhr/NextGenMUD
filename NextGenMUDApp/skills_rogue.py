@@ -1,4 +1,6 @@
+from .basic_types import GenericEnumWithAttributes
 from .skills_core import Skills
+from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, TemporaryCharacterFlags, PermanentCharacterFlags
 from .nondb_models.actor_states import (
@@ -10,49 +12,150 @@ from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds, seconds_from_ticks
 from .core_actions_interface import CoreActionsInterface
 
+
+
+        # CharacterClassRole.ROGUE: {
+        #     # Tier 1 (Levels 1-9)
+        #     RogueSkills.STEALTH: SkillsInterface.TIER1_MIN_LEVEL,
+        #     RogueSkills.BACKSTAB: SkillsInterface.TIER1_MIN_LEVEL,
+        #     RogueSkills.PICK_LOCK: SkillsInterface.TIER1_MIN_LEVEL,
+        #     RogueSkills.DETECT_TRAPS: SkillsInterface.TIER1_MIN_LEVEL,
+        #     RogueSkills.EVADE: SkillsInterface.TIER1_MIN_LEVEL,
+            
+        #     # Tier 2 (Levels 10-19)
+        #     RogueSkills.DUAL_WIELD: SkillsInterface.TIER2_MIN_LEVEL,
+        #     RogueSkills.POISONED_WEAPON: SkillsInterface.TIER2_MIN_LEVEL,
+        #     RogueSkills.DISARM_TRAP: SkillsInterface.TIER2_MIN_LEVEL,
+        #     RogueSkills.ACROBATICS: SkillsInterface.TIER2_MIN_LEVEL,
+        #     RogueSkills.FEINT: SkillsInterface.TIER2_MIN_LEVEL
+        # },
+        # CharacterClassRole.DUELIST: {
+        #     # Tier 3 (Levels 20-29)
+        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Rogue specialization: Assassin (Tiers 3-7)
+        # CharacterClassRole.ASSASSIN: {
+        #     # Tier 3 (Levels 20-29)
+        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Rogue specialization: Infiltrator (Tiers 3-7)
+        # CharacterClassRole.INFILTRATOR: {
+        #     # Tier 3 (Levels 20-29)
+        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+
+
+
 class Skills_Rogue(Skills):
     @classmethod
-    async def do_rogue_backstab(cls, actor: Actor, target: Actor, skill: CharacterSkill, 
-                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        BACKSTAB_CAST_TIME_TICKS = ticks_from_seconds(0.5)
-        
-        if actor.cooldowns.has_cooldown(actor, "backstab"):
-            msg = f"You can't use backstab again yet!"
+    async def do_rogue_backstab(cls, actor: Actor, target: Actor, 
+                               difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = RogueSkills.BACKSTAB
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-            
-        if not actor.has_temp_flags(TemporaryCharacterFlags.HIDDEN):
-            msg = "You must be hidden to backstab!"
-            actor.echo(CommTypes.DYNAMIC, msg, cls.game_state)
-            return False
-        if target == None:
-            msg = "You must specify a target to backstab!"
-            actor.echo(CommTypes.DYNAMIC, msg, cls.game_state)
-            return False
-        if actor.equipped_[EquipLocation.BOTH_HANDS]:
-            msg = "You can't backstab with a two-handed weapon!"
-            actor.echo(CommTypes.DYNAMIC, msg, cls.game_state)
-            return False
-        mhw = actor.equipped_[EquipLocation.MAIN_HAND]
-        if not mhw:
-            msg = "You must have a weapon equipped to backstab!"
-            actor.echo(CommTypes.DYNAMIC, msg, cls.game_state)
-            return False
+        continue_func = lambda: cls.do_rogue_backstab_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
-        continue_func = lambda: cls.do_rogue_backstab_finish(actor, target, skill, difficulty_modifier, game_tick)
         if nowait:
             continue_func()
         else:
-            msg = f"You aim your backstab..."
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            actor.recovers_at += BACKSTAB_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, BACKSTAB_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_rogue_backstab_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_rogue_backstab_finish(cls, actor: Actor, target: Actor, 
+                                      difficulty_modifier=0, game_tick=0) -> bool:
         BACKSTAB_DAMAGE_MULT = 4
         BACKSTAB_COOLDOWN_TICKS = ticks_from_seconds(60)
         
@@ -90,24 +193,28 @@ class Skills_Rogue(Skills):
             return False
 
     @classmethod
-    async def do_rogue_stealth(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                               difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        STEALTH_CAST_TIME_TICKS = ticks_from_seconds(0.5)
+    async def do_rogue_stealth(cls, actor: Actor, target: Actor, 
+                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = RogueSkills.STEALTH
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return False
+        continue_func = lambda: cls.do_rogue_stealth_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
-        continue_func = lambda: cls.do_rogue_stealth_finish(actor, target, skill, difficulty_modifier, game_tick)
         if nowait:
             continue_func()
         else:
-            msg = f"You focus on your stealth..."
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            actor.recovers_at += STEALTH_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, STEALTH_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_rogue_stealth_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                               difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    async def do_rogue_stealth_finish(cls, actor: Actor, target: Actor, 
+                                     difficulty_modifier=0, game_tick=0) -> bool:
         STEALTH_RETRY_COOLDOWN_SEC = 3
         RETRY_SKILL_CHECK_SEC = 10
         last_cooldown = actor.last_cooldown(actor, Cooldown.last_cooldown(actor.cooldowns_, cooldown_source=cls.do_rogue_stealth))
@@ -170,24 +277,28 @@ class Skills_Rogue(Skills):
                 retval = False
 
     @classmethod
-    async def do_rogue_evade(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                             difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        EVADE_CAST_TIME_TICKS = ticks_from_seconds(0.25)
+    async def do_rogue_evade(cls, actor: Actor, target: Actor, 
+                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = RogueSkills.EVADE
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
+            vars = set_vars(actor, actor, target, msg)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            return False
+        continue_func = lambda: cls.do_rogue_evade_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
-        continue_func = lambda: cls.do_rogue_evade_finish(actor, target, skill, difficulty_modifier, game_tick)
         if nowait:
             continue_func()
         else:
-            msg = f"You focus on evading blows..."
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            actor.recovers_at += EVADE_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, EVADE_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_rogue_evade_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                    difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_rogue_evade_finish(cls, actor: Actor, target: Actor, 
+                                   difficulty_modifier=0, game_tick=0) -> bool:
         EVADE_DURATION_MIN = ticks_from_seconds(6)
         EVADE_DURATION_MAX = ticks_from_seconds(12)
         EVADE_DODGE_BONUS_MIN = 4
@@ -212,6 +323,7 @@ class Skills_Rogue(Skills):
             return False
 
     @classmethod
-    async def do_rogue_pickpocket(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_rogue_pickpocket(cls, actor: Actor, target: Actor, 
+                                 difficulty_modifier=0, game_tick=0) -> bool:
         actor.send_text(CommTypes.DYNAMIC, "Pickpocketing is not yet implemented!", cls.game_state)
         return False 

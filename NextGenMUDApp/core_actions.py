@@ -561,14 +561,14 @@ class CoreActions(CoreActionsInterface):
     
     async def do_aggro(self, actor: Actor):
         logger = StructuredLogger(__name__, prefix="do_aggro()> ")
-        logger.critical(f"actor: {actor}")
+        logger.debug3(f"do_aggro() actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
             logger.critical(f"{actor.rid} is not character")
-            raise Exception("Actor must be of type CHARACTER to aggro.")
+            logger.error("Actor must be of type CHARACTER to aggro.")
         
         # Check if the actor is hostile (either by attitude or by aggressive flag)
         if not (actor.attitude == ActorAttitude.HOSTILE or actor.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)):
-            logger.critical(f"{actor.rid} is not hostile or aggressive")
+            logger.debug3(f"{actor.rid} is not hostile or aggressive")
             # not hostile
             return
         if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
