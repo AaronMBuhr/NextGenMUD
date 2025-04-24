@@ -86,9 +86,21 @@ class GenericEnumWithAttributes(Enum):
     Specially handles dictionary values to allow attribute-style access.
     """
     def __getattr__(self, name: str) -> Any:
-        if isinstance(self.value, dict) and name in self.value:
-            return self.value[name]
-        return getattr(self.value, name)
+        # Safely check for _value_ using object's getattribute to prevent recursion
+        try:
+            value = object.__getattribute__(self, '_value_')
+        except AttributeError:
+            # If _value_ doesn't exist yet (during init), raise AttributeError normally
+            raise AttributeError(f"{self.__class__.__name__} has no attribute {name}")
+        
+        # If _value_ exists, proceed with attribute forwarding
+        if isinstance(value, dict) and name in value:
+            return value[name]
+        if hasattr(value, name):
+            return getattr(value, name)
+            
+        # If the attribute is not found on the value, raise AttributeError
+        raise AttributeError(f"{self.__class__.__name__} has no attribute {name}")
 
     @classmethod
     def _missing_(cls, value):

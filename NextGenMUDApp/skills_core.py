@@ -1,7 +1,9 @@
 from enum import Enum
 import random
-from .basic_types import DescriptiveFlags
+from abc import abstractmethod
+from .basic_types import DescriptiveFlags, GenericEnumWithAttributes
 from .communication import CommTypes
+from .comprehensive_game_state_interface import GameStateInterface
 from .constants import CharacterClassRole, Constants
 from .core_actions_interface import CoreActionsInterface
 from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, \
@@ -14,16 +16,10 @@ from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.characters import Character, CharacterSkill
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
 
-# Import skill classes from their respective files
-from .skills_fighter import FighterSkills
-from .skills_rogue import RogueSkills
-from .skills_mage import MageSkills
-from .skills_cleric import ClericSkills
 
-from enum import Enum
-from typing import Any, Generic, TypeVar, Optional
+from typing import Any, Generic, TypeVar, Optional, List, Tuple, Dict
+# Import the interface and Skill class
 from .skills_interface import SkillsInterface
-
 
 # Skill class definition with all properties
 class Skill:
@@ -70,27 +66,39 @@ class Skill:
         self.message_resist_room = message_resist_room
 
 
-# Character class roles
-class CharacterClassRole(Enum):
-    FIGHTER = "fighter"
-    MAGE = "mage"
-    ROGUE = "rogue"
-    CLERIC = "cleric"
 
-# # Define all skills for Mage
-# class MageSkills(GenericEnumWithAttributes[Skill]):
-#     FIREBALL = Skill(
-#         name="fireball",
-#         base_class=CharacterClassRole.MAGE,
-#         cooldown_name="fireball",
-#         cooldown_ticks=15,
-#         # Add other properties
-#     )
-#     # Other mage skills...
+
+class ClassSkills(GenericEnumWithAttributes):
+    # Add a dummy member with a valid Skill instance to make the enum valid
+    BASE_SKILL = Skill(
+        name="base skill",
+        base_class=CharacterClassRole.FIGHTER,
+        cooldown_name=None,
+        cooldown_ticks=0,
+        cast_time_ticks=0,
+        duration_min_ticks=0,
+        duration_max_ticks=0
+    )
+    
+    @abstractmethod
+    def get_level_requirement(self, skill_name: str) -> int:
+        """Return the level requirement for a skill"""
+        pass
+
+# class RogueSkills(ClassSkills):
+#     pass
+
+# class MageSkills(ClassSkills):
+#     pass
+
+# class ClericSkills(ClassSkills):
+#     pass
+
+
 
 class Skills(SkillsInterface):
 
-    game_state: 'ComprehensiveGameState' = None
+    game_state: GameStateInterface = None
 
     ATTRIBUTE_AVERAGE = 10
     ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 4
@@ -116,119 +124,13 @@ class Skills(SkillsInterface):
     # Tier 7 skills (level 60) - specialization ultimate skills
     TIER7_MIN_LEVEL = 60
 
-    # Base class skill requirements - these are available without specialization
-    SKILL_LEVEL_REQUIREMENTS = {
-        # Fighter base skills (Tiers 1-2)
-        CharacterClassRole.FIGHTER: {
-            # Tier 1 (Levels 1-9)
-            FighterSkills.NORMAL_STANCE: TIER1_MIN_LEVEL,
-            FighterSkills.SLAM: TIER1_MIN_LEVEL,
-            FighterSkills.MIGHTY_KICK: TIER1_MIN_LEVEL,
-            FighterSkills.BASH: TIER1_MIN_LEVEL,
-            FighterSkills.CLEAVE: TIER1_MIN_LEVEL,
-            
-            # Tier 2 (Levels 10-19)
-            FighterSkills.DISARM: TIER2_MIN_LEVEL,
-            FighterSkills.DEFENSIVE_STANCE: TIER2_MIN_LEVEL,
-            FighterSkills.RALLY: TIER2_MIN_LEVEL,
-            FighterSkills.SHIELD_BLOCK: TIER2_MIN_LEVEL,
-            FighterSkills.SHIELD_SWEEP: TIER2_MIN_LEVEL
-        },
-        
-        # Rogue base skills (Tiers 1-2)
-        CharacterClassRole.ROGUE: {
-            # Tier 1 (Levels 1-9)
-            RogueSkills.STEALTH: TIER1_MIN_LEVEL,
-            RogueSkills.BACKSTAB: TIER1_MIN_LEVEL,
-            RogueSkills.PICK_LOCK: TIER1_MIN_LEVEL,
-            RogueSkills.DETECT_TRAPS: TIER1_MIN_LEVEL,
-            RogueSkills.EVADE: TIER1_MIN_LEVEL,
-            
-            # Tier 2 (Levels 10-19)
-            RogueSkills.DUAL_WIELD: TIER2_MIN_LEVEL,
-            RogueSkills.POISONED_WEAPON: TIER2_MIN_LEVEL,
-            RogueSkills.DISARM_TRAP: TIER2_MIN_LEVEL,
-            RogueSkills.ACROBATICS: TIER2_MIN_LEVEL,
-            RogueSkills.FEINT: TIER2_MIN_LEVEL
-        },
-        
-        # Mage base skills (Tiers 1-2)
-        CharacterClassRole.MAGE: {
-            # Tier 1 (Levels 1-9)
-            MageSkills.MAGIC_MISSILE: TIER1_MIN_LEVEL,
-            MageSkills.ARCANE_BARRIER: TIER1_MIN_LEVEL,
-            MageSkills.BURNING_HANDS: TIER1_MIN_LEVEL,
-            MageSkills.MANA_SHIELD: TIER1_MIN_LEVEL,
-            MageSkills.DISPEL_MAGIC: TIER1_MIN_LEVEL,
-            
-            # Tier 2 (Levels 10-19)
-            MageSkills.DETECT_MAGIC: TIER2_MIN_LEVEL,
-            MageSkills.IDENTIFY: TIER2_MIN_LEVEL,
-            MageSkills.ARCANE_INTELLECT: TIER2_MIN_LEVEL,
-            MageSkills.BLINK: TIER2_MIN_LEVEL,
-            MageSkills.FROST_NOVA: TIER2_MIN_LEVEL
-        },
-        
-        # Cleric base skills (Tiers 1-2)
-        CharacterClassRole.CLERIC: {
-            # Tier 1 (Levels 1-9)
-            ClericSkills.CURE_LIGHT_WOUNDS: TIER1_MIN_LEVEL,
-            ClericSkills.BLESS: TIER1_MIN_LEVEL,
-            ClericSkills.DIVINE_FAVOR: TIER1_MIN_LEVEL,
-            ClericSkills.RADIANT_LIGHT: TIER1_MIN_LEVEL,
-            ClericSkills.SANCTUARY: TIER1_MIN_LEVEL,
-            
-            # Tier 2 (Levels 10-19)
-            ClericSkills.CURE_MODERATE_WOUNDS: TIER2_MIN_LEVEL,
-            ClericSkills.REMOVE_CURSE: TIER2_MIN_LEVEL,
-            ClericSkills.DIVINE_PROTECTION: TIER2_MIN_LEVEL,
-            ClericSkills.SMITE: TIER2_MIN_LEVEL,
-            ClericSkills.DIVINE_GUIDANCE: TIER2_MIN_LEVEL
-        },
-        
-        # Fighter specialization: Berserker (Tiers 3-7)
-        CharacterClassRole.BERSERKER: {
-            # Tier 3 (Levels 20-29)
-            FighterSkills.BERSERKER_STANCE: TIER3_MIN_LEVEL,
-            FighterSkills.ENRAGE: TIER3_MIN_LEVEL,
-            FighterSkills.CLEAVE: TIER3_MIN_LEVEL,
-            FighterSkills.REND: TIER3_MIN_LEVEL,
-            FighterSkills.DEMORALIZING_SHOUT: TIER3_MIN_LEVEL,
-            
-            # Tier 4 (Levels 30-39)
-            FighterSkills.WHIRLWIND: TIER4_MIN_LEVEL,
-            FighterSkills.MASSACRE: TIER4_MIN_LEVEL,
-            FighterSkills.EXECUTE: TIER4_MIN_LEVEL,
-            FighterSkills.BERSERKER_STANCE: TIER4_MIN_LEVEL,
-            FighterSkills.ENRAGE: TIER4_MIN_LEVEL,
-            
-            # Tier 5 (Levels 40-49)
-            FighterSkills.WHIRLWIND: TIER5_MIN_LEVEL,
-            FighterSkills.MASSACRE: TIER5_MIN_LEVEL,
-            FighterSkills.BERSERKER_STANCE: TIER5_MIN_LEVEL,
-            FighterSkills.ENRAGE: TIER5_MIN_LEVEL,
-            FighterSkills.EXECUTE: TIER5_MIN_LEVEL,
-            
-            # Tier 6 (Levels 50-59)
-            FighterSkills.BERSERKER_STANCE: TIER6_MIN_LEVEL,
-            FighterSkills.WHIRLWIND: TIER6_MIN_LEVEL,
-            FighterSkills.MASSACRE: TIER6_MIN_LEVEL,
-            FighterSkills.ENRAGE: TIER6_MIN_LEVEL,
-            FighterSkills.EXECUTE: TIER6_MIN_LEVEL,
-            
-            # Tier 7 (Level 60)
-            FighterSkills.MASSACRE: TIER7_MIN_LEVEL
-        },
-        
-        # The rest of the specializations will be added similarly
-    }
-    
+   
     @classmethod
-    def set_game_state(cls, game_state: 'ComprehensiveGameState'):
+    def set_game_state(cls, game_state: GameStateInterface):
         cls.game_state = game_state
         
     @classmethod
-    async def start_casting(cls, actor: Actor, skill: CharacterSkill, duration_ticks: int, cast_function: callable):
+    async def start_casting(cls, actor: Actor, duration_ticks: int, cast_function: callable):
         game_tick = cls.game_state.current_tick
         new_state = CharacterStateCasting(actor, cls.game_state, actor, "casting", tick_created=game_tick, cast_function=cast_function)
         new_state.apply_state(game_tick, duration_ticks)
@@ -240,7 +142,7 @@ class Skills(SkillsInterface):
     
     @classmethod
     def does_resist(cls, actor: Actor, initiator_attribute: int, skill_level: int, target: Actor, 
-                    target_attribute: int, difficulty_modifier: int) -> tuple[bool, int]:
+                    target_attribute: int, difficulty_modifier: int) -> Tuple[bool, int]:
         """
         Calculate success chance for a skill check against resistance.
         
@@ -273,7 +175,7 @@ class Skills(SkillsInterface):
         return success, margin    
     
     @classmethod
-    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> tuple[bool, str]:
+    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> Tuple[bool, str]:
         can_act, msg = actor.can_act()
         if not can_act:
             return False, msg
@@ -282,11 +184,12 @@ class Skills(SkillsInterface):
         
         return True, ""
 
-    def send_success_message(cls, actor: Actor, targets: list[Actor],skill_data: dict, vars: dict) -> None:
-        msg = THIS_SKILL_DATA["message_success_subject"]
+    @classmethod
+    def send_success_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
+        msg = skill_data["message_success_subject"]
         vars = set_vars(actor, actor, target, msg)
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-        msg = THIS_SKILL_DATA["message_success_target"]
+        msg = skill_data["message_success_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
@@ -296,7 +199,8 @@ class Skills(SkillsInterface):
             vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
         
-    def send_failure_message(cls, actor: Actor, targets: list[Actor], skill_data: dict, vars: dict) -> None:
+    @classmethod
+    def send_failure_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_failure_subject"]
         vars = set_vars(actor, actor, target, msg)
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
@@ -310,11 +214,12 @@ class Skills(SkillsInterface):
             vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
 
-    def send_apply_message(cls, actor: Actor, targets: list[Actor],skill_data: dict, vars: dict) -> None:
-        msg = THIS_SKILL_DATA["message_apply_subject"]
+    @classmethod
+    def send_apply_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
+        msg = skill_data["message_apply_subject"]
         vars = set_vars(actor, actor, target, msg)
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-        msg = THIS_SKILL_DATA["message_apply_target"]
+        msg = skill_data["message_apply_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
@@ -324,7 +229,8 @@ class Skills(SkillsInterface):
             vars = set_vars(actor, actor, target, msg)
             actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
         
-    def send_resist_message(cls, actor: Actor, targets: list[Actor], skill_data: dict, vars: dict) -> None:
+    @classmethod
+    def send_resist_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_resist_subject"]
         vars = set_vars(actor, actor, target, msg)
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)

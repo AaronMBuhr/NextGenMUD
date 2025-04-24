@@ -1,4 +1,6 @@
+from .basic_types import GenericEnumWithAttributes
 from .skills_core import Skills
+from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -10,6 +12,125 @@ from .constants import CharacterClassRole
 from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds
 from .core_actions_interface import CoreActionsInterface
+
+
+        # CharacterClassRole.MAGE: {
+        #     # Tier 1 (Levels 1-9)
+        #     MageSkills.MAGIC_MISSILE: SkillsInterface.TIER1_MIN_LEVEL,
+        #     MageSkills.ARCANE_BARRIER: SkillsInterface.TIER1_MIN_LEVEL,
+        #     MageSkills.BURNING_HANDS: SkillsInterface.TIER1_MIN_LEVEL,
+        #     MageSkills.MANA_SHIELD: SkillsInterface.TIER1_MIN_LEVEL,
+        #     MageSkills.DISPEL_MAGIC: SkillsInterface.TIER1_MIN_LEVEL,
+            
+        #     # Tier 2 (Levels 10-19)
+        #     MageSkills.DETECT_MAGIC: SkillsInterface.TIER2_MIN_LEVEL,
+        #     MageSkills.IDENTIFY: SkillsInterface.TIER2_MIN_LEVEL,
+        #     MageSkills.ARCANE_INTELLECT: SkillsInterface.TIER2_MIN_LEVEL,
+        #     MageSkills.BLINK: SkillsInterface.TIER2_MIN_LEVEL,
+        #     MageSkills.FROST_NOVA: SkillsInterface.TIER2_MIN_LEVEL
+        # },
+        # CharacterClassRole.EVOKER: {
+        #     # Tier 3 (Levels 20-29)
+        #     MageSkills.EVOKER_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.EVOKER_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.EVOKER_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     MageSkills.EVOKER_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     MageSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Mage specialization: Conjurer (Tiers 3-7)
+        # CharacterClassRole.CONJURER: {
+        #     # Tier 3 (Levels 20-29)
+        #     MageSkills.CONJURER_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.CONJURER_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.CONJURER_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     MageSkills.CONJURER_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     MageSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Mage specialization: Enchanter (Tiers 3-7)
+        # CharacterClassRole.ENCHANTER: {
+        #     # Tier 3 (Levels 20-29)
+        #     MageSkills.ENCHANTER_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     MageSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.ENCHANTER_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.ENCHANTER_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     MageSkills.ENCHANTER_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     MageSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     MageSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+
+
 
 class Skills_Mage(Skills):
     @classmethod
@@ -23,41 +144,28 @@ class Skills_Mage(Skills):
         actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
 
     @classmethod
-    async def do_mage_cast_fireball(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                    difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        FIREBALL_CAST_TIME_TICKS = ticks_from_seconds(1.0)
-        
-        if actor.cooldowns.has_cooldown(actor, "fireball"):
-            msg = f"You can't cast fireball again yet!"
+    async def do_mage_cast_fireball(cls, actor: Actor, target: Actor, 
+                                   difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = MageSkills.FIREBALL
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-            
-        continue_func = lambda: cls.do_mage_cast_fireball_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_mage_cast_fireball_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
         else:
-            msg = f"You start to cast fireball!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            msg = f"{actor.art_name_cap} starts to cast fireball!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            msg = f"{actor.art_name_cap} starts to cast a spell!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: not target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            actor.recovers_at += FIREBALL_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, FIREBALL_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_mage_cast_fireball_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                   difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_mage_cast_fireball_finish(cls, actor: Actor, target: Actor, 
+                                          difficulty_modifier=0, game_tick=0) -> bool:
         FIREBALL_DMG_DICE_LEVEL_MULT = 1/4
         FIREBALL_DMG_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
         FIREBALL_DMG_DICE_SIZE = 6
@@ -101,40 +209,27 @@ class Skills_Mage(Skills):
             return False
 
     @classmethod
-    async def do_mage_cast_magic_missile(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                         difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        MAGIC_MISSILE_CAST_TIME_TICKS = ticks_from_seconds(0.5)
-        
-        if actor.cooldowns.has_cooldown(actor, "magic_missile"):
-            msg = f"You can't cast magic missile again yet!"
+    async def do_mage_cast_magic_missile(cls, actor: Actor, target: Actor, 
+                                        difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = MageSkills.MAGIC_MISSILE
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-            
-        continue_func = lambda: cls.do_mage_cast_magic_missile_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_mage_cast_magic_missile_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
         else:
-            msg = f"You start to cast magic missile!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            msg = f"{actor.art_name_cap} starts to cast magic missile!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            msg = f"{actor.art_name_cap} starts to cast a spell!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: not target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            actor.recovers_at += MAGIC_MISSILE_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, MAGIC_MISSILE_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_mage_cast_magic_missile_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_mage_cast_magic_missile_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
         MAGIC_MISSILE_DMG_DICE_LEVEL_MULT = 1/4
         MAGIC_MISSILE_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT
@@ -167,46 +262,34 @@ class Skills_Mage(Skills):
             return False
 
     @classmethod
-    async def do_mage_cast_light(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_mage_cast_light(cls, actor: Actor, target: Actor, 
+                               difficulty_modifier=0, game_tick=0) -> bool:
         actor.send_text(CommTypes.DYNAMIC, "Casting light is not yet implemented!", cls.game_state)
         pass
 
     @classmethod
-    async def do_mage_cast_arcane_barrier(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                  difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        ARCANE_BARRIER_CAST_TIME_TICKS = ticks_from_seconds(0.25)
-        
-        if actor.cooldowns.has_cooldown(actor, "arcane_barrier"):
-            msg = f"You can't cast arcane barrier again yet!"
+    async def do_mage_cast_arcane_barrier(cls, actor: Actor, target: Actor, 
+                                         difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+        THIS_SKILL_DATA = MageSkills.ARCANE_BARRIER
+        ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
+        if not ready:
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-            
-        continue_func = lambda: cls.do_mage_cast_arcane_barrier_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_mage_cast_arcane_barrier_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
         else:
-            msg = f"You start to cast arcane barrier!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
-            msg = f"{actor.art_name_cap} starts to cast arcane barrier!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            msg = f"{actor.art_name_cap} starts to cast a spell!"
-            vars = set_vars(actor, actor, target, msg)
-            filter_fn = lambda target: not target.has_class(CharacterClassRole.MAGE)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor],
-                                      game_state=cls.game_state, filter_fn=filter_fn)
-            actor.recovers_at += ARCANE_BARRIER_CAST_TIME_TICKS
-            await cls.start_casting(actor, skill, ARCANE_BARRIER_CAST_TIME_TICKS, continue_func)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
     
     @classmethod
-    async def do_mage_cast_arcane_barrier_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-                                         difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_mage_cast_arcane_barrier_finish(cls, actor: Actor, target: Actor, 
+                                               difficulty_modifier=0, game_tick=0) -> bool:
         DAMAGE_REDUCTION_AMOUNT = actor.levels_[CharacterClassRole.MAGE]
         ARCANE_BARRIER_COOLDOWN_TICKS = ticks_from_seconds(60)
         
@@ -238,5 +321,6 @@ class Skills_Mage(Skills):
             return False
 
     @classmethod
-    async def do_mage_cast_sleep(cls, actor: Actor, target: Actor, skill: CharacterSkill, difficulty_modifier=0, game_tick=0) -> bool:
+    async def do_mage_cast_sleep(cls, actor: Actor, target: Actor, 
+                                difficulty_modifier=0, game_tick=0) -> bool:
         actor.send_text(CommTypes.DYNAMIC, "Casting sleep is not yet implemented!", cls.game_state) 

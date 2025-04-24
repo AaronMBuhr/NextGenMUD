@@ -1,5 +1,6 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skill, Skills
+from .skills_core import Skills
+from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -17,7 +18,131 @@ from .core_actions_interface import CoreActionsInterface
 from collections import defaultdict
 import random
 
-class FighterSkills(GenericEnumWithAttributes[Skill]):
+
+        # CharacterClassRole.FIGHTER: {
+        #     # Tier 1 (Levels 1-9)
+        #     FighterSkills.NORMAL_STANCE: SkillsInterface.TIER1_MIN_LEVEL,
+        #     FighterSkills.SLAM: SkillsInterface.TIER1_MIN_LEVEL,
+        #     FighterSkills.MIGHTY_KICK: SkillsInterface.TIER1_MIN_LEVEL,
+        #     FighterSkills.BASH: SkillsInterface.TIER1_MIN_LEVEL,
+        #     FighterSkills.CLEAVE: SkillsInterface.TIER1_MIN_LEVEL,
+            
+        #     # Tier 2 (Levels 10-19)
+        #     FighterSkills.DISARM: SkillsInterface.TIER2_MIN_LEVEL,
+        #     FighterSkills.DEFENSIVE_STANCE: SkillsInterface.TIER2_MIN_LEVEL,
+        #     FighterSkills.RALLY: SkillsInterface.TIER2_MIN_LEVEL,
+        #     FighterSkills.SHIELD_BLOCK: SkillsInterface.TIER2_MIN_LEVEL,
+        #     FighterSkills.SHIELD_SWEEP: SkillsInterface.TIER2_MIN_LEVEL
+        # },
+
+        # CharacterClassRole.BERSERKER: {
+        #     # Tier 3 (Levels 20-29)
+        #     FighterSkills.BERSERKER_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.BERSERKER_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.BERSERKER_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     FighterSkills.BERSERKER_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Fighter specialization: Guardian (Tiers 3-7)
+        # CharacterClassRole.GUARDIAN: {
+        #     # Tier 3 (Levels 20-29)
+        #     FighterSkills.GUARDIAN_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.GUARDIAN_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.GUARDIAN_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     FighterSkills.GUARDIAN_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+        # # Fighter specialization: Reaver (Tiers 3-7)
+        # CharacterClassRole.REAVER: {
+        #     # Tier 3 (Levels 20-29)
+        #     FighterSkills.REAVER_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
+        #     FighterSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
+            
+        #     # Tier 4 (Levels 30-39)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.REAVER_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
+            
+        #     # Tier 5 (Levels 40-49)
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.REAVER_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
+            
+        #     # Tier 6 (Levels 50-59)
+        #     FighterSkills.REAVER_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
+        #     FighterSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
+            
+        #     # Tier 7 (Level 60)
+        #     FighterSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
+        # },
+        
+
+
+class FighterSkills(GenericEnumWithAttributes):
+    
+    def get_level_requirement(self, skill_num: int) -> int:
+        return 1
+    
     NORMAL_STANCE = Skill(
         name="normal stance",
         base_class=CharacterClassRole.FIGHTER,
@@ -410,7 +535,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     )
 
     @classmethod
-    async def do_fighter_normal_stance(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_normal_stance(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.NORMAL_STANCE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -418,7 +543,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        continue_func = lambda: cls.do_fighter_normal_stance_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_normal_stance_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -426,11 +551,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_normal_stance_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_normal_stance_finish(cls, actor: Actor, target: Actor, 
                                              difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.NORMAL_STANCE
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
@@ -452,7 +577,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             return False
 
     @classmethod
-    async def do_fighter_defensive_stance(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_defensive_stance(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.DEFENSIVE_STANCE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -460,7 +585,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        continue_func = lambda: cls.do_fighter_defensive_stance_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_defensive_stance_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -468,11 +593,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_defensive_stance_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_defensive_stance_finish(cls, actor: Actor, target: Actor, 
                                                 difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.DEFENSIVE_STANCE
         DEFENSIVE_STANCE_DODGE_BONUS = 10
@@ -506,7 +631,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             return False
 
     @classmethod
-    async def do_fighter_shield_block(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_shield_block(cls, actor: Actor, target: Actor, 
                                      difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.SHIELD_BLOCK
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -514,7 +639,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        continue_func = lambda: cls.do_fighter_shield_block_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_shield_block_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -522,11 +647,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_shield_block_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_shield_block_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.SHIELD_BLOCK
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -556,7 +681,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             return False
 
     @classmethod
-    async def do_fighter_shield_sweep(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_shield_sweep(cls, actor: Actor, target: Actor, 
                                      difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.SHIELD_SWEEP
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -564,7 +689,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        continue_func = lambda: cls.do_fighter_shield_sweep_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_shield_sweep_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -572,11 +697,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_shield_sweep_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_shield_sweep_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.SHIELD_SWEEP
         SHIELD_SWEEP_DAMAGE_MIN = 5
@@ -608,7 +733,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             return False
 
     @classmethod
-    async def do_fighter_mighty_kick(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_mighty_kick(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.MIGHTY_KICK
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -616,7 +741,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        continue_func = lambda: cls.do_fighter_mighty_kick_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_mighty_kick_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -624,11 +749,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_mighty_kick_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_mighty_kick_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.MIGHTY_KICK
         kick_duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) \
@@ -659,7 +784,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             return True
 
     @classmethod
-    async def do_fighter_demoralizing_shout(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_demoralizing_shout(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
         THIS_SKILL_DATA = FighterSkills.DEMORALIZING_SHOUT
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -673,7 +798,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
         else:
             send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
-        continue_func = lambda: cls.do_fighter_demoralizing_shout_finish(actor, target, skill, difficulty_modifier, game_tick)
+        continue_func = lambda: cls.do_fighter_demoralizing_shout_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
         if nowait:
             continue_func()
@@ -681,11 +806,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-            await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+            await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
 
     @classmethod
-    async def do_fighter_demoralizing_shout_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    async def do_fighter_demoralizing_shout_finish(cls, actor: Actor, target: Actor, 
                                                  difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = FighterSkills.DEMORALIZING_SHOUT
         DEMORALIZING_SHOUT_HIT_PENALTY_MIN = 10
@@ -721,7 +846,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
 
 
     # @classmethod
-    # async def do_fighter_intimidate(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_intimidate(cls, actor: Actor, target: Actor, 
     #                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.INTIMIDATE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -729,7 +854,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_intimidate_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_intimidate_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -737,11 +862,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_intimidate_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_intimidate_finish(cls, actor: Actor, target: Actor, 
     #                                       difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.INTIMIDATE
     #     INTIMIDATE_HIT_PENALTY_MIN = 10
@@ -768,7 +893,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_disarm(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_disarm(cls, actor: Actor, target: Actor, 
     #                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.DISARM
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -776,7 +901,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_disarm_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_disarm_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -784,11 +909,11 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_disarm_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_disarm_finish(cls, actor: Actor, target: Actor, 
     #                                   difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.DISARM
     #     level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -810,7 +935,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_slam(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_slam(cls, actor: Actor, target: Actor, 
     #                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.SLAM
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -818,7 +943,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_slam_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_slam_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -826,12 +951,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_slam_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                 difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_slam_finish(cls, actor: Actor, target: Actor, 
+    #                                difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.SLAM
     #     SLAM_DODGE_PENALTY_MIN = 10
     #     SLAM_DODGE_PENALTY_MAX = 40
@@ -855,7 +980,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_bash(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_bash(cls, actor: Actor, target: Actor, 
     #                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.BASH
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -863,7 +988,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_bash_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_bash_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -871,12 +996,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_bash_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                 difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_bash_finish(cls, actor: Actor, target: Actor, 
+    #                                difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.BASH
     #     level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
     #     duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
@@ -897,15 +1022,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_rally(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                           difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_rally(cls, actor: Actor, target: Actor, 
+    #                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.RALLY
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_rally_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_rally_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -913,12 +1038,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_rally_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                  difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_rally_finish(cls, actor: Actor, target: Actor, 
+    #                                difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.RALLY
     #     RALLY_HIT_BONUS_MIN = 5
     #     RALLY_HIT_BONUS_MAX = 20
@@ -947,7 +1072,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_rend(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_rend(cls, actor: Actor, target: Actor, 
     #                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.REND
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -955,7 +1080,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_rend_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_rend_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -963,12 +1088,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_rend_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                 difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_rend_finish(cls, actor: Actor, target: Actor, 
+    #                                difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.REND
     #     REND_DAMAGE_MIN = 5
     #     REND_DAMAGE_MAX = 15
@@ -992,7 +1117,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_cleave(cls, actor: Actor, target: Actor, skill: CharacterSkill,
+    # async def do_fighter_cleave(cls, actor: Actor, target: Actor, 
     #                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.CLEAVE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
@@ -1000,7 +1125,7 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_cleave_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_cleave_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1008,12 +1133,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_cleave_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                   difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_cleave_finish(cls, actor: Actor, target: Actor, 
+    #                                  difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.CLEAVE
     #     attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
     #         * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -1057,15 +1182,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_whirlwind(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                               difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_whirlwind(cls, actor: Actor, target: Actor, 
+    #                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.WHIRLWIND
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_whirlwind_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_whirlwind_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1073,12 +1198,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_whirlwind_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                      difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_whirlwind_finish(cls, actor: Actor, target: Actor, 
+    #                                     difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.WHIRLWIND
     #     cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
     #     await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1154,15 +1279,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_execute(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                             difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_execute(cls, actor: Actor, target: Actor, 
+    #                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.EXECUTE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_execute_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_execute_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1170,12 +1295,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_execute_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                    difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_execute_finish(cls, actor: Actor, target: Actor, 
+    #                                  difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.EXECUTE
     #     # Check if target is below 25% health
     #     if target.current_hit_points > target.max_hit_points * 0.25:
@@ -1218,15 +1343,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_enrage(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_enrage(cls, actor: Actor, target: Actor, 
+    #                           difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.ENRAGE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_enrage_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_enrage_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1234,12 +1359,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_enrage_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                   difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_enrage_finish(cls, actor: Actor, target: Actor, 
+    #                                 difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.ENRAGE
     #     ENRAGE_DAMAGE_BONUS_MIN = 20
     #     ENRAGE_DAMAGE_BONUS_MAX = 50
@@ -1261,15 +1386,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_massacre(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_massacre(cls, actor: Actor, target: Actor, 
+    #                             difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.MASSACRE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_massacre_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_massacre_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1277,12 +1402,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_massacre_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                     difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_massacre_finish(cls, actor: Actor, target: Actor, 
+    #                                   difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.MASSACRE
     #     attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
     #         * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -1318,15 +1443,15 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         return False
 
     # @classmethod
-    # async def do_fighter_berserker_stance(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                      difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
+    # async def do_fighter_berserker_stance(cls, actor: Actor, target: Actor, 
+    #                                     difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.BERSERKER_STANCE
     #     ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
     #     if not ready:
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
     #         return False
-    #     continue_func = lambda: cls.do_fighter_berserker_stance_finish(actor, target, skill, difficulty_modifier, game_tick)
+    #     continue_func = lambda: cls.do_fighter_berserker_stance_finish(actor, target, difficulty_modifier, game_tick)
     #     actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
     #     if nowait:
     #         continue_func()
@@ -1334,12 +1459,12 @@ class FighterSkills(GenericEnumWithAttributes[Skill]):
     #         vars = set_vars(actor, actor, target, msg)
     #         actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
     #         actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
-    #         await cls.start_casting(actor, skill, THIS_SKILL_DATA.cast_time_ticks, continue_func)
+    #         await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
     #     return True
 
     # @classmethod
-    # async def do_fighter_berserker_stance_finish(cls, actor: Actor, target: Actor, skill: CharacterSkill,
-    #                                             difficulty_modifier=0, game_tick=0) -> bool:
+    # async def do_fighter_berserker_stance_finish(cls, actor: Actor, target: Actor, 
+    #                                           difficulty_modifier=0, game_tick=0) -> bool:
     #     THIS_SKILL_DATA = FighterSkills.BERSERKER_STANCE
     #     BERSERKER_STANCE_DODGE_PENALTY = 10
     #     BERSERKER_STANCE_HIT_BONUS = 20

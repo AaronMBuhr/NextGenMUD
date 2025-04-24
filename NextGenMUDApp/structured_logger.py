@@ -15,18 +15,30 @@ logging.basicConfig(
 # Create a custom processor that adds caller information
 def add_caller_info(_, __, event_dict):
     """Add the caller's function name and line number to the log entry."""
-    # Get the caller's frame (skip structlog and this processor)
+    # Get the caller's frame
     frame = inspect.currentframe()
-    # Go back multiple frames to get to the actual caller
-    for _ in range(3):  # Adjust this number if needed
-        if frame is None:
-            break
-        frame = frame.f_back
     
-    if frame:
-        event_dict["function"] = frame.f_code.co_name
-        event_dict["file"] = frame.f_code.co_filename.split("\\")[-1]
-        event_dict["line"] = frame.f_lineno
+    # Go back until we find a frame that's not from the logging infrastructure
+    # Skip frames from structlog, logging, and this module
+    internal_modules = ['structlog', 'logging', 'structured_logger.py']
+    
+    while frame:
+        frame = frame.f_back
+        if not frame:
+            break
+            
+        # Get the module name from the frame
+        module_name = frame.f_code.co_filename
+        
+        # Check if this is not an internal logging module
+        is_internal = any(internal in module_name for internal in internal_modules)
+        
+        if not is_internal:
+            # Found the actual caller
+            event_dict["function"] = frame.f_code.co_name
+            event_dict["file"] = frame.f_code.co_filename.split("\\")[-1]
+            event_dict["line"] = frame.f_lineno
+            break
     
     return event_dict
 
@@ -237,14 +249,19 @@ def wrap_text(_, __, event_dict):
     msg = str(event_dict.get("event", ""))
     
     # Calculate timestamp and level lengths to account for in first line
-    timestamp_len = 23  # "2025-04-24 08:13:03 "
-    level_len = 10      # "[critical] "
+    timestamp_len = 17  # "04-24 17:22:45 "
+    level_len = 6      # "[WRN] "
     first_line_offset = timestamp_len + level_len
+    
+    # Adjust wrap_width to account for indentation
+    # For subsequent lines, we need to account for the indentation that will be applied
+    # by the renderer (which is typically the same as the first_line_offset)
+    content_wrap_width = wrap_width - first_line_offset
     
     # Build a combined message with all metadata
     metadata_parts = []
     for key, value in list(event_dict.items()):
-        if key not in ("event", "timestamp", "level"):
+        if key not in ("event", "timestamp", "level", "logger", "logger_name"):
             metadata_parts.append(f"{key}={value}")
             # Remove the key to prevent it from being rendered separately later
             event_dict.pop(key)
@@ -259,21 +276,21 @@ def wrap_text(_, __, event_dict):
     result_lines = []
     
     for line in full_msg.split('\n'):
-        # For first line in the message, account for timestamp and level space
+        # For all lines, we use the content_wrap_width since the offset 
+        # is already accounted for in that calculation
         is_first_line = (not result_lines)
-        available_width = wrap_width - (first_line_offset if is_first_line else 0)
         
         # Process this line
         current_pos = 0
         
         while current_pos < len(line):
             # If remaining text fits in available width
-            if current_pos + available_width >= len(line):
+            if current_pos + content_wrap_width >= len(line):
                 result_lines.append(line[current_pos:])
                 break
             
             # Find a good breaking point
-            break_pos = current_pos + available_width
+            break_pos = current_pos + content_wrap_width
             
             # Look for last space before width limit
             while break_pos > current_pos and not line[break_pos-1].isspace():
@@ -281,7 +298,7 @@ def wrap_text(_, __, event_dict):
                 
             # If no space found, force break at width
             if break_pos <= current_pos:
-                break_pos = current_pos + available_width
+                break_pos = current_pos + content_wrap_width
             
             # Add this segment
             result_lines.append(line[current_pos:break_pos].rstrip())
@@ -290,9 +307,6 @@ def wrap_text(_, __, event_dict):
             current_pos = break_pos
             while current_pos < len(line) and line[current_pos].isspace():
                 current_pos += 1
-            
-            # For subsequent segments of this line, don't account for timestamp offset
-            available_width = wrap_width
     
     # Join the lines with newlines and set as the event
     event_dict["event"] = '\n'.join(result_lines)
@@ -350,16 +364,22 @@ class CustomConsoleRenderer:
         self.current_year = None
         
         # List of keys to filter from being shown in extra fields
-        self.filtered_keys = set(['logger', 'function'])
+        self.filtered_keys = set(['logger', 'logger_name'])
 
     def __call__(self, logger, method_name, event_dict):
         """Render the event dictionary into colored output."""
         global year_has_been_logged
+        # print("test")
+        # print(event_dict)
         
         # Extract standard fields
         timestamp = event_dict.pop('timestamp', '')
         level = event_dict.pop('level', 'info')
         event = event_dict.pop('event', '')
+        
+        # Explicitly remove logger-related keys we don't want to display
+        event_dict.pop('logger', None)
+        event_dict.pop('logger_name', None)
         
         # Handle year logging
         if timestamp and not year_has_been_logged:

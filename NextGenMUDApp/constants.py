@@ -8,30 +8,30 @@ class CharacterClassRole(DescriptiveFlags):
     # Tell EnumMeta to ignore mapping variables
     _ignore_ = 'BASE_TO_SPECIALIZATIONS SPECIALIZATION_TO_BASE'
     # Base classes
-    FIGHTER = 1
-    ROGUE = 2
-    MAGE = 4
-    CLERIC = 8
+    FIGHTER = 1 << 0
+    ROGUE = 1 << 1
+    MAGE = 1 << 2
+    CLERIC = 1 << 3
     
     # Fighter specializations (level 20+)
-    BERSERKER = 16   # Fighter specialization
-    GUARDIAN = 32    # Fighter specialization
-    REAVER = 64      # Fighter specialization
+    BERSERKER = 1 << 6   # Fighter specialization
+    GUARDIAN = 1 << 7    # Fighter specialization
+    REAVER = 1 << 8      # Fighter specialization
     
     # Rogue specializations (level 20+)
-    DUELIST = 128    # Rogue specialization
-    ASSASSIN = 256   # Rogue specialization
-    INFILTRATOR = 512  # Rogue specialization
+    DUELIST = 1 << 11    # Rogue specialization
+    ASSASSIN = 1 << 12   # Rogue specialization
+    INFILTRATOR = 1 << 13  # Rogue specialization
     
     # Mage specializations (level 20+)
-    EVOKER = 1024    # Mage specialization
-    CONJURER = 2048  # Mage specialization
-    ENCHANTER = 4096 # Mage specialization
+    EVOKER = 1 << 16    # Mage specialization
+    CONJURER = 1 << 17  # Mage specialization
+    ENCHANTER = 1 << 18 # Mage specialization
     
     # Cleric specializations (level 20+)
-    WARPRIEST = 8192    # Cleric specialization
-    RESTORER = 16384    # Cleric specialization
-    RITUALIST = 32768   # Cleric specialization
+    WARPRIEST = 1 << 21    # Cleric specialization
+    RESTORER = 1 << 22    # Cleric specialization
+    RITUALIST = 1 << 23   # Cleric specialization
 
     # Base class to specialization mapping
     BASE_TO_SPECIALIZATIONS: ClassVar[Dict[int, List[int]]] = {
