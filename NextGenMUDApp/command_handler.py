@@ -62,20 +62,20 @@ class CommandHandler(CommandHandlerInterface):
         "delay": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_delay(char, input),
 
         # normal commands
-        "north": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
-        "n": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "north"),
-        "south": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "south"),
-        "s": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "south"),
-        "east": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "east"),
-        "e": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "east"),
-        "west": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "west"),
-        "w": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "west"),
-        "down": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "down"),
-        "d": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "down"),
-        "up": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "up"),
-        "u": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "up"),
-        "out": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "out"),
-        "in": lambda command, char, input: CoreActionsInterface.get_instance().world_move(char, "in"),
+        "north": lambda command, char, input: CommandHandler.handle_movement(command, char, "north"),
+        "n": lambda command, char, input: CommandHandler.handle_movement(command, char, "north"),
+        "south": lambda command, char, input: CommandHandler.handle_movement(command, char, "south"),
+        "s": lambda command, char, input: CommandHandler.handle_movement(command, char, "south"),
+        "east": lambda command, char, input: CommandHandler.handle_movement(command, char, "east"),
+        "e": lambda command, char, input: CommandHandler.handle_movement(command, char, "east"),
+        "west": lambda command, char, input: CommandHandler.handle_movement(command, char, "west"),
+        "w": lambda command, char, input: CommandHandler.handle_movement(command, char, "west"),
+        "down": lambda command, char, input: CommandHandler.handle_movement(command, char, "down"),
+        "d": lambda command, char, input: CommandHandler.handle_movement(command, char, "down"),
+        "up": lambda command, char, input: CommandHandler.handle_movement(command, char, "up"),
+        "u": lambda command, char, input: CommandHandler.handle_movement(command, char, "up"),
+        "out": lambda command, char, input: CommandHandler.handle_movement(command, char, "out"),
+        "in": lambda command, char, input: CommandHandler.handle_movement(command, char, "in"),
         "say": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_say(char, input),
         "sayto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sayto(char, input),
         "tell": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_tell(char, input),
@@ -98,6 +98,14 @@ class CommandHandler(CommandHandlerInterface):
         # various emotes are in the EMOTE_MESSAGES dict below
     }
 
+    @classmethod
+    async def handle_movement(cls, command, char, direction):
+        logger = StructuredLogger(__name__, prefix="handle_movement()> ")
+        try:
+            await CoreActionsInterface.get_instance().world_move(char, direction)
+        except KeyError as e:
+            logger.warning(f"Movement failed - destination room not found: {e} when moving {direction} from {char.location_room.name}")
+            await char.send_text(CommTypes.DYNAMIC, "There is a problem with going that direction.")
 
     async def process_command(cls, actor: Actor, input: str, vars: dict = None):
         logger = StructuredLogger(__name__, prefix="process_command()> ")
