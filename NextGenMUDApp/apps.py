@@ -1,10 +1,22 @@
 from django.apps import AppConfig
 import sys
+import os
+from .structured_logger import set_global_log_width, set_detail_level
 
 class NextGenMUDAppConfig(AppConfig):
     name = 'NextGenMUDApp'
 
     def ready(self):
+        # Set global log width from environment variable if present and valid
+        log_width = os.environ.get('NEXTGENMUD_LOG_WIDTH')
+        if log_width and log_width.isdigit():
+            set_global_log_width(int(log_width))
+
+        # Set log detail level from environment variable if present and valid
+        log_level = os.environ.get('NEXTGENMUD_LOG_LEVEL')
+        if log_level and log_level.isdigit():
+            set_detail_level(int(log_level))
+
         # Only initialize game state if not running management commands
         if not any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'shell', 'dbshell']):
             # Import here to avoid premature loading

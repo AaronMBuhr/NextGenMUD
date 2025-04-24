@@ -25,9 +25,9 @@ from .utility import replace_vars, firstcap, set_vars, split_preserving_quotes, 
 from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
 from .communication import Connection
-from .comprehensive_game_state_interface import GameStateInterface, ScheduledAction
+from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent, EventType
 from .config import Config, default_app_config
-from .cooldowns import Cooldown
+from .nondb_models.actor_states import Cooldown
 
 class CommandHandler(CommandHandlerInterface):
     _game_state: ComprehensiveGameState = live_game_state
@@ -131,7 +131,7 @@ class CommandHandler(CommandHandlerInterface):
                 elif actor.actor_type == ActorType.CHARACTER \
                     and actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
                     msg = "You are stunned!"
-                elif actor.is_busy():
+                elif actor.is_busy(cls._game_state.get_current_tick()):
                     # Queue the first command if the actor is busy
                     actor.command_queue.append(first_command)
                     msg = "You are busy. Your command has been queued."
@@ -1014,35 +1014,47 @@ class CommandHandler(CommandHandlerInterface):
 
     async def cmd_leaverandom(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_leaverandom()> ")
-        if actor.actor_type != ActorType.CHARACTER:
-            await actor.send_text(CommTypes.DYNAMIC, "Only characters can leave random.")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if the actor wants to stay in the current zone
+        stay_in_zone = False
+        if input and input.strip().lower() == "stayinzone":
+            stay_in_zone = True
+            
+        # Get valid exits
+        if actor.location_room is None:
+            await actor.send_text(CommTypes.DYNAMIC, "You are not in a room.")
             return
-        pieces = input.split(' ')
-        stay_in_zone = (pieces[0].lower() == "stayinzone")
-        valid_directions = []
-        if stay_in_zone:
-            logger.debug3("stayinzone")
-            logger.debug3("exits: " + str(actor.location_room.exits))
-            for direction, dest_room_id in actor._location_room.exits.items():
-                logger.debug3("dest_room_id: " + dest_room_id)
-                if "." in dest_room_id:
-                    dest_zone_id, dest_room_id = dest_room_id.split(".")
-                    logger.debug3("got .")
-                    logger.debug3(f"dest_zone_id: {dest_zone_id}, dest_room_id: {dest_room_id}")
-                else:
-                    dest_zone_id = actor.location_room.zone.id
-                logger.debug3("dest_zone_id: " + dest_zone_id)
-                logger.debug3("actor.location_room.zone.id: " + actor.location_room.zone.id)
-                if dest_zone_id == actor.location_room.zone.id:
-                    valid_directions.append(direction)
         else:
-            logger.debug3("not stayinzone")
-            valid_directions = actor.location_room.exits.keys()
+            valid_directions = list(actor.location_room.exits.keys())
+            
+        # Filter exits if staying in zone
+        if stay_in_zone:
+            filtered_directions = []
+            current_zone = actor.location_room.zone.id
+            
+            for direction in valid_directions:
+                destination = actor.location_room.exits[direction]
+                # Check if destination is in the same zone
+                if "." in destination:
+                    zone_id, _ = destination.split(".")
+                    if zone_id == current_zone:
+                        filtered_directions.append(direction)
+                else:
+                    # If no zone specified, it's in the current zone
+                    filtered_directions.append(direction)
+                    
+            valid_directions = filtered_directions
+            
         logger.debug3("valid_exits: " + str(valid_directions))
         num_exits = len(valid_directions)
         if num_exits == 0:
-            await actor.send_text(CommTypes.DYNAMIC, "There are no exits here.")
+            if stay_in_zone:
+                await actor.send_text(CommTypes.DYNAMIC, "There are no exits that stay in the current zone.")
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, "There are no exits here.")
             return
+            
         exit_num = random.randint(0, num_exits - 1)
         msg = f"You randomly decide to go {valid_directions[exit_num]}."
         logger.debug3("msg: " + msg)

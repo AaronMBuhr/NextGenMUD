@@ -5,7 +5,7 @@ from .structured_logger import StructuredLogger
 from django.conf import settings
 import json
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable, Any
 import yaml
 from .game_save_utils import save_game, load_game, list_saves, delete_save, create_player
 from .nondb_models.actor_interface import ActorType, ActorSpawnData
@@ -21,7 +21,7 @@ from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
 from .communication import Connection
-from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent
+from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent, EventType
 from .config import Config, default_app_config
 from .core_actions_interface import CoreActionsInterface
 from .utility import article_plus_name
@@ -100,12 +100,15 @@ class ComprehensiveGameState:
                     new_zone.description = zone_info['description']
                     self.world_definition.zones[zone_id] = new_zone
                     logger.debug(f"Loading rooms...")
-                    for room_id, room_info in zone_info['rooms'].items():
-                        logger.debug2(f"Loading room_id: {room_id}")
-                        new_room = Room(room_id, self.world_definition.zones[zone_id])
-                        new_room.from_yaml(new_zone, room_info)
-                        new_zone.rooms[room_id] = new_room
-                    logger.debug("Rooms loaded")
+                    if 'rooms' in zone_info:  # Check if rooms key exists
+                        for room_id, room_info in zone_info['rooms'].items():
+                            logger.debug2(f"Loading room_id: {room_id}")
+                            new_room = Room(room_id, self.world_definition.zones[zone_id])
+                            new_room.from_yaml(new_zone, room_info)
+                            new_zone.rooms[room_id] = new_room
+                        logger.debug("Rooms loaded")
+                    else:
+                        logger.warning(f"Zone {zone_id} has no rooms defined")
                 logger.debug("Zones loaded")
 
             if "CHARACTERS" in yaml_data:
@@ -156,19 +159,19 @@ class ComprehensiveGameState:
         # copy to operating data
         self.zones = copy.deepcopy(self.world_definition.zones)
         # print("init zones")
-        logger.critical("init zones")
+        logger.info("Initializing zones...")
         for zone, zone_data in self.zones.items():
-            logger.critical("init rooms")
+            logger.debug(f"init rooms for zone: {zone}")
             for room, room_data in zone_data.rooms.items():
                 room_data.create_reference()
                 # print(f"room_data: {room_data}")
                 logger.debug3("init spawndata")
                 for spawndata in room_data.spawn_data:
-                    logger.critical(f"spawndata: {spawndata}")
+                    logger.debug3(f"spawndata: {spawndata}")
                     spawndata.owner = room_data
-                    logger.critical(f"spawndata.actor_type: {spawndata.actor_type}")
+                    logger.debug3(f"spawndata.actor_type: {spawndata.actor_type}")
                     if spawndata.actor_type == ActorType.CHARACTER:
-                        logger.critical("spawndata is character")
+                        logger.debug3("spawndata is character")
                         character_def = self.world_definition.find_character_definition(spawndata.id)
                         if not character_def:
                             logger.warning(f"Character definition for {spawndata.id} not found.")
@@ -179,13 +182,38 @@ class ComprehensiveGameState:
                             self.characters.append(new_character)
                             spawndata.owner.add_character(new_character)
                             spawndata.spawned.append(new_character)
-                            logger.critical(f"new_character: {new_character} added to room {new_character._location_room.rid}")
+                            logger.debug3(f"new_character: {new_character} added to room {new_character._location_room.rid}")
                 for trig_type in room_data.triggers_by_type:
                     for trig in room_data.triggers_by_type[trig_type]:
                         logger.debug3("enabling trigger")
                         trig.enable()
 
         logger.info("World prepared")
+        
+        # Print zone statistics
+        print("\n=== WORLD LOADING STATISTICS ===")
+        for zone_id, zone_data in self.zones.items():
+            room_count = len(zone_data.rooms)
+            
+            # Count characters in this zone
+            char_count = 0
+            for room in zone_data.rooms.values():
+                char_count += len(room.get_characters())
+            
+            # Count objects in this zone
+            obj_count = 0
+            for room in zone_data.rooms.values():
+                obj_count += len(room.contents)
+                # Also count objects carried by characters
+                for char in room.get_characters():
+                    obj_count += len(char.contents)
+                    # Count equipped items
+                    for item in char.equipped.values():
+                        if item:
+                            obj_count += 1
+            
+            print(f"Zone '{zone_id}': {room_count} rooms, {char_count} characters, {obj_count} objects")
+        print("===============================\n")
     
 
     def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False) -> Character:
@@ -448,7 +476,7 @@ class ComprehensiveGameState:
             logger.warning(f"Removing character, but character not found in characters list: {character}.")
 
     def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, in_ticks: int = None, 
-                             vars: Dict[str, Any]=None, func: callable[Any, int, 'ComprehensiveGameState', Dict[str, Any]] = None):
+                             vars: Dict[str, Any]=None, func: Callable[[Any, int, 'ComprehensiveGameState', Dict[str, Any]], None] = None):
         logger = StructuredLogger(__name__, prefix="add_scheduled_event()> ")
         if not scheduled_tick and not in_ticks:
             raise Exception("Must specify either scheduled_tick or in_ticks.")
@@ -888,6 +916,9 @@ class ComprehensiveGameState:
     def handle_scheduled_events(self, event: ScheduledEvent):
         for scheduled_event in self.scheduled_events[self.world_clock_tick]:
             scheduled_event.run(self.world_clock_tick, self)
+            
+    def get_current_tick(self) -> int:
+        return self.world_clock_tick
 
 
 live_game_state = ComprehensiveGameState()

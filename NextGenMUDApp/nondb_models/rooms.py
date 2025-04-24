@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Callable
 from .actor_interface import ActorType, ActorSpawnData
 from .actors import Actor
 from ..communication import CommTypes
@@ -7,6 +7,7 @@ from .object_interface import ObjectInterface
 from .room_interface import RoomInterface
 from .triggers import Trigger
 from ..utility import replace_vars, firstcap, evaluate_functions_in_line
+from ..comprehensive_game_state_interface import GameStateInterface
 
 class Room(Actor, RoomInterface):
     from .world import Zone
@@ -93,7 +94,7 @@ class Room(Actor, RoomInterface):
 
     async def echo(self, text_type: CommTypes, text: str, vars: dict = None, 
                    exceptions: List['Actor'] =None, already_substituted: bool = False,
-                   game_state: 'GameStateInterface' = None, skip_triggers: bool = False,
+                   game_state: GameStateInterface = None, skip_triggers: bool = False,
                    filter_fn: Callable[['Actor'], bool] = lambda _: True) -> bool:
         logger = StructuredLogger(__name__, prefix="Room.echo()> ")
         if text == False:

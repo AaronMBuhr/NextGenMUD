@@ -59,10 +59,17 @@ class DetailLevelFilter:
         # Get the appropriate level for this module
         current_level = self.get_level(module)
         
-        # Filter out messages with higher detail level than configured
-        if detail_level > current_level:
-            raise structlog.DropEvent
-        
+        # For debug messages, filter based on hierarchy:
+        # debug (1) < debug2 (2) < debug3 (3)
+        # If level=debug3, show all debug levels
+        # If level=debug2, show debug and debug2 (not debug3)
+        # If level=debug, show only debug (not debug2 or debug3)
+        if method_name == "debug" and detail_level > 0:
+            if detail_level > current_level:
+                # Drop more detailed debug messages than current level
+                raise structlog.DropEvent
+                
+        # For non-debug messages, allow them regardless of the detail level
         return event_dict
 
 # Create a processor for adding prefixes
@@ -213,11 +220,202 @@ class ProgressHandler:
         self.check_and_reset_progress()
         return event_dict
 
+def chunk_by_length(s: str, length: int) -> list[str]:
+    return [s[i:i+length] for i in range(0, len(s), length)]
+
+# Create a processor for text wrapping
+def wrap_text(_, __, event_dict):
+    """Wrap text in log messages at a specified column width."""
+    # Get the wrap settings from the event dict or use defaults
+    wrap_width = event_dict.pop("_wrap_width", None)
+    
+    # If no wrap width specified or invalid, return unchanged
+    if wrap_width is None or wrap_width <= 0:
+        return event_dict
+    
+    # Get the message
+    msg = str(event_dict.get("event", ""))
+    
+    # Calculate timestamp and level lengths to account for in first line
+    timestamp_len = 23  # "2025-04-24 08:13:03 "
+    level_len = 10      # "[critical] "
+    first_line_offset = timestamp_len + level_len
+    
+    # Build a combined message with all metadata
+    metadata_parts = []
+    for key, value in list(event_dict.items()):
+        if key not in ("event", "timestamp", "level"):
+            metadata_parts.append(f"{key}={value}")
+            # Remove the key to prevent it from being rendered separately later
+            event_dict.pop(key)
+    
+    # Combine main message with metadata
+    if metadata_parts:
+        full_msg = f"{msg} {' '.join(metadata_parts)}"
+    else:
+        full_msg = msg
+    
+    # Process each line independently (in case message already has newlines)
+    result_lines = []
+    
+    for line in full_msg.split('\n'):
+        # For first line in the message, account for timestamp and level space
+        is_first_line = (not result_lines)
+        available_width = wrap_width - (first_line_offset if is_first_line else 0)
+        
+        # Process this line
+        current_pos = 0
+        
+        while current_pos < len(line):
+            # If remaining text fits in available width
+            if current_pos + available_width >= len(line):
+                result_lines.append(line[current_pos:])
+                break
+            
+            # Find a good breaking point
+            break_pos = current_pos + available_width
+            
+            # Look for last space before width limit
+            while break_pos > current_pos and not line[break_pos-1].isspace():
+                break_pos -= 1
+                
+            # If no space found, force break at width
+            if break_pos <= current_pos:
+                break_pos = current_pos + available_width
+            
+            # Add this segment
+            result_lines.append(line[current_pos:break_pos].rstrip())
+            
+            # Move past the space
+            current_pos = break_pos
+            while current_pos < len(line) and line[current_pos].isspace():
+                current_pos += 1
+            
+            # For subsequent segments of this line, don't account for timestamp offset
+            available_width = wrap_width
+    
+    # Join the lines with newlines and set as the event
+    event_dict["event"] = '\n'.join(result_lines)
+    return event_dict
+
 # Create global instances
 message_store = MessageStore()
 detail_filter = DetailLevelFilter()
 prefix_filter = PrefixFilter()
 progress_handler = ProgressHandler()
+
+# Global log width setting (None means no wrapping)
+global_log_width = None
+
+def set_global_log_width(width: int):
+    """Set the global log width for all loggers."""
+    global global_log_width
+    global_log_width = width
+
+# Create a global flag to track if the year has been logged
+year_has_been_logged = False
+
+class CustomConsoleRenderer:
+    """Custom console renderer that handles each line separately and respects our wrapping."""
+    
+    def __init__(self, colors=True):
+        self.colors = colors
+        # Color mappings similar to structlog's ConsoleRenderer
+        self.level_to_color = {
+            'critical': '\x1b[31;1m',  # bright red
+            'exception': '\x1b[31;1m',  # bright red
+            'error': '\x1b[31m',      # red
+            'warning': '\x1b[33m',    # yellow
+            'info': '\x1b[32m',       # green
+            'debug': '\x1b[34m',      # blue
+            'notset': '\x1b[37m',     # white
+        }
+        self.reset_color = '\x1b[0m'
+        
+        # Abbreviation mapping for log levels
+        self.level_abbrevs = {
+            'debug': 'DBG',
+            'debug2': 'DB2',
+            'debug3': 'DB3',
+            'info': 'INF',
+            'warning': 'WRN',
+            'error': 'ERR',
+            'critical': 'CRT',
+            'exception': 'EXC',
+            'fatal': 'FTL',
+            'verbose': 'VRB',
+        }
+        
+        # Year tracking for log session
+        self.current_year = None
+        
+        # List of keys to filter from being shown in extra fields
+        self.filtered_keys = set(['logger', 'function'])
+
+    def __call__(self, logger, method_name, event_dict):
+        """Render the event dictionary into colored output."""
+        global year_has_been_logged
+        
+        # Extract standard fields
+        timestamp = event_dict.pop('timestamp', '')
+        level = event_dict.pop('level', 'info')
+        event = event_dict.pop('event', '')
+        
+        # Handle year logging
+        if timestamp and not year_has_been_logged:
+            try:
+                # Extract year from timestamp (format: "2025-04-24 08:13:03")
+                year = timestamp[:4]
+                self.current_year = year
+                # We'll handle logging the year separately
+            except (IndexError, ValueError):
+                pass  # Use original timestamp if parsing fails
+        
+        # Remove year from timestamp regardless of whether we've logged it
+        if timestamp and len(timestamp) > 10:  # Only if it has enough characters
+            timestamp = timestamp[5:]  # "04-24 08:13:03"
+
+        # Get level abbreviation
+        level_abbrev = self.level_abbrevs.get(level, level[:3].upper())
+        
+        # Format the level field with consistent width and abbreviation
+        level_str = f"[{level_abbrev}]"
+
+        # Apply colors if enabled
+        if self.colors:
+            color = self.level_to_color.get(level, self.reset_color)
+            level_str = f"{color}{level_str}{self.reset_color}"
+
+        # Build the prefix (timestamp and level)
+        prefix = f"{timestamp} {level_str} "
+
+        # Split the event into lines and handle each separately
+        lines = str(event).split('\n')
+        final_lines = []
+
+        # Handle the first line
+        if lines:
+            final_lines.append(f"{prefix}{lines[0]}")
+            # For subsequent lines, align with the content start
+            content_start = len(timestamp) + len(" [") + 3 + len("] ")  # Calculate alignment
+            space_prefix = " " * content_start
+            final_lines.extend(f"{space_prefix}{line}" for line in lines[1:])
+
+        # Filter out repetitive keys and add remaining event_dict items as extra fields
+        if event_dict:
+            # Filter out keys we don't want to show
+            filtered_dict = {k: v for k, v in sorted(event_dict.items()) 
+                            if k not in self.filtered_keys}
+            
+            if filtered_dict:
+                extra = " ".join(f"{key}={value}" for key, value in sorted(filtered_dict.items()))
+                if extra:
+                    final_lines.append(f"{space_prefix}{extra}")
+                
+        return "\n".join(final_lines)
+
+# Create a global renderer instance to track year state
+global_renderer = CustomConsoleRenderer(colors=True)
 
 # Configure structlog
 structlog.configure(
@@ -233,13 +431,20 @@ structlog.configure(
         progress_handler,
         message_store,
         format_yaml_values,
-        structlog.dev.ConsoleRenderer(colors=True)
+        wrap_text,
+        global_renderer  # Use our global renderer instance
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
     wrapper_class=structlog.stdlib.BoundLogger,
     cache_logger_on_first_use=True,
 )
+
+# Add initialization function to log the year
+def initialize_logger():
+    """Initialize the logger and log the current year."""
+    logger = get_logger("logger_init")
+    logger.info(f"Log year is {global_renderer.current_year}")
 
 # Create our structured logger class
 class StructuredLogger:
@@ -249,11 +454,32 @@ class StructuredLogger:
         self.logger = structlog.get_logger(name)
         self.prefix = prefix
         self.detail_level = 1  # Default detail level
+        self.wrap_width = global_log_width  # Use global log width (None means no wrapping)
     
     def _log(self, method, msg, detail_level=1, **kwargs):
         """Internal method to handle logging with detail level and prefix."""
+        global year_has_been_logged
+        
+        # Check if we need to log the year first - do this only once globally
+        if not year_has_been_logged and global_renderer.current_year:
+            # Log the year info first
+            year_logger = structlog.get_logger("logger_init")
+            year_logger.info(f"Log year is {global_renderer.current_year}")
+            # Set the global flag to indicate year has been logged
+            year_has_been_logged = True
+            
+            # If this log message isn't already about the year, proceed with original log
+            if not msg.startswith("Log year is"):
+                kwargs["_detail_level"] = detail_level
+                kwargs["_prefix"] = self.prefix
+                kwargs["_wrap_width"] = self.wrap_width
+                getattr(self.logger, method)(msg, **kwargs)
+                return
+        
+        # Normal logging path for all other cases
         kwargs["_detail_level"] = detail_level
         kwargs["_prefix"] = self.prefix
+        kwargs["_wrap_width"] = self.wrap_width
         getattr(self.logger, method)(msg, **kwargs)
     
     def debug(self, msg, **kwargs):
@@ -340,6 +566,10 @@ class StructuredLogger:
         if module:
             return detail_filter.get_level(module)
         return self.detail_level
+    
+    def set_wrap_settings(self, width=80):
+        """Set the text wrapping settings for this logger."""
+        self.wrap_width = width
 
 # Module-level functions for message capture
 def start_message_capture():

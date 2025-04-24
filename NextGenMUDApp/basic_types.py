@@ -80,7 +80,7 @@ class DescriptiveFlags(IntFlag):
         return set_flags
 
 
-class GenericEnumWithAttributes(Enum, Generic[T]):
+class GenericEnumWithAttributes(Enum):
     """
     A generic enum that forwards attribute access to its values.
     Specially handles dictionary values to allow attribute-style access.
@@ -89,6 +89,10 @@ class GenericEnumWithAttributes(Enum, Generic[T]):
         if isinstance(self.value, dict) and name in self.value:
             return self.value[name]
         return getattr(self.value, name)
+
+    @classmethod
+    def _missing_(cls, value):
+        return None
 
     # # Example with Skills
     # class Skill:

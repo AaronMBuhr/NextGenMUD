@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable
 
 class EventType:
     COMBAT_TICK = "combat_tick"
@@ -10,7 +10,7 @@ class EventType:
 
 class ScheduledEvent:
     def __init__(self, on_tick: int, event_type: EventType, subject: Any, name: str, vars: Dict[str, Any], 
-                 func: callable[subject: Any, current_tick: int, game_state: 'ComprehensiveGameState', vars: Dict[str, Any]] = None):
+                 func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None):
         self.event_type: EventType = event_type
         self.subject: Any = subject
         self.vars: Dict[str, Any] = vars
@@ -18,7 +18,7 @@ class ScheduledEvent:
         self.func = func
         self.on_tick: int = 0
 
-    async def run(self, current_tick: int, game_state: 'ComprehensiveGameState'):
+    async def run(self, current_tick: int, game_state: 'GameStateInterface'):
         if self.func:
             await self.func(self.subject, current_tick, game_state, self.vars)
 
@@ -57,7 +57,7 @@ class GameStateInterface:
     @abstractmethod
     def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, 
                             in_ticks: int = None, vars: Dict[str, Any] = None, 
-                            func: callable[Any, int, 'ComprehensiveGameState', Dict[str, Any]] = None) -> 'ScheduledEvent':
+                            func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None) -> 'ScheduledEvent':
         raise NotImplementedError
 
     @abstractmethod
@@ -112,4 +112,6 @@ class GameStateInterface:
     def can_see(char: 'Character', target: 'Character') -> bool:
         raise NotImplementedError
 
-        
+    @abstractmethod
+    def get_current_tick(self) -> int:
+        raise NotImplementedError

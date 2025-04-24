@@ -2,19 +2,20 @@ from .structured_logger import StructuredLogger
 import math
 import random
 import time
-from typing import Dict, List
+from typing import Dict, List, Tuple, Any
 
-from .app_config import Config, default_app_config
+from .config import Config, default_app_config
 from .communication import CommTypes
 from .core_actions_interface import CoreActionsInterface
-from .game_state_interface import ComprehensiveGameStateInterface as GameStateInterface
-from .nondb_models.actor_interface import Actor, ActorType
+from .comprehensive_game_state_interface import GameStateInterface, EventType
+from .nondb_models.actor_interface import ActorType
+from .nondb_models.actors import Actor
 from .nondb_models.actor_attitudes import ActorAttitude
 from .nondb_models.attacks_and_damage import AttackData, PotentialDamage, DamageType
 from .nondb_models.character_interface import CharacterInterface
 from .nondb_models.character_interface import PermanentCharacterFlags, TemporaryCharacterFlags
 from .nondb_models.rooms import Room
-from .nondb_models.skills import Skills
+from .skills_core import Skills
 from .nondb_models.triggers import TriggerType, TriggerFlags
 from .utility import set_vars, firstcap, article_plus_name, roll_dice, ticks_from_seconds
 
@@ -220,7 +221,7 @@ class CoreActions(CoreActionsInterface):
                                         set_vars(subject.location_room, subject, target, msg),
                                         exceptions=[subject, target], game_state=self.game_state)
         tick_vars = { 'target': target }
-        self.game_state.add_scheduled_event(c, EventType.COMBAT_TICK, "combat_tick", tick_vars, 
+        self.game_state.add_scheduled_event(subject, EventType.COMBAT_TICK, "combat_tick", tick_vars, 
                                             lambda a, t, c, v: self.handle_combat_tick_event(a, t, c, v))
         self.game_state.add_character_fighting(subject)
         logger.critical("checking for aggro or friends")
@@ -296,7 +297,8 @@ class CoreActions(CoreActionsInterface):
                 c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
                 c.fighting_whom = join_target
                 tick_vars = { 'target': join_target }
-                self.game_state.add_scheduled_event(c, EventType.COMBAT_TICK, "combat_tick", tick_vars, lambda c,v: self.handle_combat_tick(c, v))
+                self.game_state.add_scheduled_event(c, EventType.COMBAT_TICK, "combat_tick", tick_vars, 
+                                                    lambda a, t, c, v: self.handle_combat_tick_event(a, t, c, v))
                 self.game_state.add_character_fighting(c)
 
     def fight_next_opponent(self, actor: Actor):

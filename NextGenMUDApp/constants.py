@@ -5,31 +5,33 @@ from .basic_types import DescriptiveFlags
 
 
 class CharacterClassRole(DescriptiveFlags):
+    # Tell EnumMeta to ignore mapping variables
+    _ignore_ = 'BASE_TO_SPECIALIZATIONS SPECIALIZATION_TO_BASE'
     # Base classes
-    FIGHTER: ClassVar[int] = 1
-    ROGUE: ClassVar[int] = 2
-    MAGE: ClassVar[int] = 4
-    CLERIC: ClassVar[int] = 8
+    FIGHTER = 1
+    ROGUE = 2
+    MAGE = 4
+    CLERIC = 8
     
     # Fighter specializations (level 20+)
-    BERSERKER: ClassVar[int] = 16   # Fighter specialization
-    GUARDIAN: ClassVar[int] = 32    # Fighter specialization
-    REAVER: ClassVar[int] = 64      # Fighter specialization
+    BERSERKER = 16   # Fighter specialization
+    GUARDIAN = 32    # Fighter specialization
+    REAVER = 64      # Fighter specialization
     
     # Rogue specializations (level 20+)
-    DUELIST: ClassVar[int] = 128    # Rogue specialization
-    ASSASSIN: ClassVar[int] = 256   # Rogue specialization
-    INFILTRATOR: ClassVar[int] = 512  # Rogue specialization
+    DUELIST = 128    # Rogue specialization
+    ASSASSIN = 256   # Rogue specialization
+    INFILTRATOR = 512  # Rogue specialization
     
     # Mage specializations (level 20+)
-    EVOKER: ClassVar[int] = 1024    # Mage specialization
-    CONJURER: ClassVar[int] = 2048  # Mage specialization
-    ENCHANTER: ClassVar[int] = 4096 # Mage specialization
+    EVOKER = 1024    # Mage specialization
+    CONJURER = 2048  # Mage specialization
+    ENCHANTER = 4096 # Mage specialization
     
     # Cleric specializations (level 20+)
-    WARPRIEST: ClassVar[int] = 8192    # Cleric specialization
-    RESTORER: ClassVar[int] = 16384    # Cleric specialization
-    RITUALIST: ClassVar[int] = 32768   # Cleric specialization
+    WARPRIEST = 8192    # Cleric specialization
+    RESTORER = 16384    # Cleric specialization
+    RITUALIST = 32768   # Cleric specialization
 
     # Base class to specialization mapping
     BASE_TO_SPECIALIZATIONS: ClassVar[Dict[int, List[int]]] = {
