@@ -132,7 +132,11 @@ CHARACTERS:
         dodge_dice: 1d50
         critical_chance: 0.05
         critical_multiplier: 2
-
+        skills:
+          - skill: mighty kick
+            level: 80
+          - skill: demoralizing shout
+            level: 80
       # - id: rabbit
       #   name: rabbit
       #   article: a

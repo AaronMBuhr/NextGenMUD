@@ -81,6 +81,7 @@ class CommandHandler(CommandHandlerInterface):
         "tell": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_tell(char, input),
         "emote": lambda command, char,input: CommandHandlerInterface.get_instance().cmd_emote(char, input),
         "look": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_look(char, input),
+        "l": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_look(char, input),
         "attack": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_attack(command, char, input),
         "kill": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_attack(command, char, input),
         "inv": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inventory(char, input),
@@ -94,7 +95,7 @@ class CommandHandler(CommandHandlerInterface):
         "sit": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sit(char, input),
         "sleep": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sleep(char, input),
         "leaverandom": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_leaverandom(char, input),
-
+        "skills": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_skills(char, input),
         # various emotes are in the EMOTE_MESSAGES dict below
     }
 
@@ -573,6 +574,10 @@ class CommandHandler(CommandHandlerInterface):
             npc_id = f"{actor.location_room.zone.id}.{npc_id}"
             
         npc_template = cls._game_state.world_definition.characters.get(npc_id)
+        # logger.critical(f"npc_id: {npc_id}")
+        # logger.critical(f"npc_template: {npc_template}")
+        # for k in cls._game_state.world_definition.characters:
+        #     logger.critical(f"defn id: {cls._game_state.world_definition.characters[k].definition_zone_id}.{cls._game_state.world_definition.characters[k].id}")
         if not npc_template:
             await actor.send_text(CommTypes.DYNAMIC, f"Could not find NPC template '{npc_id}'")
             return
@@ -586,6 +591,7 @@ class CommandHandler(CommandHandlerInterface):
         # Place NPC in the current room
         await CoreActionsInterface.get_instance().arrive_room(new_npc, actor.location_room)
         await actor.send_text(CommTypes.DYNAMIC, f"Spawned {new_npc.art_name}")
+        await CoreActionsInterface.get_instance().do_look_room(actor, actor.location_room)
 
     async def cmd_makeadmin(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_makeadmin()> ")
@@ -1317,3 +1323,20 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {rounded_ms} milliseconds (rounded from {delay_ms}ms).")
         else:
             await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {delay_ms} milliseconds.")
+
+    async def cmd_skills(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_skills()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        if input and input != "":
+            if actor.actor_type != ActorType.CHARACTER:
+                await actor.send_text(CommTypes.DYNAMIC, "Only characters have skills.")
+                return
+            target = actor
+        else:
+            pieces = split_preserving_quotes(input)
+            target = cls._game_state.find_target_character(actor, pieces[0])
+            if not target:
+                await actor.send_text(CommTypes.DYNAMIC, "No target found.")
+                return
+        for skill_name, skill_level in target.skill_levels.items():
+            await actor.send_text(CommTypes.DYNAMIC, f"{skill_name}: {skill_level}")
