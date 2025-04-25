@@ -29,6 +29,30 @@ from .comprehensive_game_state_interface import GameStateInterface, ScheduledEve
 from .config import Config, default_app_config
 from .nondb_models.actor_states import Cooldown
 
+# Communication Types Usage Guidelines:
+# 
+# The MUD client interface has two distinct text display areas with different purposes:
+#
+# 1. DYNAMIC Box (CommTypes.DYNAMIC):
+#    - Used for transient game events, actions, and messages that occur in real-time
+#    - Examples: Combat messages, character actions, error messages, command responses
+#    - Messages in this box represent things that "happen" rather than persistent information
+#    - These messages naturally scroll up and out of view as gameplay progresses
+#
+# 2. STATIC Box (CommTypes.STATIC):
+#    - Used for persistent information displays that players may want to reference
+#    - Examples: Character stats, inventory lists, equipment information, room descriptions
+#    - Content in this box represents "state" rather than events
+#    - This information remains visible until explicitly replaced by other static content
+#
+# Best Practices:
+# - Use DYNAMIC for actions, events, and ephemeral messages
+# - Use STATIC for state information, lists, and reference material
+# - Error messages about command execution go to DYNAMIC (e.g., "You can't do that")
+# - Detailed informational displays go to STATIC (e.g., "Your inventory contains...")
+#
+# This separation provides players with a clearer view of game state vs. game events.
+
 class CommandHandler(CommandHandlerInterface):
     _game_state: ComprehensiveGameState = live_game_state
     executing_actors = {}
@@ -97,7 +121,8 @@ class CommandHandler(CommandHandlerInterface):
         "leaverandom": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_leaverandom(char, input),
         "skills": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_skills(char, input),
         "character": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
-        "characterinfo": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
+        "char": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
+        "triggers": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_triggers(char, input),
         # various emotes are in the EMOTE_MESSAGES dict below
     }
 
@@ -114,6 +139,10 @@ class CommandHandler(CommandHandlerInterface):
         logger = StructuredLogger(__name__, prefix="process_command()> ")
         # print(actor)
         logger.debug3(f"processing input for actor {actor.id}: {input}")
+        
+        # Echo the command back to the user
+        await actor.send_text(CommTypes.DYNAMIC, f"> {input}")
+        
         if actor.reference_number is None:
             raise Exception(f"Actor {actor.id} has no reference number.")
         if actor.rid in cls.executing_actors:
@@ -590,6 +619,12 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "Failed to create NPC")
             return
             
+        # Ensure connection is properly set to None
+        logger.critical(f"Verifying connection is None for new NPC {new_npc.name} - connection: {new_npc.connection}")
+        if new_npc.connection is not None:
+            logger.critical(f"WARNING: Connection was not None for spawned NPC! Forcing to None.")
+            new_npc.connection = None
+            
         # Place NPC in the current room
         await CoreActionsInterface.get_instance().arrive_room(new_npc, actor.location_room)
         await actor.send_text(CommTypes.DYNAMIC, f"Spawned {new_npc.art_name}")
@@ -634,38 +669,85 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "Possess whom?")
             return
             
-        # Find the target character
-        target = cls._game_state.find_target_character(actor, input)
-        if not target:
-            await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
-            return
+        try:
+            # Find the target character, excluding the initiating actor
+            logger.critical(f"Attempting to find target: {input}")
+            target = cls._game_state.find_target_character(actor, input, exclude_initiator=True)
+            if not target:
+                await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
+                return
+                
+            logger.critical(f"Found target: {target.rid}, name: {target.name}")
+            logger.critical(f"Target connection: {target.connection}")
+            logger.critical(f"Actor connection: {actor.connection}")
             
-        # Save the current character's state
-        old_char = actor
-        old_connection = old_char.connection
-        was_admin = old_char.has_game_flags(GamePermissionFlags.IS_ADMIN)
-        
-        # Transfer connection to new character
-        target.connection = old_connection
-        old_char.connection = None
-        
-        # Add player flags to target
-        target.add_perm_flags(PermanentCharacterFlags.IS_PC)
-        # i don't think we want to do this; if you want target to be admin, use makeadmin before possess
-        # if was_admin:
-        #     target.add_game_flags(GamePermissionFlags.IS_ADMIN)
-        
-        # Remove player flags from old character
-        old_char.remove_perm_flags(PermanentCharacterFlags.IS_PC)
-        old_char.remove_game_flags(GamePermissionFlags.IS_ADMIN)
-        
-        # Update game state
-        cls._game_state.players.remove(old_char)
-        cls._game_state.players.append(target)
-        
-        # Notify the player
-        await target.send_text(CommTypes.DYNAMIC, f"You are now possessing {target.art_name}")
-        await target.send_text(CommTypes.DYNAMIC, "Your old character has been saved. Use 'load' to return to it later.")
+            # Don't allow possessing yourself - this should never happen now with exclude_initiator=True
+            if target == actor:
+                await actor.send_text(CommTypes.DYNAMIC, "You can't possess yourself.")
+                return
+                
+            # Save the current character's state
+            logger.critical(f"Possessing {target.art_name}")
+            old_char = actor
+            old_connection = old_char.connection
+            was_admin = old_char.has_game_flags(GamePermissionFlags.IS_ADMIN)
+            
+            if old_connection is None:
+                logger.critical("Actor has no connection!")
+                await actor.send_text(CommTypes.DYNAMIC, "You have no connection to transfer.")
+                return
+            
+            # If the target somehow has a connection, fix it by setting to None
+            if target.connection is not None:
+                logger.critical(f"Target has a connection object - resetting it to None")
+                target.connection = None
+                        
+            # Notify the player before transferring connection
+            logger.critical(f"Sending pre-transfer notification")
+            await actor.send_text(CommTypes.DYNAMIC, f"You are about to possess {target.art_name}")
+                
+            # Transfer connection to new character
+            logger.critical(f"Transferring connection to {target.art_name}")
+            old_connection.character = target  # Update the connection's character reference
+            target.connection = old_connection
+            old_char.connection = None
+            
+            # Add player flags to target
+            logger.critical("Adding player flags to target")
+            target.add_perm_flags(PermanentCharacterFlags.IS_PC)
+            if was_admin:
+                target.add_game_flags(GamePermissionFlags.IS_ADMIN)
+            
+            # Remove player flags from old character
+            logger.critical("Removing player flags from old character")
+            old_char.remove_perm_flags(PermanentCharacterFlags.IS_PC)
+            old_char.remove_game_flags(GamePermissionFlags.IS_ADMIN)
+            
+            # Update game state
+            logger.critical(f"Removing old character from game state: {old_char.rid}")
+            if old_char in cls._game_state.players:
+                cls._game_state.players.remove(old_char)
+            else:
+                logger.critical(f"Old character {old_char.rid} not found in players list")
+                
+            logger.critical(f"Adding new character to game state: {target.rid}")
+            if target not in cls._game_state.players:
+                cls._game_state.players.append(target)
+            
+            # Notify the player after transfer
+            logger.critical(f"Sending post-transfer notification")
+            await target.send_text(CommTypes.DYNAMIC, f"You are now possessing {target.art_name}")
+            await target.send_text(CommTypes.DYNAMIC, "Your old character has been saved. Use 'load' to return to it later.")
+            
+            # Force a room look to orient the player
+            logger.critical(f"Forcing room look")
+            await CoreActionsInterface.get_instance().do_look_room(target, target.location_room)
+            
+        except Exception as e:
+            logger.critical(f"Error during possession: {str(e)}")
+            logger.exception("Exception during possession")
+            await actor.send_text(CommTypes.DYNAMIC, f"Failed to possess character: {str(e)}")
+            return
 
     async def cmd_goto(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_goto()> ")
@@ -734,7 +816,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         if isinstance(target, Character):
             await actor.send_text(CommTypes.DYNAMIC, f"{target.art_name_cap} is a level {target.total_levels()} character.")
-            await actor.send_text(CommTypes.DYNAMIC, f"HP: {target.hp}/{target.max_hp}")
+            await actor.send_text(CommTypes.DYNAMIC, f"HP: {target.current_hit_points}/{target.max_hit_points}")
             if target.fighting_whom:
                 await actor.send_text(CommTypes.DYNAMIC, f"Fighting: {target.fighting_whom.art_name}")
             if target.fought_by:
@@ -768,10 +850,10 @@ class CommandHandler(CommandHandlerInterface):
                 return
             msg = f"Inventory for {target.art_name_cap}:"
 
-        await actor.send_text(CommTypes.DYNAMIC, msg)
+        await actor.send_text(CommTypes.STATIC, msg)
         
         if not target.contents:
-            await actor.send_text(CommTypes.DYNAMIC, "    Nothing.")
+            await actor.send_text(CommTypes.STATIC, "    Nothing.")
             return
             
         # Recursive helper function to display container contents
@@ -781,10 +863,10 @@ class CommandHandler(CommandHandlerInterface):
             for item in container.contents:
                 # Check if item is a container with contents
                 if hasattr(item, "contents") and item.contents:
-                    await actor.send_text(CommTypes.DYNAMIC, f"{indent}{item.art_name}, containing:")
+                    await actor.send_text(CommTypes.STATIC, f"{indent}{item.art_name}, containing:")
                     await display_container_contents(item, indent_level + 1)
                 else:
-                    await actor.send_text(CommTypes.DYNAMIC, f"{indent}{item.art_name}")
+                    await actor.send_text(CommTypes.STATIC, f"{indent}{item.art_name}")
         
         # Display top-level inventory
         await display_container_contents(target, 1)
@@ -849,13 +931,29 @@ class CommandHandler(CommandHandlerInterface):
         if actor.actor_type != ActorType.CHARACTER:
             await actor.send_text(CommTypes.DYNAMIC, "Only characters can equip things.")
             return
+        
+        # Check for admin viewing another character's equipment
+        if actor.has_game_flags(GamePermissionFlags.IS_ADMIN) and input:
+            pieces = split_preserving_quotes(input)
+            if len(pieces) > 1 and pieces[0].lower() in ["char", "character"]:
+                target_name = ' '.join(pieces[1:])
+                target = cls._game_state.find_target_character(actor, target_name, search_world=True)
+                if target:
+                    # Display target's equipment to the admin
+                    await cls.cmd_equip_list(target, actor)
+                    return
+                else:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Could not find character '{target_name}'.")
+                    return
+                    
+        # Normal equip handling
         if actor.fighting_whom != None:
             msg = "You can't equip while fighting!"
             vars = set_vars(actor, actor, actor, msg)
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return
         if input == "":
-            await cls.cmd_equip_list(actor, input)
+            await cls.cmd_equip_list(actor, None)
             return
         pieces = split_preserving_quotes(input)
         target = cls._game_state.find_target_object(actor, pieces[0])
@@ -909,19 +1007,69 @@ class CommandHandler(CommandHandlerInterface):
         await actor.send_text(CommTypes.DYNAMIC, f"You unequip {target.art_name}.")
 
 
-    async def cmd_equip_list(cls, actor: Actor, input: str):
+    async def cmd_equip_list(cls, actor: Actor, viewer: Actor = None):
         logger = StructuredLogger(__name__, prefix="cmd_equip_list()> ")
-        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        logger.debug3(f"actor.rid: {actor.rid}, viewer: {viewer.rid if viewer else 'None'}")
         if actor.actor_type != ActorType.CHARACTER:
-            await actor.send_text(CommTypes.DYNAMIC, "Only characters can equip things.")
-            return
-        msg_parts = [ "You are equipped with:\n"]
-        for loc in EquipLocation:
-            if actor.equipped[loc] != None:
-                msg_parts.append(f"{loc.name}: {actor.equipped[loc].art_name}\n")
+            if viewer:
+                await viewer.send_text(CommTypes.DYNAMIC, "Only characters can have equipment.")
             else:
-                msg_parts.append(f"{loc.name}: nothing\n")
-        await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
+                await actor.send_text(CommTypes.DYNAMIC, "Only characters can equip things.")
+            return
+            
+        # Group equipment slots for better organization
+        slot_groups = {
+            "Head": [EquipLocation.HEAD],
+            "Body": [EquipLocation.BODY, EquipLocation.ABOUT],
+            "Arms": [EquipLocation.ARMS, EquipLocation.HANDS, EquipLocation.WRISTS],
+            "Legs": [EquipLocation.LEGS, EquipLocation.FEET],
+            "Weapons": [EquipLocation.WIELDED_PRIMARY, EquipLocation.WIELDED_SECONDARY],
+            "Accessories": [EquipLocation.NECK, EquipLocation.WAIST, EquipLocation.FINGER_L, EquipLocation.FINGER_R, EquipLocation.EAR_L, EquipLocation.EAR_R]
+        }
+        
+        # Customize the message based on who's viewing
+        if viewer and viewer != actor:
+            # Admin viewing another character's equipment
+            msg_parts = [f"=== {actor.art_name_cap}'s Equipment ===\n"]
+        else:
+            # Character viewing their own equipment
+            msg_parts = ["=== Your Equipment ===\n"]
+            
+        equipped_count = 0
+        
+        # Display equipment by group
+        for group_name, slots in slot_groups.items():
+            group_items = []
+            
+            for loc in slots:
+                if actor.equipped[loc] is not None:
+                    equipped_count += 1
+                    group_items.append(f"  {loc.name:<20} {actor.equipped[loc].art_name}")
+                else:
+                    group_items.append(f"  {loc.name:<20} nothing")
+            
+            if group_items:
+                msg_parts.append(f"{group_name}:\n")
+                msg_parts.extend([f"{item}\n" for item in group_items])
+                msg_parts.append("\n")
+        
+        # Show summary at the end
+        if equipped_count == 0:
+            if viewer and viewer != actor:
+                msg_parts.append(f"{actor.art_name_cap} isn't wearing or wielding anything.\n")
+            else:
+                msg_parts.append("You aren't wearing or wielding anything.\n")
+        else:
+            if viewer and viewer != actor:
+                msg_parts.append(f"{actor.art_name_cap} has {equipped_count} item(s) equipped.\n")
+            else:
+                msg_parts.append(f"You have {equipped_count} item(s) equipped.\n")
+                
+        # Send to the appropriate recipient
+        if viewer and viewer != actor:
+            await viewer.send_text(CommTypes.STATIC, "".join(msg_parts))
+        else:
+            await actor.send_text(CommTypes.STATIC, "".join(msg_parts))
 
 
     async def cmd_setloglevel(cls, actor: Actor, input: str):
@@ -1387,53 +1535,53 @@ class CommandHandler(CommandHandlerInterface):
         is_admin = actor.has_game_flags(GamePermissionFlags.IS_ADMIN)
         
         # Build character info display
-        await actor.send_text(CommTypes.DYNAMIC, f"===== {target.art_name_cap} =====")
+        await actor.send_text(CommTypes.STATIC, f"===== {target.art_name_cap} =====")
         
         # Basic info
         level_info = f"Level {target.total_levels()}"
-        await actor.send_text(CommTypes.DYNAMIC, f"{level_info}")
+        await actor.send_text(CommTypes.STATIC, f"{level_info}")
         
         # HP and status
-        hp_percent = int((target.hp / target.max_hp) * 100) if target.max_hp > 0 else 0
-        await actor.send_text(CommTypes.DYNAMIC, f"HP: {target.hp}/{target.max_hp} ({hp_percent}%)")
+        hp_percent = int((target.current_hit_points / target.max_hit_points) * 100) if target.max_hit_points > 0 else 0
+        await actor.send_text(CommTypes.STATIC, f"HP: {target.current_hit_points}/{target.max_hit_points} ({hp_percent}%)")
         
         # Status indicators
         if target.is_dead():
-            await actor.send_text(CommTypes.DYNAMIC, "Status: DEAD")
+            await actor.send_text(CommTypes.STATIC, "Status: DEAD")
         elif target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
-            await actor.send_text(CommTypes.DYNAMIC, "Status: Sleeping")
+            await actor.send_text(CommTypes.STATIC, "Status: Sleeping")
         elif target.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
-            await actor.send_text(CommTypes.DYNAMIC, "Status: Sitting")
+            await actor.send_text(CommTypes.STATIC, "Status: Sitting")
         elif target.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
-            await actor.send_text(CommTypes.DYNAMIC, "Status: Stunned")
+            await actor.send_text(CommTypes.STATIC, "Status: Stunned")
         elif target.fighting_whom:
-            await actor.send_text(CommTypes.DYNAMIC, f"Status: Fighting {target.fighting_whom.art_name}")
+            await actor.send_text(CommTypes.STATIC, f"Status: Fighting {target.fighting_whom.art_name}")
         else:
-            await actor.send_text(CommTypes.DYNAMIC, "Status: Standing")
+            await actor.send_text(CommTypes.STATIC, "Status: Standing")
         
         # Display equipped items
-        await actor.send_text(CommTypes.DYNAMIC, "\n--- Equipment ---")
+        await actor.send_text(CommTypes.STATIC, "\n--- Equipment ---")
         has_equipment = False
         for loc in EquipLocation:
             if target.equipped[loc]:
                 has_equipment = True
-                await actor.send_text(CommTypes.DYNAMIC, f"{loc.name}: {target.equipped[loc].art_name}")
+                await actor.send_text(CommTypes.STATIC, f"{loc.name}: {target.equipped[loc].art_name}")
         if not has_equipment:
-            await actor.send_text(CommTypes.DYNAMIC, "Nothing equipped")
+            await actor.send_text(CommTypes.STATIC, "Nothing equipped")
         
         # Display skills
-        await actor.send_text(CommTypes.DYNAMIC, "\n--- Skills ---")
+        await actor.send_text(CommTypes.STATIC, "\n--- Skills ---")
         if not target.skill_levels:
-            await actor.send_text(CommTypes.DYNAMIC, "No skills")
+            await actor.send_text(CommTypes.STATIC, "No skills")
         else:
             for skill_name, skill_level in target.skill_levels.items():
-                await actor.send_text(CommTypes.DYNAMIC, f"    {skill_name:30}: {skill_level:>2}")
+                await actor.send_text(CommTypes.STATIC, f"    {skill_name:30}: {skill_level:>2}")
         
         # Admin-only information
         if is_admin:
-            await actor.send_text(CommTypes.DYNAMIC, "\n--- Admin Info ---")
-            await actor.send_text(CommTypes.DYNAMIC, f"Reference ID: {target.rid}")
-            await actor.send_text(CommTypes.DYNAMIC, f"Location: {target.location_room.id if target.location_room else 'None'}")
+            await actor.send_text(CommTypes.STATIC, "\n--- Admin Info ---")
+            await actor.send_text(CommTypes.STATIC, f"Reference ID: {target.rid}")
+            await actor.send_text(CommTypes.STATIC, f"Location: {target.location_room.id if target.location_room else 'None'}")
             
             # Flags display
             perm_flags = [f.name for f in PermanentCharacterFlags if target.has_perm_flags(f)]
@@ -1441,22 +1589,76 @@ class CommandHandler(CommandHandlerInterface):
             game_flags = [f.name for f in GamePermissionFlags if target.has_game_flags(f)]
             
             if perm_flags:
-                await actor.send_text(CommTypes.DYNAMIC, f"Permanent Flags: {', '.join(perm_flags)}")
+                await actor.send_text(CommTypes.STATIC, f"Permanent Flags: {', '.join(perm_flags)}")
             if temp_flags:
-                await actor.send_text(CommTypes.DYNAMIC, f"Temporary Flags: {', '.join(temp_flags)}")
+                await actor.send_text(CommTypes.STATIC, f"Temporary Flags: {', '.join(temp_flags)}")
             if game_flags:
-                await actor.send_text(CommTypes.DYNAMIC, f"Permission Flags: {', '.join(game_flags)}")
+                await actor.send_text(CommTypes.STATIC, f"Permission Flags: {', '.join(game_flags)}")
             
             # Variables
             if target.temp_variables:
-                await actor.send_text(CommTypes.DYNAMIC, "Temp Variables:")
+                await actor.send_text(CommTypes.STATIC, "Temp Variables:")
                 for key, value in target.temp_variables.items():
-                    await actor.send_text(CommTypes.DYNAMIC, f"  {key}: {value}")
+                    await actor.send_text(CommTypes.STATIC, f"  {key}: {value}")
             
             if target.perm_variables:
-                await actor.send_text(CommTypes.DYNAMIC, "Perm Variables:")
+                await actor.send_text(CommTypes.STATIC, "Perm Variables:")
                 for key, value in target.perm_variables.items():
-                    await actor.send_text(CommTypes.DYNAMIC, f"  {key}: {value}")
+                    await actor.send_text(CommTypes.STATIC, f"  {key}: {value}")
 
 
-
+    async def cmd_triggers(cls, actor: Actor, input: str):
+        # triggers character <name> <enable|disable> <all|trigger_id>
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "What?")
+            return
+        if not input:
+            await actor.send_text(CommTypes.STATIC, "Triggers:")
+            for trigger in cls._game_state.triggers:
+                await actor.send_text(CommTypes.STATIC, f"{trigger.id:30}: {trigger.trigger_type_}") + " (disabled)" if trigger.disabled else ""
+                for crit in trigger.criteria:
+                    await actor.send_text(CommTypes.STATIC, f"  {crit.subject} {crit.operator} {crit.predicate}")
+            return
+        
+        pieces = split_preserving_quotes(input)
+        if pieces[0] in ["room", "world", "object"]:
+            await actor.send_text(CommTypes.STATIC, "Not implemented yet.")
+            return
+        
+        if pieces[0] not in ["character","char","me","self"]:
+            await actor.send_text(CommTypes.STATIC, "Triggers for what?")
+            return
+        
+        if pieces[0] == "me" or pieces[0] == "self":
+            target = actor
+        else:
+            target = cls._game_state.find_target_character(actor, pieces[1])
+            if not target:
+                await actor.send_text(CommTypes.STATIC, "No such character.")
+                return
+        
+        if pieces[3] == "all":
+            triggers = [v for _, v in actor.triggers_by_type.items()]
+        else:
+            triggers = [trigger for trigger in actor.triggers_by_type[TriggerType.CATCH_ANY] if trigger.id == pieces[1]]
+        if pieces[2] == "enable":
+            for trigger in triggers:
+                trigger.enable()
+                await actor.send_text(CommTypes.STATIC, f"Enabled {trigger.id}")
+            return
+        if pieces[2] == "disable":
+            for trigger in triggers:
+                trigger.disable()
+                await actor.send_text(CommTypes.STATIC, f"Disabled {trigger.id}")
+            return
+        if pieces[2] == "show":
+            if len(triggers) != 1:
+                await actor.send_text(CommTypes.STATIC, "Which trigger?")
+                return
+            trigger = triggers[0]
+            await actor.send_text(CommTypes.STATIC, f"Trigger {target.art_name_cap}: {trigger.id}")
+            for line in trigger.script_.split("\n"):
+                await actor.send_text(CommTypes.STATIC, f"  {line}")
+            return
+        await actor.send_text(CommTypes.STATIC, "Do what with triggers?")
+        return

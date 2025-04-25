@@ -67,8 +67,9 @@ class TriggerCriteria:
     
 class Trigger(TriggerInterface):
     
-    def __init__(self, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
+    def __init__(self, id: str, trigger_type: TriggerType, actor: 'Actor', disabled=True) -> None:
         from ..scripts import ScriptHandler
+        self.id = id
         if (isinstance(trigger_type, str)):
             self.trigger_type_ = TriggerType[trigger_type.upper()]
         else:
@@ -92,6 +93,7 @@ class Trigger(TriggerInterface):
 
     def from_dict(self, values: dict):
         logger = StructuredLogger(__name__, prefix="Trigger.from_dict()> ")
+        self.id = values['id']
         self.trigger_type_: TriggerType[values['type'].upper()]
         self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values['criteria']]
         self.script_ = values['script']

@@ -38,7 +38,7 @@ class GameStateInterface:
         return cls._instance
 
     @abstractmethod
-    def find_target_character(self, actor: 'Actor', target_name: str, search_zone=False, search_world=False) -> 'Character':
+    def find_target_character(self, actor: 'Actor', target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> 'Character':
         raise NotImplementedError
 
     @abstractmethod

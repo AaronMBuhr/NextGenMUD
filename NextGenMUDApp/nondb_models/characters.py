@@ -290,7 +290,11 @@ class Character(Actor, CharacterInterface):
         new_char.max_hit_points = roll_dice(new_char.hit_dice, new_char.hit_dice_size, new_char.hit_point_bonus)
         new_char.current_hit_points = new_char.max_hit_points
         new_char.contents = []
+        
+        # Explicitly set connection to None to avoid issues with connection persistence
+        logger.critical(f"Setting connection to None for new character {new_char.name} ({new_char.id})")
         new_char.connection = None
+        
         new_char.fighting_whom = None
         new_char.equipped = {loc: None for loc in EquipLocation}
         if new_char.starting_eq and include_items:
