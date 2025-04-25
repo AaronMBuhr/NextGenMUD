@@ -13,7 +13,8 @@ ZONES:
           north:
             destination: starting_room_2
         triggers:
-          - type: catch_say
+          - id: catch_say_random
+            type: catch_say
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -47,7 +48,8 @@ ZONES:
           east:
             destination: enchanted_forest.whispering_pines
         triggers:
-          - type: catch_any
+          - id: catch_any_arrives
+            type: catch_any
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -55,7 +57,8 @@ ZONES:
             script: |
               echoto %S% You trip as you enter.
               echoexcept %S% $cap(%s%) trips as %q% enters.
-          - type: catch_say
+          - id: catch_say_random
+            type: catch_say
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -70,7 +73,8 @@ ZONES:
                 echo Greater than 50.
               }
               deltempvar char %S% starting_room_random
-          - type: timer_tick
+          - id: timer_tick_wildlife_rustles
+            type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -80,7 +84,8 @@ ZONES:
                 predicate: 25
             script: |
               echo Wildlife rustles in the underbrush.
-          - type: catch_look
+          - id: catch_look_squirrel
+            type: catch_look
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -88,7 +93,8 @@ ZONES:
             script: |
               echoto %S% You see a squirrel.
               echoexcept %S% %s% sees a squirrel.
-          - type: catch_say
+          - id: catch_say_anything
+            type: catch_say
             criteria: 
               - subject: "%*%"
                 operator: true

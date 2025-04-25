@@ -21,7 +21,7 @@ ZONES:
           out:
             destination: imperial_city.sewers_entrance
         triggers:
-          - id: timer_tick_sewer_entrance_1
+          - id: timer_tick_city_sewers_1
             type: timer_tick
             flags:
               - only_when_pc_room
@@ -31,7 +31,7 @@ ZONES:
                 predicate: 15
             script: |
               echo A gust of foul air wafts up from the depths, carrying the unmistakable stench of the sewers.
-          - id: timer_tick_sewer_entrance_2
+          - id: timer_tick_city_sewers_2
             type: timer_tick
             flags:
               - only_when_pc_room
@@ -2640,7 +2640,6 @@ ZONES:
             quantity: 1
             respawn_time_min: 150
             respawn_time_max: 400
-
 
 
 

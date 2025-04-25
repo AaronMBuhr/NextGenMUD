@@ -19,7 +19,7 @@ ZONES:
             destination: enchanted_forest.misty_copse
         triggers:
           - id: catch_any_howl
-            type: catch_any
+          - type: catch_any
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -27,7 +27,7 @@ ZONES:
             script: |
               echo A distant howl echoes through the trees, sending a shiver down your spine.
           - id: timer_tick_a_gust_of
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -50,7 +50,7 @@ ZONES:
             destination: dark_forest_se
         triggers:
           - id: catch_any_growl
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -58,7 +58,7 @@ ZONES:
             script: |
               echo A low growl resonates from the shadows, its source unseen but unnervingly close.
           - id: catch_look_tree
-            type: catch_look
+          - type: catch_look
             criteria: 
               - subject: "%*%"
                 operator: contains
@@ -81,7 +81,7 @@ ZONES:
             destination: dark_forest_s
         triggers:
           - id: catch_any_whisper
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -89,7 +89,7 @@ ZONES:
             script: |
               echo You hear a whispering sound, as if the trees themselves are speaking in hushed tones.
           - id: timer_tick_the_moonlight_filters
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -114,7 +114,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_rustle
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -122,7 +122,7 @@ ZONES:
             script: |
               echo A rustling noise comes from nearby bushes, but the source remains hidden in the shadows.
           - id: timer_tick_a_mysterious_fog
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -150,7 +150,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_howl_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -158,7 +158,7 @@ ZONES:
             script: |
               echo A haunting howl pierces the night air, closer now than before, its origin chillingly unclear.
           - id: timer_tick_shadows_move_and
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -184,7 +184,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_growl_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -192,7 +192,7 @@ ZONES:
             script: |
               echo A deep, guttural growl resonates from the darkness, sending a wave of unease through the air.
           - id: timer_tick_the_moonlight_struggles
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -219,7 +219,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_whistle
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -227,7 +227,7 @@ ZONES:
             script: |
               echo A soft, eerie whistle drifts through the trees, its source impossible to pinpoint.
           - id: timer_tick_the_leaves_rustle
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -257,7 +257,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_scream
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -265,7 +265,7 @@ ZONES:
             script: |
               echo A sudden, blood-curdling scream shatters the silence, causing the hairs on the back of your neck to stand up.
           - id: timer_tick_a_mysterious_faint
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -293,7 +293,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_growl_3
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -328,7 +328,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_rustling
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -336,7 +336,7 @@ ZONES:
             script: |
               echo A sudden rustling in the underbrush nearby causes you to pause, your heart racing.
           - id: timer_tick_the_moon_casts
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -362,7 +362,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_howl_3
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -370,7 +370,7 @@ ZONES:
             script: |
               echo An eerie howl resonates through the forest, long and mournful, sending chills down your spine.
           - id: timer_tick_shadows_dance_across
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -392,7 +392,7 @@ ZONES:
             destination: graveyard_road_e
         triggers:
           - id: catch_any_whisper_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -400,7 +400,7 @@ ZONES:
             script: |
               echo Hushed whispers seem to drift through the trees, though their source remains unseen.
           - id: timer_tick_a_cold_gust
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -421,7 +421,7 @@ ZONES:
             destination: inn_hallway
         triggers:
           - id: catch_any_laugh
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -429,7 +429,7 @@ ZONES:
             script: |
               echo Laughter erupts from a corner table, where a group of travelers share tales of their adventures.
           - id: timer_tick_the_warm_inviting
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -452,7 +452,7 @@ ZONES:
             destination: inn_room_w
         triggers:
           - id: catch_any_creak
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -460,7 +460,7 @@ ZONES:
             script: |
               echo A floorboard creaks eerily underfoot, breaking the silence of the hallway.
           - id: timer_tick_soft_ghostly_whispers
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -483,7 +483,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_breeze
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -491,7 +491,7 @@ ZONES:
             script: |
               echo A gentle breeze wafts in through the window, carrying the fresh scent of the forest.
           - id: timer_tick_the_soft_flickering
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -510,7 +510,7 @@ ZONES:
             destination: inn_hallway
         triggers:
           - id: catch_any_crackle
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -518,7 +518,7 @@ ZONES:
             script: |
               echo The gentle crackle of the fireplace adds a comforting warmth to the room, easing away the chill of the night.
           - id: timer_tick_the_shadows_cast
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -538,7 +538,7 @@ ZONES:
             destination: graveyard_entrance
         triggers:
           - id: catch_any_rustle_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -546,7 +546,7 @@ ZONES:
             script: |
               echo A rustling in the bushes nearby momentarily startles you, but no creature emerges.
           - id: timer_tick_the_mist_seems
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -569,7 +569,7 @@ ZONES:
             destination: graveyard_road_w
         triggers:
           - id: catch_any_creak_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -577,7 +577,7 @@ ZONES:
             script: |
               echo The gates creak loudly, as if groaning under the weight of time.
           - id: timer_tick_a_chill_wind
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -598,7 +598,7 @@ ZONES:
             destination: manor_house_entrance
         triggers:
           - id: catch_any_whisper_3
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -606,7 +606,7 @@ ZONES:
             script: |
               echo Faint whispers seem to emanate from the shadows, too soft to make out any words.
           - id: timer_tick_the_shadows_along
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -639,7 +639,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_rustling_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -647,7 +647,7 @@ ZONES:
             script: |
               echo A rustling sound comes from behind a nearby tombstone, but when you look, nothing is there.
           - id: timer_tick_a_sudden_chill
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -677,7 +677,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_whisper_4
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -685,7 +685,7 @@ ZONES:
             script: |
               echo You hear a soft whispering, as if the stones themselves are murmuring ancient secrets.
           - id: timer_tick_a_pale_light
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -715,7 +715,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_moan
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -723,7 +723,7 @@ ZONES:
             script: |
               echo A low moan, like the wind passing through a narrow crevice, sends a shiver down your spine.
           - id: timer_tick_the_shadows_here
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -757,7 +757,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_bell
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -765,7 +765,7 @@ ZONES:
             script: |
               echo A distant bell tolls from the chapel, its solemn chime echoing through the graveyard.
           - id: timer_tick_a_gentle_breeze
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -795,7 +795,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_owl
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -803,7 +803,7 @@ ZONES:
             script: |
               echo An owl hoots from somewhere within the branches of the oak tree, its call adding to the nocturnal ambiance.
           - id: timer_tick_moonbeams_filter_through
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -833,7 +833,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_echo
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -841,7 +841,7 @@ ZONES:
             script: |
               echo Your footsteps echo strangely in this part of the graveyard, as if absorbed by the mausoleum walls.
           - id: timer_tick_a_sense_of
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -862,7 +862,7 @@ ZONES:
             destination: crypt_center
         triggers:
           - id: catch_any_drip
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -870,7 +870,7 @@ ZONES:
             script: |
               echo The sound of water dripping echoes through the crypt, the source unseen in the dim light.
           - id: timer_tick_a_chill_wind_2
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -894,7 +894,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_whisper_5
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -902,7 +902,7 @@ ZONES:
             script: |
               echo Soft whispers seem to float through the chamber, though their source is unseen and their words unintelligible.
           - id: timer_tick_the_flickering_torchlight
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -923,7 +923,7 @@ ZONES:
             destination: manor_house_parlor
         triggers:
           - id: catch_any_echo_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -931,7 +931,7 @@ ZONES:
             script: |
               echo Your footsteps echo through the foyer, the sound amplified by the high ceilings and stone walls.
           - id: timer_tick_a_draft_stirs
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -958,7 +958,7 @@ ZONES:
             destination: manor_house_hallway
         triggers:
           - id: catch_any_fire
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -966,7 +966,7 @@ ZONES:
             script: |
               echo The fire crackles in the hearth, casting a warm glow and filling the room with a comforting heat.
           - id: timer_tick_the_chandelier_s_light
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -990,7 +990,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_book
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -998,7 +998,7 @@ ZONES:
             script: |
               echo The sound of a book falling off a shelf startles you, but when you look, everything appears undisturbed.
           - id: timer_tick_the_faint_scent
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1018,7 +1018,7 @@ ZONES:
             destination: manor_house_parlor
         triggers:
           - id: catch_any_creak_3
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1026,7 +1026,7 @@ ZONES:
             script: |
               echo A loud creak from one of the doors breaks the silence, though it remains firmly shut.
           - id: timer_tick_the_light_from
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1045,7 +1045,7 @@ ZONES:
             destination: manor_house_hallway
         triggers:
           - id: catch_any_mirror
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1053,7 +1053,7 @@ ZONES:
             script: |
               echo For a moment, you think you see a shadow move in the mirror, but when you look again, nothing is amiss.
           - id: timer_tick_a_gust_of_2
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1074,7 +1074,7 @@ ZONES:
             destination: manor_house_kitchen
         triggers:
           - id: catch_any_chandelier
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1082,7 +1082,7 @@ ZONES:
             script: |
               echo The chandelier above the table sways gently, although there is no breeze in the room.
           - id: timer_tick_the_shadows_cast_2
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1102,7 +1102,7 @@ ZONES:
             destination: manor_house_wine_cellar
         triggers:
           - id: catch_any_sizzle
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1110,7 +1110,7 @@ ZONES:
             script: |
               echo The sound of sizzling comes from a forgotten pan on the stove, though no one is cooking.
           - id: timer_tick_a_cool_draft
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1134,7 +1134,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_drip_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1142,7 +1142,7 @@ ZONES:
             script: |
               echo The sound of a slow drip echoes through the cellar, the source hidden among the rows of bottles.
           - id: timer_tick_the_shadows_between
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1166,7 +1166,7 @@ ZONES:
             respawn time max: 90
         triggers:
           - id: catch_any_music
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1174,7 +1174,7 @@ ZONES:
             script: |
               echo Faint strains of music seem to fill the room, a haunting melody that fades as quickly as it comes.
           - id: timer_tick_the_chandeliers_sway
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1207,7 +1207,7 @@ CHARACTERS:
           - is_aggressive
         triggers:
           - id: timer_tick_trigger_1138
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1252,7 +1252,7 @@ CHARACTERS:
           - rusty sword
         triggers:
           - id: timer_tick_trigger_1182
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -1297,7 +1297,7 @@ CHARACTERS:
           - is_aggressive
         triggers:
           - id: timer_tick_trigger_1226
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
