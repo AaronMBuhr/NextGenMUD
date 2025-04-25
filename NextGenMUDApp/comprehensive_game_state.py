@@ -213,12 +213,12 @@ class ComprehensiveGameState:
         print("===============================\n")
     
 
-    def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False) -> Character:
+    def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Character:
         logger = StructuredLogger(__name__, prefix="find_target_character()> ")
         # search_world automatically turns on search_zone
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
-        if target_name[0].lower() == 'me':
+        if target_name.lower() == 'me' or target_name.lower() == 'self':
             return actor
                 
         # Determine the starting point
@@ -248,6 +248,10 @@ class ComprehensiveGameState:
         # Helper function to add candidates from a room
         def add_candidates_from_room(actor, room):
             for char in room.get_characters():
+                # Skip the initiating actor if exclude_initiator is True
+                if exclude_initiator and char == actor:
+                    continue
+                    
                 if char.id.startswith(target_name) and self.can_see(char, actor):
                     candidates.append(char)
                 else:
@@ -255,6 +259,7 @@ class ComprehensiveGameState:
                     for piece in namepieces:
                         if piece.startswith(target_name) and self.can_see(char, actor):
                             candidates.append(char)
+                            break
 
         # Search in the current room
         add_candidates_from_room(actor, start_room)
