@@ -94,37 +94,65 @@ class Trigger(TriggerInterface):
     def from_dict(self, values: dict):
         logger = StructuredLogger(__name__, prefix="Trigger.from_dict()> ")
         self.id = values['id']
-        self.trigger_type_: TriggerType[values['type'].upper()]
-        self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values['criteria']]
-        self.script_ = values['script']
-        if 'flags' in values:
-            flags = ','.join(values['flags'])
-            self.flags = TriggerFlags.from_names(flags)
+        trigger_type_str = values.get('type')
+        if trigger_type_str:
+            try:
+                self.trigger_type_ = TriggerType[trigger_type_str.upper()]
+            except KeyError:
+                 logger.error(f"Invalid trigger type '{trigger_type_str}' found for trigger ID '{self.id}' on actor '{self.actor_.rid if self.actor_ else 'None'}'")
+                 self.trigger_type_ = TriggerType.UNKNOWN
+        else:
+             logger.error(f"Trigger type missing for trigger ID '{self.id}' on actor '{self.actor_.rid if self.actor_ else 'None'}'")
+             self.trigger_type_ = TriggerType.UNKNOWN
+             
+        self.criteria_ = [TriggerCriteria().from_dict(crit) for crit in values.get('criteria', [])]
+        self.script_ = values.get('script', "")
+        
+        flags_list = values.get('flags', [])
+        if flags_list and isinstance(flags_list, list):
+            try:
+                flags_str = ','.join(flags_list)
+                self.flags = TriggerFlags.from_names(flags_str)
+            except ValueError as e:
+                 logger.error(f"Invalid flag value in trigger {self.id}: {e}")
+                 self.flags = TriggerFlags(0)
         else:
             self.flags = TriggerFlags(0)
+            
         return self
     
     @classmethod
-    def new_trigger(cls, trigger_type, actor: 'Actor'):
+    def new_trigger(cls, trigger_type, actor: 'Actor', disabled=False):
         logger = StructuredLogger(__name__, prefix="Trigger.new_trigger()> ")
+        trigger_id = "temp_id"
+        
         if type(trigger_type) == str:
-            trigger_type = TriggerType[trigger_type.upper()]
-        if trigger_type == TriggerType.CATCH_ANY:
-            logger.debug3("returning TriggerCatchAny")
-            return TriggerCatchAny(actor)
-        elif trigger_type == TriggerType.TIMER_TICK:
-            logger.debug3("returning TriggerTimerTick")
-            return TriggerTimerTick(actor)
-        elif trigger_type == TriggerType.CATCH_LOOK:
-            logger.debug3("returning TriggerCatchLook")
-            return TriggerCatchLook(actor)
-        elif trigger_type == TriggerType.CATCH_SAY:
-            logger.debug3("returning TriggerCatchSay")
-            return TriggerCatchSay(actor)
-        # elif trigger_type == TriggerType.CATCH_TELL:
-        #     return CatchTellTrigger()
+            try:
+                trigger_type_enum = TriggerType[trigger_type.upper()]
+            except KeyError:
+                 logger.error(f"Unknown trigger type string '{trigger_type}' passed to new_trigger for actor '{actor.rid if actor else 'None'}'")
+                 raise ValueError(f"Unknown trigger type: {trigger_type}") 
+        elif isinstance(trigger_type, TriggerType):
+            trigger_type_enum = trigger_type
         else:
-            raise Exception(f"Unknown trigger type: {trigger_type}")
+            logger.error(f"Invalid trigger_type type ({type(trigger_type)}) passed to new_trigger for actor '{actor.rid if actor else 'None'}'")
+            raise TypeError(f"trigger_type must be str or TriggerType enum, got {type(trigger_type)}")
+
+        if trigger_type_enum == TriggerType.CATCH_ANY:
+            logger.debug3("returning TriggerCatchAny")
+            return TriggerCatchAny(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.TIMER_TICK:
+            logger.debug3("returning TriggerTimerTick")
+            return TriggerTimerTick(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_LOOK:
+            logger.debug3("returning TriggerCatchLook")
+            return TriggerCatchLook(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_SAY:
+            logger.debug3("returning TriggerCatchSay")
+            return TriggerCatchSay(trigger_id, actor, disabled)
+        else:
+            logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
+            raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
 
     @abstractmethod
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface=None) -> bool:
@@ -167,8 +195,12 @@ class Trigger(TriggerInterface):
             
 
 class TriggerCatchAny(Trigger):
-    def __init__(self, actor: 'Actor') -> None:
-        super().__init__(TriggerType.CATCH_ANY, actor)
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.CATCH_ANY, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         logger = StructuredLogger(__name__, prefix="TriggerCatchAny.run()> ")
@@ -189,27 +221,32 @@ class TriggerCatchAny(Trigger):
 
 
 class TriggerTimerTick(Trigger):
-    timer_tick_triggers_ = []
+    timer_tick_triggers_ = set()
 
-    def __init__(self, actor: 'Actor') -> None:
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
         logger = StructuredLogger(__name__, prefix="TriggerTimerTick.__init__()> ")
         logger.debug3(f"__init__ actor: {actor.id}")
         if not actor or actor == None:
             raise Exception("actor is None")
-        super().__init__(TriggerType.TIMER_TICK, actor)
+        super().__init__(id, TriggerType.TIMER_TICK, actor)
         self.last_ticked_ = 0
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
 
     def to_dict(self):
         return {'trigger_type_': self.trigger_type_, 'criteria_': [ c.to_dict() for c in self.criteria_ ], 'disabled_': self.disabled_, 'last_ticked_': self.last_ticked_ }
 
     def enable(self):
         super().enable()
-        TriggerTimerTick.timer_tick_triggers_.append(self)
+        TriggerTimerTick.timer_tick_triggers_.add(self)
         # print("trigger enabled: " + repr(self.to_dict()))
 
     def disable(self):
         super().disable()
-        TriggerTimerTick.timer_tick_triggers_.remove(self)    
+        if self in TriggerTimerTick.timer_tick_triggers_:
+            TriggerTimerTick.timer_tick_triggers_.remove(self)    
 
     def reset_timer(self):
         self.last_ticked_ = time.time()
@@ -221,7 +258,8 @@ class TriggerTimerTick(Trigger):
             logger.debug3("disabled")
             return False
         if not Actor.get_reference(actor.reference_number) or actor.is_deleted:
-            TriggerTimerTick.timer_tick_triggers_.remove(self)
+            if self in TriggerTimerTick.timer_tick_triggers_:
+                TriggerTimerTick.timer_tick_triggers_.remove(self)
             logger.debug3("actor no longer exists")
             return False
         if self.flags.are_flags_set(TriggerFlags.ONLY_WHEN_PC_ROOM):
@@ -263,8 +301,12 @@ class TriggerTimerTick(Trigger):
 
 class TriggerCatchLook(Trigger):
 
-    def __init__(self, actor: 'Actor') -> None:
-        super().__init__(TriggerType.CATCH_LOOK, actor)
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.CATCH_LOOK, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
@@ -284,8 +326,12 @@ class TriggerCatchLook(Trigger):
     
 
 class TriggerCatchSay(Trigger):
-    def __init__(self, actor: 'Actor') -> None:
-        super().__init__(TriggerType.CATCH_SAY, actor)
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.CATCH_SAY, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor

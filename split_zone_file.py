@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import os
-import yaml
+# import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 from pathlib import Path
 from itertools import zip_longest
 
@@ -12,9 +14,14 @@ def grouper(iterable, n, fillvalue=None):
 
 def split_yaml_file(file_path):
     # Load the YAML file
+    yaml = YAML() # Create a ruamel.yaml instance
+    yaml.preserve_quotes = True # Optional: Try to preserve quotes
+    yaml.indent(mapping=2, sequence=4, offset=2) # Adjust indentation as needed
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
+            # data = yaml.safe_load(f)
+            data = yaml.load(f)
         
         print(f"Loaded YAML file: {file_path}")
         print(f"Top level keys: {list(data.keys())}")
@@ -93,7 +100,8 @@ def split_yaml_file(file_path):
                         
                         # Save the chunk to a new file
                         with open(full_path, 'w', encoding='utf-8') as f:
-                            yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                            # yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                            yaml.dump(output_data, f)
                         
                         print(f"Created {full_path} with {len(room_chunk)} rooms")
         else:
@@ -147,7 +155,8 @@ def split_yaml_file(file_path):
                     
                     # Save the chunk to a new file
                     with open(full_path, 'w', encoding='utf-8') as f:
-                        yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                        # yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                        yaml.dump(output_data, f)
                     
                     print(f"Created {full_path} with {len(chunk)} characters")
         else:
@@ -201,7 +210,8 @@ def split_yaml_file(file_path):
                     
                     # Save the chunk to a new file
                     with open(full_path, 'w', encoding='utf-8') as f:
-                        yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                        # yaml.dump(output_data, f, sort_keys=False, allow_unicode=True)
+                        yaml.dump(output_data, f)
                     
                     print(f"Created {full_path} with {len(chunk)} objects")
         else:
@@ -225,8 +235,17 @@ def split_yaml_file(file_path):
             
             print_structure(data)
     
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML file: {e}")
+    except YAMLError as e:
+        print(f"Error parsing YAML file: {file_path}")
+        if hasattr(e, 'problem_mark'):
+            mark = e.problem_mark
+            print(f"  Error occurred at line {mark.line + 1}, column {mark.column + 1}")
+            if hasattr(e, 'problem'):
+                print(f"  Problem: {e.problem}")
+            if hasattr(e, 'context') and e.context:
+                 print(f"  Context: {e.context}")
+        else:
+            print(f"  Error details: {e}")
         sys.exit(1)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")

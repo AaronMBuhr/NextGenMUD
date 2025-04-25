@@ -82,7 +82,7 @@ class Room(Actor, RoomInterface):
                 #     self.triggers_by_type_[trigger_type] += trigger_info
                 for trig in yaml_data['triggers']:
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
-                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                    new_trigger = Trigger.new_trigger(trig["type"], self, disabled=False).from_dict(trig)
                     # print(new_trigger.to_dict())
                     if not new_trigger.trigger_type_ in self.triggers_by_type:
                         self.triggers_by_type[new_trigger.trigger_type_] = []

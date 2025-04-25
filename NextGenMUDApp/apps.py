@@ -1,12 +1,20 @@
 from django.apps import AppConfig
+from .structured_logger import get_logger, set_global_log_width, set_detail_level
+import logging
 import sys
 import os
-from .structured_logger import set_global_log_width, set_detail_level
+
+# Add custom debug levels
+logging.DEBUG2 = 9  # Between DEBUG(10) and NOTSET(0)
+logging.DEBUG3 = 8  # Even more detailed than DEBUG2
 
 class NextGenMUDAppConfig(AppConfig):
     name = 'NextGenMUDApp'
 
     def ready(self):
+        # Create a logger instance
+        logger = get_logger(__name__)
+
         # Set global log width from environment variable if present and valid
         log_width = os.environ.get('NEXTGENMUD_LOG_WIDTH')
         if log_width and log_width.isdigit():
@@ -14,8 +22,28 @@ class NextGenMUDAppConfig(AppConfig):
 
         # Set log detail level from environment variable if present and valid
         log_level = os.environ.get('NEXTGENMUD_LOG_LEVEL')
-        if log_level and log_level.isdigit():
-            set_detail_level(int(log_level))
+        if log_level:
+            if log_level.lower() == 'debug':
+                logger.setLevel(logging.DEBUG)
+                set_detail_level(1)
+            elif log_level.lower() == 'debug2':
+                logger.setLevel(logging.DEBUG)
+                set_detail_level(2)
+            elif log_level.lower() == 'debug3':
+                logger.setLevel(logging.DEBUG)
+                set_detail_level(3)
+            elif log_level.lower() == 'info':
+                logger.setLevel(logging.INFO)
+                set_detail_level(1)
+            elif log_level.lower() == 'warning':
+                logger.setLevel(logging.WARNING)
+                set_detail_level(1)
+            elif log_level.lower() == 'error':
+                logger.setLevel(logging.ERROR)
+            elif log_level.lower() == 'critical':
+                logger.setLevel(logging.CRITICAL)
+            else:
+                logger.setLevel(logging.INFO)
 
         # Only initialize game state if not running management commands
         if not any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'shell', 'dbshell']):

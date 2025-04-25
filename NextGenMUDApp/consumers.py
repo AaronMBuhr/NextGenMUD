@@ -63,8 +63,9 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
 
     async def send(self, text_data):
         logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.send()> ")
-        logger.warning(f"text_data: {text_data}")
-        await super().send(text_data=text_data)
+        # logger.warning(f"text_data: {text_data}")
+        # Call parent's send method directly to avoid the assertion error
+        await AsyncWebsocketConsumer.send(self, text_data=text_data)
         # await self.send(text_data=json.dumps({ 
         #     'text_type': 'static',
         #     'text': 'Hello World!'

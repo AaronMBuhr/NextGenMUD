@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from collections import defaultdict
 import copy
 from ..structured_logger import StructuredLogger
 from enum import Enum, auto, IntFlag
@@ -30,7 +31,7 @@ class Actor(ActorInterface):
         self.pronoun_subject = "it"
         self.pronoun_object = "it"
         self.pronoun_possessive = "its"
-        self.triggers_by_type = {}
+        self.triggers_by_type = defaultdict(list)
         self.reference_number = None
         self.temp_variables = {}
         self.perm_variables = {}
