@@ -96,6 +96,8 @@ class CommandHandler(CommandHandlerInterface):
         "sleep": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sleep(char, input),
         "leaverandom": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_leaverandom(char, input),
         "skills": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_skills(char, input),
+        "character": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
+        "characterinfo": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
         # various emotes are in the EMOTE_MESSAGES dict below
     }
 
@@ -753,13 +755,39 @@ class CommandHandler(CommandHandlerInterface):
     async def cmd_inventory(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_inventory()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
-        if not isinstance(actor, Character):
-            await actor.send_text(CommTypes.DYNAMIC, "Only characters can have inventories.")
+        
+        # Determine target (self or specified character)
+        if not input or input == "" or not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            target = actor
+            msg = "Your inventory:"
+        else:
+            pieces = split_preserving_quotes(input)
+            target = cls._game_state.find_target_character(actor, pieces[0])
+            if not target:
+                await actor.send_text(CommTypes.DYNAMIC, "Character not found.")
+                return
+            msg = f"Inventory for {target.art_name_cap}:"
+
+        await actor.send_text(CommTypes.DYNAMIC, msg)
+        
+        if not target.contents:
+            await actor.send_text(CommTypes.DYNAMIC, "    Nothing.")
             return
-        if not actor.contents:
-            await actor.send_text(CommTypes.DYNAMIC, "You are carrying nothing.")
-            return
-        await actor.send_text(CommTypes.DYNAMIC, f"You are carrying: {Object.collapse_name_multiples(actor.contents, ', ')}")
+            
+        # Recursive helper function to display container contents
+        async def display_container_contents(container, indent_level=0):
+            indent = "    " * indent_level
+            
+            for item in container.contents:
+                # Check if item is a container with contents
+                if hasattr(item, "contents") and item.contents:
+                    await actor.send_text(CommTypes.DYNAMIC, f"{indent}{item.art_name}, containing:")
+                    await display_container_contents(item, indent_level + 1)
+                else:
+                    await actor.send_text(CommTypes.DYNAMIC, f"{indent}{item.art_name}")
+        
+        # Display top-level inventory
+        await display_container_contents(target, 1)
 
 
     async def cmd_at(cls, actor: Actor, input: str):
@@ -1340,3 +1368,95 @@ class CommandHandler(CommandHandlerInterface):
                 return
         for skill_name, skill_level in target.skill_levels.items():
             await actor.send_text(CommTypes.DYNAMIC, f"{skill_name}: {skill_level}")
+
+    async def cmd_character(cls, actor: Actor, input: str):
+        logger = StructuredLogger(__name__, prefix="cmd_character()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Determine target (self or specified character)
+        if not input or input == "" or not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            target = actor
+        else:
+            pieces = split_preserving_quotes(input)
+            target = cls._game_state.find_target_character(actor, pieces[0])
+            if not target:
+                await actor.send_text(CommTypes.DYNAMIC, "Character not found.")
+                return
+        
+        # Check if viewer has admin privileges
+        is_admin = actor.has_game_flags(GamePermissionFlags.IS_ADMIN)
+        
+        # Build character info display
+        await actor.send_text(CommTypes.DYNAMIC, f"===== {target.art_name_cap} =====")
+        
+        # Basic info
+        level_info = f"Level {target.total_levels()}"
+        await actor.send_text(CommTypes.DYNAMIC, f"{level_info}")
+        
+        # HP and status
+        hp_percent = int((target.hp / target.max_hp) * 100) if target.max_hp > 0 else 0
+        await actor.send_text(CommTypes.DYNAMIC, f"HP: {target.hp}/{target.max_hp} ({hp_percent}%)")
+        
+        # Status indicators
+        if target.is_dead():
+            await actor.send_text(CommTypes.DYNAMIC, "Status: DEAD")
+        elif target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
+            await actor.send_text(CommTypes.DYNAMIC, "Status: Sleeping")
+        elif target.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
+            await actor.send_text(CommTypes.DYNAMIC, "Status: Sitting")
+        elif target.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
+            await actor.send_text(CommTypes.DYNAMIC, "Status: Stunned")
+        elif target.fighting_whom:
+            await actor.send_text(CommTypes.DYNAMIC, f"Status: Fighting {target.fighting_whom.art_name}")
+        else:
+            await actor.send_text(CommTypes.DYNAMIC, "Status: Standing")
+        
+        # Display equipped items
+        await actor.send_text(CommTypes.DYNAMIC, "\n--- Equipment ---")
+        has_equipment = False
+        for loc in EquipLocation:
+            if target.equipped[loc]:
+                has_equipment = True
+                await actor.send_text(CommTypes.DYNAMIC, f"{loc.name}: {target.equipped[loc].art_name}")
+        if not has_equipment:
+            await actor.send_text(CommTypes.DYNAMIC, "Nothing equipped")
+        
+        # Display skills
+        await actor.send_text(CommTypes.DYNAMIC, "\n--- Skills ---")
+        if not target.skill_levels:
+            await actor.send_text(CommTypes.DYNAMIC, "No skills")
+        else:
+            for skill_name, skill_level in target.skill_levels.items():
+                await actor.send_text(CommTypes.DYNAMIC, f"    {skill_name:30}: {skill_level:>2}")
+        
+        # Admin-only information
+        if is_admin:
+            await actor.send_text(CommTypes.DYNAMIC, "\n--- Admin Info ---")
+            await actor.send_text(CommTypes.DYNAMIC, f"Reference ID: {target.rid}")
+            await actor.send_text(CommTypes.DYNAMIC, f"Location: {target.location_room.id if target.location_room else 'None'}")
+            
+            # Flags display
+            perm_flags = [f.name for f in PermanentCharacterFlags if target.has_perm_flags(f)]
+            temp_flags = [f.name for f in TemporaryCharacterFlags if target.has_temp_flags(f)]
+            game_flags = [f.name for f in GamePermissionFlags if target.has_game_flags(f)]
+            
+            if perm_flags:
+                await actor.send_text(CommTypes.DYNAMIC, f"Permanent Flags: {', '.join(perm_flags)}")
+            if temp_flags:
+                await actor.send_text(CommTypes.DYNAMIC, f"Temporary Flags: {', '.join(temp_flags)}")
+            if game_flags:
+                await actor.send_text(CommTypes.DYNAMIC, f"Permission Flags: {', '.join(game_flags)}")
+            
+            # Variables
+            if target.temp_variables:
+                await actor.send_text(CommTypes.DYNAMIC, "Temp Variables:")
+                for key, value in target.temp_variables.items():
+                    await actor.send_text(CommTypes.DYNAMIC, f"  {key}: {value}")
+            
+            if target.perm_variables:
+                await actor.send_text(CommTypes.DYNAMIC, "Perm Variables:")
+                for key, value in target.perm_variables.items():
+                    await actor.send_text(CommTypes.DYNAMIC, f"  {key}: {value}")
+
+
+

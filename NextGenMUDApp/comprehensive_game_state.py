@@ -126,7 +126,7 @@ class ComprehensiveGameState:
                         ch = Character(chardef["id"], self.world_definition.zones[zonedef["zone"]], create_reference=False)
                         ch.from_yaml(chardef, zonedef["zone"])
                         ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN)
-                        logger.critical(f"loaded character: {ch.id}")
+                        logger.debug3(f"loaded character: {ch.id}")
                         self.world_definition.characters[f"{zonedef['zone']}.{ch.id}"] = ch
 
                 logger.debug("Characters loaded")
