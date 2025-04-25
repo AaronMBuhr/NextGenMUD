@@ -5,7 +5,6 @@ from num2words import num2words
 import random
 import re
 from typing import Callable, List
-import yaml
 from .command_handler_interface import CommandHandlerInterface
 from .communication import CommTypes
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
@@ -108,12 +107,14 @@ class CommandHandler(CommandHandlerInterface):
         "l": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_look(char, input),
         "attack": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_attack(command, char, input),
         "kill": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_attack(command, char, input),
-        "inv": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inventory(char, input),
         "inventory": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inventory(char, input),
+        "inv": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inventory(char, input),
+        "i": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inventory(char, input),
         "get": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_get(char, input),
         "drop": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_drop(char, input),
         "inspect": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_inspect(char, input),
         "equip": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_equip(char, input),
+        "eq": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_equip(char, input),
         "unequip": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_unequip(char, input),
         "stand": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_stand(char, input),
         "sit": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sit(char, input),
@@ -574,7 +575,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = split_preserving_quotes(input)
         target = cls._game_state.find_target_character(actor, pieces[0])
         if target == None:
-            target = cls._game_state.find_target_object(actor, pieces[0])
+            target = cls._game_state.find_target_object(pieces[0], actor)
         if target == None:
             await actor.send_text(CommTypes.DYNAMIC, "Look at what?")
             return
@@ -1020,11 +1021,11 @@ class CommandHandler(CommandHandlerInterface):
         # Group equipment slots for better organization
         slot_groups = {
             "Head": [EquipLocation.HEAD],
-            "Body": [EquipLocation.BODY, EquipLocation.ABOUT],
+            "Body": [EquipLocation.BODY, EquipLocation.BACK],
             "Arms": [EquipLocation.ARMS, EquipLocation.HANDS, EquipLocation.WRISTS],
             "Legs": [EquipLocation.LEGS, EquipLocation.FEET],
-            "Weapons": [EquipLocation.WIELDED_PRIMARY, EquipLocation.WIELDED_SECONDARY],
-            "Accessories": [EquipLocation.NECK, EquipLocation.WAIST, EquipLocation.FINGER_L, EquipLocation.FINGER_R, EquipLocation.EAR_L, EquipLocation.EAR_R]
+            "Weapons": [EquipLocation.MAIN_HAND, EquipLocation.OFF_HAND, EquipLocation.BOTH_HANDS],
+            "Accessories": [EquipLocation.NECK, EquipLocation.WAIST, EquipLocation.LEFT_FINGER, EquipLocation.RIGHT_FINGER, EquipLocation.EYES]
         }
         
         # Customize the message based on who's viewing
@@ -1608,57 +1609,188 @@ class CommandHandler(CommandHandlerInterface):
 
 
     async def cmd_triggers(cls, actor: Actor, input: str):
-        # triggers character <name> <enable|disable> <all|trigger_id>
+        # triggers <character|room|object> <name|me|here> <enable|disable|show|list> [<all|trigger_id>]
         if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
             await actor.send_text(CommTypes.DYNAMIC, "What?")
             return
-        if not input:
-            await actor.send_text(CommTypes.STATIC, "Triggers:")
-            for trigger in cls._game_state.triggers:
-                await actor.send_text(CommTypes.STATIC, f"{trigger.id:30}: {trigger.trigger_type_}") + " (disabled)" if trigger.disabled else ""
-                for crit in trigger.criteria:
-                    await actor.send_text(CommTypes.STATIC, f"  {crit.subject} {crit.operator} {crit.predicate}")
-            return
         
         pieces = split_preserving_quotes(input)
-        if pieces[0] in ["room", "world", "object"]:
-            await actor.send_text(CommTypes.STATIC, "Not implemented yet.")
+        
+        # Handle case with no arguments (list all global triggers)
+        if not pieces:
+            await actor.send_text(CommTypes.STATIC, "Global Triggers:")
+            if not cls._game_state.triggers:
+                 await actor.send_text(CommTypes.STATIC, "  None defined.")
+                 return
+            for trigger in cls._game_state.triggers:
+                state = "(disabled)" if trigger.disabled else ""
+                await actor.send_text(CommTypes.STATIC, f"  {trigger.id:30}: {trigger.trigger_type_} {state}")
+                # Optionally show criteria for global list too? For now, keep it simple.
+                # for crit in trigger.criteria:
+                #     await actor.send_text(CommTypes.STATIC, f"    {crit.subject} {crit.operator} {crit.predicate}")
             return
         
-        if pieces[0] not in ["character","char","me","self"]:
-            await actor.send_text(CommTypes.STATIC, "Triggers for what?")
+        # Basic argument validation
+        if len(pieces) < 3:
+            await actor.send_text(CommTypes.STATIC, "Usage: triggers <target_type> <target_name> <action> [trigger_specifier]")
+            await actor.send_text(CommTypes.STATIC, "  Target Types: character, char, me, self, room, here, obj, object")
+            await actor.send_text(CommTypes.STATIC, "  Actions: enable, disable, show, list")
+            await actor.send_text(CommTypes.STATIC, "  Trigger Specifier (needed for enable/disable/show): all | <trigger_id>")
             return
+            
+        target_type = pieces[0].lower()
+        target_name = pieces[1]
+        action = pieces[2].lower()
         
-        if pieces[0] == "me" or pieces[0] == "self":
-            target = actor
-        else:
-            target = cls._game_state.find_target_character(actor, pieces[1])
+        # Validate target type
+        if target_type not in ["character", "char", "me", "self", "room", "here", "obj", "object"]:
+            await actor.send_text(CommTypes.STATIC, "Invalid target type. Use: character, char, me, self, room, here, obj, object")
+            return
+            
+        # Validate action
+        valid_actions = ["enable", "disable", "show", "list"]
+        if action not in valid_actions:
+            await actor.send_text(CommTypes.STATIC, f"Invalid action. Use: {', '.join(valid_actions)}")
+            return
+
+        # Find the target
+        target = None
+        if target_type in ["character", "char", "me", "self"]:
+            if target_type in ["me", "self"]:
+                if len(pieces) > 2: # 'me'/'self' replaces target_name, shift other args
+                   action = pieces[1].lower()
+                   target_name = "me" # Set target_name for display purposes
+                   if action not in valid_actions:
+                       await actor.send_text(CommTypes.STATIC, f"Invalid action. Use: {', '.join(valid_actions)}")
+                       return
+                   if len(pieces) > 3:
+                       trigger_specifier = pieces[2] # Adjusted index
+                   elif action in ["enable", "disable", "show"]:
+                       await actor.send_text(CommTypes.STATIC, f"Action '{action}' requires a trigger specifier (all or ID).")
+                       return
+                else:
+                   await actor.send_text(CommTypes.STATIC, "Please specify an action (enable, disable, show, list).")
+                   return
+                target = actor
+            else:
+                target = cls._game_state.find_target_character(actor, target_name)
             if not target:
-                await actor.send_text(CommTypes.STATIC, "No such character.")
+                await actor.send_text(CommTypes.STATIC, f"Character '{target_name}' not found.")
                 return
+        elif target_type in ["room", "here"]:
+            if target_type == "here":
+                if len(pieces) > 2: # 'here' replaces target_name, shift other args
+                    action = pieces[1].lower()
+                    target_name = "here" # Set target_name for display purposes
+                    if action not in valid_actions:
+                        await actor.send_text(CommTypes.STATIC, f"Invalid action. Use: {', '.join(valid_actions)}")
+                        return
+                    if len(pieces) > 3:
+                         trigger_specifier = pieces[2] # Adjusted index
+                    elif action in ["enable", "disable", "show"]:
+                         await actor.send_text(CommTypes.STATIC, f"Action '{action}' requires a trigger specifier (all or ID).")
+                         return
+                else:
+                    await actor.send_text(CommTypes.STATIC, "Please specify an action (enable, disable, show, list).")
+                    return
+                target = actor.location_room
+                if not target:
+                     await actor.send_text(CommTypes.STATIC, "You are not in a room.")
+                     return
+            else:
+                target = cls._game_state.find_target_room(actor, target_name)
+            if not target:
+                await actor.send_text(CommTypes.STATIC, f"Room '{target_name}' not found.")
+                return
+        elif target_type in ["obj", "object"]:
+            target = cls._game_state.find_target_object(actor, target_name, search_world=True) # Search world for objects too
+            if not target:
+                await actor.send_text(CommTypes.STATIC, f"Object '{target_name}' not found.")
+                return
+                
+        # --- Handle actions ---
         
-        if pieces[3] == "all":
-            triggers = [v for _, v in actor.triggers_by_type.items()]
+        # Get the triggers attached to the target
+        target_triggers = list(itertools.chain.from_iterable(target.triggers_by_type.values()))
+
+        if action == "list":
+            # List action requires exactly 3 arguments (or 2 for me/here)
+            expected_len = 2 if target_type in ["me", "self", "here"] else 3
+            if len(pieces) != expected_len:
+                 await actor.send_text(CommTypes.STATIC, f"Usage: triggers {target_type} {target_name} list")
+                 return
+
+            await actor.send_text(CommTypes.STATIC, f"Triggers for {target.art_name_cap}:")
+            if not target_triggers:
+                 await actor.send_text(CommTypes.STATIC, "  None found.")
+                 return
+                 
+            for trigger in target_triggers:
+                state = "(disabled)" if trigger.disabled else ""
+                await actor.send_text(CommTypes.STATIC, f"  ID: {trigger.id:<25} Type: {trigger.trigger_type_:<15} {state}")
+                if trigger.criteria:
+                     await actor.send_text(CommTypes.STATIC, "    Criteria:")
+                     for crit in trigger.criteria:
+                         await actor.send_text(CommTypes.STATIC, f"      {crit.subject} {crit.operator} {crit.predicate}")
+            return
+
+        # Actions requiring trigger_specifier (enable, disable, show)
+        expected_len = 3 if target_type in ["me", "self", "here"] else 4
+        if len(pieces) < expected_len:
+             await actor.send_text(CommTypes.STATIC, f"Action '{action}' requires a trigger specifier (all or ID).")
+             await actor.send_text(CommTypes.STATIC, f"Usage: triggers {target_type} {target_name} {action} <all|trigger_id>")
+             return
+             
+        trigger_specifier = pieces[expected_len-1] # Get specifier based on adjusted index
+
+        if trigger_specifier == "all":
+            triggers_to_modify = target_triggers
+            if not triggers_to_modify and action != "show": # 'show all' doesn't make sense
+                 await actor.send_text(CommTypes.STATIC, f"Target {target.art_name_cap} has no triggers to {action}.")
+                 return
         else:
-            triggers = [trigger for trigger in actor.triggers_by_type[TriggerType.CATCH_ANY] if trigger.id == pieces[1]]
-        if pieces[2] == "enable":
-            for trigger in triggers:
-                trigger.enable()
-                await actor.send_text(CommTypes.STATIC, f"Enabled {trigger.id}")
-            return
-        if pieces[2] == "disable":
-            for trigger in triggers:
-                trigger.disable()
-                await actor.send_text(CommTypes.STATIC, f"Disabled {trigger.id}")
-            return
-        if pieces[2] == "show":
-            if len(triggers) != 1:
-                await actor.send_text(CommTypes.STATIC, "Which trigger?")
+            triggers_to_modify = [trigger for trigger in target_triggers if trigger.id == trigger_specifier]
+            if not triggers_to_modify:
+                await actor.send_text(CommTypes.STATIC, f"Target {target.art_name_cap} does not have a trigger with ID '{trigger_specifier}'.")
                 return
-            trigger = triggers[0]
-            await actor.send_text(CommTypes.STATIC, f"Trigger {target.art_name_cap}: {trigger.id}")
-            for line in trigger.script_.split("\n"):
-                await actor.send_text(CommTypes.STATIC, f"  {line}")
+
+        if action == "enable":
+            for trigger in triggers_to_modify:
+                trigger.enable()
+                await actor.send_text(CommTypes.STATIC, f"Enabled trigger '{trigger.id}' on {target.art_name_cap}.")
             return
-        await actor.send_text(CommTypes.STATIC, "Do what with triggers?")
+        elif action == "disable":
+            for trigger in triggers_to_modify:
+                trigger.disable()
+                await actor.send_text(CommTypes.STATIC, f"Disabled trigger '{trigger.id}' on {target.art_name_cap}.")
+            return
+        elif action == "show":
+            if trigger_specifier == "all":
+                 await actor.send_text(CommTypes.STATIC, "Cannot use 'show all'. Please specify a single trigger ID to show.")
+                 return
+            if len(triggers_to_modify) != 1: # Should be redundant due to find logic, but safe check
+                await actor.send_text(CommTypes.STATIC, "Error: Found multiple triggers matching ID (this shouldn't happen).")
+                return
+                
+            trigger = triggers_to_modify[0]
+            await actor.send_text(CommTypes.STATIC, f"Trigger '{trigger.id}' on {target.art_name_cap}:")
+            await actor.send_text(CommTypes.STATIC, f"  Type: {trigger.trigger_type_}")
+            await actor.send_text(CommTypes.STATIC, f"  Disabled: {trigger.disabled}")
+            await actor.send_text(CommTypes.STATIC, "  Criteria:")
+            if not trigger.criteria:
+                 await actor.send_text(CommTypes.STATIC, "    None")
+            else:
+                for crit in trigger.criteria:
+                    await actor.send_text(CommTypes.STATIC, f"    {crit.subject} {crit.operator} {crit.predicate}")
+            await actor.send_text(CommTypes.STATIC, "  Script:")
+            script_lines = trigger.script_.split("\n")
+            if not trigger.script_ or not script_lines or (len(script_lines) == 1 and not script_lines[0].strip()):
+                 await actor.send_text(CommTypes.STATIC, "    (Empty)")
+            else:
+                for line in script_lines:
+                     await actor.send_text(CommTypes.STATIC, f"    {line}")
+            return
+            
+        # Fallback error - should not be reached if action validation is correct
+        await actor.send_text(CommTypes.STATIC, "An unexpected error occurred processing the command.")
         return

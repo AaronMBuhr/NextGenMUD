@@ -207,7 +207,7 @@ class Character(Actor, CharacterInterface):
                 for trig in yaml_data['triggers']:
                     logger.debug3(f"got trigger for {self.name}: {trig}")
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
-                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
+                    new_trigger = Trigger.new_trigger(trig["type"], self, disabled=True).from_dict(trig)
                     if not new_trigger.trigger_type_ in self.triggers_by_type:
                         self.triggers_by_type[new_trigger.trigger_type_] = []
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
@@ -283,16 +283,23 @@ class Character(Actor, CharacterInterface):
         logger = StructuredLogger(__name__, prefix="Character.create_from_definition()> ")
         logger.debug3(f"char_def: {char_def}")
         logger.debug3(f"char def triggers: {char_def.triggers_by_type}")
+        for trig_type, trig_data in char_def.triggers_by_type.items():
+            for trig in trig_data:
+                logger.debug3(f"checking trigger: {trig.to_dict()}")
+                if not trig.disabled_:
+                    logger.critical(f"char def trigger is enabled: {trig.to_dict()}")
+                    raise Exception("char def trigger is enabled")
+        
         new_char = copy.deepcopy(char_def)
         logger.debug3(f"new_char triggers: {char_def.triggers_by_type}")
-        if not new_char.reference_number or new_char.reference_number == char_def.reference_number:
-            new_char.create_reference()
+        new_char.reference_number = None
+        new_char.create_reference()
         new_char.max_hit_points = roll_dice(new_char.hit_dice, new_char.hit_dice_size, new_char.hit_point_bonus)
         new_char.current_hit_points = new_char.max_hit_points
         new_char.contents = []
         
         # Explicitly set connection to None to avoid issues with connection persistence
-        logger.critical(f"Setting connection to None for new character {new_char.name} ({new_char.id})")
+        # logger.debug3(f"Setting connection to None for new character {new_char.name} ({new_char.id})")
         new_char.connection = None
         
         new_char.fighting_whom = None

@@ -150,19 +150,27 @@ class CoreActions(CoreActionsInterface):
             vars = set_vars(actor, actor, actor, msg)
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             return
-        
-        msg = f"{actor.art_name_cap} leaves {direction}."
-        vars = set_vars(actor.location_room, actor, actor, msg, { 'direction': direction })
-        await actor.location_room.echo("dynamic", msg, exceptions=[actor], game_state=self.game_state)
-        await actor.send_text("dynamic", f"You leave {direction}.")
+
         old_room = actor.location_room
-        destination = actor.location_room.exits[direction]
+        destination = old_room.exits[direction]
         if "." in destination:
             zone_id, room_id = destination.split(".")
         else:
             zone_id = old_room.zone.id
             room_id = destination
-        new_room = self.game_state.get_zone_by_id(zone_id).rooms[room_id]
+        try:        
+            new_room = self.game_state.get_zone_by_id(zone_id).rooms[room_id]
+        except KeyError:
+            msg = f"There was a problem moving that direction."
+            if actor.actor_type == ActorType.CHARACTER and actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+                msg += f"> Zone: {zone_id}, Room: {room_id}"
+            vars = set_vars(actor, actor, actor, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            return
+        msg = f"{actor.art_name_cap} leaves {direction}."
+        vars = set_vars(actor.location_room, actor, actor, msg, { 'direction': direction })
+        await actor.location_room.echo("dynamic", msg, exceptions=[actor], game_state=self.game_state)
+        await actor.send_text("dynamic", f"You leave {direction}.")
         actor.location_room.remove_character(actor)
         actor.location_room = None
         await self.arrive_room(actor, new_room, old_room)

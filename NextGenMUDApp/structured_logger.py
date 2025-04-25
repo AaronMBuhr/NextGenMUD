@@ -3,7 +3,9 @@ import logging
 import structlog
 import sys
 import traceback
-import yaml
+# import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 from typing import Dict, Any, Optional, List, Callable
 
 # Configure the standard Python logging to work with structlog
@@ -123,17 +125,30 @@ class PrefixFilter:
 # Create a processor for YAML formatting of complex objects
 def format_yaml_values(_, __, event_dict):
     """Format complex values as YAML for better readability."""
+    yaml_formatter = YAML()
+    yaml_formatter.default_flow_style = False
+    yaml_formatter.indent(mapping=2, sequence=4, offset=2)
+    
     for key, value in list(event_dict.items()):
         if not isinstance(value, (str, int, float, bool, type(None))):
             try:
-                yaml_str = yaml.dump(value, default_flow_style=False)
+                # Use StringIO to capture the YAML output
+                from io import StringIO
+                string_stream = StringIO()
+                yaml_formatter.dump(value, string_stream)
+                yaml_str = string_stream.getvalue().strip()
+                string_stream.close()
+                
+                # Add YAML block scalar indicator | if multi-line
                 if '\n' in yaml_str:
-                    # Format multi-line YAML with proper indentation
-                    lines = yaml_str.strip().split('\n')
-                    yaml_str = lines[0] + ' |\n  ' + '\n  '.join(lines[1:])
+                    lines = yaml_str.split('\n')
+                    # Indent subsequent lines for block scalar style
+                    indented_lines = [lines[0]] + [f"  {line}" for line in lines[1:]]
+                    yaml_str = " |\n" + "\n".join(indented_lines)
                 event_dict[key] = yaml_str
-            except Exception:
+            except (YAMLError, TypeError, Exception) as e:
                 # If YAML conversion fails, fall back to str()
+                # print(f"YAML format failed for key '{key}': {e}", file=sys.stderr) # Optional: debug failed formatting
                 event_dict[key] = str(value)
     return event_dict
 
@@ -464,7 +479,9 @@ structlog.configure(
 def initialize_logger():
     """Initialize the logger and log the current year."""
     logger = get_logger("logger_init")
-    logger.info(f"Log year is {global_renderer.current_year}")
+    logger.info(f"Initializing logger: log level is {logging.getLevelName(logging.getLogger().getEffectiveLevel())},"
+                    f" Log year is {global_renderer.current_year}")
+
 
 # Create our structured logger class
 class StructuredLogger:
@@ -476,6 +493,23 @@ class StructuredLogger:
         self.detail_level = 1  # Default detail level
         self.wrap_width = global_log_width  # Use global log width (None means no wrapping)
     
+    def setLevel(self, level):
+        """Set the logger level to a standard logging level."""
+        # Set the level for the underlying standard logger
+        logging.getLogger().setLevel(level)
+        
+        # Map the standard logging levels to our detail levels for better debug granularity
+        if level == logging.DEBUG:
+            # Keep the current detail level if it's already set
+            pass
+        elif level == logging.INFO:
+            self.detail_level = 1
+            detail_filter.set_level(None, 1)
+        elif level in (logging.WARNING, logging.ERROR, logging.CRITICAL):
+            # For higher levels, ensure we still capture everything if debug is enabled
+            self.detail_level = 1
+            detail_filter.set_level(None, 1)
+    
     def _log(self, method, msg, detail_level=1, **kwargs):
         """Internal method to handle logging with detail level and prefix."""
         global year_has_been_logged
@@ -484,7 +518,9 @@ class StructuredLogger:
         if not year_has_been_logged and global_renderer.current_year:
             # Log the year info first
             year_logger = structlog.get_logger("logger_init")
-            year_logger.info(f"Log year is {global_renderer.current_year}")
+            # year_logger.info(f"Log year is {global_renderer.current_year}")
+            year_logger.info(f"Initializing logger: log level is {logging.getLevelName(logging.getLogger().getEffectiveLevel())},"
+                             f" Log year is {global_renderer.current_year}")
             # Set the global flag to indicate year has been logged
             year_has_been_logged = True
             
@@ -576,8 +612,10 @@ class StructuredLogger:
     def set_detail_level(self, level, module=None):
         """Set the detail level for this logger or a specific module."""
         if module:
+            self.info(f"Setting detail level for module {module} to {level}")
             detail_filter.set_level(module, level)
         else:
+            self.info(f"Setting detail level for all modules to {level}")
             self.detail_level = level
             detail_filter.set_level(None, level)
     

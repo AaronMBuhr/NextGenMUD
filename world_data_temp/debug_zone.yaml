@@ -215,8 +215,7 @@ OBJECTS:
         object_flags:
           - is_weapon
         triggers:
-        - id: catch_any_drops_you
-          type: catch_any
+        - type: catch_any
           criteria:
             - subject: "%*%"
               operator: contains

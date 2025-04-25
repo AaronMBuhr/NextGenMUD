@@ -60,6 +60,7 @@ class Object(Actor, ObjectInterface):
     def from_yaml(self, yaml_data: str, definition_zone_id: str,game_state: GameStateInterface = None):
         logger = StructuredLogger(__name__, prefix="Object.from_yaml()> ")
         try:
+            self.id = yaml_data['id']
             self.name = yaml_data['name']
             self.definition_zone_id = definition_zone_id
             self.description_ = yaml_data['description']
@@ -69,11 +70,14 @@ class Object(Actor, ObjectInterface):
             self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
             self.weight = yaml_data['weight']
             self.value = yaml_data['value']
+            logger.debug3(f"object.from_yaml()> equip_locations: {yaml_data['equip_locations']}")
             if 'equip_locations' in yaml_data:
                 for el in yaml_data['equip_locations']:
                     self.equip_locations.append(EquipLocation.string_to_enum(el))
+            logger.debug3(f"object.from_yaml()> attack bonus")
             if 'attack_bonus' in yaml_data:
                 self.attack_bonus = yaml_data['attack_bonus']
+            logger.debug3(f"object.from_yaml()> damage_type")
             if 'damage_type' in yaml_data:
                 self.damage_type = DamageType[yaml_data['damage_type'].upper()] if 'damage_type' in yaml_data else None
                 dmg_parts = get_dice_parts(yaml_data['damage'])
@@ -81,13 +85,16 @@ class Object(Actor, ObjectInterface):
                 self.damage_dice_size = dmg_parts[1]
                 self.damage_bonus = dmg_parts[2]
             self.dodge_penalty = yaml_data['dodge_penalty'] if 'dodge_penalty' in yaml_data else 0
+            logger.debug3(f"object.from_yaml()> damage_resistances")
             if 'damage_resistances' in yaml_data:
                 for dt, mult in yaml_data['damage_resistances'].items():
                     self.damage_resistances.set(DamageType[dt.upper()], mult)
+            logger.debug3(f"object.from_yaml()> damage_reduction")
             if 'damage_reduction' in yaml_data:
                 for dt, amount in yaml_data['damage_reduction'].items():
                     self.damage_reduction.set(DamageType[dt.upper()], amount)
 
+            logger.debug3(f"object.from_yaml()> triggers")
             if 'triggers' in yaml_data:
                 # print(f"triggers: {yaml_data['triggers']}")
                 # raise NotImplementedError("Triggers not implemented yet.")
@@ -98,14 +105,13 @@ class Object(Actor, ObjectInterface):
                 #     self.triggers_by_type_[trigger_type] += trigger_info
                 for trig in yaml_data['triggers']:
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
-                    new_trigger = Trigger.new_trigger(trig["type"], self).from_dict(trig)
-                    if not new_trigger.trigger_type_ in self.triggers_by_type:
-                        self.triggers_by_type[new_trigger.trigger_type_] = []
+                    new_trigger = Trigger.new_trigger(trig["type"], self, disabled=False).from_dict(trig)
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
-        except:
+        except Exception as e:
             logger.error("Error loading object from yaml")
             logger.error("yaml_data: " + str(yaml_data))
-            raise
+            logger.error(f"Error: {e}")
+            raise e
 
     def add_object(self, obj: 'Object', force=False):
         self.contents.append(obj)
