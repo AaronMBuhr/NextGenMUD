@@ -18,8 +18,7 @@ ZONES:
           east:
             destination: moonlit_clearing
         triggers:
-          - id: timer_tick_a_gentle_breeze
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -28,8 +27,7 @@ ZONES:
                 predicate: 12
             script: |
               echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
-          - id: timer_tick_you_notice_a
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -41,24 +39,21 @@ ZONES:
                 predicate: 30
             script: |
               echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
-          - id: catch_look_tree
-            type: catch_look
+          - type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "tree"
             script: |
               echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
-          - id: catch_any_sing
-            type: catch_any
+          - type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "sing"
             script: |
               echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
-          - id: catch_any_dance
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -88,8 +83,7 @@ ZONES:
           # west:
           #   destination: fairy_meadow
         triggers:
-          - id: timer_tick_softly_glowing_crystals
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -98,32 +92,28 @@ ZONES:
                 predicate: 12
             script: |
               echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
-          - id: catch_look_crystal
-            type: catch_look
+          - type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "crystal"
             script: |
               echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
-          - id: catch_any_touch
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "touch"
             script: |
               echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
-          - id: catch_any_sing_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "sing"
             script: |
               echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
-          - id: timer_tick_a_faint_breeze
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -151,8 +141,7 @@ ZONES:
           west:
             destination: echo_pond
         triggers:
-          - id: timer_tick_the_waterfall_s_whispers
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -161,8 +150,7 @@ ZONES:
                 predicate: 10
             script: |
               echo The waterfall's whispers intensify, recounting ancient tales lost to time.
-          - id: catch_look_rainbow
-            type: catch_look
+          - type: catch_look
             flags:
               - only_when_pc_room
             criteria:
@@ -171,8 +159,7 @@ ZONES:
                 predicate: "rainbow"
             script: |
               echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
-          - id: catch_any_water
-            type: catch_any
+          - type: catch_any
             flags:
               - only_when_pc_room
             criteria:
@@ -197,8 +184,7 @@ ZONES:
           west:
             destination: enchanted_glade
         triggers:
-          - id: timer_tick_the_air_shimmers
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -207,16 +193,14 @@ ZONES:
                 predicate: 15
             script: |
               echo The air shimmers as mischievous fairies play hide and seek among the flowers, their laughter ringing like tiny bells.
-          - id: catch_look_flower
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "flower"
             script: |
               echo Gazing at a particularly bright flower, you catch a fleeting glimpse of a fairy darting behind its petals.
-          - id: catch_any_fairy
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -243,8 +227,7 @@ ZONES:
           west:
             destination: ancient_oak
         triggers:
-          - id: timer_tick_as_the_twilight
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -253,16 +236,14 @@ ZONES:
                 predicate: 20
             script: |
               echo As the twilight deepens, the shadows dance and play, creating a mesmerizing, ever-changing pattern on the forest floor.
-          - id: catch_look_shadow
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "shadow"
             script: |
               echo Focusing on the shadows, you feel a sense of ancient mysteries surrounding you, as if the thicket guards old secrets.
-          - id: catch_any_twilight
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -282,8 +263,7 @@ ZONES:
           west:
             destination: mystical_glade
         triggers:
-          - id: timer_tick_a_gentle_breeze_2
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -292,16 +272,14 @@ ZONES:
                 predicate: 30
             script: |
               echo A gentle breeze rustles the leaves, making the moonlight dance and play across the clearing in a mesmerizing pattern.
-          - id: catch_look_moon
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "moon"
             script: |
               echo Looking up at the moon, you feel a profound sense of peace and connection to the wider universe.
-          - id: catch_any_star
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -326,8 +304,7 @@ ZONES:
           west:
             destination: silver_stream
         triggers:
-          - id: timer_tick_the_soft_of
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -336,16 +313,14 @@ ZONES:
                 predicate: 5
             script: |
               echo The soft echo of a distant bird's song creates a harmonious melody that resonates around the pond.
-          - id: catch_look_water
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "water"
             script: |
               echo Peering into the water, you see not only your reflection but a glimpse into a world as tranquil and mysterious as the pond itself.
-          - id: catch_any_echo
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -365,8 +340,7 @@ ZONES:
           west:
             destination: whispering_pines
         triggers:
-          - id: timer_tick_a_sense_of
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -375,8 +349,7 @@ ZONES:
                 predicate: 10
             script: |
               echo A sense of ancient wisdom seems to emanate from the oak, its presence grounding and profound.
-          - id: catch_look_door
-            type: catch_look
+          - type: catch_look
             flags:
               - only_when_pc_room
             criteria:
@@ -385,8 +358,7 @@ ZONES:
                 predicate: "door"
             script: |
               echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
-          - id: catch_any_tree
-            type: catch_any
+          - type: catch_any
             flags:
               - only_when_pc_room
             criteria:
@@ -408,8 +380,7 @@ ZONES:
           west:
             destination: debug_zone.starting_room_2
         triggers:
-          - id: timer_tick_the_gentle_whispering
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -418,16 +389,14 @@ ZONES:
                 predicate: 15
             script: |
               echo The gentle whispering of the pines intensifies, as if they are sharing age-old secrets of the forest.
-          - id: catch_look_pine
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "pine"
             script: |
               echo Observing the pines closely, you feel enveloped by their ancient presence, standing as silent witnesses to time.
-          - id: catch_any_wind
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -449,8 +418,7 @@ ZONES:
           east:
             destination: echo_pond
         triggers:
-          - id: timer_tick_the_gentle_murmur
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -459,16 +427,14 @@ ZONES:
                 predicate: 20
             script: |
               echo The gentle murmur of the stream creates a harmonious backdrop, its sounds soothing your mind and spirit.
-          - id: catch_look_water_2
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "water"
             script: |
               echo Gazing into the water, you are captivated by the stream's serene flow, its rhythm like a meditative chant.
-          - id: catch_any_fish
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -490,8 +456,7 @@ ZONES:
           west:
             destination: crystal_cave
         triggers:
-          - id: timer_tick_the_ethereal_light
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -500,16 +465,14 @@ ZONES:
                 predicate: 5
             script: |
               echo The ethereal light in the glade pulses gently, as if breathing with the life of the forest.
-          - id: catch_look_flower_2
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "flower"
             script: |
               echo As you gaze at the flowers, their colors seem to brighten, responding to your attention with a vibrant display.
-          - id: catch_any_light
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -529,8 +492,7 @@ ZONES:
           south:
             destination: enchanted_glade
         triggers:
-          - id: timer_tick_the_golden_leaves
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -539,16 +501,14 @@ ZONES:
                 predicate: 10
             script: |
               echo The golden leaves rustle softly in the breeze, their shimmering surfaces reflecting the light in a dazzling display.
-          - id: catch_look_leaf
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "leaf"
             script: |
               echo As you pick up a golden leaf, its texture and the intricate patterns etched upon it captivate your senses.
-          - id: catch_any_sunbeam
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -578,8 +538,7 @@ ZONES:
           west:
             destination: moonlit_clearing
         triggers:
-          - id: timer_tick_the_mist_swirls
-            type: timer_tick
+          - type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -589,8 +548,7 @@ ZONES:
             script: |
               echo The mist swirls around you, its tendrils caressing the
               landscape and adding an air of mystery to the copse.
-          - id: catch_look_mist
-            type: catch_look
+          - type: catch_look
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -598,8 +556,7 @@ ZONES:
             script: |
               echo Peering into the mist, you feel a sense of timelessness,
               as if the copse exists in a world apart from the rest.
-          - id: catch_any_tree_2
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -630,8 +587,7 @@ CHARACTERS:
             level: 1
         hit_dice: 1d4+1
         triggers:
-          - id: timer_tick_trigger_590
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -641,8 +597,7 @@ CHARACTERS:
                 predicate: 20
             script: |
               leaverandom stayinzone
-          - id: catch_any_kicks_you
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -650,8 +605,7 @@ CHARACTERS:
             script: |
               emote dodges your kick!
               lick %S%
-          - id: catch_any_starts_fighting_you
-            type: catch_any
+          - type: catch_any
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -659,8 +613,7 @@ CHARACTERS:
             script: |
               emote gets angry!
               kick %S%
-          - id: catch_say_hello
-            type: catch_say
+          - type: catch_say
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -715,8 +668,7 @@ CHARACTERS:
         critical_multiplier: 2
         experience_points: 20
         triggers:
-          - id: timer_tick_trigger_671
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"
@@ -756,8 +708,7 @@ CHARACTERS:
         critical_multiplier: 2
         experience_points: 30
         triggers:
-          - id: timer_tick_trigger_711
-            type: timer_tick
+          - type: timer_tick
             criteria:
               - subject: "%time_elapsed%"
                 operator: "numgte"

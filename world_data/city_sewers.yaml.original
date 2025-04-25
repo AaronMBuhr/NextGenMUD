@@ -1,4 +1,4 @@
-ZONES:
+﻿ZONES:
   city_sewers:
     name: City Sewers
     description: The dank and filthy sewers of the imperial city. The stench is unbearable.
@@ -21,7 +21,7 @@ ZONES:
           out:
             destination: imperial_city.sewers_entrance
         triggers:
-          - id: timer_tick_sewer_entrance_1
+          - id: timer_tick_foul_air
             type: timer_tick
             flags:
               - only_when_pc_room
@@ -31,7 +31,7 @@ ZONES:
                 predicate: 15
             script: |
               echo A gust of foul air wafts up from the depths, carrying the unmistakable stench of the sewers.
-          - id: timer_tick_sewer_entrance_2
+          - id: timer_tick_rushing_water
             type: timer_tick
             flags:
               - only_when_pc_room
@@ -107,8 +107,8 @@ ZONES:
           west:
             destination: western_tunnel
         triggers:
-          - id: timer_tick_main_junction_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -117,7 +117,7 @@ ZONES:
                 predicate: 15
             script: |
               echo The sound of rushing water grows momentarily louder, echoing off the chamber walls.
-          - id: timer_tick_main_junction_2
+          - id: timer_tick_debris
             type: timer_tick
             flags:
               - only_when_pc_room
@@ -130,8 +130,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A piece of unidentifiable debris floats by in one of the water channels, quickly disappearing into the central whirlpool.
-          - id: catch_look_fungi
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -139,16 +139,16 @@ ZONES:
             script: |
               echo The phosphorescent fungi glow with an eerie, pale blue light, providing just enough illumination to navigate the chamber.
           - id: catch_any_sewer_swim
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming in these foul waters would be extremely unwise and potentially deadly.
           - id: catch_say_sewer_echo
-            type: catch_say
-            criteria:
+          type: catch_say
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "echo"
@@ -191,8 +191,8 @@ ZONES:
           north:
             destination: waste_processing_chamber
         triggers:
-          - id: timer_tick_northern_tunnel_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -201,8 +201,8 @@ ZONES:
                 predicate: 18
             script: |
               echo A cold draft whistles through the tunnel, carrying with it the echoes of distant dripping water.
-          - id: timer_tick_northern_tunnel_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -214,8 +214,8 @@ ZONES:
                 predicate: 30
             script: |
               echo Something large splashes in the water channel, momentarily disturbing the sluggish flow.
-          - id: catch_look_torch
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -223,16 +223,16 @@ ZONES:
             script: |
               echo The torch flickers weakly, its flame struggling against the damp air. The rusted bracket holding it looks ready to give way at any moment.
           - id: catch_any_sewer_drink
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The very thought of drinking this foul water turns your stomach. It would be extremely unwise and potentially deadly.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -275,8 +275,8 @@ ZONES:
           west:
             destination: sludge_pit
         triggers:
-          - id: timer_tick_waste_processing_chamber_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -285,8 +285,8 @@ ZONES:
                 predicate: 20
             script: |
               echo The grinding stones emit a loud groan as they crush a particularly large piece of debris.
-          - id: timer_tick_waste_processing_chamber_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -298,8 +298,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A burst of foul gas erupts from one of the water channels, causing you to gag momentarily.
-          - id: catch_look_jar
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -307,16 +307,16 @@ ZONES:
             script: |
               echo The clay jars are labeled with crude symbols. You recognize some as basic alchemical notations for acids and bases.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You think better of touching anything in this foul chamber. Who knows what diseases lurk in the waste?
-          - id: catch_say_help
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "help"
@@ -357,8 +357,8 @@ ZONES:
           down:
             destination: underground_stream
         triggers:
-          - id: timer_tick_filtration_room_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -367,8 +367,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A large bubble rises to the surface of one of the basins and bursts, releasing a brief whiff of sulfur.
-          - id: timer_tick_filtration_room_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -380,8 +380,8 @@ ZONES:
                 predicate: 25
             script: |
               echo You hear a muffled splash from the underground stream below, followed by an unsettling gurgling sound.
-          - id: catch_look_basin
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -389,16 +389,16 @@ ZONES:
             script: |
               echo As you peer into the basin, you notice small, pale creatures darting between the layers of filtration material.
           - id: catch_any_sewer_drink
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo Despite the filtration process, this water is still far from safe to drink. The thought alone makes your stomach churn.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -438,8 +438,8 @@ ZONES:
           down:
             destination: muck_cavern
         triggers:
-          - id: timer_tick_sludge_pit_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -448,8 +448,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A large bubble swells on the surface of the sludge before bursting with a sickening 'plop', releasing a cloud of foul gas.
-          - id: timer_tick_sludge_pit_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -461,25 +461,25 @@ ZONES:
                 predicate: 30
             script: |
               echo Something large and unseen moves beneath the surface of the sludge, creating a series of ripples that lap at the edges of the pit.
-          - id: catch_look_fungi
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "fungi"
             script: |
               echo The bioluminescent fungi pulsate slowly, their eerie green light seeming to throb in time with the bubbling of the sludge.
-          - id: catch_any_jump
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "jump"
             script: |
               echo The thought of jumping into the sludge pit fills you with dread. It would surely mean a quick and unpleasant death.
-          - id: catch_say_help
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "help"
@@ -520,8 +520,8 @@ ZONES:
           east:
             destination: waterfall_chamber
         triggers:
-          - id: timer_tick_underground_stream_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -530,8 +530,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A school of pale, eyeless fish suddenly darts past in the stream, their scales glinting in the dim light.
-          - id: timer_tick_underground_stream_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -543,8 +543,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A cool breeze wafts through the cavern, carrying with it the distant sound of falling water.
-          - id: catch_look_crystal
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -552,16 +552,16 @@ ZONES:
             script: |
               echo As you examine the crystals more closely, you notice they seem to pulse faintly with an inner light.
           - id: catch_any_sewer_drink
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo While the water looks clearer here, drinking from an unknown underground source could still be dangerous.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -601,8 +601,8 @@ ZONES:
           east:
             destination: fungal_grove
         triggers:
-          - id: timer_tick_muck_cavern_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -611,8 +611,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A large bubble swells and bursts in the muck, releasing a cloud of foul gas that momentarily thickens the air.
-          - id: timer_tick_muck_cavern_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -624,8 +624,8 @@ ZONES:
                 predicate: 30
             script: |
               echo Something large and unseen moves beneath the surface of the muck, creating ripples that spread across the cavern floor.
-          - id: catch_look_fungi
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -633,16 +633,16 @@ ZONES:
             script: |
               echo The mutated fungi seem to recoil as you look at them, their sickly glow flickering erratically.
           - id: catch_any_sewer_swim
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo The very thought of swimming in this muck fills you with revulsion. It would be incredibly dangerous and likely fatal.
-          - id: catch_say_help
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "help"
@@ -682,8 +682,8 @@ ZONES:
           down:
             destination: whirlpool_room
         triggers:
-          - id: timer_tick_waterfall_chamber_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -692,8 +692,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A sudden surge in the waterfall's flow sends a spray of mist across the chamber, momentarily obscuring your vision.
-          - id: timer_tick_waterfall_chamber_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -705,8 +705,8 @@ ZONES:
                 predicate: 25
             script: |
               echo You glimpse a large, pale fish leaping up the tiered pools, struggling against the current.
-          - id: catch_look_algae
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -714,16 +714,16 @@ ZONES:
             script: |
               echo As you examine the phosphorescent algae, its glow intensifies, creating mesmerizing patterns on the wet stone.
           - id: catch_any_sewer_swim
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming here would be extremely dangerous. The current looks strong enough to sweep you over the edge to the chambers below.
           - id: catch_say_sewer_echo
-            type: catch_say
-            criteria:
+          type: catch_say
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "echo"
@@ -767,8 +767,8 @@ ZONES:
           south:
             destination: rat_nest
         triggers:
-          - id: timer_tick_fungal_grove_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -777,8 +777,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A cluster of nearby fungi suddenly brightens, releasing a small cloud of glowing spores that drift lazily through the air.
-          - id: timer_tick_fungal_grove_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -790,25 +790,25 @@ ZONES:
                 predicate: 30
             script: |
               echo You hear a soft rustling sound, and notice that some of the fungi seem to be slowly moving, their stalks bending and swaying.
-          - id: catch_look_mushroom
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "mushroom"
             script: |
               echo As you examine the mushroom more closely, you notice intricate patterns on its surface that seem to shift and change as you watch.
-          - id: catch_any_eat
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "eat"
             script: |
               echo The idea of eating any of these strange fungi seems extremely unwise. There's no telling what effects they might have.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -848,8 +848,8 @@ ZONES:
           east:
             destination: flooded_corridor
         triggers:
-          - id: timer_tick_whirlpool_room_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -858,8 +858,8 @@ ZONES:
                 predicate: 18
             script: |
               echo The whirlpool suddenly intensifies, its roar growing louder as it sucks down a large piece of debris.
-          - id: timer_tick_whirlpool_room_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -871,8 +871,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A powerful surge of water splashes over the ledge, making the footing even more treacherous.
-          - id: catch_look_whirlpool
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -880,16 +880,16 @@ ZONES:
             script: |
               echo As you gaze into the swirling vortex, you feel a momentary vertigo, as if the whirlpool might pull you in at any moment.
           - id: catch_any_sewer_swim
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming here would be certain death. The power of the whirlpool would suck you in instantly.
-          - id: catch_say_help
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "help"
@@ -929,8 +929,8 @@ ZONES:
           east:
             destination: crumbling_passage
         triggers:
-          - id: timer_tick_rat_nest_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -939,8 +939,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A chorus of angry squeaks erupts from one of the nests as rats fight over a piece of moldy food.
-          - id: timer_tick_rat_nest_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -952,25 +952,25 @@ ZONES:
                 predicate: 30
             script: |
               echo You hear a loud gnawing sound, and watch as a rat the size of a large dog emerges from one of the tunnels, dragging a bone.
-          - id: catch_look_nest
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "nest"
             script: |
               echo As you examine the nest more closely, you notice it's constructed partially from gnawed human bones. A chill runs down your spine.
-          - id: catch_any_food
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "food"
             script: |
               echo The mere thought of eating anything in this filthy, disease-ridden chamber turns your stomach.
-          - id: catch_say_cheese
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "cheese"
@@ -1010,8 +1010,8 @@ ZONES:
           east:
             destination: pump_room
         triggers:
-          - id: timer_tick_flooded_corridor_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1020,8 +1020,8 @@ ZONES:
                 predicate: 20
             script: |
               echo Something large moves beneath the water, creating a wake that sloshes against the walls.
-          - id: timer_tick_flooded_corridor_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1042,16 +1042,16 @@ ZONES:
             script: |
               echo As you peer into the murky water, you catch glimpses of pale, eyeless fish darting in the depths.
           - id: catch_any_sewer_swim
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming in this foul water would be unwise. The current is stronger than it appears, and who knows what lurks beneath the surface.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -1092,8 +1092,8 @@ ZONES:
           down:
             destination: ancient_crypt
         triggers:
-          - id: timer_tick_crumbling_passage_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1102,8 +1102,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A shower of small stones and dust rains down from the ceiling, forcing you to shield your eyes.
-          - id: timer_tick_crumbling_passage_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1115,8 +1115,8 @@ ZONES:
                 predicate: 30
             script: |
               echo You hear a loud crack, and a section of the wall nearby shifts slightly, sending a chill down your spine.
-          - id: catch_look_crack
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1124,16 +1124,16 @@ ZONES:
             script: |
               echo Peering into a large crack in the wall, you catch a glimpse of something moving in the darkness beyond. You quickly step back.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo As you touch the crumbling stone, a piece breaks off in your hand, disintegrating into gritty powder.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -1174,8 +1174,8 @@ ZONES:
           south:
             destination: maintenance_shaft
         triggers:
-          - id: timer_tick_pump_room_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1184,8 +1184,8 @@ ZONES:
                 predicate: 20
             script: |
               echo The pump suddenly groans louder, its gears grinding ominously before settling back into its regular rhythm.
-          - id: timer_tick_pump_room_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1197,8 +1197,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A pipe near you suddenly bursts, releasing a spray of foul water before sputtering out.
-          - id: catch_look_pump
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1206,16 +1206,16 @@ ZONES:
             script: |
               echo As you examine the pump, you notice strange, archaic symbols carved into its base, barely visible beneath years of grime.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You reach out to touch the pump, feeling the vibrations of its constant motion. The metal is surprisingly warm.
-          - id: catch_say_stop
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "stop"
@@ -1257,8 +1257,8 @@ ZONES:
           east:
             destination: bone_pile
         triggers:
-          - id: timer_tick_ancient_crypt_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1267,8 +1267,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A cold breeze whispers through the crypt, carrying with it the faint sound of mournful whispers.
-          - id: timer_tick_ancient_crypt_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1280,25 +1280,25 @@ ZONES:
                 predicate: 25
             script: |
               echo The lid of a nearby sarcophagus shifts slightly with a grating sound, then falls still.
-          - id: catch_look_inscription
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "inscription"
             script: |
               echo As you study the faded inscription, you make out words like "guardian", "eternal vigil", and "seal", sending a chill down your spine.
-          - id: catch_any_open
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "open"
             script: |
               echo The very thought of opening one of these ancient coffins fills you with dread. Some things are better left undisturbed.
-          - id: catch_say_rest
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "rest"
@@ -1340,8 +1340,8 @@ ZONES:
           down:
             destination: lower_tunnels
         triggers:
-          - id: timer_tick_maintenance_shaft_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1350,8 +1350,8 @@ ZONES:
                 predicate: 18
             script: |
               echo A sudden gust of wind howls through the shaft, causing the wooden platforms to creak ominously.
-          - id: timer_tick_maintenance_shaft_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1363,25 +1363,25 @@ ZONES:
                 predicate: 25
             script: |
               echo Something large and unseen scurries across a platform far above, sending a shower of rust and debris raining down.
-          - id: catch_look_ladder
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "ladder"
             script: |
               echo The iron ladder looks dangerously corroded. You wonder if it could support your weight.
-          - id: catch_any_jump
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "jump"
             script: |
               echo The thought of jumping in this shaft is terrifying. The bottom, if there is one, is lost in darkness.
-          - id: catch_say_hello
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "hello"
@@ -1422,8 +1422,8 @@ ZONES:
           south:
             destination: smugglers_den
         triggers:
-          - id: timer_tick_bone_pile_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1432,8 +1432,8 @@ ZONES:
                 predicate: 15
             script: |
               echo The bone pile shifts suddenly, sending a small avalanche of skulls clattering to the floor.
-          - id: timer_tick_bone_pile_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1445,25 +1445,25 @@ ZONES:
                 predicate: 30
             script: |
               echo A cold, unnatural wind sweeps through the chamber, carrying with it the faint sound of agonized whispers.
-          - id: catch_look_skull
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "skull"
             script: |
               echo As you examine one of the skulls, its eye sockets seem to glow briefly with a malevolent red light.
-          - id: catch_any_take
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "take"
             script: |
               echo As you reach out to take a bone, the entire pile trembles ominously. Perhaps it's best not to disturb it.
-          - id: catch_say_who
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "who"
@@ -1507,8 +1507,8 @@ ZONES:
           west:
             destination: echoing_chamber
         triggers:
-          - id: timer_tick_lower_tunnels_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1517,8 +1517,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A sudden surge of water rushes through the tunnel, momentarily rising to your knees before receding.
-          - id: timer_tick_lower_tunnels_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1530,8 +1530,8 @@ ZONES:
                 predicate: 25
             script: |
               echo You hear a series of splashes in the darkness ahead, as if something large is moving through the water towards you.
-          - id: catch_look_root
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1539,16 +1539,16 @@ ZONES:
             script: |
               echo As you examine the root, you notice it seems to twitch and move slightly, as if alive and aware of your presence.
           - id: catch_any_sewer_drink
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The mere thought of drinking this foul water makes your stomach churn. It would surely lead to a nasty illness, if not worse.
-          - id: catch_say_lost
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "lost"
@@ -1590,8 +1590,8 @@ ZONES:
           down:
             destination: secret_passage
         triggers:
-          - id: timer_tick_smugglers_den_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1600,8 +1600,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A section of the wooden platform creaks and groans, threatening to give way under its own weight.
-          - id: timer_tick_smugglers_den_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1613,25 +1613,25 @@ ZONES:
                 predicate: 25
             script: |
               echo You hear the sound of a barrel toppling over in the darkness, followed by the scurrying of many tiny feet.
-          - id: catch_look_crate
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "crate"
             script: |
               echo As you peer into an open crate, you see the glint of glass vials filled with an unknown, swirling liquid.
-          - id: catch_any_search
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "search"
             script: |
               echo Your search reveals little of value. It seems the smugglers took their most precious goods when they fled.
-          - id: catch_say_password
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "password"
@@ -1673,8 +1673,8 @@ ZONES:
           south:
             destination: alchemical_dumping_ground
         triggers:
-          - id: timer_tick_slime_pools_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1683,8 +1683,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A large bubble swells on the surface of one of the pools before bursting with a loud 'plop', releasing a cloud of glowing mist.
-          - id: timer_tick_slime_pools_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1696,8 +1696,8 @@ ZONES:
                 predicate: 30
             script: |
               echo The colors of the pools suddenly shift, swirling into new patterns and hues before settling again.
-          - id: catch_look_slime
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1705,16 +1705,16 @@ ZONES:
             script: |
               echo As you examine the slime closely, you see tiny, squirming organisms moving within it. The longer you look, the more you feel drawn to the hypnotic movements.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You resist the urge to touch the glowing slime. Its unnatural light and movement suggest it could be extremely dangerous.
-          - id: catch_say_magic
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "magic"
@@ -1755,8 +1755,8 @@ ZONES:
           north:
             destination: bat_roost
         triggers:
-          - id: timer_tick_echoing_chamber_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1765,8 +1765,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A distant rumble, perhaps from far above in the city, is caught and amplified by the chamber, transforming into an ominous, thunderous sound.
-          - id: timer_tick_echoing_chamber_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1778,16 +1778,16 @@ ZONES:
                 predicate: 25
             script: |
               echo You hear what sounds like whispered voices coming from all directions, but the words are indistinct and fade quickly.
-          - id: catch_look_pillar
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "pillar"
             script: |
               echo As you examine the pillar, you notice faint inscriptions near its base. They appear to be musical notes, barely visible after years of erosion.
-          - id: catch_any_sing
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1795,8 +1795,8 @@ ZONES:
             script: |
               echo Your singing is caught by the chamber's acoustics, amplified and distorted into an otherworldly chorus that seems to come from everywhere at once.
           - id: catch_say_sewer_echo
-            type: catch_say
-            criteria:
+          type: catch_say
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "echo"
@@ -1842,8 +1842,8 @@ ZONES:
           east:
             destination: forgotten_treasury
         triggers:
-          - id: timer_tick_secret_passage_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1852,8 +1852,8 @@ ZONES:
                 predicate: 20
             script: |
               echo You hear the faint echo of footsteps from somewhere in the passage, but they quickly fade away.
-          - id: timer_tick_secret_passage_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1865,25 +1865,25 @@ ZONES:
                 predicate: 25
             script: |
               echo A sudden draft extinguishes one of the glowstones momentarily, plunging a section of the passage into darkness before it reignites.
-          - id: catch_look_alcove
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "alcove"
             script: |
               echo As you examine the alcove, you notice faint markings on the wall - perhaps a code or message left for other passage users.
-          - id: catch_any_knock
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "knock"
             script: |
               echo Your knock produces a series of echoes that seem to travel far down the passage. For a moment, you think you hear a responding knock, but then silence returns.
-          - id: catch_say_open
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "open"
@@ -1925,8 +1925,8 @@ ZONES:
           west:
             destination: mutant_lair
         triggers:
-          - id: timer_tick_alchemical_dumping_ground_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -1935,8 +1935,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A sudden geyser of multicolored liquid erupts from one of the pipes, splattering the area with glowing droplets.
-          - id: timer_tick_alchemical_dumping_ground_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -1948,8 +1948,8 @@ ZONES:
                 predicate: 25
             script: |
               echo A bolt of wild magic arcs between two pools, briefly illuminating the chamber in a flash of prismatic light.
-          - id: catch_look_pool
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1957,16 +1957,16 @@ ZONES:
             script: |
               echo As you examine the pool, you see swirling patterns forming and dissolving rapidly on its surface. The longer you look, the more you feel a strange tingling sensation.
           - id: catch_any_sewer_drink
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The mere thought of drinking anything in this room fills you with dread. The magical contamination here could have horrific effects.
-          - id: catch_say_transmute
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "transmute"
@@ -2007,8 +2007,8 @@ ZONES:
           down:
             destination: guano_pit
         triggers:
-          - id: timer_tick_bat_roost_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2017,8 +2017,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A massive shape detaches from the wall above, its wings creating a gust of wind as it swoops down into the darkness below.
-          - id: timer_tick_bat_roost_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2030,16 +2030,16 @@ ZONES:
                 predicate: 25
             script: |
               echo The chittering suddenly intensifies, reaching a fever pitch before abruptly falling silent. The silence is almost more unnerving than the noise.
-          - id: catch_look_bat
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "bat"
             script: |
               echo As you peer into the darkness, you see a pair of enormous, glowing eyes staring back at you. They blink once, then vanish.
-          - id: catch_any_climb
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2047,8 +2047,8 @@ ZONES:
             script: |
               echo The thought of climbing the slimy, guano-covered walls fills you with dread. It would be extremely dangerous, if not impossible.
           - id: catch_say_sewer_echo
-            type: catch_say
-            criteria:
+          type: catch_say
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "echo"
@@ -2090,8 +2090,8 @@ ZONES:
           south:
             destination: trapped_corridor
         triggers:
-          - id: timer_tick_forgotten_treasury_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2100,8 +2100,8 @@ ZONES:
                 predicate: 20
             script: |
               echo A shimmer of magic ripples across the room, causing some of the artifacts to glow briefly before fading back to dormancy.
-          - id: timer_tick_forgotten_treasury_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2113,25 +2113,25 @@ ZONES:
                 predicate: 25
             script: |
               echo You hear the faint sound of coins shifting, as if an unseen hand is sifting through one of the treasure piles.
-          - id: catch_look_chest
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "chest"
             script: |
               echo As you examine the chest, you notice intricate locking mechanisms and what appear to be magical wards etched into its surface.
-          - id: catch_any_take
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "take"
             script: |
               echo As you reach for an item, you feel a tingling sensation in your hand. A faint voice seems to whisper, "Are you worthy?"
-          - id: catch_say_gold
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "gold"
@@ -2172,8 +2172,8 @@ ZONES:
           south:
             destination: undercity_entrance
         triggers:
-          - id: timer_tick_mutant_lair_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2182,8 +2182,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A nearby fleshy growth suddenly convulses and splits open, releasing a cloud of glowing spores into the air.
-          - id: timer_tick_mutant_lair_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2195,8 +2195,8 @@ ZONES:
                 predicate: 30
             script: |
               echo You hear a series of splashes followed by a chorus of inhuman screeches, as if something has emerged from one of the mutagenic pools.
-          - id: catch_look_pool
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2204,16 +2204,16 @@ ZONES:
             script: |
               echo As you peer into the mutagenic pool, you see a half-formed creature staring back at you with too many eyes. It reaches out with a misshapen limb before sinking back into the sludge.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo The urge to touch anything in this horrific place is quickly overwhelmed by your sense of self-preservation. Who knows what transformations might occur from mere contact?
-          - id: catch_say_human
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "human"
@@ -2254,8 +2254,8 @@ ZONES:
           east:
             destination: methane_cavern
         triggers:
-          - id: timer_tick_guano_pit_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2264,8 +2264,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A large bubble forms on the surface of the guano pit, swelling grotesquely before bursting with a sickening pop and releasing a cloud of noxious gas.
-          - id: timer_tick_guano_pit_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2277,25 +2277,25 @@ ZONES:
                 predicate: 25
             script: |
               echo A sudden ignition of methane sends a column of blue flame shooting upwards, briefly illuminating the entire chamber in an otherworldly light.
-          - id: catch_look_fungi
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "fungi"
             script: |
               echo As you examine the fungi more closely, you notice they seem to be slowly moving, their pale tendrils reaching out as if sensing your presence.
-          - id: catch_any_climb
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "climb"
             script: |
               echo The thought of climbing down into the guano pit fills you with dread. The ledges look precarious, and who knows what lurks in those fetid depths?
-          - id: catch_say_fire
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "fire"
@@ -2335,8 +2335,8 @@ ZONES:
           east:
             destination: guardian_chamber
         triggers:
-          - id: timer_tick_trapped_corridor_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2345,8 +2345,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A stone tile suddenly sinks slightly under its own weight, followed by the ominous sound of gears grinding somewhere within the walls.
-          - id: timer_tick_trapped_corridor_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2358,25 +2358,25 @@ ZONES:
                 predicate: 25
             script: |
               echo A dart suddenly shoots out from a tiny hole in the wall, embedding itself in the opposite surface with a menacing thud.
-          - id: catch_look_rune
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "rune"
             script: |
               echo As you study the rune, it begins to glow faintly. You quickly avert your gaze, feeling a slight tingle of magical energy.
-          - id: catch_any_jump
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "jump"
             script: |
               echo You consider jumping, but the thought of triggering a pressure plate or tripwire makes you reconsider. Careful steps seem much wiser.
-          - id: catch_say_disarm
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "disarm"
@@ -2418,8 +2418,8 @@ ZONES:
           down:
             destination: undercity_caverns.sewer_entrance
         triggers:
-          - id: timer_tick_undercity_entrance_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2428,8 +2428,8 @@ ZONES:
                 predicate: 20
             script: |
               echo The mist beyond the archway momentarily parts, offering a fleeting glimpse of towering structures and moving shadows before closing again.
-          - id: timer_tick_undercity_entrance_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2441,25 +2441,25 @@ ZONES:
                 predicate: 25
             script: |
               echo A gust of wind rushes through the archway, carrying with it the faint sound of distant, ethereal music that quickly fades away.
-          - id: catch_look_rune
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "rune"
             script: |
               echo As you study the runes, they begin to pulse more rapidly. You feel a gentle tug, as if the archway is inviting you to step through.
-          - id: catch_any_enter
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "enter"
             script: |
               echo As you consider entering the Undercity, the mist seems to reach out towards you, tendrils curling around your feet before retreating.
-          - id: catch_say_Undercity
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "Undercity"
@@ -2499,8 +2499,8 @@ ZONES:
           west:
             destination: guano_pit
         triggers:
-          - id: timer_tick_methane_cavern_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2509,8 +2509,8 @@ ZONES:
                 predicate: 15
             script: |
               echo A large bubble rises in one of the pools, bursting with a loud 'plop' and releasing a cloud of noxious gas.
-          - id: timer_tick_methane_cavern_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2522,25 +2522,25 @@ ZONES:
                 predicate: 20
             script: |
               echo A sudden spark of static electricity causes a brief flash of flame, illuminating the cavern for a split second before being snuffed out.
-          - id: catch_look_flora
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "flora"
             script: |
               echo As you examine the gas-adapted plants, you notice they seem to be slowly moving, their tendrils waving in unfelt currents of gas.
-          - id: catch_any_light
-            type: catch_any
+          - id: catch_any_generic
+          type: catch_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "light"
             script: |
               echo The mere thought of creating a light in this methane-filled cavern fills you with dread. It could cause a catastrophic explosion!
-          - id: catch_say_explosion
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "explosion"
@@ -2580,8 +2580,8 @@ ZONES:
           west:
             destination: trapped_corridor
         triggers:
-          - id: timer_tick_guardian_chamber_1
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria: 
@@ -2590,8 +2590,8 @@ ZONES:
                 predicate: 20
             script: |
               echo The runic inscriptions on the floor suddenly flare brightly, sending a wave of magical energy pulsing through the chamber.
-          - id: timer_tick_guardian_chamber_2
-            type: timer_tick
+          - id: timer_tick_water_sound
+          type: timer_tick
             flags:
               - only_when_pc_room
             criteria:
@@ -2603,8 +2603,8 @@ ZONES:
                 predicate: 25
             script: |
               echo One of the warrior statues seems to shift slightly, the grinding of stone echoing ominously before falling still once more.
-          - id: catch_look_statue
-            type: catch_look
+          - id: catch_look_generic
+          type: catch_look
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2612,16 +2612,16 @@ ZONES:
             script: |
               echo As you examine the statue, you could swear its eyes briefly flickered with an inner light. A chill runs down your spine.
           - id: catch_any_sewer_touch
-            type: catch_any
-            criteria:
+          type: catch_any
+          criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo As you consider touching anything in the chamber, you feel a palpable sense of warning, as if the very air is cautioning against such action.
-          - id: catch_say_awaken
-            type: catch_say
-            criteria: 
+          - id: catch_say_generic
+          type: catch_say
+            criteria:
               - subject: "%{*}"
                 operator: contains
                 predicate: "awaken"
@@ -2640,15 +2640,4 @@ ZONES:
             quantity: 1
             respawn_time_min: 150
             respawn_time_max: 400
-
-
-
-
-
-
-
-
-
-
-
 
