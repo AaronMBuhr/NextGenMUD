@@ -19,7 +19,119 @@ from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds
 
 from typing import Any, Generic, TypeVar, Optional, List, Tuple, Dict
 # Import the interface and Skill class
-from .skills_interface import SkillsInterface
+from .skills_interface import SkillsInterface, SkillsRegistryInterface
+
+# Skills Registry to hold all skills from all classes
+class SkillsRegistry(SkillsRegistryInterface):
+    _skills = {}
+    _skills_by_name = {}
+    
+    @classmethod
+    def register_skill_class(cls, class_name, skills_dict):
+        """Register a set of skills for a class"""
+        normalized_class = class_name.lower()
+        cls._skills[normalized_class] = skills_dict
+        for skill_name, skill_data in skills_dict.items():
+            normalized_skill = skill_name.lower()
+            cls._skills_by_name[normalized_skill] = skill_data
+    
+    @classmethod
+    def get_skill(cls, class_name, skill_name):
+        """Get a skill by class and name"""
+        normalized_class = class_name.lower()
+        normalized_skill = skill_name.lower()
+        return cls._skills.get(normalized_class, {}).get(normalized_skill)
+    
+    @classmethod
+    def get_class_skills(cls, class_name):
+        """Get all skills for a class"""
+        normalized_class = class_name.lower()
+        return cls._skills.get(normalized_class, {})
+    
+    @classmethod
+    def get_all_skills(cls):
+        """Get the entire skills registry"""
+        return cls._skills
+    
+    @classmethod
+    def parse_skill_name_from_input(cls, input: str) -> Tuple[Optional[str], str]:
+        """Parse a skill name from input, returning the skill name and the remainder of the input
+        
+        Returns:
+            Tuple[Optional[str], str]: (skill_name, remainder) - skill_name will be None if no match found
+        """
+        normalized_input = input.lower().strip()
+        words = normalized_input.split()
+        if not words:
+            return None, ""
+            
+        # If direct match, return it
+        skill = cls._skills_by_name.get(normalized_input)
+        if skill:
+            return skill.name, ""
+            
+        # Try partial matching
+        matches = []
+        for skill_name in cls._skills_by_name.keys():
+            # Try to match the beginning of the skill name with the input
+            input_chars = list(normalized_input)
+            skill_chars = list(skill_name)
+            
+            # Match character by character
+            match_length = 0
+            for i in range(min(len(input_chars), len(skill_chars))):
+                if input_chars[i] == skill_chars[i]:
+                    match_length += 1
+                else:
+                    break
+            
+            # If we matched at least 4 characters at the beginning
+            if match_length >= 4:
+                matches.append((skill_name, match_length))
+        
+        # Find the longest unique match
+        if matches:
+            # Sort by match length (descending)
+            matches.sort(key=lambda x: x[1], reverse=True)
+            
+            # If we have a unique longest match
+            if len(matches) == 1 or matches[0][1] > matches[1][1]:
+                matched_skill_name = matches[0][0]
+                matched_skill = cls._skills_by_name.get(matched_skill_name)
+                
+                # Calculate the remainder - everything after the matched portion
+                matched_portion = normalized_input[:matches[0][1]]
+                
+                # If the matched portion ends with a space, or is the whole input
+                if matches[0][1] >= len(normalized_input):
+                    remainder = ""
+                elif normalized_input[matches[0][1]:].strip() == "":
+                    remainder = ""
+                else:
+                    # Skip any spaces after the matched portion
+                    remainder_start = matches[0][1]
+                    while remainder_start < len(normalized_input) and normalized_input[remainder_start].isspace():
+                        remainder_start += 1
+                    remainder = normalized_input[remainder_start:]
+                
+                return matched_skill.name, remainder
+        
+        return None, normalized_input
+    
+    @classmethod
+    def invoke_skill_by_name(cls, game_state: GameStateInterface, actor: Actor, skill_name: str, skill_args: str, difficulty_modifier: int=0) -> bool:
+        """Invoke a skill"""
+        normalized_skill = skill_name.lower()
+        skill = cls._skills_by_name.get(normalized_skill)
+        if not skill:
+            return False
+        
+        target = None
+        if skill_args:
+            target = game_state.find_target_character(actor, skill_args)
+        if not target:
+            target = game_state.find_target_object(skill_args)
+        return skill.skill_function(actor, target, difficulty_modifier)
 
 # Skill class definition with all properties
 class Skill:
@@ -43,7 +155,8 @@ class Skill:
                  message_apply_room: Optional[str] = None,
                  message_resist_subject: Optional[str] = None,
                  message_resist_target: Optional[str] = None,
-                 message_resist_room: Optional[str] = None):
+                 message_resist_room: Optional[str] = None,
+                 skill_function: Optional[callable] = None):
         self.name = name
         self.base_class = base_class
         self.cooldown_name = cooldown_name
@@ -64,8 +177,7 @@ class Skill:
         self.message_resist_subject = message_resist_subject
         self.message_resist_target = message_resist_target
         self.message_resist_room = message_resist_room
-
-
+        self.skill_function = skill_function
 
 
 class ClassSkills(GenericEnumWithAttributes):
@@ -84,16 +196,24 @@ class ClassSkills(GenericEnumWithAttributes):
     def get_level_requirement(self, skill_name: str) -> int:
         """Return the level requirement for a skill"""
         pass
-
-# class RogueSkills(ClassSkills):
-#     pass
-
-# class MageSkills(ClassSkills):
-#     pass
-
-# class ClericSkills(ClassSkills):
-#     pass
-
+        
+    def __init_subclass__(cls, **kwargs):
+        """Automatically register skills when a subclass is defined"""
+        super().__init_subclass__(**kwargs)
+        
+        # Get the class role name from the class name (e.g., FighterSkills -> fighter)
+        class_role = cls.__name__.replace("Skills", "").lower()
+        
+        # Collect all Skill instances from class attributes
+        skills_dict = {}
+        for attr_name in dir(cls):
+            attr = getattr(cls, attr_name)
+            if isinstance(attr, Skill):
+                skill_name = attr.name.lower()
+                skills_dict[skill_name] = attr
+        
+        # Register with the central registry
+        SkillsRegistry.register_skill_class(class_role, skills_dict)
 
 
 class Skills(SkillsInterface):

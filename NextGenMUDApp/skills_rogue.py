@@ -1,135 +1,144 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skills
+from .skills_core import Skills, ClassSkills, Skill
 from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, TemporaryCharacterFlags, PermanentCharacterFlags
 from .nondb_models.actor_states import (
-    CharacterStateStealthed, CharacterStateDodgeBonus, Cooldown
+    CharacterStateForcedSitting, CharacterStateHitPenalty, CharacterStateStunned,
+    CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus,
+    CharacterStateBleeding, CharacterStateHitBonus, CharacterStateStealthed
 )
+from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances
 from .nondb_models.characters import CharacterSkill
 from .constants import CharacterClassRole
 from .communication import CommTypes
-from .utility import roll_dice, set_vars, ticks_from_seconds, seconds_from_ticks
+from .utility import roll_dice, set_vars, ticks_from_seconds, seconds_from_ticks, firstcap
 from .core_actions_interface import CoreActionsInterface
+import random
 
 
-
-        # CharacterClassRole.ROGUE: {
-        #     # Tier 1 (Levels 1-9)
-        #     RogueSkills.STEALTH: SkillsInterface.TIER1_MIN_LEVEL,
-        #     RogueSkills.BACKSTAB: SkillsInterface.TIER1_MIN_LEVEL,
-        #     RogueSkills.PICK_LOCK: SkillsInterface.TIER1_MIN_LEVEL,
-        #     RogueSkills.DETECT_TRAPS: SkillsInterface.TIER1_MIN_LEVEL,
-        #     RogueSkills.EVADE: SkillsInterface.TIER1_MIN_LEVEL,
-            
-        #     # Tier 2 (Levels 10-19)
-        #     RogueSkills.DUAL_WIELD: SkillsInterface.TIER2_MIN_LEVEL,
-        #     RogueSkills.POISONED_WEAPON: SkillsInterface.TIER2_MIN_LEVEL,
-        #     RogueSkills.DISARM_TRAP: SkillsInterface.TIER2_MIN_LEVEL,
-        #     RogueSkills.ACROBATICS: SkillsInterface.TIER2_MIN_LEVEL,
-        #     RogueSkills.FEINT: SkillsInterface.TIER2_MIN_LEVEL
-        # },
-        # CharacterClassRole.DUELIST: {
-        #     # Tier 3 (Levels 20-29)
-        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
-            
-        #     # Tier 4 (Levels 30-39)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
-            
-        #     # Tier 5 (Levels 40-49)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
-            
-        #     # Tier 6 (Levels 50-59)
-        #     RogueSkills.DUELIST_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
-            
-        #     # Tier 7 (Level 60)
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
-        # },
+class RogueSkills(ClassSkills):
+    
+    def get_level_requirement(self, skill_name: str) -> int:
+        """Return the level requirement for a skill"""
+        # Simple implementation for now
+        tier1_skills = ["stealth", "backstab", "pick lock", "detect traps"]
+        tier2_skills = ["poison", "evasion", "disarm trap", "dual wield"]
+        tier3_skills = ["shadowstep", "deadly strike", "smoke bomb"]
+        tier4_skills = ["assassinate", "vanish"]
         
-        # # Rogue specialization: Assassin (Tiers 3-7)
-        # CharacterClassRole.ASSASSIN: {
-        #     # Tier 3 (Levels 20-29)
-        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
-            
-        #     # Tier 4 (Levels 30-39)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
-            
-        #     # Tier 5 (Levels 40-49)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
-            
-        #     # Tier 6 (Levels 50-59)
-        #     RogueSkills.ASSASSIN_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
-            
-        #     # Tier 7 (Level 60)
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
-        # },
+        skill_name = skill_name.lower()
         
-        # # Rogue specialization: Infiltrator (Tiers 3-7)
-        # CharacterClassRole.INFILTRATOR: {
-        #     # Tier 3 (Levels 20-29)
-        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.CLEAVE: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.REND: SkillsInterface.TIER3_MIN_LEVEL,
-        #     RogueSkills.DEMORALIZING_SHOUT: SkillsInterface.TIER3_MIN_LEVEL,
-            
-        #     # Tier 4 (Levels 30-39)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER4_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER4_MIN_LEVEL,
-            
-        #     # Tier 5 (Levels 40-49)
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER5_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER5_MIN_LEVEL,
-            
-        #     # Tier 6 (Levels 50-59)
-        #     RogueSkills.INFILTRATOR_STANCE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.WHIRLWIND: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.ENRAGE: SkillsInterface.TIER6_MIN_LEVEL,
-        #     RogueSkills.EXECUTE: SkillsInterface.TIER6_MIN_LEVEL,
-            
-        #     # Tier 7 (Level 60)
-        #     RogueSkills.MASSACRE: SkillsInterface.TIER7_MIN_LEVEL
-        # },
-
+        if skill_name in tier1_skills:
+            return Skills.TIER1_MIN_LEVEL
+        elif skill_name in tier2_skills:
+            return Skills.TIER2_MIN_LEVEL
+        elif skill_name in tier3_skills:
+            return Skills.TIER3_MIN_LEVEL
+        elif skill_name in tier4_skills:
+            return Skills.TIER4_MIN_LEVEL
+        else:
+            return Skills.TIER1_MIN_LEVEL  # Default
+    
+    # Stealth
+    STEALTH = Skill(
+        name="stealth",
+        base_class=CharacterClassRole.ROGUE,
+        cooldown_name="stealth",
+        cooldown_ticks=ticks_from_seconds(30),
+        cast_time_ticks=ticks_from_seconds(2.0),
+        duration_min_ticks=ticks_from_seconds(60),  # 1 minute
+        duration_max_ticks=ticks_from_seconds(60),
+        message_prepare="You begin to move silently...",
+        message_success_subject="You blend into the shadows!",
+        message_success_target=None,
+        message_success_room=None,  # Others don't see this
+        message_failure_subject="You fail to blend into the shadows!",
+        message_failure_target=None,
+        message_failure_room="$cap(%a%) attempts to hide but fails!",
+        message_apply_subject="You are hidden from view!",
+        message_apply_target=None,
+        message_apply_room=None,  # Others don't see this
+        message_resist_subject=None,
+        message_resist_target=None,
+        message_resist_room=None,
+        skill_function=None  # Will be implemented later
+    )
+    
+    # Backstab
+    BACKSTAB = Skill(
+        name="backstab",
+        base_class=CharacterClassRole.ROGUE,
+        cooldown_name="backstab",
+        cooldown_ticks=ticks_from_seconds(10),
+        cast_time_ticks=ticks_from_seconds(1.0),
+        duration_min_ticks=0,
+        duration_max_ticks=0,
+        message_prepare="You prepare to strike from the shadows...",
+        message_success_subject="You strike from the shadows!",
+        message_success_target="$cap(%a%) strikes you from the shadows!",
+        message_success_room="$cap(%a%) strikes %t% from the shadows!",
+        message_failure_subject="Your backstab fails!",
+        message_failure_target="$cap(%a%) attempts to backstab you but fails!",
+        message_failure_room="$cap(%a%) attempts to backstab %t% but fails!",
+        message_apply_subject="You backstab %t% for critical damage!",
+        message_apply_target="$cap(%a%) backstabs you for critical damage!",
+        message_apply_room="$cap(%a%) backstabs %t% for critical damage!",
+        message_resist_subject="%t% notices you and evades your backstab!",
+        message_resist_target="You notice $cap(%a%) and evade %Q% backstab!",
+        message_resist_room="%t% notices $cap(%a%) and evades %Q% backstab!",
+        skill_function=None  # Will be implemented later
+    )
+    
+    # Pick Lock
+    PICK_LOCK = Skill(
+        name="pick lock",
+        base_class=CharacterClassRole.ROGUE,
+        cooldown_name="pick_lock",
+        cooldown_ticks=ticks_from_seconds(5),
+        cast_time_ticks=ticks_from_seconds(3.0),
+        duration_min_ticks=0,
+        duration_max_ticks=0,
+        message_prepare="You examine the lock carefully...",
+        message_success_subject="You successfully pick the lock!",
+        message_success_target=None,
+        message_success_room="$cap(%a%) successfully picks a lock!",
+        message_failure_subject="You fail to pick the lock!",
+        message_failure_target=None,
+        message_failure_room="$cap(%a%) fails to pick a lock!",
+        message_apply_subject="The lock clicks open!",
+        message_apply_target=None,
+        message_apply_room="A lock clicks open as $cap(%a%) works on it!",
+        message_resist_subject="This lock is too complex for your skills!",
+        message_resist_target=None,
+        message_resist_room="$cap(%a%) struggles with a complex lock!",
+        skill_function=None  # Will be implemented later
+    )
+    
+    # Detect Traps
+    DETECT_TRAPS = Skill(
+        name="detect traps",
+        base_class=CharacterClassRole.ROGUE,
+        cooldown_name="detect_traps",
+        cooldown_ticks=ticks_from_seconds(30),
+        cast_time_ticks=ticks_from_seconds(2.0),
+        duration_min_ticks=ticks_from_seconds(300),  # 5 minutes
+        duration_max_ticks=ticks_from_seconds(300),
+        message_prepare="You scan the area for traps...",
+        message_success_subject="Your senses become attuned to hidden dangers!",
+        message_success_target=None,
+        message_success_room="$cap(%a%) carefully examines the surroundings!",
+        message_failure_subject="You fail to detect any traps!",
+        message_failure_target=None,
+        message_failure_room="$cap(%a%) looks around but seems unsure!",
+        message_apply_subject="You can now detect hidden traps!",
+        message_apply_target=None,
+        message_apply_room="$cap(%a%) seems more aware of the surroundings!",
+        message_resist_subject=None,
+        message_resist_target=None,
+        message_resist_room=None,
+        skill_function=None  # Will be implemented later
+    )
 
 
 class Skills_Rogue(Skills):

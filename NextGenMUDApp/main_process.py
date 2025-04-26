@@ -27,8 +27,28 @@ class MainProcess:
 
     @classmethod
     def run_main_game_loop(cls):
+        # On Windows, use SelectorEventLoopPolicy to avoid Proactor overlaps issues
+        try:
+            policy = asyncio.WindowsSelectorEventLoopPolicy()
+            asyncio.set_event_loop_policy(policy)
+        except AttributeError:
+            pass  # Not on Windows or policy unavailable
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        # Add custom exception handler to capture and log asyncio callback exceptions at debug3 level
+        def handle_asyncio_exception(loop, context):
+            logger = StructuredLogger(__name__, prefix="asyncio_exception_handler()> ")
+            msg = context.get("message", "")
+            exc = context.get("exception")
+            # Deduplicate identical errors: skip if same message and exception repr
+            key = (msg, repr(exc))
+            if getattr(handle_asyncio_exception, "last_key", None) == key:
+                return
+            handle_asyncio_exception.last_key = key
+            logger.debug3(f"Asyncio exception in callback: {msg}")
+            if exc:
+                logger.debug3(f"Exception details: {exc}")
+        loop.set_exception_handler(handle_asyncio_exception)
         loop.run_until_complete(cls.main_game_loop())
         loop.close()
     

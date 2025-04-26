@@ -25,7 +25,7 @@ ZONES:
           north:
             destination: market_square
           south:
-    #        destination: forest_of_whispers.entrance
+            real_destination: forest_of_whispers.entrance
             destination: city_gates
           west:
             destination: debug_zone.starting_room

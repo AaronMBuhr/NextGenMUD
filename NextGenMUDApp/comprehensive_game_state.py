@@ -515,7 +515,8 @@ class ComprehensiveGameState:
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
         for c in self.connections:
             if c.consumer_ == consumer:
-                self.remove_character(c)
+                if hasattr(c, 'character') and c.character:
+                    self.remove_character(c.character)
                 self.connections.remove(c)
                 return
 

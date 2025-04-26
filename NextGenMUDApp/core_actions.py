@@ -12,8 +12,7 @@ from .nondb_models.actor_interface import ActorType
 from .nondb_models.actors import Actor
 from .nondb_models.actor_attitudes import ActorAttitude
 from .nondb_models.attacks_and_damage import AttackData, PotentialDamage, DamageType
-from .nondb_models.character_interface import CharacterInterface
-from .nondb_models.character_interface import PermanentCharacterFlags, TemporaryCharacterFlags
+from .nondb_models.character_interface import CharacterInterface, PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags
 from .nondb_models.rooms import Room
 from .skills_core import Skills
 from .nondb_models.triggers import TriggerType, TriggerFlags
