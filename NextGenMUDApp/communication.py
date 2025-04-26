@@ -46,8 +46,15 @@ class Connection:
             text_type = text_type.text
         logger.debug3(f"text_type: {text_type}")
         logger.debug3(f"text_data: {text_data}")
-        await self.consumer_.send(text_data=json.dumps({
-            'text_type': text_type,
-            'text': text_data
-        }))
+        # Ensure writes are serialized to avoid overlapping writes on Windows Proactor loop
+        if not hasattr(self.consumer_, "_send_lock"):
+            import asyncio
+            self.consumer_._send_lock = asyncio.Lock()
+        async with self.consumer_._send_lock:
+            await self.consumer_.send(text_data=json.dumps({
+                'text_type': text_type,
+                'text': text_data
+            }))
+            import asyncio
+            await asyncio.sleep(0)  # yield control to allow write completion
 

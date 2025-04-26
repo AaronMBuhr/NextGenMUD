@@ -157,6 +157,10 @@
             const h1 = document.querySelector('h1');
             const inputArea = document.querySelector('.input-area');
             const debugToggleDiv = document.querySelector('.debug-toggle');
+            const inputText = document.getElementById('inputText');
+            
+            // Focus on the input box when the page loads
+            inputText.focus();
 
             function adjustTextHeights() {
                 // Ensure container is using border-box for simpler calculations if needed
@@ -266,7 +270,6 @@
                 logDebug('WebSocket connection closed: ' + JSON.stringify(e));
             };
 
-            const inputText = document.getElementById('inputText');
             const submitButton = document.getElementById('submitButton');
             
             submitButton.onclick = function() {

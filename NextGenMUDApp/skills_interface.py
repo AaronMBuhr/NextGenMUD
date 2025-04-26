@@ -5,6 +5,8 @@ from typing import Optional, Dict, List, Callable, Tuple, TypeVar, Generic, Any,
 
 # Import the essentials only, to avoid circular dependencies
 from .constants import CharacterClassRole
+from .comprehensive_game_state_interface import GameStateInterface
+from .actor_interface import ActorInterface
 
 class SkillsInterface(metaclass=ABCMeta):
     
@@ -71,3 +73,31 @@ class SkillsInterface(metaclass=ABCMeta):
     def send_resist_message(cls, actor, targets: list, skill_data: dict, vars: dict) -> None:
         """Send resist messages for a skill to the appropriate targets"""
         pass
+
+    @classmethod
+    def get_skill_name_list(cls) -> list[str]:
+        """Get a list of all skill names (for all classes and specs)"""
+        raise NotImplementedError
+    
+    @classmethod
+    def invoke_skill(cls, actor: ActorInterface, input: str) -> None:
+        """Invoke a skill by name"""
+        raise NotImplementedError
+   
+
+class SkillsRegistryInterface(metaclass=ABCMeta):
+    @classmethod
+    @abstractmethod
+    def get_skill_name_list(cls) -> list[str]:
+        """Get a list of all skill names (for all classes and specs)"""
+        raise NotImplementedError
+
+    @classmethod
+    def parse_skill_name_from_input(cls, input: str) -> Tuple[Optional[str], str]:
+        """Parse a skill name from input, returning the skill name and the remainder of the input"""
+        raise NotImplementedError
+
+    @classmethod
+    def invoke_skill_by_name(cls, game_state: GameStateInterface, actor: ActorInterface, skill_name: str, skill_args: str, difficulty_modifier: int=0) -> bool:
+        """Invoke a skill by name"""
+        raise NotImplementedError

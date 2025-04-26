@@ -1,3 +1,4 @@
+import asyncio
 from .structured_logger import StructuredLogger
 import itertools
 import logging
@@ -18,7 +19,7 @@ from .nondb_models.character_interface import CharacterInterface, \
 from .nondb_models.object_interface import ObjectInterface, ObjectFlags
 from .nondb_models.objects import Object
 from .nondb_models.room_interface import RoomInterface
-from .nondb_models.triggers import TriggerType
+from .nondb_models.triggers import TriggerType, Trigger
 from .nondb_models import world
 from .utility import replace_vars, firstcap, set_vars, split_preserving_quotes, article_plus_name
 from .nondb_models.rooms import Room
@@ -26,7 +27,9 @@ from .nondb_models.world import WorldDefinition, Zone
 from .communication import Connection
 from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent, EventType
 from .config import Config, default_app_config
+from .skills_interface import SkillsRegistryInterface
 from .nondb_models.actor_states import Cooldown
+
 
 # Communication Types Usage Guidelines:
 # 
@@ -188,11 +191,16 @@ class CommandHandler(CommandHandlerInterface):
                         msg = "Did you want to do something?"
                     else:
                         command = parts[0]
+                        skill_name, remainder = None, None
                         emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
                         if not command in cls.command_handlers and emote_command == None:
-                            logger.debug3(f"Unknown command: {command}")
-                            msg = "Unknown command"
-                        else:
+                            skill_name, remainder = SkillsRegistryInterface.parse_skill_name_from_input(first_command)
+                            if skill_name:  
+                                SkillsRegistryInterface.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
+                            else:
+                                logger.debug3(f"Unknown command: {command}")
+                                msg = "Unknown command"
+                        if not skill_name:
                             try:
                                 logger.debug3(f"Evaluating command: {command}")
                                 if emote_command:
@@ -672,15 +680,15 @@ class CommandHandler(CommandHandlerInterface):
             
         try:
             # Find the target character, excluding the initiating actor
-            logger.critical(f"Attempting to find target: {input}")
+            logger.debug3(f"Attempting to find possess target: {input}")
             target = cls._game_state.find_target_character(actor, input, exclude_initiator=True)
             if not target:
                 await actor.send_text(CommTypes.DYNAMIC, "Could not find that character.")
                 return
                 
-            logger.critical(f"Found target: {target.rid}, name: {target.name}")
-            logger.critical(f"Target connection: {target.connection}")
-            logger.critical(f"Actor connection: {actor.connection}")
+            logger.debug3(f"Found possess target: {target.rid}, name: {target.name}")
+            logger.debug3(f"Possess Target connection: {target.connection}")
+            logger.debug3(f"PossessActor connection: {actor.connection}")
             
             # Don't allow possessing yourself - this should never happen now with exclude_initiator=True
             if target == actor:
@@ -688,64 +696,70 @@ class CommandHandler(CommandHandlerInterface):
                 return
                 
             # Save the current character's state
-            logger.critical(f"Possessing {target.art_name}")
+            logger.debug2(f"Possessing {target.art_name}")
             old_char = actor
             old_connection = old_char.connection
             was_admin = old_char.has_game_flags(GamePermissionFlags.IS_ADMIN)
             
             if old_connection is None:
-                logger.critical("Actor has no connection!")
+                logger.debug2("Possess Actor has no connection!")
                 await actor.send_text(CommTypes.DYNAMIC, "You have no connection to transfer.")
                 return
             
             # If the target somehow has a connection, fix it by setting to None
             if target.connection is not None:
-                logger.critical(f"Target has a connection object - resetting it to None")
+                logger.debug3(f"Possess Target has a connection object - resetting it to None")
                 target.connection = None
                         
             # Notify the player before transferring connection
-            logger.critical(f"Sending pre-transfer notification")
+            logger.debug3(f"Sending pre-transfer notification")
             await actor.send_text(CommTypes.DYNAMIC, f"You are about to possess {target.art_name}")
+            await asyncio.sleep(0) # Yield control to allow pending writes
                 
-            # Transfer connection to new character
-            logger.critical(f"Transferring connection to {target.art_name}")
-            old_connection.character = target  # Update the connection's character reference
+            # Reuse the existing connection for the target
+            consumer = old_connection.consumer_
+            old_connection.character = target
             target.connection = old_connection
             old_char.connection = None
+
+            # Update consumer's character reference if necessary
+            if hasattr(consumer, 'character'):
+                consumer.character = target
             
             # Add player flags to target
-            logger.critical("Adding player flags to target")
+            logger.debug3("Adding player flags to possess target")
             target.add_perm_flags(PermanentCharacterFlags.IS_PC)
             if was_admin:
                 target.add_game_flags(GamePermissionFlags.IS_ADMIN)
             
             # Remove player flags from old character
-            logger.critical("Removing player flags from old character")
+            logger.debug3("Removing player flags from old possess character")
             old_char.remove_perm_flags(PermanentCharacterFlags.IS_PC)
             old_char.remove_game_flags(GamePermissionFlags.IS_ADMIN)
             
             # Update game state
-            logger.critical(f"Removing old character from game state: {old_char.rid}")
+            logger.debug2(f"Removing old possess character from game state: {old_char.rid}")
             if old_char in cls._game_state.players:
                 cls._game_state.players.remove(old_char)
             else:
-                logger.critical(f"Old character {old_char.rid} not found in players list")
+                logger.debug2(f"Old possess character {old_char.rid} not found in players list")
                 
-            logger.critical(f"Adding new character to game state: {target.rid}")
+            logger.debug2(f"Adding new possess character to game state: {target.rid}")
             if target not in cls._game_state.players:
                 cls._game_state.players.append(target)
             
-            # Notify the player after transfer
-            logger.critical(f"Sending post-transfer notification")
+            # Send notification after transfer
+            logger.debug3(f"Sending post-transfer possess notification")
             await target.send_text(CommTypes.DYNAMIC, f"You are now possessing {target.art_name}")
             await target.send_text(CommTypes.DYNAMIC, "Your old character has been saved. Use 'load' to return to it later.")
             
             # Force a room look to orient the player
-            logger.critical(f"Forcing room look")
+            logger.debug3(f"Forcing possess target room look")
+            await asyncio.sleep(0) # Yield again before the final look
             await CoreActionsInterface.get_instance().do_look_room(target, target.location_room)
             
         except Exception as e:
-            logger.critical(f"Error during possession: {str(e)}")
+            logger.error(f"Error during possession: {str(e)}")
             logger.exception("Exception during possession")
             await actor.send_text(CommTypes.DYNAMIC, f"Failed to possess character: {str(e)}")
             return
@@ -1610,6 +1624,26 @@ class CommandHandler(CommandHandlerInterface):
 
     async def cmd_triggers(cls, actor: Actor, input: str):
         # triggers <character|room|object> <name|me|here> <enable|disable|show|list> [<all|trigger_id>]
+        
+        async def list_triggers(actor: Actor, target: Character | Room | Object, target_triggers: list[Trigger]):
+            if actor == target:
+                await actor.send_text(CommTypes.STATIC, f"Your triggers:")
+            else:
+                await actor.send_text(CommTypes.STATIC, f"Triggers for {target.art_name_cap}:")
+            if not target_triggers:
+                 await actor.send_text(CommTypes.STATIC, "  None found.")
+                 return
+                 
+            for trigger in target_triggers:
+                state = "(disabled)" if trigger.disabled_ else ""
+                await actor.send_text(CommTypes.STATIC, f"  ID: {trigger.id:<25} Type: {trigger.trigger_type_:<15} {state}")
+                if trigger.criteria_:
+                     # await actor.send_text(CommTypes.STATIC, "    Criteria:")
+                     for crit in trigger.criteria_:
+                         count = 0
+                         await actor.send_text(CommTypes.STATIC, f"      Crit #{count}: {crit.subject} {crit.operator} {crit.predicate}")
+                         count += 1
+        
         if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
             await actor.send_text(CommTypes.DYNAMIC, "What?")
             return
@@ -1618,20 +1652,15 @@ class CommandHandler(CommandHandlerInterface):
         
         # Handle case with no arguments (list all global triggers)
         if not pieces:
-            await actor.send_text(CommTypes.STATIC, "Global Triggers:")
-            if not cls._game_state.triggers:
-                 await actor.send_text(CommTypes.STATIC, "  None defined.")
-                 return
-            for trigger in cls._game_state.triggers:
-                state = "(disabled)" if trigger.disabled else ""
-                await actor.send_text(CommTypes.STATIC, f"  {trigger.id:30}: {trigger.trigger_type_} {state}")
-                # Optionally show criteria for global list too? For now, keep it simple.
-                # for crit in trigger.criteria:
-                #     await actor.send_text(CommTypes.STATIC, f"    {crit.subject} {crit.operator} {crit.predicate}")
-            return
-        
-        # Basic argument validation
-        if len(pieces) < 3:
+            pieces.append("char")
+            pieces.append("me")
+            pieces.append("list")
+            
+        elif pieces[0] == "me" and len(pieces) == 1:
+            pieces.insert(0, "char")
+            pieces.append("list")
+            
+        elif (pieces[0].lower() != "me" or pieces[1].lower() != "list") and len(pieces) < 3:
             await actor.send_text(CommTypes.STATIC, "Usage: triggers <target_type> <target_name> <action> [trigger_specifier]")
             await actor.send_text(CommTypes.STATIC, "  Target Types: character, char, me, self, room, here, obj, object")
             await actor.send_text(CommTypes.STATIC, "  Actions: enable, disable, show, list")
@@ -1719,22 +1748,10 @@ class CommandHandler(CommandHandlerInterface):
             if len(pieces) != expected_len:
                  await actor.send_text(CommTypes.STATIC, f"Usage: triggers {target_type} {target_name} list")
                  return
+             
+            await list_triggers(actor, target, target_triggers)
 
-            await actor.send_text(CommTypes.STATIC, f"Triggers for {target.art_name_cap}:")
-            if not target_triggers:
-                 await actor.send_text(CommTypes.STATIC, "  None found.")
-                 return
-                 
-            for trigger in target_triggers:
-                state = "(disabled)" if trigger.disabled else ""
-                await actor.send_text(CommTypes.STATIC, f"  ID: {trigger.id:<25} Type: {trigger.trigger_type_:<15} {state}")
-                if trigger.criteria:
-                     await actor.send_text(CommTypes.STATIC, "    Criteria:")
-                     for crit in trigger.criteria:
-                         await actor.send_text(CommTypes.STATIC, f"      {crit.subject} {crit.operator} {crit.predicate}")
             return
-
-        # Actions requiring trigger_specifier (enable, disable, show)
         expected_len = 3 if target_type in ["me", "self", "here"] else 4
         if len(pieces) < expected_len:
              await actor.send_text(CommTypes.STATIC, f"Action '{action}' requires a trigger specifier (all or ID).")
@@ -1775,12 +1792,12 @@ class CommandHandler(CommandHandlerInterface):
             trigger = triggers_to_modify[0]
             await actor.send_text(CommTypes.STATIC, f"Trigger '{trigger.id}' on {target.art_name_cap}:")
             await actor.send_text(CommTypes.STATIC, f"  Type: {trigger.trigger_type_}")
-            await actor.send_text(CommTypes.STATIC, f"  Disabled: {trigger.disabled}")
+            await actor.send_text(CommTypes.STATIC, f"  Disabled: {trigger.disabled_}")
             await actor.send_text(CommTypes.STATIC, "  Criteria:")
-            if not trigger.criteria:
+            if not trigger.criteria_:
                  await actor.send_text(CommTypes.STATIC, "    None")
             else:
-                for crit in trigger.criteria:
+                for crit in trigger.criteria_:
                     await actor.send_text(CommTypes.STATIC, f"    {crit.subject} {crit.operator} {crit.predicate}")
             await actor.send_text(CommTypes.STATIC, "  Script:")
             script_lines = trigger.script_.split("\n")
