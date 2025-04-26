@@ -6,7 +6,7 @@ from typing import Optional, Dict, List, Callable, Tuple, TypeVar, Generic, Any,
 # Import the essentials only, to avoid circular dependencies
 from .constants import CharacterClassRole
 from .comprehensive_game_state_interface import GameStateInterface
-from .actor_interface import ActorInterface
+from .nondb_models.actor_interface import ActorInterface
 
 class SkillsInterface(metaclass=ABCMeta):
     

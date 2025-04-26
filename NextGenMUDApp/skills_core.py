@@ -15,6 +15,7 @@ from .nondb_models.character_interface import CharacterAttributes, EquipLocation
     PermanentCharacterFlags, TemporaryCharacterFlags
 from .nondb_models.characters import Character, CharacterSkill
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
+from .structured_logger import StructuredLogger
 
 
 from typing import Any, Generic, TypeVar, Optional, List, Tuple, Dict
@@ -60,19 +61,24 @@ class SkillsRegistry(SkillsRegistryInterface):
         Returns:
             Tuple[Optional[str], str]: (skill_name, remainder) - skill_name will be None if no match found
         """
+        logger = StructuredLogger(__name__, prefix="parse_skill_name_from_input()> ")
         normalized_input = input.lower().strip()
         words = normalized_input.split()
         if not words:
+            logger.critical(f"no words found in input: {input}")
             return None, ""
             
         # If direct match, return it
         skill = cls._skills_by_name.get(normalized_input)
+        logger.critical(f"direct match: {skill}")
         if skill:
             return skill.name, ""
             
+        logger.critical(f"no direct match, trying partial match against {len(cls._skills_by_name)} skills")
         # Try partial matching
         matches = []
         for skill_name in cls._skills_by_name.keys():
+            logger.critical(f"checking skill: {skill_name}")
             # Try to match the beginning of the skill name with the input
             input_chars = list(normalized_input)
             skill_chars = list(skill_name)
@@ -85,8 +91,10 @@ class SkillsRegistry(SkillsRegistryInterface):
                 else:
                     break
             
+            logger.critical(f"match length: {match_length}")
             # If we matched at least 4 characters at the beginning
             if match_length >= 4:
+                logger.critical(f"Partial match found: {skill_name} ({match_length} characters matched)")
                 matches.append((skill_name, match_length))
         
         # Find the longest unique match
@@ -96,11 +104,13 @@ class SkillsRegistry(SkillsRegistryInterface):
             
             # If we have a unique longest match
             if len(matches) == 1 or matches[0][1] > matches[1][1]:
+                logger.critical(f"Unique match found: {matches[0][0]} ({matches[0][1]} characters matched)")
                 matched_skill_name = matches[0][0]
                 matched_skill = cls._skills_by_name.get(matched_skill_name)
                 
                 # Calculate the remainder - everything after the matched portion
                 matched_portion = normalized_input[:matches[0][1]]
+                logger.critical(f"Matched portion: {matched_portion}")
                 
                 # If the matched portion ends with a space, or is the whole input
                 if matches[0][1] >= len(normalized_input):
@@ -113,7 +123,7 @@ class SkillsRegistry(SkillsRegistryInterface):
                     while remainder_start < len(normalized_input) and normalized_input[remainder_start].isspace():
                         remainder_start += 1
                     remainder = normalized_input[remainder_start:]
-                
+                logger.critical(f"Remainder: {remainder}")
                 return matched_skill.name, remainder
         
         return None, normalized_input

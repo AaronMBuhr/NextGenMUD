@@ -29,6 +29,7 @@ from .comprehensive_game_state_interface import GameStateInterface, ScheduledEve
 from .config import Config, default_app_config
 from .skills_interface import SkillsRegistryInterface
 from .nondb_models.actor_states import Cooldown
+from .skills_core import SkillsRegistry
 
 
 # Communication Types Usage Guidelines:
@@ -194,10 +195,13 @@ class CommandHandler(CommandHandlerInterface):
                         skill_name, remainder = None, None
                         emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
                         if not command in cls.command_handlers and emote_command == None:
-                            skill_name, remainder = SkillsRegistryInterface.parse_skill_name_from_input(first_command)
+                            logger.critical(f"checking skills registry for: {first_command}")
+                            skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(first_command)
                             if skill_name:  
-                                SkillsRegistryInterface.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
+                                logger.critical(f"found skill: {skill_name}")
+                                SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
                             else:
+                                logger.critical(f"no skill found")
                                 logger.debug3(f"Unknown command: {command}")
                                 msg = "Unknown command"
                         if not skill_name:
