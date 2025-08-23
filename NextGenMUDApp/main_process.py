@@ -70,7 +70,11 @@ class MainProcess:
                     await cls.process_input(conn, input)
             
             # Process timer tick triggers
-            for trig in TriggerTimerTick.timer_tick_triggers_: 
+            triggers_to_run = list(TriggerTimerTick.timer_tick_triggers_)
+            for trig in triggers_to_run: 
+                if trig.actor_ == None:
+                    logger.warning(f"timer tick trigger for {trig.event_type} ({trig.event_type.name}) is None")
+                    continue
                 logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
                 await trig.run(trig.actor_, "", {}, cls._game_state)
 
@@ -123,9 +127,10 @@ class MainProcess:
         logger.debug3("checking aggressive near players")
         for p in cls._game_state.players:
             logger.debug3(f"checking player {p.name}")
-            for char in p.location_room.get_characters():
-                if char != p and char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
-                    and char.fighting_whom == None and cls._game_state.can_see(char, p):
-                    logger.critical(f"aggressive char {char.name} sees player {p.name}")
-                    await CoreActionsInterface.get_instance().do_aggro(char)
+            if p.location_room != None:
+                for char in p.location_room.get_characters():
+                    if char != p and char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
+                        and char.fighting_whom == None and cls._game_state.can_see(char, p):
+                        logger.critical(f"aggressive char {char.name} sees player {p.name}")
+                        await CoreActionsInterface.get_instance().do_aggro(char)
         logger.debug3("done checking aggressive near players")

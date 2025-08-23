@@ -17,7 +17,7 @@ from .core_actions_interface import CoreActionsInterface
 import random
 
 
-class RogueSkills(ClassSkills):
+class Skills_Rogue(ClassSkills):
     
     def get_level_requirement(self, skill_name: str) -> int:
         """Return the level requirement for a skill"""
@@ -145,7 +145,7 @@ class Skills_Rogue(Skills):
     @classmethod
     async def do_rogue_backstab(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = RogueSkills.BACKSTAB
+        THIS_SKILL_DATA = Skills_Rogue.BACKSTAB
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -176,7 +176,7 @@ class Skills_Rogue(Skills):
         difficulty_modifier = attrib_mod + (level_mult * 10)
         
         mhw = actor.equipped_[EquipLocation.MAIN_HAND]
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.BACKSTAB], difficulty_modifier):
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.BACKSTAB], difficulty_modifier):
             damage = roll_dice(mhw.damage_dice_number_, mhw.damage_dice_size_, mhw.damage_dice_modifier_) * BACKSTAB_DAMAGE_MULT
             msg = f"You backstab {target.art_name} for {damage} damage!"
             vars = set_vars(actor, actor, target, msg, cls.game_state, {'d': damage})
@@ -204,7 +204,7 @@ class Skills_Rogue(Skills):
     @classmethod
     async def do_rogue_stealth(cls, actor: Actor, target: Actor, 
                               difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = RogueSkills.STEALTH
+        THIS_SKILL_DATA = Skills_Rogue.STEALTH
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -252,7 +252,7 @@ class Skills_Rogue(Skills):
         level_mult = sneaker.levels_[CharacterClassRole.ROGUE] / viewer.total_levels_()
         attrib_mod = (sneaker.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         difficulty_modifier = attrib_mod + (level_mult * 10)
-        return cls.do_skill_check(sneaker, sneaker.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.STEALTH], difficulty_modifier)
+        return cls.do_skill_check(sneaker, sneaker.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.STEALTH], difficulty_modifier)
     
     @classmethod
     def remove_stealth(cls, actor: Actor):
@@ -288,7 +288,7 @@ class Skills_Rogue(Skills):
     @classmethod
     async def do_rogue_evade(cls, actor: Actor, target: Actor, 
                             difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = RogueSkills.EVADE
+        THIS_SKILL_DATA = Skills_Rogue.EVADE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -317,7 +317,7 @@ class Skills_Rogue(Skills):
         dodge_bonus = random.randint(EVADE_DODGE_BONUS_MIN, EVADE_DODGE_BONUS_MAX) * level_mult
         attrib_mod = (actor.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][RogueSkills.EVADE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.EVADE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateDodgeBonus(target, actor, "evading", dodge_bonus, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)

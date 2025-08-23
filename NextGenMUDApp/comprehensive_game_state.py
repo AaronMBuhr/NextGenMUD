@@ -241,6 +241,7 @@ class ComprehensiveGameState:
                         if not character_def:
                             logger.warning(f"Character definition for {spawndata.id} not found.")
                             raise Exception(f"Character definition for {spawndata.id} not found.")
+                        # DEBUGGING:
                         for i in range(spawndata.desired_quantity):
                             new_character = Character.create_from_definition(character_def, self)
                             new_character.spawned_by = spawndata
@@ -596,7 +597,11 @@ class ComprehensiveGameState:
         return self.characters_fighting
     
     def remove_character_fighting(self, character: Character):
-        self.characters_fighting.remove(character)
+        if character in self.characters_fighting:
+            self.characters_fighting.remove(character)
+        else:
+            logger = StructuredLogger(__name__, prefix="remove_character_fighting()> ")
+            logger.warning(f"Removing character {character.rid} from characters_fighting, but not found.")
 
     def get_world_definition(self) -> WorldDefinition:
         return self.world_definition

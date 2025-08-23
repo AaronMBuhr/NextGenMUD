@@ -26,6 +26,23 @@ from .skills_interface import SkillsInterface, SkillsRegistryInterface
 class SkillsRegistry(SkillsRegistryInterface):
     _skills = {}
     _skills_by_name = {}
+    _classes_registered = False
+    
+    @classmethod
+    def register_skill_classes(cls):
+        """Register all skill classes"""
+        logger = StructuredLogger(__name__, prefix="register_skill_classes()> ")
+        logger.critical("Registering skill classes")
+        if cls._classes_registered:
+            logger.critical("Skill classes already registered")
+            return
+            
+        from .skills_fighter import Skills_Fighter
+        from .skills_cleric import Skills_Cleric
+        from .skills_mage import Skills_Mage
+        from .skills_rogue import Skills_Rogue
+        
+        cls._classes_registered = True
     
     @classmethod
     def register_skill_class(cls, class_name, skills_dict):
@@ -62,6 +79,7 @@ class SkillsRegistry(SkillsRegistryInterface):
             Tuple[Optional[str], str]: (skill_name, remainder) - skill_name will be None if no match found
         """
         logger = StructuredLogger(__name__, prefix="parse_skill_name_from_input()> ")
+        logger.critical(f"parse_skill_name_from_input() input: {input}")
         normalized_input = input.lower().strip()
         words = normalized_input.split()
         if not words:
@@ -211,8 +229,11 @@ class ClassSkills(GenericEnumWithAttributes):
         """Automatically register skills when a subclass is defined"""
         super().__init_subclass__(**kwargs)
         
+        logger = StructuredLogger(__name__, prefix="init_subclass()> ")
+        logger.critical(f"Initializing subclass: {cls.__name__}")
+        
         # Get the class role name from the class name (e.g., FighterSkills -> fighter)
-        class_role = cls.__name__.replace("Skills", "").lower()
+        class_role = cls.__name__.replace("Skills_", "").lower()
         
         # Collect all Skill instances from class attributes
         skills_dict = {}
@@ -228,7 +249,8 @@ class ClassSkills(GenericEnumWithAttributes):
 
 class Skills(SkillsInterface):
 
-    game_state: GameStateInterface = None
+    _game_state = None
+    _initialized = False
 
     ATTRIBUTE_AVERAGE = 10
     ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 4
@@ -253,16 +275,21 @@ class Skills(SkillsInterface):
 
     # Tier 7 skills (level 60) - specialization ultimate skills
     TIER7_MIN_LEVEL = 60
-
-   
+    
     @classmethod
-    def set_game_state(cls, game_state: GameStateInterface):
-        cls.game_state = game_state
-        
+    def _get_game_state(cls):
+        """Get the game state instance, lazily initializing if needed"""
+        if cls._game_state is None:
+            cls._game_state = GameStateInterface.get_instance()
+            if not cls._initialized:
+                SkillsRegistry.register_skill_classes()
+                cls._initialized = True
+        return cls._game_state
+       
     @classmethod
     async def start_casting(cls, actor: Actor, duration_ticks: int, cast_function: callable):
-        game_tick = cls.game_state.current_tick
-        new_state = CharacterStateCasting(actor, cls.game_state, actor, "casting", tick_created=game_tick, cast_function=cast_function)
+        game_tick = cls._get_game_state().current_tick
+        new_state = CharacterStateCasting(actor, cls._get_game_state(), actor, "casting", tick_created=game_tick, cast_function=cast_function)
         new_state.apply_state(game_tick, duration_ticks)
         return True
 
@@ -318,58 +345,58 @@ class Skills(SkillsInterface):
     def send_success_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_success_subject"]
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_success_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_success_room"]
         if msg:
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
         
     @classmethod
     def send_failure_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_failure_subject"]
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_failure_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_failure_room"]
         if msg:
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
 
     @classmethod
     def send_apply_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_apply_subject"]
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_apply_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_apply_room"]
         if msg:
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
         
     @classmethod
     def send_resist_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
         msg = skill_data["message_resist_subject"]
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_resist_target"]
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
         msg = skill_data["message_resist_room"]
         if msg:
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state, exceptions=targets)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)

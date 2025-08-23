@@ -19,7 +19,7 @@ from collections import defaultdict
 import random
 
 
-class FighterSkills(ClassSkills):
+class Skills_Fighter(ClassSkills):
     
     def get_level_requirement(self, skill_name: str) -> int:
         """Return the level requirement for a skill"""
@@ -481,7 +481,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_normal_stance(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.NORMAL_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.NORMAL_STANCE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -501,7 +501,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_normal_stance_finish(cls, actor: Actor, target: Actor, 
                                              difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.NORMAL_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.NORMAL_STANCE
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         
@@ -523,7 +523,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_defensive_stance(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DEFENSIVE_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.DEFENSIVE_STANCE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -543,7 +543,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_defensive_stance_finish(cls, actor: Actor, target: Actor, 
                                                 difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DEFENSIVE_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.DEFENSIVE_STANCE
         DEFENSIVE_STANCE_DODGE_BONUS = 10
         DEFENSIVE_STANCE_RESIST_AMOUNT = 5
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -562,7 +562,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.DEFENSIVE_STANCE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.DEFENSIVE_STANCE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateDodgeBonus(actor, actor, "defensive stance", dodge_bonus, tick_created=game_tick)
             new_state.apply_state(game_tick)
@@ -577,7 +577,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_shield_block(cls, actor: Actor, target: Actor, 
                                      difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SHIELD_BLOCK
+        THIS_SKILL_DATA = Skills_Fighter.SHIELD_BLOCK
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -597,10 +597,10 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_shield_block_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SHIELD_BLOCK
+        THIS_SKILL_DATA = Skills_Fighter.SHIELD_BLOCK
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        resist_amount = actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.SHIELD_BLOCK] / 5
+        resist_amount = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK] / 5
         resistances = DamageResistances({
             DamageType.SLASHING: resist_amount,
             DamageType.PIERCING: resist_amount,
@@ -614,7 +614,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.SHIELD_BLOCK],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateShielded(actor, actor, "shielded", resistances, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -627,7 +627,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_shield_sweep(cls, actor: Actor, target: Actor, 
                                      difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SHIELD_SWEEP
+        THIS_SKILL_DATA = Skills_Fighter.SHIELD_SWEEP
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -647,7 +647,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_shield_sweep_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SHIELD_SWEEP
+        THIS_SKILL_DATA = Skills_Fighter.SHIELD_SWEEP
         SHIELD_SWEEP_DAMAGE_MIN = 5
         SHIELD_SWEEP_DAMAGE_MAX = 15
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -657,7 +657,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.SHIELD_SWEEP],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_SWEEP],
                               difficulty_modifier - attrib_mod):
             # Get all nearby enemies
             targets = actor.room.get_nearby_enemies(actor)
@@ -679,7 +679,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_mighty_kick(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.MIGHTY_KICK
+        THIS_SKILL_DATA = Skills_Fighter.MIGHTY_KICK
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -699,7 +699,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_mighty_kick_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.MIGHTY_KICK
+        THIS_SKILL_DATA = Skills_Fighter.MIGHTY_KICK
         kick_duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) \
             * actor.levels[CharacterClassRole.FIGHTER] / target.total_levels()
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
@@ -709,14 +709,14 @@ class FighterSkills(ClassSkills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         skill_roll = random.randint(1, 100)
         
-        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK],
+        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
             send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         else:
             send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
         if does_resist(actor, actor.attributes_[CharacterAttributes.STRENGTH],
-                       actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK].skill_level, 
+                       actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK].skill_level, 
                        target, target.attributes_[CharacterAttributes.STRENGTH], difficulty_modifier):
             send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
@@ -730,13 +730,13 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_demoralizing_shout(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DEMORALIZING_SHOUT
+        THIS_SKILL_DATA = Skills_Fighter.DEMORALIZING_SHOUT
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
-        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK],
+        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
             send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         else:
@@ -756,7 +756,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_demoralizing_shout_finish(cls, actor: Actor, target: Actor, 
                                                  difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DEMORALIZING_SHOUT
+        THIS_SKILL_DATA = Skills_Fighter.DEMORALIZING_SHOUT
         DEMORALIZING_SHOUT_HIT_PENALTY_MIN = 10
         DEMORALIZING_SHOUT_HIT_PENALTY_MAX = 40
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -770,7 +770,7 @@ class FighterSkills(ClassSkills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         targets = actor.room.get_nearby_enemies(actor)
         skill_roll = random.randint(1, 100)
-        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK],
+        if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
             send_success_message(actor, targets, THIS_SKILL_DATA, vars)
         else:
@@ -778,7 +778,7 @@ class FighterSkills(ClassSkills):
             return False
         for target in targets:
             if does_resist(actor, actor.attributes_[CharacterAttributes.STRENGTH],
-                        actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MIGHTY_KICK].skill_level, 
+                        actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK].skill_level, 
                         target, target.attributes_[CharacterAttributes.WISDOM], difficulty_modifier):
                 send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
             else:
@@ -791,7 +791,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_intimidate(cls, actor: Actor, target: Actor, 
                                    difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.INTIMIDATE
+        THIS_SKILL_DATA = Skills_Fighter.INTIMIDATE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -811,7 +811,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_intimidate_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.INTIMIDATE
+        THIS_SKILL_DATA = Skills_Fighter.INTIMIDATE
         INTIMIDATE_HIT_PENALTY_MIN = 10
         INTIMIDATE_HIT_PENALTY_MAX = 40
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -824,7 +824,7 @@ class FighterSkills(ClassSkills):
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         targets = actor.room.get_nearby_enemies(actor)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.INTIMIDATE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.INTIMIDATE],
                               difficulty_modifier - attrib_mod + target_mod):
             for target in targets:
                 new_state = CharacterStateHitPenalty(target, actor, "intimidated", hit_penalty, tick_created=game_tick)
@@ -838,7 +838,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_disarm(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DISARM
+        THIS_SKILL_DATA = Skills_Fighter.DISARM
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -858,7 +858,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_disarm_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.DISARM
+        THIS_SKILL_DATA = Skills_Fighter.DISARM
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
@@ -867,7 +867,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.DISARM],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.DISARM],
                               difficulty_modifier - attrib_mod + target_mod):
             new_state = CharacterStateForcedSitting(target, actor, "disarmed", tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -880,7 +880,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_slam(cls, actor: Actor, target: Actor, 
                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SLAM
+        THIS_SKILL_DATA = Skills_Fighter.SLAM
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -900,7 +900,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_slam_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.SLAM
+        THIS_SKILL_DATA = Skills_Fighter.SLAM
         SLAM_DODGE_PENALTY_MIN = 10
         SLAM_DODGE_PENALTY_MAX = 40
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -912,7 +912,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.SLAM],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SLAM],
                               difficulty_modifier - attrib_mod + target_mod):
             new_state = CharacterStateDodgePenalty(target, actor, "slammed", dodge_penalty, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -925,7 +925,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_bash(cls, actor: Actor, target: Actor, 
                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.BASH
+        THIS_SKILL_DATA = Skills_Fighter.BASH
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -945,7 +945,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_bash_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.BASH
+        THIS_SKILL_DATA = Skills_Fighter.BASH
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
@@ -954,7 +954,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.BASH],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BASH],
                               difficulty_modifier - attrib_mod + target_mod):
             new_state = CharacterStateStunned(target, actor, "bashed", tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -967,7 +967,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_rally(cls, actor: Actor, target: Actor, 
                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.RALLY
+        THIS_SKILL_DATA = Skills_Fighter.RALLY
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -987,7 +987,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_rally_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.RALLY
+        THIS_SKILL_DATA = Skills_Fighter.RALLY
         RALLY_HIT_BONUS_MIN = 5
         RALLY_HIT_BONUS_MAX = 20
         RALLY_DAMAGE_BONUS_MIN = 5
@@ -1001,7 +1001,7 @@ class FighterSkills(ClassSkills):
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         targets = actor.room.get_nearby_allies(actor)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.RALLY],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.RALLY],
                               difficulty_modifier - attrib_mod):
             for target in targets:
                 new_state = CharacterStateHitBonus(target, actor, "rallied", hit_bonus, tick_created=game_tick)
@@ -1017,7 +1017,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_rend(cls, actor: Actor, target: Actor, 
                              difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.REND
+        THIS_SKILL_DATA = Skills_Fighter.REND
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1037,7 +1037,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_rend_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.REND
+        THIS_SKILL_DATA = Skills_Fighter.REND
         REND_DAMAGE_MIN = 5
         REND_DAMAGE_MAX = 15
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -1049,7 +1049,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.REND],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.REND],
                               difficulty_modifier - attrib_mod + target_mod):
             new_state = CharacterStateBleeding(target, actor, "rended", damage, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -1062,7 +1062,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_cleave(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.CLEAVE
+        THIS_SKILL_DATA = Skills_Fighter.CLEAVE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1082,12 +1082,12 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_cleave_finish(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.CLEAVE
+        THIS_SKILL_DATA = Skills_Fighter.CLEAVE
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.CLEAVE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.CLEAVE],
                               difficulty_modifier - attrib_mod):
             # Get all nearby enemies
             targets = actor.room.get_nearby_enemies(actor)
@@ -1127,7 +1127,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_whirlwind(cls, actor: Actor, target: Actor, 
                                   difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.WHIRLWIND
+        THIS_SKILL_DATA = Skills_Fighter.WHIRLWIND
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1147,7 +1147,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_whirlwind_finish(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.WHIRLWIND
+        THIS_SKILL_DATA = Skills_Fighter.WHIRLWIND
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
 
@@ -1172,7 +1172,7 @@ class FighterSkills(ClassSkills):
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.WHIRLWIND], difficulty_modifier):
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.WHIRLWIND], difficulty_modifier):
             # Success message
             target_names = ", ".join([t.art_name for t in targets])
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_subject)
@@ -1224,7 +1224,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_execute(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.EXECUTE
+        THIS_SKILL_DATA = Skills_Fighter.EXECUTE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1244,7 +1244,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_execute_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.EXECUTE
+        THIS_SKILL_DATA = Skills_Fighter.EXECUTE
         # Check if target is below 25% health
         if target.current_hit_points > target.max_hit_points * 0.25:
             msg = f"Your target is not weak enough to execute!"
@@ -1256,7 +1256,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.EXECUTE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.EXECUTE],
                               difficulty_modifier - attrib_mod):
             if actor.equipped[EquipLocation.MAIN_HAND] != None:
                 weapon = actor.equipped[EquipLocation.MAIN_HAND]
@@ -1288,7 +1288,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_enrage(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.ENRAGE
+        THIS_SKILL_DATA = Skills_Fighter.ENRAGE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1308,7 +1308,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_enrage_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.ENRAGE
+        THIS_SKILL_DATA = Skills_Fighter.ENRAGE
         ENRAGE_DAMAGE_BONUS_MIN = 20
         ENRAGE_DAMAGE_BONUS_MAX = 50
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
@@ -1318,7 +1318,7 @@ class FighterSkills(ClassSkills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.ENRAGE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.ENRAGE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateDamageBonus(actor, actor, "enraged", damage_bonus, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
@@ -1331,7 +1331,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_massacre(cls, actor: Actor, target: Actor, 
                                  difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.MASSACRE
+        THIS_SKILL_DATA = Skills_Fighter.MASSACRE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1351,12 +1351,12 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_massacre_finish(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.MASSACRE
+        THIS_SKILL_DATA = Skills_Fighter.MASSACRE
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.MASSACRE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MASSACRE],
                               difficulty_modifier - attrib_mod):
             if actor.equipped[EquipLocation.MAIN_HAND] != None:
                 weapon = actor.equipped[EquipLocation.MAIN_HAND]
@@ -1388,7 +1388,7 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_berserker_stance(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
-        THIS_SKILL_DATA = FighterSkills.BERSERKER_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.BERSERKER_STANCE
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
@@ -1408,18 +1408,18 @@ class FighterSkills(ClassSkills):
     @classmethod
     async def do_fighter_berserker_stance_finish(cls, actor: Actor, target: Actor, 
                                                  difficulty_modifier=0, game_tick=0) -> bool:
-        THIS_SKILL_DATA = FighterSkills.BERSERKER_STANCE
+        THIS_SKILL_DATA = Skills_Fighter.BERSERKER_STANCE
         BERSERKER_STANCE_DODGE_PENALTY = 10
         BERSERKER_STANCE_HIT_BONUS = 20
         level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
-        skill_mod = actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.BERSERKER_STANCE] / 5
+        skill_mod = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BERSERKER_STANCE] / 5
         dodge_mod = BERSERKER_STANCE_DODGE_PENALTY * level_mult
         hit_mod = (BERSERKER_STANCE_HIT_BONUS - skill_mod) * level_mult
         attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][FighterSkills.BERSERKER_STANCE],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BERSERKER_STANCE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateBerserkerStance(actor, actor, "berserker stance", dodge_mod, hit_mod, tick_created=game_tick)
             new_state.apply_state(game_tick)

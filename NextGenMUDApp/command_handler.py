@@ -159,9 +159,8 @@ class CommandHandler(CommandHandlerInterface):
         msg = None
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
+        commands = [cmd.strip() for cmd in input.split(';') if cmd.strip()]
         try:
-            # Split input by semicolons
-            commands = [cmd.strip() for cmd in input.split(';') if cmd.strip()]
             if not commands:
                 msg = "Did you want to do something?"
             else:
@@ -183,8 +182,9 @@ class CommandHandler(CommandHandlerInterface):
                     and actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
                     msg = "You are stunned!"
                 elif actor.is_busy(cls._game_state.get_current_tick()):
-                    # Queue the first command if the actor is busy
-                    actor.command_queue.append(first_command)
+                    # Queue the commands if the actor is busy
+                    for cmd in commands:
+                        actor.command_queue.append(cmd)
                     msg = "You are busy. Your command has been queued."
                 else:
                     parts = split_preserving_quotes(first_command)
@@ -192,38 +192,35 @@ class CommandHandler(CommandHandlerInterface):
                         msg = "Did you want to do something?"
                     else:
                         command = parts[0]
-                        skill_name, remainder = None, None
-                        emote_command = cls.EMOTE_MESSAGES[command] if command in cls.EMOTE_MESSAGES else None
-                        if not command in cls.command_handlers and emote_command == None:
-                            logger.critical(f"checking skills registry for: {first_command}")
-                            skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(first_command)
-                            if skill_name:  
-                                logger.critical(f"found skill: {skill_name}")
-                                SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
+                        if command in cls.command_handlers:
+                            await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
+                        else:
+                            if command in cls.EMOTE_MESSAGES:
+                                await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
                             else:
-                                logger.critical(f"no skill found")
-                                logger.debug3(f"Unknown command: {command}")
-                                msg = "Unknown command"
-                        if not skill_name:
-                            try:
-                                logger.debug3(f"Evaluating command: {command}")
-                                if emote_command:
-                                    await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
+                                logger.critical(f"checking skills registry for: {first_command}")
+                                skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(first_command)
+                                if skill_name:  
+                                    logger.critical(f"found skill: {skill_name}")
+                                    SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
                                 else:
-                                    await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
-                            except KeyError:
-                                logger.error(f"KeyError processing command {command}")
-                                msg = "Command failure."
-                                raise
+                                    logger.critical(f"no skill found")
+                                    logger.debug3(f"Unknown command: {command}")
+                                    msg = "Unknown command"
 
                 # Queue any additional commands
                 if len(commands) > 1:
                     actor.command_queue.extend(commands[1:])
                     if not msg:  # Only add queue message if there wasn't an error message
                         msg = f"Queued {len(commands)-1} additional command(s)."
+        except KeyError:
+            logger.error(f"KeyError processing command {command}")
+            msg = "Command failure."
+            raise
         except:
             logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
             raise
+
         if msg and actor.connection:
             await actor.send_text(CommTypes.DYNAMIC, msg)
         else:
@@ -1230,6 +1227,10 @@ class CommandHandler(CommandHandlerInterface):
     async def cmd_leaverandom(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_leaverandom()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if (actor.fighting_whom != None):
+            await actor.send_text(CommTypes.DYNAMIC, "You can't leave while fighting!")
+            return
         
         # Check if the actor wants to stay in the current zone
         stay_in_zone = False
