@@ -14,6 +14,8 @@ env/
 ENV/
 .env/
 .venv/
+.env
+.venv
 
 # Django stuff
 *.log
@@ -29,4 +31,4 @@ db.sqlite3-journal
 
 # OS generated files
 .DS_Store
-Thumbs.db "NextGenMUDApp/app_config.yaml" 
+Thumbs.db

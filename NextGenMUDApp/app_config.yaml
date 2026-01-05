@@ -1,0 +1,138 @@
+WORLD_DATA_DIR: world_data
+
+# LLM Configuration for NPC conversations
+# API key should be set via environment variable: GEMINI_API_KEY (or GOOGLE_API_KEY)
+LLM:
+  provider: gemini  # gemini, openai, claude, grok, local
+  model: gemini-2.0-flash
+  temperature: 0.8
+  max_output_tokens: 500
+
+# Player save settings
+PLAYER_SAVES_DIR: player_saves
+DEFAULT_START_LOCATION: debug_zone.starting_room
+DEFAULT_CHARACTER_TEMPLATE: debug_zone.test_player
+
+# Disconnect/linkdead settings
+DISCONNECT_GRACE_PERIOD_SECONDS: 60
+
+# Character save options
+SAVE_CHARACTER_STATES: true
+SAVE_CHARACTER_COOLDOWNS: true
+
+# Specialization level requirement
+SPECIALIZATION_LEVEL: 20
+HIT_POINT_GAIN_BY_CLASS:
+  fighter: 10
+  rogue: 6
+  mage: 4
+  cleric: 8
+
+# Mana pool - used by Mage and Cleric spells
+# Base mana per level by class
+MANA_GAIN_BY_CLASS:
+  fighter: 0
+  rogue: 0
+  mage: 15
+  cleric: 12
+
+# Mana scaling: +1 max mana per point of INT above 10 (Mage) or WIS above 10 (Cleric)
+MANA_ATTRIBUTE_SCALING: 2  # Per point above 10
+
+# Stamina pool - used by Fighter and Rogue abilities
+# Base stamina per level by class
+STAMINA_GAIN_BY_CLASS:
+  fighter: 15
+  rogue: 12
+  mage: 0
+  cleric: 5
+
+# Stamina scaling: +1 max stamina per point of CON above 10
+STAMINA_ATTRIBUTE_SCALING: 2  # Per point above 10
+
+# Regeneration rates (per tick, ~0.5 seconds)
+# Combat regen is very slow
+MANA_REGEN_COMBAT: 0.1
+MANA_REGEN_WALKING: 0.5
+MANA_REGEN_RESTING: 2.0
+MANA_REGEN_MEDITATING: 4.0
+
+# Stamina regens faster than mana
+STAMINA_REGEN_COMBAT: 0.5
+STAMINA_REGEN_WALKING: 2.0
+STAMINA_REGEN_RESTING: 4.0
+
+# HP regeneration - off in combat, slow when walking, faster when resting/sleeping
+HP_REGEN_COMBAT: 0       # No HP regen in combat
+HP_REGEN_WALKING: 0.1    # Very slow when moving around
+HP_REGEN_RESTING: 0.5    # Moderate when sitting
+HP_REGEN_SLEEPING: 1.0   # Fastest when sleeping
+XP_PROGRESSION: [
+  0,            # Level 1 requires 0 XP
+  1000,         # Level 2 
+  2000,         # Level 3
+  4000,         # Level 4
+  8000,         # Level 5
+  16000,        # Level 6
+  25000,        # Level 7
+  36000,        # Level 8
+  49000,        # Level 9
+  64000,        # Level 10
+  81000,        # Level 11
+  100000,       # Level 12
+  121000,       # Level 13
+  144000,       # Level 14
+  169000,       # Level 15
+  196000,       # Level 16
+  225000,       # Level 17
+  256000,       # Level 18
+  289000,       # Level 19
+  324000,       # Level 20
+  361000,       # Level 21
+  400000,       # Level 22
+  441000,       # Level 23
+  484000,       # Level 24
+  529000,       # Level 25
+  576000,       # Level 26
+  625000,       # Level 27
+  676000,       # Level 28
+  729000,       # Level 29
+  784000,       # Level 30
+  841000,       # Level 31
+  900000,       # Level 32
+  961000,       # Level 33
+  1024000,      # Level 34
+  1089000,      # Level 35
+  1156000,      # Level 36
+  1225000,      # Level 37
+  1296000,      # Level 38
+  1369000,      # Level 39
+  1444000,      # Level 40
+  1521000,      # Level 41
+  1600000,      # Level 42
+  1681000,      # Level 43
+  1764000,      # Level 44
+  1849000,      # Level 45
+  1936000,      # Level 46
+  2025000,      # Level 47
+  2116000,      # Level 48
+  2209000,      # Level 49
+  2304000,      # Level 50
+  2401000,      # Level 51
+  2500000,      # Level 52
+  2601000,      # Level 53
+  2704000,      # Level 54
+  2809000,      # Level 55
+  2916000,      # Level 56
+  3025000,      # Level 57
+  3136000,      # Level 58
+  3249000,      # Level 59
+  3364000       # Level 60
+]
+MAIN_HAND_ATTACK_PROGRESSION:
+  fighter: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]
+  rogue: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4]
+  cleric: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4]
+  mage: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+OFF_HAND_ATTACK_PROGRESSION:
+  rogue: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3]
