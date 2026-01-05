@@ -2164,13 +2164,14 @@ ZONES:
           chemicals, making it difficult to breathe. Eerie, guttural sounds echo throughout 
           the chamber, hinting at the presence of its mutated inhabitants. Piles of gnawed 
           bones and discarded refuse suggest the eating habits of the lair's occupants.
+          A dark opening in the southern wall leads to somewhere deeper beneath the city.
 
           Exits: east, south
         exits:
           east:
             destination: alchemical_dumping_ground
           south:
-            destination: undercity_entrance
+            destination: rough_hewn_tunnel_entrance
         triggers:
           - id: timer_tick_mutant_lair_1
             type: timer_tick
@@ -2232,3 +2233,286 @@ ZONES:
             quantity: 2
             respawn_time_min: 30
             respawn_time_max: 90
+
+      rough_hewn_tunnel_entrance:
+        name: Rough-Hewn Tunnel Entrance
+        description: >
+          The sewer walls give way here to raw, unworked stone. A crude tunnel has been 
+          carved into the bedrock, its walls bearing the unmistakable marks of pickaxes 
+          and chisels. The workmanship is hasty but effective—this passage was clearly 
+          excavated in secret, away from prying eyes. The floor slopes gradually downward, 
+          and the air grows noticeably drier as you leave the fetid moisture of the sewers 
+          behind. Faded chalk markings on the walls might once have served as navigation 
+          aids for those who dug this forbidden path. The tunnel stretches south into 
+          impenetrable darkness.
+
+          Exits: north, south
+        exits:
+          north:
+            destination: mutant_lair
+          south:
+            destination: rough_hewn_tunnel_descent
+        triggers:
+          - id: timer_tick_tunnel_entrance_1
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria: 
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 20
+            script: |
+              echo The distant drip of water echoes from somewhere deep within the tunnel.
+          - id: timer_tick_tunnel_entrance_2
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 35
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 25
+            script: |
+              echo A cold draft wafts up from the depths, carrying an unfamiliar, briny scent.
+          - id: catch_look_markings
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "marking"
+            script: |
+              echo The chalk markings are faded and cryptic—arrows, numbers, and symbols that might have meant something to the original diggers.
+          - id: catch_look_chisel
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "chisel"
+            script: |
+              echo The chisel marks suggest this tunnel was carved over many months, perhaps years, by determined hands.
+        creatures:
+          - id: cave_spider
+            quantity: 2
+            respawn_time_min: 40
+            respawn_time_max: 100
+          - id: tunnel_serpent
+            quantity: 1
+            respawn_time_min: 60
+            respawn_time_max: 150
+
+      rough_hewn_tunnel_descent:
+        name: Descending Tunnel
+        description: >
+          The rough-hewn tunnel plunges deeper into the earth at a steep angle. Crude 
+          steps have been hacked into the stone floor to prevent slipping, their edges 
+          worn smooth by the passage of many feet over countless years. The walls here 
+          are scored with deeper gouges, as if the diggers encountered harder rock and 
+          had to work with greater force. Patches of phosphorescent lichen cling to the 
+          ceiling, providing just enough ghostly illumination to see by. The temperature 
+          continues to drop, and the briny scent grows stronger. You sense you are 
+          approaching something ancient and vast.
+
+          Exits: north, south
+        exits:
+          north:
+            destination: rough_hewn_tunnel_entrance
+          south:
+            destination: rough_hewn_tunnel_deep
+        triggers:
+          - id: timer_tick_descent_1
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria: 
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 18
+            script: |
+              echo Loose pebbles skitter down the steep passage, their echoes fading into the depths.
+          - id: timer_tick_descent_2
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 30
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 30
+            script: |
+              echo The phosphorescent lichen pulses briefly, as if responding to some unseen stimulus.
+          - id: catch_look_lichen
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "lichen"
+            script: |
+              echo The lichen glows with a soft, bluish light unlike anything found in the sewers above. It seems almost... cultivated.
+          - id: catch_look_steps
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "step"
+            script: |
+              echo The worn steps tell a story of frequent use. Whatever lies below was visited often.
+        creatures:
+          - id: cave_spider
+            quantity: 1
+            respawn_time_min: 50
+            respawn_time_max: 120
+          - id: shadow_lurker
+            quantity: 1
+            respawn_time_min: 75
+            respawn_time_max: 180
+
+      rough_hewn_tunnel_deep:
+        name: Deep Tunnel Junction
+        description: >
+          The tunnel levels out here in a small, roughly circular chamber. Tool marks 
+          cover every surface, testament to the backbreaking labor required to carve 
+          this space from solid rock. A rusted iron brazier sits cold and dead in the 
+          center—evidence that the diggers once rested here during their secret work. 
+          Discarded pick handles and broken tool heads litter the floor. The air is 
+          heavy with an ancient, mineral smell, tinged with something else... the 
+          unmistakable tang of salt water. The tunnel continues south, and you can 
+          feel a faint vibration in the stone, as if vast machinery operates somewhere 
+          in the distance.
+
+          Exits: north, south
+        exits:
+          north:
+            destination: rough_hewn_tunnel_descent
+          south:
+            destination: rough_hewn_tunnel_citadel_approach
+        triggers:
+          - id: timer_tick_deep_1
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria: 
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 20
+            script: |
+              echo A deep, rhythmic vibration pulses through the stone beneath your feet.
+          - id: timer_tick_deep_2
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 35
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 25
+            script: |
+              echo You hear what might be distant machinery—or perhaps the groaning of immense pressure against ancient stone.
+          - id: catch_look_brazier
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "brazier"
+            script: |
+              echo The brazier is encrusted with centuries of rust. Charred remnants of wood suggest it hasn't been lit in ages.
+          - id: catch_look_tools
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "tool"
+            script: |
+              echo The broken tools are of ancient make, their metal corroded beyond use. Whoever dug this tunnel did so long, long ago.
+        creatures:
+          - id: stone_mite
+            quantity: 3
+            respawn_time_min: 35
+            respawn_time_max: 90
+          - id: tunnel_serpent
+            quantity: 1
+            respawn_time_min: 60
+            respawn_time_max: 150
+
+      rough_hewn_tunnel_citadel_approach:
+        name: Tunnel's End - Ancient Foundation
+        description: >
+          The rough-hewn tunnel terminates here against a wall of worked stone utterly 
+          unlike the crude excavation behind you. This is ancient masonry of exceptional 
+          quality—massive basalt blocks fitted together with mathematical precision, 
+          their surfaces etched with faded geometric patterns. A ragged breach has been 
+          carved through this wall, the crude chisel marks a stark violation of the 
+          elegant construction. Beyond the breach, you glimpse chambers of polished 
+          stone and brass fittings. The air here carries a strange, electric quality, 
+          and you can feel pressure against your ears as if you've descended to a 
+          great depth. The rhythmic pulse of hidden machinery is stronger here, 
+          accompanied by the distant hiss of steam.
+
+          Exits: north, east
+        exits:
+          north:
+            destination: rough_hewn_tunnel_deep
+          east:
+            destination: sunken_citadel.breach_chamber
+        triggers:
+          - id: timer_tick_approach_1
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria: 
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 15
+            script: |
+              echo The pulse of distant machinery reverberates through the ancient masonry, a heartbeat of brass and steam.
+          - id: timer_tick_approach_2
+            type: timer_tick
+            flags:
+              - only_when_pc_room
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 30
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 30
+            script: |
+              echo A shimmer of azure light pulses through the breach from somewhere deep within the ancient structure beyond.
+          - id: catch_look_breach
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "breach"
+            script: |
+              echo The breach was made with desperate force—whoever broke through this wall needed access badly enough to deface this magnificent construction.
+          - id: catch_look_patterns
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "pattern"
+            script: |
+              echo The geometric patterns seem to flow like water frozen in stone. They remind you of tide charts and mathematical calculations.
+          - id: catch_look_masonry
+            type: catch_look
+            criteria: 
+              - subject: "%{*}"
+                operator: contains
+                predicate: "masonry"
+            script: |
+              echo This is no ordinary construction. The precision and scale suggest a civilization of immense capability—one that may have sunk beneath the earth long ago.
+        creatures:
+          - id: shadow_lurker
+            quantity: 1
+            respawn_time_min: 60
+            respawn_time_max: 150
+          - id: rust_bat
+            quantity: 2
+            respawn_time_min: 40
+            respawn_time_max: 100

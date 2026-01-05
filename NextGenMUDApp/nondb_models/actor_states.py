@@ -31,17 +31,17 @@ class Cooldown:
         self.cooldown_end_fn = cooldown_end_fn
         self.game_state = game_state
 
-    @classmethod
+    @staticmethod
     def has_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
         return any([c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
                     and c.cooldown_name == (cooldown_name or c.cooldown_name)])
     
-    @classmethod
+    @staticmethod
     def current_cooldowns(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
         return [c for c in cooldowns if c.cooldown_source == (cooldown_source or c.cooldown_source) \
                     and c.cooldown_name == (cooldown_name or c.cooldown_name)]
     
-    @classmethod
+    @staticmethod
     def last_cooldown(cooldowns: List['Cooldown'], cooldown_source = None, cooldown_name: str = None) -> bool:
         return max([c for c in Cooldown.current_cooldowns(cooldowns, cooldown_source, cooldown_name)],
                    key=lambda c: c.cooldown_end_tick_)
@@ -158,7 +158,7 @@ class ActorState:
         """
         Returns True if the state affects the given flag, False if it does not.
         """
-        return self.character_flags_affected.are_flags_set(flag)
+        return self.character_flags_added.are_flags_set(flag)
     
     def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
         self.duration_remaining = max(self.start_tick_ - tick_num, 0)
@@ -177,8 +177,8 @@ class ActorState:
 class CharacterStateForcedSitting(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
-        self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
@@ -206,16 +206,19 @@ class CharacterStateForcedSitting(ActorState):
             return True
         self.actor.remove_temp_flags(self.character_flags_added)
         msg = "The dizziness wears off, you feel steady enough to stand again."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         msg = f"{self.actor.art_name_cap} looks steady enough to stand again."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                       game_state=self.game_state)
-        if self.actortype_ == ActorType.CHARACTER and self.location_room \
-            and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
-        if self.location_room \
+        # NPCs automatically stand up when the forced sitting wears off
+        if self.actor.actor_type == ActorType.CHARACTER and self.actor.location_room \
+            and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            # Queue the stand command so it goes through normal command handling
+            self.actor.command_queue.append("stand")
+        # Re-aggro if appropriate
+        if self.actor.location_room \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
                 await CoreActionsInterface.get_instance().do_aggro(self.actor)
@@ -226,9 +229,9 @@ class CharacterStateForcedSitting(ActorState):
 class CharacterStateForcedSleeping(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
-        self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
-        self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
@@ -251,21 +254,24 @@ class CharacterStateForcedSleeping(ActorState):
     async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
-        if any([s for s in self.actor.current_states \
-                              if s.does_add_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+        if any([s for s in self.actor.current_states if s is not self \
+                              and s.does_add_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
             return True
         self.actor.remove_temp_flags(self.character_flags_added)
-        msg = "You don't feel sleepy anymore."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
-        msg = f"{self.actor.art_name_cap} doesn't look sleepy anymore."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+        msg = "You wake up, no longer feeling sleepy."
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        msg = f"{self.actor.art_name_cap} wakes up."
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor],
                                     game_state=self.game_state)
-        if self.actortype_ == ActorType.CHARACTER and self.location_room \
-            and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
-        if self.location_room \
+        # NPCs automatically stand up when the sleep wears off
+        if self.actor.actor_type == ActorType.CHARACTER and self.actor.location_room \
+            and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            # Queue the stand command so it goes through normal command handling
+            self.actor.command_queue.append("stand")
+        # Re-aggro if appropriate (only if not still sitting from another effect)
+        if self.actor.location_room \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
@@ -277,8 +283,8 @@ class CharacterStateForcedSleeping(ActorState):
 class CharacterStateStunned(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
-        self.character_flags_affected.add_flags(TemporaryCharacterFlags.IS_STUNNED)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_STUNNED)
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
@@ -300,25 +306,24 @@ class CharacterStateStunned(ActorState):
     async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
-        if any([s for s in self.actor.current_states \
-                if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
-            return False
+        if any([s for s in self.actor.current_states if s is not self \
+                and s.does_affect_flag(TemporaryCharacterFlags.IS_STUNNED)]):
+            return True
         
+        self.actor.remove_temp_flags(TemporaryCharacterFlags.IS_STUNNED)
         msg = "You shake off the stun."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         msg = f"{self.actor.art_name_cap} shakes off the stun."
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor],
                                         game_state=self.game_state)
-        if self.actortype_ == ActorType.CHARACTER and self.location_room \
-            and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
-        if self.location_room \
+        # Re-aggro if appropriate
+        if self.actor.location_room \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                CoreActionsInterface.get_instance().do_aggro(self.actor)
+                await CoreActionsInterface.get_instance().do_aggro(self.actor)
         return True
         
 
@@ -326,7 +331,7 @@ class CharacterStateStunned(ActorState):
 class CharacterStateHitPenalty(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None, \
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -357,7 +362,7 @@ class CharacterStateHitPenalty(ActorState):
 class CharacterStateHitBonus(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None, \
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -388,7 +393,7 @@ class CharacterStateHitBonus(ActorState):
 class CharacterStateDisarmed(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
@@ -429,46 +434,44 @@ class CharacterStateDisarmed(ActorState):
     
 
     async def remove_state(self, force=True) -> bool:
-        if not force and any([s for s in self.actor.current_states if s.does_affect_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
-            return False
-        mhw = self.vars["mhw"]
-        ohw = self.vars["ohw"]
-        bhw = self.vars["bhw"]
-        if mhw and self.equipped_location_[EquipLocation.MAIN_HAND] is None:
+        if not force and any([s for s in self.actor.current_states if s is not self \
+                              and s.does_affect_flag(TemporaryCharacterFlags.IS_DISARMED)]):
+            return True
+        mhw = self.vars.get("mhw")
+        ohw = self.vars.get("ohw")
+        bhw = self.vars.get("bhw")
+        if mhw and self.actor.equipped.get(EquipLocation.MAIN_HAND) is None:
             self.actor.remove_object(mhw)
             self.actor.equip_object(mhw)
-        if ohw and self.equip_location_[EquipLocation.OFF_HAND] is None:
+        if ohw and self.actor.equipped.get(EquipLocation.OFF_HAND) is None:
             self.actor.remove_object(ohw)
             self.actor.equip_object(ohw)
-        if bhw and self.equip_location_[EquipLocation.BOTH_HANDS] is None:
+        if bhw and self.actor.equipped.get(EquipLocation.BOTH_HANDS) is None:
             self.actor.remove_object(bhw)
             self.actor.equip_object(bhw)
-        retval = super().remove_state(force)
-        if retval is not None:
-            self.remove_temp_flags(TemporaryCharacterFlags.IS_DISARMED)
-            self.actor.remove_state(self)
-            msg = "You ready your weapons again."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
-            msg = f"{self.actor.art_name_cap} readies {self.actor.pronoun_possessive} weapons again."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
-                                          game_state=self.game_state)
-            if self.actortype_ == ActorType.CHARACTER and self.location_room \
-                and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
-            if self.location_room \
-                and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
-                and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
-                and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                    CoreActionsInterface.get_instance().do_aggro(self.actor)
-        return retval
+        if not super().remove_state(force):
+            return False
+        self.actor.remove_temp_flags(TemporaryCharacterFlags.IS_DISARMED)
+        msg = "You ready your weapons again."
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        msg = f"{self.actor.art_name_cap} readies {self.actor.pronoun_possessive} weapons again."
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor],
+                                      game_state=self.game_state)
+        # Re-aggro if appropriate
+        if self.actor.location_room \
+            and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
+            and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
+            and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                await CoreActionsInterface.get_instance().do_aggro(self.actor)
+        return True
         
 
 class CharacterStateDodgePenalty(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -498,7 +501,7 @@ class CharacterStateDodgePenalty(ActorState):
 class CharacterStateDodgeBonus(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -527,7 +530,7 @@ class CharacterStateDodgeBonus(ActorState):
 class CharacterStateDamageBonus(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -567,7 +570,7 @@ class CharacterStateDamageBonus(ActorState):
 class CharacterStateBerserkerStance(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, dodge_penalty:int = 0, hit_bonus:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.dodge_penalty = dodge_penalty
         self.hit_bonus = hit_bonus
 
@@ -594,12 +597,37 @@ class CharacterStateBerserkerStance(ActorState):
         self.actor.dodge_modifier += self.dodge_penalty
         self.actor.hit_modifier -= self.hit_bonus   
         return super().remove_state()
+
+
+class CharacterStateDefensiveStance(ActorState):
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, dodge_bonus:int = 0, hit_penalty:int = 0, damage_resistances=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.dodge_bonus = dodge_bonus
+        self.hit_penalty = hit_penalty
+        self.damage_resistances = damage_resistances
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+            return False
+        self.actor.dodge_modifier += self.dodge_bonus
+        self.actor.hit_modifier -= self.hit_penalty
+        if self.damage_resistances:
+            self.actor.damage_resistances.add_resistances(self.damage_resistances)
+        return True
+    
+    def remove_state(self) -> bool:
+        self.actor.dodge_modifier -= self.dodge_bonus
+        self.actor.hit_modifier += self.hit_penalty
+        if self.damage_resistances:
+            self.actor.damage_resistances.remove_resistances(self.damage_resistances)
+        return super().remove_state()
         
 
 class CharacterStateBleeding(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -645,7 +673,7 @@ class CharacterStateBleeding(ActorState):
 class CharacterStateStealthed(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, affect_amount:int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
         self.character_flags_added = TemporaryCharacterFlags.IS_STEALTHED
 
@@ -690,7 +718,7 @@ class CharacterStateShielded(ActorState):
 class CharacterStateCasting(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None, casting_finish_func: callable=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.casting_finish_func = casting_finish_func
         
     def remove_state(self) -> bool:
@@ -702,7 +730,7 @@ class CharacterStateCasting(ActorState):
 class CharacterStateRecoveryModifier(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, recovery_modifier: int = 0, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.recovery_modifier = recovery_modifier
         actor.recovery_time += recovery_modifier
         
@@ -714,7 +742,7 @@ class CharacterStateRecoveryModifier(ActorState):
 class CharacterStateDamageResistance(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, damage_resistances: DamageResistances = None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.damage_resistances = damage_resistances
         
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
@@ -731,7 +759,7 @@ class CharacterStateDamageResistance(ActorState):
 class CharacterStateBurning(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None, damage_amount: int = 0):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.damage_amount = damage_amount
 
     def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
@@ -755,8 +783,8 @@ class CharacterStateBurning(ActorState):
 class CharacterStateFrozen(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
-        super().__init__(actor, game_state, source_actor, state_type_name, tick_created)
-        self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_FROZEN)
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_FROZEN)
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
@@ -779,21 +807,24 @@ class CharacterStateFrozen(ActorState):
     async def remove_state(self, force=False) -> bool:
         if not super().remove_state(force):
             return False
-        if any([s for s in self.actor.current_states \
-                              if s.does_add_flag(TemporaryCharacterFlags.IS_SLEEPING)]):
+        if any([s for s in self.actor.current_states if s is not self \
+                              and s.does_add_flag(TemporaryCharacterFlags.IS_FROZEN)]):
             return True
         self.actor.remove_temp_flags(self.character_flags_added)
         msg = "You unfreeze!"
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         msg = f"{self.actor.art_name_cap} unfreezes!"
-        set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+        vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor],
                                     game_state=self.game_state)
-        if self.actortype_ == ActorType.CHARACTER and self.location_room \
-            and not self.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            CommandHandlerInterface.get_instance().process_command(self.actor, "stand")
-        if self.location_room \
+        # NPCs automatically stand up when the freeze wears off
+        if self.actor.actor_type == ActorType.CHARACTER and self.actor.location_room \
+            and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            # Queue the stand command so it goes through normal command handling
+            self.actor.command_queue.append("stand")
+        # Re-aggro if appropriate
+        if self.actor.location_room \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
             and not self.actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
             and not self.actor.has_perm_flags(PermanentCharacterFlags.IS_PC):

@@ -8,6 +8,7 @@ class CommTypes(Enum):
     DYNAMIC = (2, 'dynamic')
     CLEARSTATIC = (3, 'clearstatic')
     CLEARDYNAMIC = (4, 'cleardynamic')
+    STATUS = (5, 'status')  # For vital stats HUD - updates in place, doesn't scroll
 
     def __init__(self, num, text):
         self._num = num

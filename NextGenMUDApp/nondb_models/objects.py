@@ -38,6 +38,13 @@ class Object(Actor, ObjectInterface):
         self.weight:int = 0
         self.value:int = 0
         self.contents: List[Object] = []
+        # Consumable properties
+        self.heal_amount: int = 0           # Fixed HP heal
+        self.heal_dice: str = ""            # Dice-based heal (e.g., "2d6+4")
+        self.mana_restore: int = 0          # Mana restored
+        self.stamina_restore: int = 0       # Stamina restored
+        self.use_message: str = ""          # Custom message when used
+        self.charges: int = -1              # -1 = single use destroyed, 0+ = remaining charges
 
 
     def to_dict(self):
@@ -70,8 +77,8 @@ class Object(Actor, ObjectInterface):
             self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
             self.weight = yaml_data['weight']
             self.value = yaml_data['value']
-            logger.debug3(f"object.from_yaml()> equip_locations: {yaml_data['equip_locations']}")
             if 'equip_locations' in yaml_data:
+                logger.debug3(f"object.from_yaml()> equip_locations: {yaml_data['equip_locations']}")
                 for el in yaml_data['equip_locations']:
                     self.equip_locations.append(EquipLocation.string_to_enum(el))
             logger.debug3(f"object.from_yaml()> attack bonus")
@@ -107,6 +114,32 @@ class Object(Actor, ObjectInterface):
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
                     new_trigger = Trigger.new_trigger(trig["type"], self, disabled=False).from_dict(trig)
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
+            
+            # Consumable properties
+            logger.debug3(f"object.from_yaml()> consumable properties")
+            if 'heal_amount' in yaml_data:
+                self.heal_amount = yaml_data['heal_amount']
+            if 'heal_dice' in yaml_data:
+                self.heal_dice = yaml_data['heal_dice']
+            if 'mana_restore' in yaml_data:
+                self.mana_restore = yaml_data['mana_restore']
+            if 'stamina_restore' in yaml_data:
+                self.stamina_restore = yaml_data['stamina_restore']
+            if 'use_message' in yaml_data:
+                self.use_message = yaml_data['use_message']
+            if 'charges' in yaml_data:
+                self.charges = yaml_data['charges']
+            
+            # Object flags (support both 'flags' and 'object_flags' keys)
+            logger.debug3(f"object.from_yaml()> object_flags")
+            flags_data = yaml_data.get('flags') or yaml_data.get('object_flags') or []
+            for flag_name in flags_data:
+                flag_name_upper = flag_name.upper().replace("-", "_")
+                if hasattr(ObjectFlags, flag_name_upper):
+                    self.object_flags = self.object_flags.add_flags(getattr(ObjectFlags, flag_name_upper))
+                elif hasattr(ObjectFlags, f"IS_{flag_name_upper}"):
+                    self.object_flags = self.object_flags.add_flags(getattr(ObjectFlags, f"IS_{flag_name_upper}"))
+                        
         except Exception as e:
             logger.error("Error loading object from yaml")
             logger.error("yaml_data: " + str(yaml_data))
@@ -125,10 +158,10 @@ class Object(Actor, ObjectInterface):
                    exceptions: List['Actor'] = None, already_substituted:bool = False,
                    game_state=None, skip_triggers: bool = False) -> bool:
         logger = StructuredLogger(__name__, prefix="Object.echo()> ")
-        logger.critical("text before " + text)
+        logger.debug3("text before " + text)
         if not already_substituted:
             text = evaluate_functions_in_line(replace_vars(text, vars), vars, game_state)
-        logger.critical("text after " + text)
+        logger.debug3("text after " + text)
         return await super().echo(text_type, text, vars, exceptions, game_state=game_state, skip_triggers=skip_triggers)
     
     @classmethod
@@ -169,7 +202,7 @@ class Object(Actor, ObjectInterface):
         return self.object_flags.are_flags_set(flags)
 
     def set_flags(self, flags: ObjectFlags) -> bool:
-        self.object_flags.add_flags(flags)
+        self.object_flags = self.object_flags.add_flags(flags)
         return True
     
     def remove_flags(self, flags: ObjectFlags) -> bool:
@@ -207,12 +240,21 @@ class Corpse(Object):
         self.article = ""
         self.description = f"The corpse of {character.art_name} lies here. It makes you feel sad..."
         self.character = character
-        self.object_flags.add_flags(ObjectFlags.IS_CONTAINER)
+        self.object_flags = self.object_flags.add_flags(ObjectFlags.IS_CONTAINER)
         self.definition_zone_id = None
         self._location_room = room
         self.zone = room.zone
         self.weight = 10
         self.original_id = character.definition_zone_id + "." + character.id
+        self.owner_id = None  # For player corpses, only owner can loot
+    
+    def can_be_looted_by(self, actor) -> bool:
+        """Check if the given actor can loot this corpse."""
+        # NPC corpses (no owner) can be looted by anyone
+        if self.owner_id is None:
+            return True
+        # Player corpses can only be looted by their owner
+        return actor.id == self.owner_id
 
     def to_dict(self):
         return {
@@ -224,9 +266,23 @@ class Corpse(Object):
         }
     
     def transfer_inventory(self):
+        """Transfer ALL items from character to corpse (for NPCs)."""
         for obj in self.character.contents[:]:
             self.character.remove_object(obj)
             self.add_object(obj)
             obj.location_room = self.character.location_room
+
+    def transfer_inventory_only(self):
+        """
+        Transfer only non-equipped inventory items to corpse (for players).
+        Equipped items stay on the player.
+        """
+        for obj in self.character.contents[:]:
+            # Skip items that are equipped
+            if obj.equip_location is not None:
+                continue
+            self.character.remove_object(obj)
+            self.add_object(obj)
+            obj.location_room = self._location_room
 
 

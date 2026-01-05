@@ -49,6 +49,8 @@ def replace_vars(script, vars: dict) -> str:
 
 IF_CONDITIONS = {
     "eq": lambda a,b,c: a == b,
+    "neq": lambda a,b,c: a != b,
+    "!=": lambda a,b,c: a != b,
     "numeq": lambda a,b,c: to_int(a) == to_int(b),
     "numneq": lambda a,b,c: to_int(a) != to_int(b),
     "numgt": lambda a,b,c: to_int(a) > to_int(b),
@@ -166,6 +168,27 @@ def split_string_honoring_parentheses(s):
     return parts
 
 
+def get_quest_var_wrapper(char_ref: str, var_id: str, game_state: 'GameStateInterface') -> str:
+    """Wrapper for quest_schema.get_quest_var to be used in script functions."""
+    from .quest_schema import get_quest_var
+    from .nondb_models.actors import Actor
+    if game_state is None:
+        return "false"
+    # Handle reference symbol lookup (e.g. |C507 or @C507)
+    if char_ref and len(char_ref) > 1 and char_ref[0] in ('|', '@', Constants.REFERENCE_SYMBOL):
+        char = Actor.get_reference(char_ref[1:])
+    else:
+        char = Actor.get_reference(char_ref) if char_ref else None
+    if char is None:
+        return "false"
+    result = get_quest_var(char, var_id)
+    if result is None:
+        return "false"
+    if isinstance(result, bool):
+        return "true" if result else "false"
+    return str(result)
+
+
 SCRIPT_FUNCTIONS = {
     "cap" : lambda a,b,c,gs: firstcap(a),
     "name" : lambda a,b,c,gs: a.name_,
@@ -180,6 +203,7 @@ SCRIPT_FUNCTIONS = {
     "random" : lambda a,b,c,gs: str(random.randint(to_int(a), to_int(b))),
     "tempvar" : lambda a,b,c,gs: gs.get_temp_var(a, b),
     "permvar" : lambda a,b,c,gs: gs.get_perm_var(a, b),
+    "questvar": lambda a,b,c,gs: get_quest_var_wrapper(a, b, gs),
     "hasiteminv": lambda a,b,c,gs: does_char_have_item_inv(a, b, gs),
     "hasitemeq": lambda a,b,c,gs: does_char_have_item_equipped(a, b, gs),
     "hasitem" : lambda a,b,c,gs: does_char_have_item_anywhere(a, b, gs),
@@ -299,11 +323,19 @@ def get_dice_parts(dice_def: str) -> (int,int,int):
     if len(parts) != 2:
         # raise ValueError(f"Invalid dice definition: {dice_def}")
         return (0,0,num_dice)
-    extra = parts[1].split('+')
-    dice_size = to_int(extra[0])
-    if len(extra) > 1:
-        num_bonus = to_int(extra[1])
+    
+    # Handle both positive (+) and negative (-) modifiers
+    dice_part = parts[1]
+    if '+' in dice_part:
+        extra = dice_part.split('+')
+        dice_size = to_int(extra[0])
+        num_bonus = to_int(extra[1]) if len(extra) > 1 else 0
+    elif '-' in dice_part:
+        extra = dice_part.split('-')
+        dice_size = to_int(extra[0])
+        num_bonus = -to_int(extra[1]) if len(extra) > 1 else 0
     else:
+        dice_size = to_int(dice_part)
         num_bonus = 0
     return (num_dice, dice_size, num_bonus)
 

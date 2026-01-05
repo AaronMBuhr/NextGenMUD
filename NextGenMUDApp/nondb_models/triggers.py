@@ -150,6 +150,36 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.CATCH_SAY:
             logger.debug3("returning TriggerCatchSay")
             return TriggerCatchSay(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_ENTER:
+            logger.debug3("returning TriggerOnEnter")
+            return TriggerOnEnter(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_EXIT:
+            logger.debug3("returning TriggerOnExit")
+            return TriggerOnExit(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_RECEIVE:
+            logger.debug3("returning TriggerOnReceive")
+            return TriggerOnReceive(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_GET:
+            logger.debug3("returning TriggerOnGet")
+            return TriggerOnGet(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_DROP:
+            logger.debug3("returning TriggerOnDrop")
+            return TriggerOnDrop(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_OPEN:
+            logger.debug3("returning TriggerOnOpen")
+            return TriggerOnOpen(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_CLOSE:
+            logger.debug3("returning TriggerOnClose")
+            return TriggerOnClose(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_LOCK:
+            logger.debug3("returning TriggerOnLock")
+            return TriggerOnLock(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_UNLOCK:
+            logger.debug3("returning TriggerOnUnlock")
+            return TriggerOnUnlock(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_USE:
+            logger.debug3("returning TriggerOnUse")
+            return TriggerOnUse(trigger_id, actor, disabled)
         else:
             logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
             raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
@@ -346,5 +376,360 @@ class TriggerCatchSay(Trigger):
             if not crit.evaluate(vars, game_state):
                 return False
         logger.debug3("executing script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnEnter(Trigger):
+    """
+    Fires when a character enters the room where this trigger is attached.
+    The entering character is the 'actor' for script execution.
+    Variables available: %S% = entering character, %s% = character name
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_ENTER, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        """
+        Run this trigger when a character enters.
+        
+        Args:
+            actor: The character who just entered the room
+            text: Unused for this trigger type
+            vars: Variables dict
+            game_state: Current game state
+            
+        Returns:
+            True if the trigger executed, False otherwise
+        """
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnEnter.run()> ")
+        if self.disabled_:
+            return False
+        
+        # Build vars with entering character info
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_enter for {actor.name}")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                logger.debug3("criteria not met")
+                return False
+        
+        logger.debug3("executing on_enter script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnExit(Trigger):
+    """
+    Fires when a character exits the room where this trigger is attached.
+    The exiting character is the 'actor' for script execution.
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_EXIT, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnExit.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_exit for {actor.name}")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        logger.debug3("executing on_exit script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnReceive(Trigger):
+    """
+    Fires when an NPC receives an item via the give command.
+    
+    Variables available:
+    - %S% = the player who gave the item
+    - %item% = the item that was given
+    - %item_id% = the item's id
+    - %item_name% = the item's name
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_RECEIVE, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnReceive.run()> ")
+        if self.disabled_:
+            return False
+        
+        # vars should already contain item info from the give command
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_receive for {self.actor_.name}, item: {vars.get('item_id', 'unknown')}")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                logger.debug3("criteria not met")
+                return False
+        
+        logger.debug3("executing on_receive script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnGet(Trigger):
+    """
+    Fires when an object is picked up.
+    
+    Variables available:
+    - %S% = the character who picked up the item
+    - %item% = the object being picked up
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_GET, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnGet.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_get for {actor.name}")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        logger.debug3("executing on_get script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnDrop(Trigger):
+    """
+    Fires when an object is dropped.
+    
+    Variables available:
+    - %S% = the character who dropped the item
+    - %item% = the object being dropped
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_DROP, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnDrop.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_drop for {actor.name}")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        logger.debug3("executing on_drop script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnOpen(Trigger):
+    """Fires when an object is opened."""
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_OPEN, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnOpen.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnClose(Trigger):
+    """Fires when an object is closed."""
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_CLOSE, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnClose.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnLock(Trigger):
+    """Fires when an object is locked."""
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_LOCK, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnLock.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnUnlock(Trigger):
+    """Fires when an object is unlocked."""
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_UNLOCK, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnUnlock.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnUse(Trigger):
+    """
+    Fires when an object is used.
+    
+    Variables available:
+    - %S% = the character using the object
+    - %target% = the target of the use (if "use X on Y")
+    - %target_id% = the target's id
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_USE, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnUse.run()> ")
+        if self.disabled_:
+            return False
+        
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        
         await self.execute_trigger_script(actor, vars, game_state)
         return True

@@ -1,6 +1,7 @@
 from collections import defaultdict
 import copy
 import fnmatch
+import time
 from .structured_logger import StructuredLogger
 from django.conf import settings
 import json
@@ -22,13 +23,22 @@ from .nondb_models.room_interface import RoomInterface
 from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
 from .constants import Constants
-from .communication import Connection
+from .communication import Connection, CommTypes
 from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent, EventType
 from .config import Config, default_app_config
 from .core_actions_interface import CoreActionsInterface
 from .utility import article_plus_name
+from .player_save_manager import player_save_manager
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
 from .nondb_models.world import Zone
+
+
+class LinkdeadCharacter:
+    """Tracks a character that has disconnected but may reconnect."""
+    def __init__(self, character: Character, disconnect_time: float):
+        self.character = character
+        self.disconnect_time = disconnect_time
+        self.was_in_combat = character.fighting_whom is not None
 
 class LiveGameStateContextManager:
     def __init__(self, **live_game_states):
@@ -71,6 +81,7 @@ class ComprehensiveGameState:
         self.world_clock_tick: int = 0
         self.scheduled_events = defaultdict(list)
         self.xp_progression: List[int] = []
+        self.linkdead_characters: Dict[str, LinkdeadCharacter] = {}  # name -> LinkdeadCharacter
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
@@ -115,6 +126,27 @@ class ComprehensiveGameState:
                             new_zone = Zone(zone_id)
                             new_zone.name = zone_info.get('name', f"Unnamed Zone {zone_id}") # Use .get for safety
                             new_zone.description = zone_info.get('description', "")
+                            
+                            # Load common knowledge for LLM NPC conversations
+                            if 'common_knowledge' in zone_info:
+                                common_k = zone_info['common_knowledge']
+                                if isinstance(common_k, dict):
+                                    new_zone.common_knowledge = common_k
+                                    logger.debug(f"Loaded {len(common_k)} common knowledge entries for zone {zone_id}")
+                                else:
+                                    logger.warning(f"common_knowledge in zone {zone_id} is not a dictionary, ignoring")
+                            
+                            # Load quest variable schema
+                            if 'quest_variables' in zone_info:
+                                from .quest_schema import QuestSchemaRegistry
+                                registry = QuestSchemaRegistry.get_instance()
+                                quest_vars = zone_info['quest_variables']
+                                if isinstance(quest_vars, dict):
+                                    count = registry.load_from_dict(quest_vars, zone_id=zone_id)
+                                    logger.debug(f"Loaded {count} quest variables for zone {zone_id}")
+                                else:
+                                    logger.warning(f"quest_variables in zone {zone_id} is not a dictionary, ignoring")
+                            
                             self.world_definition.zones[zone_id] = new_zone
                             logger.debug(f"Loading rooms for zone {zone_id}...")
                             if 'rooms' in zone_info:  # Check if rooms key exists
@@ -160,7 +192,7 @@ class ComprehensiveGameState:
                                     continue
                                 char_id = chardef['id']
                                 logger.debug2(f"Loading character definition: {char_id}")
-                                ch = Character(char_id, self.world_definition.zones[zone_id], create_reference=False)
+                                ch = Character(char_id, zone_id, create_reference=False)
                                 ch.from_yaml(chardef, zone_id)
                                 ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN) # TODO: Remove admin default
                                 logger.debug3(f"Loaded character definition: {char_id} for zone {zone_id}")
@@ -308,6 +340,7 @@ class ComprehensiveGameState:
                 return None
 
         candidates = []
+        target_lower = target_name.lower()
 
         # Helper function to add candidates from a room
         def add_candidates_from_room(actor, room):
@@ -315,13 +348,14 @@ class ComprehensiveGameState:
                 # Skip the initiating actor if exclude_initiator is True
                 if exclude_initiator and char == actor:
                     continue
-                    
-                if char.id.startswith(target_name) and self.can_see(char, actor):
+                
+                # Case-insensitive matching on id and name
+                if char.id.lower().startswith(target_lower) and self.can_see(char, actor):
                     candidates.append(char)
                 else:
-                    namepieces = char.name.split(' ')
+                    namepieces = char.name.lower().split(' ')
                     for piece in namepieces:
-                        if piece.startswith(target_name) and self.can_see(char, actor):
+                        if piece.startswith(target_lower) and self.can_see(char, actor):
                             candidates.append(char)
                             break
 
@@ -330,8 +364,8 @@ class ComprehensiveGameState:
 
         if search_zone or search_world:
             # If not found in the current room, search in the current zone
-            if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone_:
-                for room in start_room.zone_.rooms.values():
+            if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone:
+                for room in start_room.zone.rooms.values():
                     add_candidates_from_room(actor, room)
 
         if search_world:
@@ -342,7 +376,7 @@ class ComprehensiveGameState:
                         add_candidates_from_room(actor, room)
 
         # Return the target character
-        logger.critical(f"candidates: {candidates}")
+        logger.debug3(f"candidates: {candidates}")
         if 0 < target_number <= len(candidates):
             return candidates[target_number - 1]
 
@@ -364,16 +398,18 @@ class ComprehensiveGameState:
             return ""
 
         matching_characters = []
+        target_lower = target_name.lower()
 
         # Helper function to add matching characters from a room
         def add_matching_characters_from_room(room):
             for char in room.characters_:
-                if char.id.startswith(target_name):
+                # Case-insensitive matching
+                if char.id.lower().startswith(target_lower):
                     matching_characters.append(f"{article_plus_name(char.article_, char.name, cap=True)} in {room.name}")
                 else:
-                    namepieces = char.name.split(' ')
+                    namepieces = char.name.lower().split(' ')
                     for piece in namepieces:
-                        if piece.startswith(target_name):
+                        if piece.startswith(target_lower):
                             matching_characters.append(f"{article_plus_name(char.article_, char.name, cap=True)} in {room.name}")
                             break
 
@@ -381,8 +417,8 @@ class ComprehensiveGameState:
         add_matching_characters_from_room(start_room)
 
         # Search in the current zone
-        if isinstance(start_room, Room) and start_room.zone_:
-            for room in start_room.zone_.rooms.values():
+        if isinstance(start_room, Room) and start_room.zone:
+            for room in start_room.zone.rooms.values():
                 add_matching_characters_from_room(room)
 
         # Search across all zones
@@ -467,7 +503,7 @@ class ComprehensiveGameState:
                             candidates.append(obj)
         
         # Return the target object
-        logger.critical(f"candidates: {candidates}")
+        logger.debug3(f"candidates: {candidates}")
         if 0 < target_number <= len(candidates):
             return candidates[target_number - 1]
         return None
@@ -475,45 +511,309 @@ class ComprehensiveGameState:
 
     
     async def start_connection(self, consumer: 'MyWebsocketConsumer'):
+        """Legacy method - now handled by login flow in consumers.py"""
         logger = StructuredLogger(__name__, prefix="startConnection()> ")
-        logger.debug("init new connection")
-        await consumer.send(text_data=json.dumps({ 
-            'text_type': 'dynamic',
-            'text': 'Connection accepted!'
-        }))
+        logger.debug("init new connection - waiting for login")
+        # Login is now handled in consumers.py
 
+
+    async def complete_login(self, consumer: 'MyWebsocketConsumer', character_name: str, is_new: bool = False):
+        """
+        Complete the login process after successful authentication.
+        
+        Args:
+            consumer: The websocket consumer
+            character_name: Name of the character logging in
+            is_new: Whether this is a newly created character
+        """
+        logger = StructuredLogger(__name__, prefix="complete_login()> ")
+        logger.info(f"Completing login for {character_name} (is_new={is_new})")
+        
+        # Create connection object
         new_connection = Connection(consumer)
-        # await new_connection.send("static", "Welcome to NextGenMUD!")
+        consumer.connection_obj = new_connection
         self.connections.append(new_connection)
-        await self.load_in_character(new_connection)
-        return new_connection
-
-
-    async def load_in_character(self, connection: Connection):
-        logger = StructuredLogger(__name__, prefix="loadInCharacter()> ")
-        logger.debug("loading in character")
-        chardef = self.world_definition.find_character_definition("test_player")
+        
+        # Check if this character is linkdead (reconnecting)
+        if character_name.lower() in self.linkdead_characters:
+            await self._handle_reconnect(new_connection, character_name)
+            return
+        
+        # Load or create the character
+        if is_new:
+            await self._create_new_character(new_connection, character_name)
+        else:
+            await self._load_existing_character(new_connection, character_name)
+    
+    async def _handle_reconnect(self, connection: Connection, character_name: str):
+        """Handle a player reconnecting to a linkdead character."""
+        logger = StructuredLogger(__name__, prefix="_handle_reconnect()> ")
+        logger.info(f"Player reconnecting to linkdead character: {character_name}")
+        
+        linkdead = self.linkdead_characters.pop(character_name.lower())
+        character = linkdead.character
+        
+        # Reconnect the character
+        character.connection = connection
+        connection.character = character
+        
+        await connection.send(CommTypes.DYNAMIC, "You reconnect to your character.")
+        
+        # Notify the room
+        if character.location_room:
+            msg = f"{character.art_name_cap} has reconnected."
+            await character.location_room.echo(CommTypes.DYNAMIC, msg, exceptions=[character], game_state=self)
+            
+            # Show the room
+            await CoreActionsInterface.get_instance().do_look_room(character, character.location_room)
+        
+        logger.info(f"Player {character_name} reconnected successfully")
+    
+    async def _create_new_character(self, connection: Connection, character_name: str):
+        """Create a new character from the default template."""
+        logger = StructuredLogger(__name__, prefix="_create_new_character()> ")
+        logger.debug(f"Creating new character: {character_name}")
+        
+        # Get the character template
+        template_id = Constants.DEFAULT_CHARACTER_TEMPLATE
+        chardef = self.world_definition.find_character_definition(template_id)
         if not chardef:
-            raise Exception("Character definition for 'test_player' not found.")
-        new_player = Character.create_from_definition(chardef)
+            # Fallback to test_player if configured template not found
+            chardef = self.world_definition.find_character_definition("test_player")
+            if not chardef:
+                raise Exception(f"Character template '{template_id}' not found and no fallback available.")
+            logger.warning(f"Template '{template_id}' not found, using test_player as fallback")
+        
+        # Create character from template
+        new_player = Character.create_from_definition(chardef, self)
+        new_player.name = character_name
         new_player.connection = connection
-        new_player.connection.character = new_player
-        new_player.name = "Test Player"
-        new_player.description_ = "A test player."
-        new_player.pronoun_subject_ = "he"
-        new_player.pronoun_object_ = "him"
+        connection.character = new_player
+        new_player.permanent_character_flags = new_player.permanent_character_flags.add_flags(PermanentCharacterFlags.IS_PC)
+        
         self.players.append(new_player)
-        # print(YamlDumper.to_yaml_compatible_str(operating_state.zones_))
-        first_zone = self.zones[list(self.zones.keys())[0]]
-        # print(YamlDumper.to_yaml_compatible_str(first_zone))
-        logger.debug3(f"first_zone: {first_zone}")
-        first_room = first_zone.rooms[list(first_zone.rooms.keys())[0]]
-        logger.debug3(f"first_room: {first_room}")
-        logger.info(f"New player arriving: {new_player.name}")
-        await CoreActionsInterface.get_instance().arrive_room(new_player, first_room)
+        
+        # Start in default room (format: zone.room)
+        start_location = Constants.DEFAULT_START_LOCATION
+        if "." in start_location:
+            zone_id, room_id = start_location.split(".", 1)
+        else:
+            zone_id = start_location
+            room_id = None
+            
+        start_zone = self.zones.get(zone_id)
+        if not start_zone:
+            start_zone = self.zones[list(self.zones.keys())[0]]
+            logger.warning(f"Default start zone '{zone_id}' not found, using first zone")
+            
+        start_room = start_zone.rooms.get(room_id) if room_id else None
+        if not start_room:
+            start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
+            if room_id:
+                logger.warning(f"Default start room '{room_id}' not found, using first room")
+        
+        logger.info(f"New player {character_name} arriving in {start_room.name}")
+        await CoreActionsInterface.get_instance().arrive_room(new_player, start_room)
+    
+    async def _load_existing_character(self, connection: Connection, character_name: str):
+        """Load an existing character from their save file."""
+        logger = StructuredLogger(__name__, prefix="_load_existing_character()> ")
+        logger.debug(f"Loading existing character: {character_name}")
+        
+        # Check if save file indicates a new character (only has name/password)
+        if player_save_manager.is_new_character(character_name):
+            await self._create_new_character(connection, character_name)
+            return
+        
+        # Get the character template to start with
+        template_id = Constants.DEFAULT_CHARACTER_TEMPLATE
+        chardef = self.world_definition.find_character_definition(template_id)
+        if not chardef:
+            chardef = self.world_definition.find_character_definition("test_player")
+            if not chardef:
+                raise Exception(f"Character template '{template_id}' not found and no fallback available.")
+        
+        # Create character from template first
+        new_player = Character.create_from_definition(chardef, self, include_items=False)
+        new_player.connection = connection
+        connection.character = new_player
+        new_player.permanent_character_flags = new_player.permanent_character_flags.add_flags(PermanentCharacterFlags.IS_PC)
+        
+        # Load save data and apply it to the character
+        # For now, always start at default location (not combat reconnect scenario)
+        save_data = player_save_manager.load_character(character_name, new_player, restore_location=False)
+        
+        if not save_data:
+            # Save file exists but couldn't be loaded - treat as new character
+            logger.warning(f"Could not load save data for {character_name}, treating as new character")
+            new_player.name = character_name
+        
+        self.players.append(new_player)
+        
+        # Determine starting room
+        # Check for combat reconnection scenario
+        was_in_combat = save_data.get('was_in_combat', False) if save_data else False
+        restore_location = was_in_combat  # Restore location only for combat reconnection
+        
+        start_room = None
+        if restore_location and save_data and 'location' in save_data:
+            loc = save_data['location']
+            if loc.get('zone') and loc.get('room'):
+                zone = self.zones.get(loc['zone'])
+                if zone:
+                    start_room = zone.rooms.get(loc['room'])
+                    if start_room:
+                        logger.info(f"Restoring {character_name} to combat location: {start_room.name}")
+        
+        # Fall back to default start room (format: zone.room)
+        if not start_room:
+            start_location = Constants.DEFAULT_START_LOCATION
+            if "." in start_location:
+                zone_id, room_id = start_location.split(".", 1)
+            else:
+                zone_id = start_location
+                room_id = None
+            start_zone = self.zones.get(zone_id)
+            if not start_zone:
+                start_zone = self.zones[list(self.zones.keys())[0]]
+            start_room = start_zone.rooms.get(room_id) if room_id else None
+            if not start_room:
+                start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
+        
+        logger.info(f"Player {character_name} arriving in {start_room.name}")
+        await CoreActionsInterface.get_instance().arrive_room(new_player, start_room)
+
+
+    async def handle_disconnect(self, consumer: 'MyWebsocketConsumer'):
+        """
+        Handle a player disconnecting.
+        Starts the linkdead grace period if configured.
+        """
+        logger = StructuredLogger(__name__, prefix="handle_disconnect()> ")
+        
+        # Find the connection
+        connection = None
+        for c in self.connections:
+            if c.consumer_ == consumer:
+                connection = c
+                break
+        
+        if not connection or not connection.character:
+            logger.debug("No character associated with disconnecting consumer")
+            return
+        
+        character = connection.character
+        logger.info(f"Player {character.name} disconnected")
+        
+        # Remove connection from list
+        self.connections.remove(connection)
+        
+        # Clear the connection reference but keep the character
+        character.connection = None
+        connection.character = None
+        
+        grace_period = Constants.DISCONNECT_GRACE_PERIOD_SECONDS
+        
+        if grace_period > 0:
+            # Start linkdead period
+            logger.info(f"Starting {grace_period}s linkdead period for {character.name}")
+            self.linkdead_characters[character.name.lower()] = LinkdeadCharacter(character, time.time())
+            
+            # Notify the room
+            if character.location_room:
+                msg = f"{character.art_name_cap} has lost their connection."
+                await character.location_room.echo(CommTypes.DYNAMIC, msg, exceptions=[character], game_state=self)
+        else:
+            # No grace period - immediate logoff
+            await self._complete_logoff(character)
+    
+    async def _complete_logoff(self, character: Character):
+        """
+        Complete the logoff process - save character and remove from game.
+        """
+        logger = StructuredLogger(__name__, prefix="_complete_logoff()> ")
+        logger.info(f"Completing logoff for {character.name}")
+        
+        # Save the character
+        self._save_character(character)
+        
+        # Remove from combat
+        if character.fighting_whom:
+            character.fighting_whom = None
+            if character in self.characters_fighting:
+                self.characters_fighting.remove(character)
+        
+        # Notify room and remove from it
+        if character.location_room:
+            msg = f"{character.art_name_cap} has left the game."
+            await character.location_room.echo(CommTypes.DYNAMIC, msg, exceptions=[character], game_state=self)
+            character.location_room.remove_character(character)
+            character.location_room = None
+        
+        # Remove from players list
+        if character in self.players:
+            self.players.remove(character)
+        
+        # Clean up linkdead entry if present
+        if character.name.lower() in self.linkdead_characters:
+            del self.linkdead_characters[character.name.lower()]
+        
+        logger.info(f"Player {character.name} logged off")
+    
+    def _save_character(self, character: Character):
+        """Save a character to their YAML file."""
+        logger = StructuredLogger(__name__, prefix="_save_character()> ")
+        try:
+            success = player_save_manager.save_character(
+                character,
+                save_states=Constants.SAVE_CHARACTER_STATES,
+                save_cooldowns=Constants.SAVE_CHARACTER_COOLDOWNS
+            )
+            if success:
+                logger.info(f"Character {character.name} saved successfully")
+            else:
+                logger.error(f"Failed to save character {character.name}")
+        except Exception as e:
+            logger.error(f"Error saving character {character.name}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def check_linkdead_timeouts(self):
+        """
+        Check for linkdead characters whose grace period has expired.
+        Should be called periodically from the main game loop.
+        """
+        logger = StructuredLogger(__name__, prefix="check_linkdead_timeouts()> ")
+        
+        current_time = time.time()
+        grace_period = Constants.DISCONNECT_GRACE_PERIOD_SECONDS
+        
+        # Find expired linkdead characters
+        expired = []
+        for name, linkdead in self.linkdead_characters.items():
+            elapsed = current_time - linkdead.disconnect_time
+            
+            if elapsed >= grace_period:
+                # Grace period expired
+                character = linkdead.character
+                
+                # If still in combat, don't log them off yet
+                if character.fighting_whom is not None:
+                    logger.debug(f"Linkdead {name} still in combat, deferring logoff")
+                    continue
+                
+                # If they were in combat but combat ended, now we can log them off
+                expired.append(name)
+        
+        # Process expired characters
+        for name in expired:
+            linkdead = self.linkdead_characters[name]
+            logger.info(f"Linkdead grace period expired for {name}")
+            await self._complete_logoff(linkdead.character)
 
 
     def remove_connection(self, consumer: 'MyWebsocketConsumer'):
+        """Legacy method - disconnect handling now done via handle_disconnect."""
         for c in self.connections:
             if c.consumer_ == consumer:
                 if hasattr(c, 'character') and c.character:
@@ -555,7 +855,7 @@ class ComprehensiveGameState:
         event = ScheduledEvent(scheduled_tick, type, subject, name, vars, func)
         self.scheduled_events[scheduled_tick].append(event)
 
-    def perform_scheduled_events(self, tick: int):
+    async def perform_scheduled_events(self, tick: int):
         logger = StructuredLogger(__name__, prefix="perform_scheduled_events()> ")
         if tick in self.scheduled_events:
             for event in self.scheduled_events[tick]:
@@ -564,7 +864,7 @@ class ComprehensiveGameState:
                 #     event.actor_ = None
                 #     continue
                 logger.debug(f"performing scheduled action {event.name}")
-                event.run(event.actor, tick, self, event.vars)
+                await event.run(tick, self)
             del self.scheduled_events[tick]
 
     def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
@@ -623,7 +923,7 @@ class ComprehensiveGameState:
         source_actor = Actor.get_reference(source_actor_ptr)
         if not source_actor:
             return ""
-        return source_actor.get_permvar(var_name, "")
+        return source_actor.get_perm_var(var_name, "")
     
     def get_world_definition(self) -> WorldDefinition:
         return self.world_definition

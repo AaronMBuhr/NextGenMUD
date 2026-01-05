@@ -3,8 +3,161 @@ ZONES:
     name: Gloomy Graveyard
     description: >
       A gloomy graveyard and it's surrounds, including a dark forest, a manor house, a
-      crypt, and a inn.
+      crypt, and a inn. Recently, a dark murder has cast a shadow over the area - 
+      Lord Ashford of the manor house was found dead in the graveyard.
 
+    # Zone-level common knowledge - things NPCs in this zone know about
+    common_knowledge:
+      murder_case: >
+        Lord Ashford was found murdered in the graveyard a few days ago.
+        The gravedigger Old Tom is the prime suspect.
+      village_mood: >
+        Everyone is on edge since the murder. Strangers are viewed with suspicion.
+      manor_history: >
+        The Ashford Manor has stood for centuries. Lord Ashford was the last of his line,
+        a wealthy but reclusive nobleman.
+      old_tom_reputation: >
+        Old Tom has been the gravedigger for decades. He's eccentric but harmless,
+        or so everyone thought.
+      butler_reputation: >
+        Edmund the butler has served the Ashford family for twenty years.
+        He's known as strict but utterly loyal.
+      local_geography: >
+        The Weary Traveler Inn sits on the forest road. The graveyard is to the north
+        and then east from the inn. Ashford Manor is east along the forest road.
+        The old crypts are in the southeast part of the graveyard. The forest
+        surrounds everything - it's called the Enchanted Forest and travelers
+        should stick to the roads.
+
+    # Quest variable schema - automatic world knowledge updates
+    quest_variables:
+      murder_mystery:
+        heard_about_murder:
+          description: "Player has heard about the murder from someone"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                murder_case: >
+                  Lord Ashford of the manor was murdered in the graveyard.
+                  The gravedigger Old Tom is the prime suspect, but there may
+                  be more to this case than meets the eye.
+
+        found_body:
+          description: "Player has discovered Lord Ashford's body"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                murder_case: >
+                  You discovered Lord Ashford's body in the graveyard. He was
+                  strangled, and his fine clothes were torn. The gravedigger
+                  Old Tom remains the official suspect.
+
+        found_note:
+          description: "Player has found and read the torn dismissal note"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                dismissal_note: >
+                  A torn note found on the body suggests Lord Ashford was
+                  about to fire a long-serving employee. Twenty years of
+                  service mentioned - that's a strong motive for murder.
+
+        tom_trusts_player:
+          description: "Old Tom trusts the player"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                old_tom_reputation: >
+                  Old Tom seems genuine in his claims of innocence. He's
+                  frightened, not guilty. There may be more to his story.
+
+        knows_about_figure:
+          description: "Player knows Tom saw a mysterious figure"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                murder_case: >
+                  Old Tom saw a figure coming from the manor on the night of
+                  the murder. Someone tall, well-dressed, with brass buttons.
+                  The real killer may be from the manor household.
+
+        knows_about_cufflink:
+          description: "Player knows about the hidden cufflink"
+          type: boolean
+          default: false
+
+        can_find_cufflink:
+          description: "Player can find the cufflink in Tom's shack"
+          type: boolean
+          default: false
+
+        suspects_butler:
+          description: "Player suspects Edmund the butler"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                butler_reputation: >
+                  Edmund the butler is now a prime suspect. He argued with
+                  Lord Ashford about money, was absent from his room that
+                  night, and matches the description of the figure Tom saw.
+
+        knows_to_check_cellar:
+          description: "Player knows to search the wine cellar"
+          type: boolean
+          default: false
+
+        found_murder_weapon:
+          description: "Player found the bloody candlestick"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                murder_case: >
+                  The murder weapon has been found - a bloodstained brass
+                  candlestick hidden in the wine cellar. Edmund the butler
+                  is almost certainly the killer.
+
+        has_evidence:
+          description: "Player has solid evidence against Edmund"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                case_solved: >
+                  With the monogrammed cufflink as evidence, Edmund the
+                  butler can be exposed as Lord Ashford's murderer. Justice
+                  for Old Tom is within reach.
+
+        quest_complete:
+          description: "The murder mystery has been solved"
+          type: boolean
+          default: false
+          knowledge_updates:
+            - condition: true
+              updates:
+                murder_case: >
+                  The murder of Lord Ashford has been solved. Edmund the
+                  butler, after twenty years of service, killed his master
+                  upon learning he would be dismissed. Old Tom is cleared.
+                village_mood: >
+                  With the murder solved and the true killer exposed, the
+                  village begins to return to normal. Old Tom is regarded
+                  as a hero of sorts for helping catch the killer.
+      
     rooms:
       forest_road_s:
         name: South Dark Forest Road
@@ -15,8 +168,10 @@ ZONES:
         exits:
           north:
             destination: forest_road_mid
+            description: The path winds deeper into the dark forest, shadows growing thicker ahead.
           south:
             destination: enchanted_forest.misty_copse
+            description: Through the thinning trees, you glimpse a misty copse bathed in an ethereal glow.
         triggers:
           - id: catch_any_howl
             type: catch_any
@@ -419,6 +574,9 @@ ZONES:
             destination: forest_road_n
           up:
             destination: inn_hallway
+        characters:
+          - id: barkeep
+            quantity: 1
         triggers:
           - id: catch_any_laugh
             type: catch_any
@@ -436,6 +594,15 @@ ZONES:
                 predicate: 60
             script: |
               echo The warm, inviting scent of freshly cooked food wafts from the kitchen, mingling with the crackling sound of the fire.
+          - id: first_enter_hear_gossip
+            type: on_enter
+            criteria:
+              - subject: "$permvar(%S%,visited_inn)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              setpermvar char %S% visited_inn true
+              echo You overhear hushed conversations about a recent murder at the manor...
 
       inn_hallway:
         name: Inn Hallway
@@ -476,11 +643,15 @@ ZONES:
         exits:
           west:
             destination: inn_hallway
+            description: The door leads back to the hallway.
         characters:
           - id: ghost
             quantity: 1
             respawn time min: 30
             respawn time max: 90
+        objects:
+          - id: chest_key
+            quantity: 1
         triggers:
           - id: catch_any_breeze
             type: catch_any
@@ -558,6 +729,8 @@ ZONES:
         name: Graveyard Entrance
         description: >
           The entrance to the graveyard is marked by a pair of imposing wrought iron gates, partially rusted by time. The gates stand ajar, creaking softly in the wind. Beyond them, rows of tombstones and crypts stretch out, bathed in the pale light of the moon. A palpable sense of solemnity and decay pervades the air.
+          
+          A small shack sits near the entrance - the gravedigger's quarters.
 
           Exits: north, east, west
         exits:
@@ -567,6 +740,9 @@ ZONES:
             destination: graveyard_road_e
           west:
             destination: graveyard_road_w
+        characters:
+          - id: old_tom
+            quantity: 1
         triggers:
           - id: catch_any_creak_2
             type: catch_any
@@ -584,6 +760,19 @@ ZONES:
                 predicate: 75
             script: |
               echo A chill wind blows through the gates, carrying with it the faint scent of decay.
+          - id: catch_look_shack
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "shack"
+            script: |
+              echo The small wooden shack is weathered but sturdy. A single window is set into the wall.
+              $if($permvar(%S%,gloomy_graveyard.murder_mystery.can_find_cufflink), eq, true){
+                echo You notice a loose board beneath the window - just as Old Tom described!
+                echo You find a silver cufflink with an 'E' monogram hidden there!
+                setquestvar %S% gloomy_graveyard.murder_mystery.has_evidence true
+              }
 
       graveyard_road_w:
         name: West Graveyard Road
@@ -659,6 +848,8 @@ ZONES:
         name: Graveyard South East
         description: >
           This corner of the graveyard is quieter and more isolated. The tombstones here are older and more ornate, some adorned with statues of angels or weeping figures. The ground is covered in a carpet of ivy and moss, which creeps up the sides of the crypts. The moon casts long, haunting shadows between the graves.
+          
+          A crumpled form lies among the tombstones - the body of a well-dressed elderly man.
 
           Exits: north, west
         exits:
@@ -675,6 +866,15 @@ ZONES:
             quantity: 1
             respawn time min: 30
             respawn time max: 90
+          - id: ghost_victim
+            quantity: 1
+        objects:
+          - id: murder_victim_body
+            quantity: 1
+          - id: torn_note
+            quantity: 1
+          - id: victim_signet_ring
+            quantity: 1
         triggers:
           - id: catch_any_whisper_4
             type: catch_any
@@ -692,6 +892,19 @@ ZONES:
                 predicate: 90
             script: |
               echo A pale light flickers between the graves, too quick to catch, before vanishing into the darkness.
+          - id: discover_body
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.found_body)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              setquestvar %S% murder_mystery.found_body true
+              pause 0.5
+              echo A gruesome sight greets you - a body lies crumpled among the graves!
+              pause 0.5
+              echo The victim appears to be a well-dressed elderly nobleman.
+              echo Perhaps you should examine the body more closely...
 
       graveyard_sw:
         name: Graveyard South West
@@ -740,12 +953,16 @@ ZONES:
         exits:
           south:
             destination: graveyard_entrance
+            description: The path leads back to the graveyard entrance.
           east:
             destination: graveyard_ne
+            description: More graves dot the hillside to the east.
           west:
             destination: graveyard_nw
+            description: A large mausoleum looms in that direction.
           down:
             destination: crypt_entrance
+            description: Worn stone steps descend into darkness, leading to an ancient crypt.
         characters:
           - id: zombie
             quantity: 1
@@ -921,6 +1138,9 @@ ZONES:
             destination: graveyard_road_w
           west:
             destination: manor_house_parlor
+        characters:
+          - id: edmund_butler
+            quantity: 1
         triggers:
           - id: catch_any_echo_2
             type: catch_any
@@ -938,6 +1158,17 @@ ZONES:
                 predicate: 125
             script: |
               echo A draft stirs the dust on the floor, creating ghostly patterns in the moonlight filtering through the windows.
+          - id: butler_greeting
+            type: on_enter
+            criteria:
+              - subject: "$permvar(%S%,met_butler)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              setpermvar char %S% met_butler true
+              echo Edmund the butler regards you with cold, appraising eyes.
+              # Demonstrate force with semicolons - butler does a sequence of actions
+              force edmund emote straightens his collar; say Welcome to Ashford Manor. May I help you?
 
       manor_house_parlor:
         name: Manor House Parlor
@@ -956,6 +1187,9 @@ ZONES:
             destination: manor_house_ballroom
           up:
             destination: manor_house_hallway
+        characters:
+          - id: manor_maid
+            quantity: 1
         triggers:
           - id: catch_any_fire
             type: catch_any
@@ -1014,8 +1248,16 @@ ZONES:
         exits:
           west:
             destination: manor_house_bedroom
+            description: A heavy oak door leads to the master bedroom.
+            door:
+              name: bedroom door
+              keywords: [door, bedroom, oak]
+              is_closed: true
+              is_locked: false
+              linked_exit: gloomy_graveyard.manor_house_bedroom.east
           down:
             destination: manor_house_parlor
+            description: A grand staircase sweeps down to the parlor below.
         triggers:
           - id: catch_any_creak_3
             type: catch_any
@@ -1038,11 +1280,27 @@ ZONES:
         name: Manor House Bedroom
         description: >
           The bedroom is elegantly furnished, with a large canopy bed dominating the room. Heavy drapes cover the windows, and a plush rug covers the floor. A wardrobe and a dressing table with a mirror are set against one wall. The room has an air of neglected grandeur, with a thin layer of dust covering the surfaces.
+          
+          An old wooden chest sits in the corner.
 
           Exits: east
         exits:
           east:
             destination: manor_house_hallway
+            description: The bedroom door leads back to the hallway.
+            door:
+              name: bedroom door
+              keywords: [door, bedroom, oak]
+              is_closed: true
+              is_locked: false
+              linked_exit: gloomy_graveyard.manor_house_hallway.west
+        objects:
+          - id: old_chest
+            quantity: 1
+          - id: old_coins
+            quantity: 1
+          - id: dusty_journal
+            quantity: 1
         triggers:
           - id: catch_any_mirror
             type: catch_any
@@ -1098,8 +1356,17 @@ ZONES:
         exits:
           east:
             destination: manor_house_dining_room
+            description: The doorway leads to the formal dining room.
           down:
             destination: manor_house_wine_cellar
+            description: Stone steps lead down into a dark cellar, the scent of aged wine wafting up.
+            door:
+              name: cellar door
+              keywords: [door, cellar, trapdoor]
+              is_closed: false
+              is_locked: false
+              key_id: cellar_key
+              linked_exit: gloomy_graveyard.manor_house_wine_cellar.up
         triggers:
           - id: catch_any_sizzle
             type: catch_any
@@ -1122,16 +1389,29 @@ ZONES:
         name: Manor House Wine Cellar
         description: >
           The wine cellar is a cool, dimly lit room lined with wine racks filled with bottles of various vintages. The air is musty, with the scent of oak barrels and aging wine. Cobwebs hang from the ceiling and in the corners. In the center, a tasting table is set with a few open bottles and dusty glasses.
+          
+          Several large barrels are stacked in the far corner.
 
           Exits: upstairs
         exits:
           up:
             destination: manor_house_kitchen
+            description: Stone steps lead back up to the kitchen.
+            door:
+              name: cellar door
+              keywords: [door, cellar, trapdoor]
+              is_closed: false
+              is_locked: false
+              key_id: cellar_key
+              linked_exit: gloomy_graveyard.manor_house_kitchen.down
         characters:
           - id: vampire
             quantity: 1
             respawn time min: 30
             respawn time max: 90
+        objects:
+          - id: bloody_candlestick
+            quantity: 1
         triggers:
           - id: catch_any_drip_2
             type: catch_any
@@ -1149,6 +1429,31 @@ ZONES:
                 predicate: 160
             script: |
               echo The shadows between the racks seem to deepen, creating an eerie feeling that you're not alone.
+          - id: catch_look_barrels
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "barrel"
+            script: |
+              $if($questvar(%S%,murder_mystery.knows_to_check_cellar), eq, true){
+                echo Searching carefully behind the barrels, you spot something hidden...
+                pause 0.5
+                echo A brass candlestick, stained with dried blood!
+                setquestvar %S% murder_mystery.found_murder_weapon true
+              }
+              else {
+                echo Large oak barrels, used for aging wine. Nothing unusual about them.
+              }
+          - id: cellar_search_hint
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.knows_to_check_cellar)"
+                operator: "eq"
+                predicate: "true"
+            script: |
+              pause 0.3
+              echo Something feels wrong about this cellar. Maybe you should search more carefully...
 
       manor_house_ballroom:
         name: Manor House Ballroom
@@ -1249,7 +1554,7 @@ CHARACTERS:
         permanent_flags:
           - is_aggressive
         equipment:
-          - rusty sword
+          - debug_zone.rusty_sword
         triggers:
           - id: timer_tick_trigger_1182
             type: timer_tick
@@ -1420,3 +1725,840 @@ CHARACTERS:
         critical_chance: 0.05
         critical_multiplier: 2
         experience_points: 60
+
+      # ============================================
+      # QUEST NPCs - LLM-driven conversation NPCs
+      # ============================================
+
+      - id: barkeep
+        name: Maggie
+        article: ""
+        description: >
+          A stout, middle-aged woman with keen eyes and calloused hands from 
+          years of pulling pints. Her apron is stained but her manner is warm.
+        pronoun_subject: she
+        pronoun_object: her
+        pronoun_possessive: her
+        group_id: inn_staff
+        attitude: FRIENDLY
+        attributes:
+          strength: 10
+          dexterity: 10
+          constitution: 12
+          intelligence: 12
+          wisdom: 14
+          charisma: 14
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d8
+        llm_conversation:
+          personality: >
+            You are Maggie, the barkeep of the Weary Traveler inn. You're friendly
+            but shrewd - you've seen all kinds come through here. You're worried
+            about Old Tom, the gravedigger, who you've known for years. You don't
+            believe he's a murderer, but the evidence looks bad. You gossip freely
+            but you're also protective of your regulars.
+          speaking_style: >
+            Speaks with warmth but also directness. Uses colorful expressions.
+            Sometimes lowers voice conspiratorially when sharing rumors.
+          knowledge:
+            - id: murder_details
+              content: >
+                Lord Ashford's body was found in the southeast corner of the 
+                graveyard, near the old family crypts. Strangled, they say.
+              reveal_threshold: 30
+              is_secret: false
+            - id: tom_whereabouts
+              content: >
+                Old Tom was seen near the graveyard that night, but he's ALWAYS
+                near the graveyard. That's his job! Poor soul.
+              reveal_threshold: 40
+              is_secret: false
+            - id: manor_tension
+              content: >
+                I've heard the butler Edmund and Lord Ashford had words recently.
+                Something about money. One of the maids mentioned it.
+              reveal_threshold: 60
+              is_secret: true
+            - id: inheritance_rumor
+              content: >
+                Word is Lord Ashford was about to change his will. Disinherit 
+                someone, though I don't know who. He had no family left.
+              reveal_threshold: 75
+              is_secret: true
+          goals:
+            - id: point_to_tom
+              description: "Suggest the player talk to Old Tom"
+              condition: "Player asks about the murder or shows interest in investigating"
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.heard_about_murder: true
+              on_achieve_message: "You've learned about the murder at Ashford Manor."
+            - id: hint_at_manor
+              description: "Suggest something is amiss at the manor"
+              condition: "Player gains enough trust and asks probing questions about suspects"
+              disposition_required: 65
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.suspects_manor: true
+              on_achieve_message: "Maggie's words make you wonder about the manor household."
+          will_discuss:
+            - the murder
+            - Old Tom
+            - Lord Ashford
+            - the manor
+            - local gossip
+            - drinks and food
+          will_not_discuss:
+            - her own past
+            - prices of secrets
+          common_knowledge_refs:
+            - murder_case
+            - village_mood
+            - old_tom_reputation
+            - local_geography
+        triggers:
+          - id: barkeep_greet_player
+            type: on_enter
+            criteria:
+              - subject: "$permvar(%S%,barkeep_greeted)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              setpermvar char %S% barkeep_greeted true
+              pause 0.5
+              echo Maggie looks up from wiping a glass and gives you a warm smile.
+              say Welcome to the Weary Traveler, friend! What can I get you?
+          - id: barkeep_greet_returning
+            type: on_enter
+            criteria:
+              - subject: "$permvar(%S%,barkeep_greeted)"
+                operator: "eq"
+                predicate: "true"
+            script: |
+              $if($random(1,100), numlte, 30){
+                pause 0.3
+                echo Maggie nods in your direction as you enter.
+              }
+          - id: barkeep_receive_cufflink
+            type: on_receive
+            criteria:
+              - subject: "%item_id%"
+                operator: "eq"
+                predicate: "butler_cufflink"
+            script: |
+              pause 0.3
+              echo Maggie examines the cufflink closely, her eyes widening.
+              say This... this has an 'E' monogram. Edmund's cufflink! Where did you find this?
+              setquestvar %S% murder_mystery.has_evidence true
+          - id: barkeep_receive_generic
+            type: on_receive
+            criteria:
+              - subject: "%item_id%"
+                operator: "!="
+                predicate: "butler_cufflink"
+            script: |
+              pause 0.2
+              say Why thank you, but I'm not sure what I'd do with this.
+              echo Maggie hands it back to you.
+              give %item_id% %S%
+
+      - id: old_tom
+        name: Old Tom
+        article: ""
+        description: >
+          A weathered old man with dirt-stained clothes and a perpetually hunched
+          posture. His eyes are rheumy but alert, darting nervously.
+        pronoun_subject: he
+        pronoun_object: him
+        pronoun_possessive: his
+        group_id: graveyard_workers
+        attitude: UNFRIENDLY
+        attributes:
+          strength: 8
+          dexterity: 8
+          constitution: 10
+          intelligence: 10
+          wisdom: 14
+          charisma: 6
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6
+        llm_conversation:
+          personality: >
+            You are Old Tom, the gravedigger. You've tended these graves for forty 
+            years. You're innocent of the murder but terrified because you SAW 
+            something that night - a figure in dark clothes coming from the manor.
+            You're scared to say anything because you think the killer might come
+            for you next. You're suspicious of strangers but desperately want 
+            someone to believe you're innocent.
+          speaking_style: >
+            Speaks in a mumbling, nervous way. Often looks over his shoulder.
+            Trails off mid-sentence. Uses "beggin' your pardon" often.
+            Occasionally has moments of clarity and passion when defending himself.
+          knowledge:
+            - id: innocence_plea
+              content: >
+                I didn't do it! I swear on me mother's grave - and I dug that one
+                meself! I was just doing me rounds, checking the new graves...
+              reveal_threshold: 20
+              is_secret: false
+            - id: saw_figure
+              content: >
+                I... I saw someone that night. Coming from the direction of the 
+                manor. Dark cloak, moving quick-like. Thought it was just shadows
+                at first, but... it weren't no shadow.
+              reveal_threshold: 65
+              is_secret: true
+            - id: figure_details
+              content: >
+                The figure, it was tall. Moved like someone used to giving orders,
+                if you know what I mean. And there was something shiny... like
+                brass buttons, or a fancy cane maybe. Manor folk, I'm sure of it.
+              reveal_threshold: 80
+              is_secret: true
+            - id: hidden_evidence
+              content: >
+                I found something near where the body was. A cufflink, fancy-like,
+                with an 'E' on it. I hid it in my shack, under the loose board
+                by the window. Didn't know what to do with it...
+              reveal_threshold: 90
+              is_secret: true
+          goals:
+            - id: trust_earned
+              description: "Player convinces Tom they believe his innocence"
+              condition: "Player expresses belief in Tom's innocence or offers to help prove it"
+              disposition_required: 60
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.tom_trusts_player: true
+              on_achieve_message: "Old Tom seems to relax slightly, a glimmer of hope in his eyes."
+            - id: reveals_figure
+              description: "Tom reveals he saw the mysterious figure"
+              condition: "Player has earned Tom's trust and asks what he saw that night"
+              disposition_required: 65
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.knows_about_figure: true
+              on_achieve_message: "A crucial piece of the puzzle falls into place!"
+            - id: reveals_cufflink
+              description: "Tom reveals the hidden cufflink"
+              condition: "Player has earned high trust and presses for any evidence"
+              disposition_required: 85
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.knows_about_cufflink: true
+                gloomy_graveyard.murder_mystery.can_find_cufflink: true
+              on_achieve_message: "Old Tom reveals his hidden evidence! Search his shack to find it."
+          will_discuss:
+            - his innocence
+            - the graveyard
+            - the night of the murder
+            - Lord Ashford (reluctantly)
+          will_not_discuss:
+            - directly accusing anyone
+            - anything that might get him in more trouble
+          common_knowledge_refs:
+            - murder_case
+            - manor_history
+        triggers:
+          - id: tom_react_to_player
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.tom_trusts_player)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              pause 0.5
+              echo Old Tom flinches as you approach, eyeing you warily.
+              emote mutters nervously to himself
+          - id: tom_greet_trusted
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.tom_trusts_player)"
+                operator: "eq"
+                predicate: "true"
+            script: |
+              pause 0.3
+              echo Old Tom looks up and manages a weak smile of recognition.
+
+      - id: manor_maid
+        name: Eliza
+        article: ""
+        description: >
+          A young woman in a maid's uniform. Her face is pale and her hands 
+          tremble slightly as she works.
+        pronoun_subject: she
+        pronoun_object: her
+        pronoun_possessive: her
+        group_id: manor_staff
+        attitude: NEUTRAL
+        attributes:
+          strength: 8
+          dexterity: 12
+          constitution: 10
+          intelligence: 11
+          wisdom: 12
+          charisma: 10
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6
+        llm_conversation:
+          personality: >
+            You are Eliza, a maid at Ashford Manor. You're terrified. You suspect
+            Edmund the butler killed Lord Ashford, but you're afraid to say it 
+            directly. You've seen Edmund acting strangely - sneaking around at
+            night, arguing with Lord Ashford about money. You want to tell someone
+            but fear for your life. You'll hint at things but need a lot of 
+            reassurance before revealing anything directly.
+          speaking_style: >
+            Speaks in hushed, frightened whispers. Often glances toward doors.
+            Wrings hands while talking. Uses phrases like "I shouldn't say..."
+            and "Please, don't tell anyone I told you..."
+          knowledge:
+            - id: butler_argument
+              content: >
+                I... I heard them arguing. The night before his lordship was
+                found. Edmund was shouting about money owed to him. Twenty
+                years of service, he said. Twenty years!
+              reveal_threshold: 55
+              is_secret: true
+            - id: butler_night_absence
+              content: >
+                Edmund wasn't in his quarters that night. I know because
+                I had to fetch something and... his door was open. Empty bed.
+                He didn't return until near dawn.
+              reveal_threshold: 70
+              is_secret: true
+            - id: bloody_cloth
+              content: >
+                I found... oh God... I found a bloodied cloth in the laundry.
+                Hidden at the bottom. It was from Edmund's personal items.
+                I burned it. I was so scared...
+              reveal_threshold: 85
+              is_secret: true
+            - id: wine_cellar_secret
+              content: >
+                Edmund spends a lot of time in the wine cellar lately. Too much
+                time. I think... I think he's hiding something there.
+              reveal_threshold: 75
+              is_secret: true
+          goals:
+            - id: initial_trust
+              description: "Player gains Eliza's initial trust"
+              condition: "Player is kind and reassuring, doesn't pressure her"
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.maid_trusts_player: true
+              on_achieve_message: "Eliza seems slightly less terrified of you."
+            - id: implicates_butler
+              description: "Eliza reveals her suspicions about the butler"
+              condition: "Player has earned trust and asks about that night or Edmund"
+              disposition_required: 70
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.suspects_butler: true
+              on_achieve_message: "The evidence is pointing toward Edmund the butler..."
+            - id: reveals_cellar
+              description: "Eliza suggests searching the wine cellar"
+              condition: "Player has high trust and asks where to find evidence"
+              disposition_required: 75
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.knows_to_check_cellar: true
+              on_achieve_message: "The wine cellar might hold crucial evidence!"
+          will_discuss:
+            - her duties
+            - the manor
+            - her fears (vaguely)
+            - Lord Ashford (he was kind)
+          will_not_discuss:
+            - directly naming Edmund as murderer
+            - the burned cloth (too scared)
+          common_knowledge_refs:
+            - murder_case
+            - butler_reputation
+            - manor_history
+
+      - id: edmund_butler
+        name: Edmund
+        article: ""
+        description: >
+          A tall, gaunt man in immaculate butler's attire. His movements are 
+          precise and controlled, but there's a cold hardness in his eyes.
+        pronoun_subject: he
+        pronoun_object: him
+        pronoun_possessive: his
+        group_id: manor_staff
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 14
+          constitution: 12
+          intelligence: 14
+          wisdom: 12
+          charisma: 10
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8
+        equipment:
+          - cellar_key
+        natural_attacks:
+          - attack_noun: fist
+            attack_verb: strikes
+            potential_damage:
+            - damage_type: bludgeoning
+              damage_dice: 1d4+2
+        hit_modifier: 10
+        dodge_dice: 2d20+30
+        llm_conversation:
+          personality: >
+            You are Edmund, the butler of Ashford Manor - and the murderer.
+            You killed Lord Ashford because after 20 years of loyal service,
+            he was going to fire you with nothing. You feel justified but also
+            paranoid. You're trying to play the role of the grieving loyal 
+            servant while deflecting suspicion onto Old Tom. You become hostile
+            if pressed too hard. You're arrogant and believe you're smarter
+            than everyone.
+          speaking_style: >
+            Speaks in a formal, clipped manner. Looks down his nose at people.
+            Becomes increasingly cold and threatening if challenged.
+            Occasionally lets slip contempt for "commoners."
+          knowledge:
+            - id: official_story
+              content: >
+                Lord Ashford was a great man. His death is a tragedy. That
+                gravedigger should hang for what he did.
+              reveal_threshold: 0
+              is_secret: false
+            - id: deflection
+              content: >
+                I was in my quarters all night, as any respectable servant
+                would be. Perhaps you should focus your questions on those
+                who lurk in graveyards after dark.
+              reveal_threshold: 0
+              is_secret: false
+          goals:
+            - id: threatens_player
+              description: "Edmund threatens the player if they push too hard"
+              condition: "Player directly accuses Edmund or mentions evidence against him"
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.edmund_threatened: true
+              on_achieve_message: "Edmund's mask slips, revealing a dangerous glint in his eyes."
+              commands:
+                - "emote's eyes narrow dangerously"
+                - "say You're treading on thin ice, stranger."
+          will_discuss:
+            - Lord Ashford (deflecting)
+            - the investigation (misdirecting)
+            - Old Tom (accusingly)
+          will_not_discuss:
+            - his whereabouts that night
+            - money or wages
+            - the wine cellar
+          common_knowledge_refs:
+            - murder_case
+            - old_tom_reputation
+
+      - id: ghost_victim
+        name: spectral figure
+        article: a
+        description: >
+          A translucent, shimmering apparition of an elderly nobleman. His face
+          is twisted in anguish, and dark marks circle his ghostly throat.
+        pronoun_subject: it
+        pronoun_object: it
+        pronoun_possessive: its
+        group_id: supernatural
+        attitude: NEUTRAL
+        attributes:
+          strength: 6
+          dexterity: 12
+          constitution: 10
+          intelligence: 14
+          wisdom: 16
+          charisma: 8
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8
+        damage_resistances:
+          bludgeoning: 0.9
+          slashing: 0.9
+          piercing: 0.9
+        llm_conversation:
+          personality: >
+            You are the ghost of Lord Ashford, murdered by your trusted butler
+            Edmund. You cannot directly name your killer - supernatural laws
+            prevent you from accusing the living. But you can give hints, speak
+            in riddles, and guide the living toward the truth. You are sorrowful,
+            not angry. You want justice and peace.
+          speaking_style: >
+            Speaks in an ethereal, echoing voice. Uses archaic language.
+            Speaks in hints and riddles. Sometimes repeats phrases.
+            Voice fades in and out.
+          knowledge:
+            - id: riddle_servant
+              content: >
+                He who served... now serves himself... Twenty years... twenty
+                pieces of silver... Betrayal wears a pressed collar...
+              reveal_threshold: 40
+              is_secret: false
+            - id: hint_cellar
+              content: >
+                In darkness below... where vintages sleep... the truth awaits...
+                among the bottles... search... search the shadows...
+              reveal_threshold: 60
+              is_secret: false
+            - id: hint_cufflink
+              content: >
+                A token lost... bearing the mark of treachery... 'E' for eternal
+                guilt... the digger knows... the digger hides...
+              reveal_threshold: 50
+              is_secret: false
+          goals:
+            - id: guide_investigation
+              description: "Ghost hints at the truth"
+              condition: "Player asks the ghost about the murder or how they died"
+              on_achieve_set_vars:
+                gloomy_graveyard.murder_mystery.ghost_spoke: true
+              on_achieve_message: "The ghost's cryptic words echo in your mind..."
+          will_discuss:
+            - death
+            - betrayal
+            - the manor
+            - hints about the murderer
+          will_not_discuss:
+            - directly naming Edmund
+            - anything from after death
+          common_knowledge_refs:
+            - manor_history
+
+# ============================================
+# OBJECTS - Quest-related items
+# ============================================
+
+OBJECTS:
+  - zone: gloomy_graveyard
+    objects:
+
+      - id: murder_victim_body
+        name: crumpled body
+        article: a
+        keywords:
+          - body
+          - corpse
+          - victim
+          - lord ashford
+        description: >
+          The body of an elderly nobleman lies crumpled among the tombstones.
+          Dark bruises ring his throat - clear signs of strangulation. His 
+          fine clothes are muddied and torn. This must be Lord Ashford.
+        examine_text: >
+          Examining the body closely, you notice several things: the bruises
+          suggest a powerful grip, the expensive signet ring on his finger 
+          bears the Ashford crest, and clutched in his hand is a torn piece
+          of paper. There's also something glinting in the grass nearby.
+        pickup_text: "You cannot take the body."
+        weight: 0
+        value: 0
+        flags:
+          - no_take
+          - is_static
+        triggers:
+          - id: body_draws_attention
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.found_body)"
+                operator: "!="
+                predicate: "true"
+            script: |
+              pause 0.3
+              echo Something catches your eye among the tombstones - a dark shape that shouldn't be there.
+          - id: examine_body_find_clues
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "body"
+            script: |
+              setquestvar %S% murder_mystery.found_body true
+              $if($permvar(%S%,gloomy_graveyard.murder_mystery.found_note), eq, true){
+              }
+              else {
+                echo As you examine the body, you notice a torn note clutched in the victim's hand.
+              }
+
+      - id: torn_note
+        name: torn note
+        article: a
+        keywords:
+          - note
+          - paper
+          - letter
+        description: >
+          A piece of expensive stationery, torn roughly. Only a fragment of
+          text remains visible.
+        examine_text: >
+          The note reads: "...hereby dismiss you from service effective...
+          ...twenty years means nothing when... ...cannot continue to employ
+          someone who... ...signed, Lord Ash..."
+        weight: 0
+        value: 0
+        flags: []
+        triggers:
+          - id: note_flutters
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.found_note)"
+                operator: "!="
+                predicate: "true"
+              - subject: "$questvar(%S%,murder_mystery.found_body)"
+                operator: "eq"
+                predicate: "true"
+            script: |
+              pause 0.5
+              echo A breeze stirs the torn note still clutched in the victim's hand, making it flutter.
+          - id: read_note
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "note"
+            script: |
+              setquestvar %S% murder_mystery.found_note true
+              echo The note suggests Lord Ashford was about to fire someone after twenty years of service...
+
+      - id: victim_signet_ring
+        name: signet ring
+        article: a
+        keywords:
+          - ring
+          - signet
+          - ashford
+        description: >
+          A heavy gold signet ring bearing the Ashford family crest - a raven
+          perched on a crown.
+        examine_text: >
+          The ring is clearly valuable, the gold heavy and pure. The crest is
+          deeply engraved. An inscription inside reads "Ashford Eternal."
+        weight: 0
+        value: 100
+        flags: []
+        triggers:
+          - id: ring_glints
+            type: on_enter
+            criteria:
+              - subject: "$questvar(%S%,murder_mystery.found_body)"
+                operator: "eq"
+                predicate: "true"
+              - subject: "$random(1,100)"
+                operator: "numlte"
+                predicate: 40
+            script: |
+              pause 0.7
+              echo A glint of gold catches the moonlight on the victim's hand.
+
+      - id: butler_cufflink
+        name: monogrammed cufflink
+        article: a
+        keywords:
+          - cufflink
+          - cuff link
+          - monogram
+          - E
+        description: >
+          An elegant silver cufflink with the letter 'E' engraved in ornate
+          script. The style matches what manor staff would wear.
+        examine_text: >
+          The cufflink is finely made, definitely belonging to someone of means
+          or someone who serves the wealthy. The 'E' is distinctive - this 
+          could identify its owner.
+        weight: 0
+        value: 10
+        flags: []
+        triggers:
+          - id: cufflink_pickup
+            type: on_get
+            script: |
+              echo The silver cufflink feels cold in your palm. Evidence of the killer?
+              setquestvar %S% murder_mystery.has_evidence true
+          - id: examine_cufflink
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "cufflink"
+            script: |
+              setquestvar %S% murder_mystery.has_evidence true
+              echo This cufflink with its 'E' monogram could be crucial evidence...
+
+      - id: bloody_candlestick
+        name: bloodstained candlestick
+        article: a
+        keywords:
+          - candlestick
+          - candle
+          - bloody
+          - bloodstained
+          - murder weapon
+        description: >
+          A heavy brass candlestick, tarnished and stained with what appears
+          to be dried blood. It has been poorly hidden behind some wine barrels.
+        examine_text: >
+          The blood is old and dried, but clearly visible. This heavy object
+          could certainly have been used as a weapon. Wait - there's something
+          else... a few strands of gray hair cling to the blood.
+        weight: 5
+        value: 25
+        flags: []
+        triggers:
+          - id: find_weapon
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "candlestick"
+            script: |
+              setquestvar %S% murder_mystery.found_murder_weapon true
+              echo The murder weapon! This candlestick was clearly used to strike someone.
+
+      # Example locked chest demonstrating open/close/lock/unlock and container system
+      # Located in manor_house_bedroom, key is in inn_room_e
+      # Note: Container starts empty - players can use "put <item> in chest" to store items
+      - id: old_chest
+        name: old wooden chest
+        article: an
+        keywords:
+          - chest
+          - wooden
+          - old
+        description: >
+          An old wooden chest sits in the corner, its iron bands rusted but still
+          sturdy. It has a heavy lock on the front.
+        examine_text: >
+          The chest is old but solidly built. The lock appears to require a key.
+          You wonder what secrets it might hold.
+        flags:
+          - openable
+          - closed
+          - lockable
+          - locked
+          - container
+        perm_variables:
+          key_id: chest_key
+        triggers:
+          - id: chest_opened
+            type: on_open
+            script: |
+              echo The chest creaks open with a groan of old hinges.
+          - id: chest_closed
+            type: on_close
+            script: |
+              echo The chest closes with a heavy thud.
+
+      # The key for the chest
+      - id: chest_key
+        name: rusty iron key
+        article: a
+        keywords:
+          - key
+          - iron
+          - rusty
+        description: >
+          A rusty iron key, old but still functional.
+        examine_text: >
+          The key is worn but should still work on a matching lock.
+        flags: []
+        triggers:
+          - id: use_key_on_chest
+            type: on_use
+            criteria:
+              - subject: "%target_id%"
+                operator: eq
+                predicate: "old_chest"
+            script: |
+              echo You insert the rusty key into the lock and turn it.
+              unlock old_chest
+
+      # The key for the cellar door - Edmund keeps it
+      - id: cellar_key
+        name: brass cellar key
+        article: a
+        keywords:
+          - key
+          - brass
+          - cellar
+        description: >
+          A brass key with an ornate handle, kept polished and clean.
+        examine_text: >
+          The key is well-maintained, suggesting frequent use. It would fit
+          a cellar lock.
+        weight: 1
+        value: 5
+        flags: []
+
+      # Items found in manor bedroom (demonstrates container get/put)
+      - id: old_coins
+        name: handful of old coins
+        article: a
+        keywords:
+          - coins
+          - gold
+          - money
+        description: >
+          A handful of old gold coins, their faces worn smooth by time.
+        examine_text: >
+          These coins are ancient, bearing the likeness of a king long forgotten.
+          They would fetch a good price from a collector.
+        weight: 2
+        value: 50
+        flags: []
+
+      - id: dusty_journal
+        name: dusty leather journal  
+        article: a
+        keywords:
+          - journal
+          - book
+          - diary
+          - leather
+        description: >
+          A leather-bound journal, its pages yellowed with age.
+        examine_text: >
+          The journal contains the private thoughts of a long-dead nobleman.
+          Most entries are mundane, but one mentions hiding something valuable
+          in the wine cellar "where no one would think to look."
+        weight: 1
+        value: 10
+        flags: []
+        triggers:
+          - id: read_journal
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "journal"
+            script: |
+              echo The journal mentions something hidden in the wine cellar...
+              setquestvar %S% murder_mystery.knows_to_check_cellar true
+
+      # Example usable lever
+      - id: hidden_lever
+        name: rusty lever
+        article: a
+        keywords:
+          - lever
+          - rusty
+          - hidden
+        description: >
+          A rusty lever protrudes from the wall, almost hidden by cobwebs.
+        examine_text: >
+          The lever is old and rusty, but it looks like it still works.
+          Who knows what it might activate?
+        flags:
+          - no_take
+          - static
+        triggers:
+          - id: pull_lever
+            type: on_use
+            script: |
+              echo You pull the lever. A grinding sound echoes through the chamber!
+              pause 1
+              echo A hidden passage is revealed!

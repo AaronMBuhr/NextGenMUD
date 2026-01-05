@@ -1,6 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
 from .skills_core import Skills, ClassSkills, Skill
-from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -9,7 +8,7 @@ from .nondb_models.actor_states import (
     CharacterStateBleeding, CharacterStateHitBonus, Cooldown
 )
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances
-from .nondb_models.characters import CharacterSkill
+# CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds, firstcap
@@ -169,13 +168,13 @@ class Skills_Mage(Skills):
     async def do_mage_cast_fireball_finish(cls, actor: Actor, target: Actor, 
                                           difficulty_modifier=0, game_tick=0) -> bool:
         FIREBALL_DMG_DICE_LEVEL_MULT = 1/4
-        FIREBALL_DMG_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
+        FIREBALL_DMG_DICE_NUM = actor.levels_by_role[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
         FIREBALL_DMG_DICE_SIZE = 6
         FIREBALL_COOLDOWN_TICKS = ticks_from_seconds(30)
         
-        attrib_mod = (actor.attributes_[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        FIREBALL_DMG_BONUS = attrib_mod * actor.levels_[CharacterClassRole.MAGE] / 8
+        FIREBALL_DMG_BONUS = attrib_mod * actor.levels_by_role[CharacterClassRole.MAGE] / 8
 
         cooldown = Cooldown(actor, "fireball", cls.game_state, cooldown_source=actor, cooldown_vars={"duration": FIREBALL_COOLDOWN_TICKS})
         await cooldown.start(game_tick, FIREBALL_COOLDOWN_TICKS)
@@ -234,13 +233,13 @@ class Skills_Mage(Skills):
     async def do_mage_cast_magic_missile_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
         MAGIC_MISSILE_DMG_DICE_LEVEL_MULT = 1/4
-        MAGIC_MISSILE_DICE_NUM = actor.levels_[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT
+        MAGIC_MISSILE_DICE_NUM = actor.levels_by_role[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT
         MAGIC_MISSILE__DMG_DICE_SIZE = 6
         MAGIC_MISSILE_COOLDOWN_TICKS = ticks_from_seconds(10)
         
-        attrib_mod = (actor.attributes_[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        MAGIC_MISSILE_DMG_BONUS = attrib_mod * actor.levels_[CharacterClassRole.MAGE] / 4
+        MAGIC_MISSILE_DMG_BONUS = attrib_mod * actor.levels_by_role[CharacterClassRole.MAGE] / 4
 
         cooldown = Cooldown(actor, "magic_missile", cls.game_state, cooldown_source=actor, cooldown_vars={"duration": MAGIC_MISSILE_COOLDOWN_TICKS})
         await cooldown.start(game_tick, MAGIC_MISSILE_COOLDOWN_TICKS)
@@ -292,7 +291,7 @@ class Skills_Mage(Skills):
     @classmethod
     async def do_mage_cast_arcane_barrier_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
-        DAMAGE_REDUCTION_AMOUNT = actor.levels_[CharacterClassRole.MAGE]
+        DAMAGE_REDUCTION_AMOUNT = actor.levels_by_role[CharacterClassRole.MAGE]
         ARCANE_BARRIER_COOLDOWN_TICKS = ticks_from_seconds(60)
         
         cooldown = Cooldown(actor, "arcane_barrier", cls.game_state, cooldown_source=actor, cooldown_vars={"duration": ARCANE_BARRIER_COOLDOWN_TICKS})

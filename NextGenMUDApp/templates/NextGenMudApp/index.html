@@ -39,6 +39,51 @@
             overflow-y: scroll;
             transition: height 0.3s ease;
         }
+        #statusBar {
+            width: 95%;
+            margin: 0 auto;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 20px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-label {
+            color: #888;
+            font-weight: bold;
+        }
+        .status-value {
+            font-weight: bold;
+            min-width: 80px;
+        }
+        .status-hp { color: #ff6b6b; }
+        .status-mana { color: #4dabf7; }
+        .status-stamina { color: #69db7c; }
+        .status-bar-container {
+            width: 80px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .status-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .status-bar-hp { background: linear-gradient(90deg, #c92a2a, #ff6b6b); }
+        .status-bar-mana { background: linear-gradient(90deg, #1864ab, #4dabf7); }
+        .status-bar-stamina { background: linear-gradient(90deg, #2f9e44, #69db7c); }
         
         /* When debug is shown, make the text areas shorter */
         body.debug-visible #staticText,
@@ -108,6 +153,29 @@
 <body>
     <div class="container">
         <h1>Welcome to NextGenMUD</h1>
+        <div id="statusBar">
+            <div class="status-item">
+                <span class="status-label">HP:</span>
+                <span class="status-value status-hp" id="statusHpText">--/--</span>
+                <div class="status-bar-container">
+                    <div class="status-bar-fill status-bar-hp" id="statusHpBar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="status-item" id="statusManaContainer" style="display: none;">
+                <span class="status-label">Mana:</span>
+                <span class="status-value status-mana" id="statusManaText">--/--</span>
+                <div class="status-bar-container">
+                    <div class="status-bar-fill status-bar-mana" id="statusManaBar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="status-item" id="statusStaminaContainer" style="display: none;">
+                <span class="status-label">Stamina:</span>
+                <span class="status-value status-stamina" id="statusStaminaText">--/--</span>
+                <div class="status-bar-container">
+                    <div class="status-bar-fill status-bar-stamina" id="statusStaminaBar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
         <textarea id="staticText" class="text-box" readonly></textarea>
         <textarea id="dynamicText" class="text-box" readonly></textarea>
         <div class="input-area">
@@ -145,6 +213,48 @@
                 var dynamicTextArea = document.getElementById('dynamicText');
                 dynamicTextArea.value += data.text + "\n";
                 dynamicTextArea.scrollTop = dynamicTextArea.scrollHeight;
+            } else if (data.text_type === "status") {
+                updateStatusBar(data.text);
+            }
+        }
+        
+        function updateStatusBar(statusJson) {
+            try {
+                const status = typeof statusJson === 'string' ? JSON.parse(statusJson) : statusJson;
+                
+                // Update HP
+                if (status.hp !== undefined && status.max_hp !== undefined) {
+                    document.getElementById('statusHpText').textContent = 
+                        Math.floor(status.hp) + '/' + status.max_hp;
+                    const hpPercent = status.max_hp > 0 ? (status.hp / status.max_hp * 100) : 0;
+                    document.getElementById('statusHpBar').style.width = hpPercent + '%';
+                }
+                
+                // Update Mana (show/hide container based on whether max_mana > 0)
+                const manaContainer = document.getElementById('statusManaContainer');
+                if (status.max_mana !== undefined && status.max_mana > 0) {
+                    manaContainer.style.display = 'flex';
+                    document.getElementById('statusManaText').textContent = 
+                        Math.floor(status.mana) + '/' + status.max_mana;
+                    const manaPercent = status.max_mana > 0 ? (status.mana / status.max_mana * 100) : 0;
+                    document.getElementById('statusManaBar').style.width = manaPercent + '%';
+                } else {
+                    manaContainer.style.display = 'none';
+                }
+                
+                // Update Stamina (show/hide container based on whether max_stamina > 0)
+                const staminaContainer = document.getElementById('statusStaminaContainer');
+                if (status.max_stamina !== undefined && status.max_stamina > 0) {
+                    staminaContainer.style.display = 'flex';
+                    document.getElementById('statusStaminaText').textContent = 
+                        Math.floor(status.stamina) + '/' + status.max_stamina;
+                    const staminaPercent = status.max_stamina > 0 ? (status.stamina / status.max_stamina * 100) : 0;
+                    document.getElementById('statusStaminaBar').style.width = staminaPercent + '%';
+                } else {
+                    staminaContainer.style.display = 'none';
+                }
+            } catch (error) {
+                logDebug('Error parsing status: ' + error);
             }
         }
 
@@ -180,6 +290,7 @@
                 const containerInnerHeight = Math.min(container.clientHeight, maxContainerHeight) - containerPaddingTop - containerPaddingBottom;
 
                 const h1Height = h1.offsetHeight;
+                const statusBarHeight = document.getElementById('statusBar').offsetHeight;
                 const inputAreaHeight = inputArea.offsetHeight;
                 const debugToggleHeight = debugToggleDiv.offsetHeight;
                 const gap = 10; // From .container { gap: 10px; }
@@ -193,9 +304,9 @@
                 }
                 
                 // Calculate total height of fixed elements and gaps
-                // Gaps: between h1-static, static-dynamic, dynamic-input, input-toggle, toggle-debug
-                const numGaps = debugToggle.checked ? 5 : 4;
-                const fixedElementsHeight = h1Height + inputAreaHeight + debugToggleHeight + debugHeight + (gap * numGaps);
+                // Gaps: between h1-status, status-static, static-dynamic, dynamic-input, input-toggle, toggle-debug
+                const numGaps = debugToggle.checked ? 6 : 5;
+                const fixedElementsHeight = h1Height + statusBarHeight + inputAreaHeight + debugToggleHeight + debugHeight + (gap * numGaps);
                 
                 // Calculate remaining height for static and dynamic boxes
                 const availableHeight = containerInnerHeight - fixedElementsHeight;

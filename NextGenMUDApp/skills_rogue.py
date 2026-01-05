@@ -1,15 +1,14 @@
 from .basic_types import GenericEnumWithAttributes
 from .skills_core import Skills, ClassSkills, Skill
-from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, TemporaryCharacterFlags, PermanentCharacterFlags
 from .nondb_models.actor_states import (
     CharacterStateForcedSitting, CharacterStateHitPenalty, CharacterStateStunned,
     CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus,
-    CharacterStateBleeding, CharacterStateHitBonus, CharacterStateStealthed
+    CharacterStateBleeding, CharacterStateHitBonus, CharacterStateStealthed, Cooldown
 )
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances
-from .nondb_models.characters import CharacterSkill
+# CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds, seconds_from_ticks, firstcap
@@ -140,8 +139,6 @@ class Skills_Rogue(ClassSkills):
         skill_function=None  # Will be implemented later
     )
 
-
-class Skills_Rogue(Skills):
     @classmethod
     async def do_rogue_backstab(cls, actor: Actor, target: Actor, 
                                difficulty_modifier=0, game_tick=0, nowait=False) -> bool:
@@ -171,8 +168,8 @@ class Skills_Rogue(Skills):
         cooldown = Cooldown(actor, "backstab", cls.game_state, cooldown_source=actor, cooldown_vars={"duration": BACKSTAB_COOLDOWN_TICKS})
         await cooldown.start(game_tick, BACKSTAB_COOLDOWN_TICKS)
         
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
-        attrib_mod = (actor.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
+        attrib_mod = (actor.attributes[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         difficulty_modifier = attrib_mod + (level_mult * 10)
         
         mhw = actor.equipped_[EquipLocation.MAIN_HAND]
@@ -249,8 +246,8 @@ class Skills_Rogue(Skills):
     def stealthcheck(cls, sneaker: Actor, viewer: Actor, difficulty_modifier=0) -> bool:
         """
         Returns True if the actor successfully stealths, False otherwise"""
-        level_mult = sneaker.levels_[CharacterClassRole.ROGUE] / viewer.total_levels_()
-        attrib_mod = (sneaker.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        level_mult = sneaker.levels_by_role[CharacterClassRole.ROGUE] / viewer.total_levels()
+        attrib_mod = (sneaker.attributes[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         difficulty_modifier = attrib_mod + (level_mult * 10)
         return cls.do_skill_check(sneaker, sneaker.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.STEALTH], difficulty_modifier)
     
@@ -312,10 +309,10 @@ class Skills_Rogue(Skills):
         EVADE_DURATION_MAX = ticks_from_seconds(12)
         EVADE_DODGE_BONUS_MIN = 4
         EVADE_DODGE_BONUS_MAX = 8
-        level_mult = actor.levels_[CharacterClassRole.ROGUE] / 4
+        level_mult = actor.levels_by_role[CharacterClassRole.ROGUE] / 4
         duration = random.randint(EVADE_DURATION_MIN, EVADE_DURATION_MAX)
         dodge_bonus = random.randint(EVADE_DODGE_BONUS_MIN, EVADE_DODGE_BONUS_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.EVADE],
                               difficulty_modifier - attrib_mod):

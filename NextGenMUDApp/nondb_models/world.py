@@ -9,6 +9,7 @@ class Zone:
         self.rooms = {}
         self.actors = {}
         self.description = ""
+        self.common_knowledge = {}  # id -> knowledge content for LLM NPCs
 
     def to_dict(self):
         return {
@@ -16,7 +17,8 @@ class Zone:
             'name': self.name,
             'rooms': {room_id: room.to_dict() for room_id, room in self.rooms.items()},
             'actors': self.actors,  # Make sure this is also serializable
-            'description': self.description
+            'description': self.description,
+            'common_knowledge': self.common_knowledge,
         }
 
     def __repr__(self):
@@ -46,13 +48,7 @@ class WorldDefinition:
             for c,cd in self.characters.items():
                 if cd.id == character_id_or_name:
                     return cd
-        # if character_id_or_name in self.characters:
-        #     return self.characters[character_id_or_name]
-        # print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-        # print(type(self.characters))
         for character, char_data in self.characters.items():
-            # print(type(character))
-            # print(character)
             if character.startswith(character_id_or_name) and (zone_id is None or char_data.zone == zone_id):
                 return character
         return None

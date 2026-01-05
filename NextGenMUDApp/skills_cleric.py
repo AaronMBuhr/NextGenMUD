@@ -1,6 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
 from .skills_core import Skills, ClassSkills, Skill
-from .skills_interface import Skill
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -9,7 +8,7 @@ from .nondb_models.actor_states import (
     CharacterStateBleeding, CharacterStateHitBonus
 )
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances
-from .nondb_models.characters import CharacterSkill
+# CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds, firstcap

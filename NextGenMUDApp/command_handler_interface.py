@@ -11,6 +11,6 @@ class CommandHandlerInterface:
             cls._instance = CommandHandler()
         return cls._instance
 
-    async def process_command(cls, actor: 'Actor', input: str, vars: dict = None):
-        CommandHandlerInterface._instance.process_command(actor, input, vars)
+    async def process_command(cls, actor: 'Actor', input: str, vars: dict = None, from_script: bool = False):
+        await CommandHandlerInterface._instance.process_command(actor, input, vars, from_script)
 

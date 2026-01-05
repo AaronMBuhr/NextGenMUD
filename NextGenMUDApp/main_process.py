@@ -5,6 +5,8 @@ from .structured_logger import StructuredLogger
 from .comprehensive_game_state import ComprehensiveGameState, live_game_state
 import threading
 from .nondb_models.character_interface import PermanentCharacterFlags
+from .nondb_models.actor_interface import ActorType
+from .nondb_models.actors import Actor
 from .nondb_models.triggers import TriggerTimerTick
 import time
 from .constants import Constants
@@ -58,6 +60,10 @@ class MainProcess:
         logger = StructuredLogger(__name__, prefix="main_game_loop()> ")
         logger.debug3("Game loop started")
         last_fighting_tick = cls._game_state.world_clock_tick
+        last_linkdead_check_tick = cls._game_state.world_clock_tick
+        # Check linkdead every ~5 seconds (10 ticks at 0.5s per tick)
+        linkdead_check_interval = int(5 / Constants.GAME_TICK_SEC)
+        
         while True:
             logger.debug3(f"tick {cls._game_state.world_clock_tick}")
             start_tick_time = time.time()
@@ -78,6 +84,19 @@ class MainProcess:
                 logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
                 await trig.run(trig.actor_, "", {}, cls._game_state)
 
+            # Process command queues for non-busy NPCs (not PCs - they get commands from input_queue)
+            # This gives NPCs natural reaction timing (~0.5s per tick)
+            for ref_id, actor in list(Actor.references_.items()):
+                if actor.actor_type == ActorType.CHARACTER and actor.command_queue:
+                    if not actor.is_busy(cls._game_state.world_clock_tick):
+                        # Process one command per tick for natural pacing
+                        if not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                            next_command = actor.command_queue.pop(0)
+                            try:
+                                await CommandHandlerInterface.get_instance().process_command(actor, next_command)
+                            except Exception as e:
+                                logger.error(f"Error processing queued command for {actor.rid}: {e}")
+
             # Handle fighting ticks
             if cls._game_state.world_clock_tick > last_fighting_tick + Constants.TICKS_PER_ROUND:
                 logger.debug3("fighting tick")
@@ -85,8 +104,21 @@ class MainProcess:
                     await cls.handle_periodic_fighting_tick()
                 last_fighting_tick = cls._game_state.world_clock_tick
 
+            # Check linkdead timeouts periodically
+            if cls._game_state.world_clock_tick > last_linkdead_check_tick + linkdead_check_interval:
+                await cls._game_state.check_linkdead_timeouts()
+                last_linkdead_check_tick = cls._game_state.world_clock_tick
+
+            # Regenerate mana/stamina for all characters
+            for ref_id, actor in Actor.references_.items():
+                if actor.actor_type == ActorType.CHARACTER:
+                    resources_changed = actor.regenerate_resources()
+                    # Send status update to PCs when their resources change
+                    if resources_changed and actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                        await actor.send_status_update()
+
             # Process scheduled actions and check aggressive NPCs
-            cls._game_state.perform_scheduled_events(cls._game_state.world_clock_tick)
+            await cls._game_state.perform_scheduled_events(cls._game_state.world_clock_tick)
             await cls.check_aggressive_near_players()
 
             # Sleep for remaining tick time
@@ -131,6 +163,6 @@ class MainProcess:
                 for char in p.location_room.get_characters():
                     if char != p and char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
                         and char.fighting_whom == None and cls._game_state.can_see(char, p):
-                        logger.critical(f"aggressive char {char.name} sees player {p.name}")
+                        logger.debug3(f"aggressive char {char.name} sees player {p.name}")
                         await CoreActionsInterface.get_instance().do_aggro(char)
         logger.debug3("done checking aggressive near players")

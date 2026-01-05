@@ -8,6 +8,17 @@ class TriggerType(Enum):
     CATCH_TELL = 3
     TIMER_TICK = 4
     CATCH_LOOK = 5
+    ON_ENTER = 6      # Fires when a character enters the room
+    ON_EXIT = 7       # Fires when a character exits the room
+    ON_RECEIVE = 8    # Fires when an NPC receives an item via give
+    ON_GET = 9        # Fires when an object is picked up
+    ON_DROP = 10      # Fires when an object is dropped
+    ON_OPEN = 11      # Fires when an object is opened
+    ON_CLOSE = 12     # Fires when an object is closed
+    ON_LOCK = 13      # Fires when an object is locked
+    ON_UNLOCK = 14    # Fires when an object is unlocked
+    ON_USE = 15       # Fires when an object is used
+    UNKNOWN = 99
 
     def __str__(self):
         return "TriggerType." + self.name

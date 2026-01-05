@@ -1,5 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Callable
+import asyncio
+import inspect
 
 class EventType:
     COMBAT_TICK = "combat_tick"
@@ -20,7 +22,10 @@ class ScheduledEvent:
 
     async def run(self, current_tick: int, game_state: 'GameStateInterface'):
         if self.func:
-            await self.func(self.subject, current_tick, game_state, self.vars)
+            result = self.func(self.subject, current_tick, game_state, self.vars)
+            # Handle both sync and async callbacks
+            if asyncio.iscoroutine(result):
+                await result
 
 class GameStateInterface:
 

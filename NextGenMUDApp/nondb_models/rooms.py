@@ -4,7 +4,7 @@ from .actors import Actor
 from ..communication import CommTypes
 from ..structured_logger import StructuredLogger
 from .object_interface import ObjectInterface
-from .room_interface import RoomInterface
+from .room_interface import RoomInterface, Exit
 from .triggers import Trigger
 from ..utility import replace_vars, firstcap, evaluate_functions_in_line
 from ..comprehensive_game_state_interface import GameStateInterface
@@ -56,7 +56,7 @@ class Room(Actor, RoomInterface):
 
             for direction, exit_info in yaml_data['exits'].items():
                 # logger.debug3(f"loading direction: {direction}")
-                self.exits[direction] = exit_info['destination']
+                self.exits[direction] = Exit.from_yaml(exit_info)
 
             if 'characters' in yaml_data:
                 logger.debug3("characters found")
@@ -69,7 +69,7 @@ class Room(Actor, RoomInterface):
                     logger.debug(f"spawn_id: {spawn_id}")
                     # print(repr(character))
                     respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
-                                                character['respawn time min'], character['respawn time max'])
+                                                character.get('respawn time min'), character.get('respawn time max'))
                     self.spawn_data.append(respawn)
 
             if 'triggers' in yaml_data:

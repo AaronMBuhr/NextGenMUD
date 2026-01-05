@@ -6,6 +6,7 @@ import sys
 
 class Config:
     WORLD_DATA_DIR: str = "world_data"
+    LLM: dict = None  # LLM provider configuration
 
     def load_from_yaml(self, file_path=None):
         from .constants import Constants

@@ -65,6 +65,14 @@ class Actor(ActorInterface):
             raise Exception("self.reference_number_ is None for actor: " + self.name + " (" + self.id + ")")
         return self.reference_number + "{" + self.id + "}"
 
+    @property
+    def is_unkillable(self) -> bool:
+        """Returns True if this NPC has no respawn time (important/unique NPC)."""
+        if self.spawned_from is None:
+            return False  # Not spawned, probably a PC or dynamic spawn
+        # If respawn_time_min is None, this NPC doesn't respawn and is considered unkillable
+        return self.spawned_from.respawn_time_min is None
+
     def to_dict(self):
         return {'actor_type': self.actor_type.name, 'id': self.id, 'name': self.name, 'reference_number': self.reference_number}
 

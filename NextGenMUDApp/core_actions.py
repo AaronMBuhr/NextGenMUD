@@ -16,12 +16,62 @@ from .nondb_models.character_interface import CharacterInterface, PermanentChara
 from .nondb_models.rooms import Room
 from .skills_core import Skills
 from .nondb_models.triggers import TriggerType, TriggerFlags
+from .constants import Constants
+from .llm_npc_conversation import NPCConversationHandler
 from .utility import set_vars, firstcap, article_plus_name, roll_dice, ticks_from_seconds
 
 
 class CoreActions(CoreActionsInterface):
     config: Config = default_app_config
     game_state: GameStateInterface = GameStateInterface.get_instance()
+
+    # Direction opposites for flee mechanic
+    OPPOSITE_DIRECTIONS = {
+        'north': 'south', 'south': 'north',
+        'east': 'west', 'west': 'east',
+        'up': 'down', 'down': 'up',
+        'northeast': 'southwest', 'southwest': 'northeast',
+        'northwest': 'southeast', 'southeast': 'northwest',
+        'in': 'out', 'out': 'in',
+        'n': 's', 's': 'n',
+        'e': 'w', 'w': 'e',
+        'u': 'd', 'd': 'u',
+        'ne': 'sw', 'sw': 'ne',
+        'nw': 'se', 'se': 'nw',
+    }
+
+    def get_opposite_direction(self, direction: str) -> str:
+        """Return the opposite direction, or None if unknown."""
+        return self.OPPOSITE_DIRECTIONS.get(direction.lower())
+
+    def find_exit_to_room(self, from_room: 'Room', target_room: 'Room') -> str:
+        """
+        Find which exit in from_room leads to target_room.
+        Returns the direction name, or None if no exit leads there.
+        
+        This is used for flee direction weighting - we want to know which
+        direction leads back to where the player came from, regardless of
+        the actual compass direction (handles diagonal hallways, etc.).
+        """
+        if not from_room or not target_room:
+            return None
+        
+        # Build the target room's full ID for comparison
+        target_full_id = f"{target_room.zone.id}.{target_room.id}"
+        
+        for direction, exit_obj in from_room.exits.items():
+            destination = exit_obj.destination
+            # Normalize to full zone.room format
+            if "." in destination:
+                dest_full = destination
+            else:
+                dest_full = f"{from_room.zone.id}.{destination}"
+            
+            if dest_full == target_full_id:
+                return direction
+        
+        # No exit leads back (one-way passage, pit, teleport, etc.)
+        return None
 
     async def do_look_room(self, actor: Actor, room: Room):
         logger = StructuredLogger(__name__, prefix="do_look_room()> ")
@@ -34,15 +84,22 @@ class CoreActions(CoreActionsInterface):
         for character in room.characters:
             if character != actor:
                 logger.debug3(f"character: {character.rid}")
+                # Append * to NPCs with LLM conversation for display (testing indicator)
+                has_llm = character.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None
+                llm_marker = "*" if has_llm else ""
+                display_name = character.art_name_cap + llm_marker
                 if character.fighting_whom:
+                    fighting_has_llm = character.fighting_whom.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None
+                    fighting_llm_marker = "*" if fighting_has_llm else ""
+                    fighting_display_name = character.fighting_whom.art_name + fighting_llm_marker
                     if character.fighting_whom == actor:
-                        msg_parts.append(character.art_name_cap + " is here, fighting you!")
+                        msg_parts.append(display_name + " is here, fighting you!")
                     else:
-                        msg_parts.append(character.art_name_cap + " is here, fighting " + character.fighting_whom.art_name + "!")
+                        msg_parts.append(display_name + " is here, fighting " + fighting_display_name + "!")
                 else:
                     # print("character.article: " + character.article_)
                     # print("character.name: " + character.name)
-                    msg_parts.append(character.art_name_cap + " is here.")
+                    msg_parts.append(display_name + " is here.")
         logger.debug3("objects")
         for object in room.contents: 
             msg_parts.append(object.art_name_cap + " is here.")
@@ -87,6 +144,12 @@ class CoreActions(CoreActionsInterface):
         if actor.location_room is not None:
             raise Exception("Actor must not already be in a room to arrive in a room.")
         
+        # Track which exit in the new room leads back to where we came from (for flee weighting)
+        # This handles diagonal hallways, weird layouts, etc. - not just "opposite direction"
+        actor.last_entered_from = None
+        if room_from:
+            actor.last_entered_from = self.find_exit_to_room(room, room_from)
+        
         # logger.critical(f"arriving in {room.name} for {actor.rid}")
         actor.location_room = room
         room.add_character(actor)
@@ -95,6 +158,37 @@ class CoreActions(CoreActionsInterface):
         vars = set_vars(actor, actor, actor, room_msg)
         await self.do_look_room(actor, actor.location_room)
         await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor], game_state=self.game_state)
+        
+        # Send initial status update for PCs entering a room
+        if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            await actor.send_status_update()
+        
+        # Fire ON_ENTER triggers on the room itself
+        if TriggerType.ON_ENTER in room.triggers_by_type:
+            for trigger in room.triggers_by_type[TriggerType.ON_ENTER]:
+                await trigger.run(actor, "", vars, self.game_state)
+        
+        # Fire ON_ENTER triggers on NPCs in the room when a player enters
+        # This allows NPCs to react to players entering (e.g., greet them)
+        # The NPC is the executor (commands go to NPC's queue), entering player is %s%/%S%
+        if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            for npc in room.get_characters():
+                if npc == actor:
+                    continue
+                if not npc.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                    # Fire NPC's ON_ENTER triggers - NPC executes script, entering player in %s%/%S%
+                    if TriggerType.ON_ENTER in npc.triggers_by_type:
+                        npc_vars = set_vars(npc, actor, actor, room_msg)
+                        for trigger in npc.triggers_by_type[TriggerType.ON_ENTER]:
+                            await trigger.run(npc, "", npc_vars, self.game_state)
+            
+            # Fire ON_ENTER triggers on objects in the room
+            # Objects execute immediately (no queue), entering player is %s%/%S%
+            for obj in room.contents:
+                if TriggerType.ON_ENTER in obj.triggers_by_type:
+                    obj_vars = set_vars(obj, actor, actor, room_msg)
+                    for trigger in obj.triggers_by_type[TriggerType.ON_ENTER]:
+                        await trigger.run(obj, "", obj_vars, self.game_state)
         # reset trigger timers
         reset_triggers_by_room(room)
         # was this a zone change?
@@ -119,7 +213,7 @@ class CoreActions(CoreActionsInterface):
         # logger.critical(f"checking if {actor.rid} ({actor.art_name}) wants to aggro existing room occupants")
         incoming_aggroed = await self.do_aggro(actor)
         if incoming_aggroed:
-            logger.critical(f"{actor.rid} initiated aggro against room occupants")
+            logger.debug3(f"{actor.rid} initiated aggro against room occupants")
             # Continue checking room occupants - they may still want to aggro on the incoming character
         
         # Second: Check if existing room occupants want to aggro the arriving character
@@ -171,14 +265,41 @@ class CoreActions(CoreActionsInterface):
             vars = set_vars(actor, actor, actor, msg)
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             return
+        
+        # Stop meditating when moving
+        if hasattr(actor, 'is_meditating') and actor.is_meditating:
+            actor.is_meditating = False
+            await actor.send_text(CommTypes.DYNAMIC, "You stop meditating.")
 
         old_room = actor.location_room
-        destination = old_room.exits[direction]
+        exit_obj = old_room.exits[direction]
+        
+        # Check for closed/locked door
+        if exit_obj.has_door:
+            if exit_obj.is_closed:
+                msg = f"{exit_obj.art_name_cap} is closed."
+                vars = set_vars(actor, actor, actor, msg)
+                await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                return
+        
+        destination = exit_obj.destination
         if "." in destination:
             zone_id, room_id = destination.split(".")
         else:
             zone_id = old_room.zone.id
             room_id = destination
+        
+        # Normalize destination to full zone.room format for guard check
+        full_destination = f"{zone_id}.{room_id}"
+        
+        # Check if any guard blocks this destination
+        blocking_guard = actor.get_guarded_destination(full_destination)
+        if blocking_guard:
+            msg = f"{blocking_guard.art_name_cap} blocks your path!"
+            vars = set_vars(actor, actor, blocking_guard, msg)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            return
+        
         try:        
             new_room = self.game_state.get_zone_by_id(zone_id).rooms[room_id]
         except KeyError:
@@ -192,9 +313,44 @@ class CoreActions(CoreActionsInterface):
         vars = set_vars(actor.location_room, actor, actor, msg, { 'direction': direction })
         await actor.location_room.echo("dynamic", msg, exceptions=[actor], game_state=self.game_state)
         await actor.send_text("dynamic", f"You leave {direction}.")
+        
+        # Fire ON_EXIT triggers before leaving the room
+        await self._fire_exit_triggers(actor, old_room, direction)
+        
         actor.location_room.remove_character(actor)
         actor.location_room = None
         await self.arrive_room(actor, new_room, old_room)
+
+
+    async def _fire_exit_triggers(self, actor: Actor, room: Room, direction: str):
+        """Fire ON_EXIT triggers when a character leaves a room."""
+        from .nondb_models.character_interface import PermanentCharacterFlags
+        
+        exit_vars = set_vars(room, actor, actor, direction, {'direction': direction})
+        
+        # Fire room's ON_EXIT triggers (room executes script immediately)
+        if TriggerType.ON_EXIT in room.triggers_by_type:
+            for trigger in room.triggers_by_type[TriggerType.ON_EXIT]:
+                await trigger.run(room, direction, exit_vars, self.game_state)
+        
+        # Fire NPC ON_EXIT triggers when a player leaves
+        # NPCs execute script (commands queued), leaving player is %s%/%S%
+        if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            for npc in room.get_characters():
+                if npc == actor:
+                    continue
+                if not npc.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                    if TriggerType.ON_EXIT in npc.triggers_by_type:
+                        npc_vars = set_vars(npc, actor, actor, direction, {'direction': direction})
+                        for trigger in npc.triggers_by_type[TriggerType.ON_EXIT]:
+                            await trigger.run(npc, direction, npc_vars, self.game_state)
+            
+            # Fire object ON_EXIT triggers (objects execute immediately)
+            for obj in room.contents:
+                if TriggerType.ON_EXIT in obj.triggers_by_type:
+                    obj_vars = set_vars(obj, actor, actor, direction, {'direction': direction})
+                    for trigger in obj.triggers_by_type[TriggerType.ON_EXIT]:
+                        await trigger.run(obj, direction, obj_vars, self.game_state)
 
 
     # async def do_echo(actor: Actor, comm_type: CommTypes, text: str):
@@ -234,8 +390,16 @@ class CoreActions(CoreActionsInterface):
         if target.is_dead():
             # can't fight dead actors
             return
+        if target.is_unkillable:
+            # can't fight unkillable NPCs (important NPCs without respawn)
+            return
         subject.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
         target.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
+        # Stop meditation for both combatants
+        if hasattr(subject, 'is_meditating'):
+            subject.is_meditating = False
+        if hasattr(target, 'is_meditating'):
+            target.is_meditating = False
         subject.fighting_whom = target
         if subject.has_perm_flags(PermanentCharacterFlags.IS_PC) and target.fighting_whom != subject:
             msg = f"You attack {target.art_name}!"
@@ -251,7 +415,7 @@ class CoreActions(CoreActionsInterface):
                                         exceptions=[subject, target], game_state=self.game_state)
             self.game_state.add_character_fighting(subject)
             self.game_state.add_character_fighting(target)
-        logger.critical("checking for aggro or friends")
+        logger.debug3("checking for aggro or friends")
         
         # Player is initiating combat
         is_player_initiating = subject.has_perm_flags(PermanentCharacterFlags.IS_PC)
@@ -259,7 +423,7 @@ class CoreActions(CoreActionsInterface):
         is_fighting_in_room = True
         
         for c in target.location_room.get_characters():
-            logger.critical(f"checking {c.rid}: attitude={c.attitude}, group={c.group_id}")
+            logger.debug3(f"checking {c.rid}: attitude={c.attitude}, group={c.group_id}")
             
             # Skip if already fighting or if this is the subject or target
             if c.fighting_whom is not None or c == subject or c == target:
@@ -311,7 +475,7 @@ class CoreActions(CoreActionsInterface):
                     join_target = target  # Help group member attack their target
             
             if will_join_fight:
-                logger.critical(f"found {c.rid} joining in against {join_target.rid}")
+                logger.debug3(f"found {c.rid} joining in against {join_target.rid}")
                 msg = f"You join the attack against {join_target.art_name}!"
                 vars = set_vars(c, c, join_target, msg)
                 await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
@@ -324,12 +488,12 @@ class CoreActions(CoreActionsInterface):
                 c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
                 c.fighting_whom = join_target
                 self.game_state.add_character_fighting(c)
-        logger.critical(f"looking room for {subject.rid}")
+        logger.debug3(f"looking room for {subject.rid}")
         await self.do_look_room(subject, subject.location_room)
 
     async def fight_next_opponent(self, actor: Actor):
         logger = StructuredLogger(__name__, prefix="fight_next_opponent()> ")
-        logger.critical(f"actor: {actor}")
+        logger.debug3(f"actor: {actor}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to fight next opponent.")
         if actor.fighting_whom != None:
@@ -337,18 +501,23 @@ class CoreActions(CoreActionsInterface):
             # return
         for c in actor.location_room.get_characters():
             if c.fighting_whom == actor:
-                logger.critical(f"actor: {actor}, c: {c}")
+                logger.debug3(f"actor: {actor}, c: {c}")
                 await self.start_fighting(actor, c)
                 break
-        logger.critical(f"actor: {actor} no opponent found")
+        logger.debug3(f"actor: {actor} no opponent found")
 
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
-        # TODO:L: maybe do "x kills you"
         from .nondb_models.objects import Corpse
         logger = StructuredLogger(__name__, prefix="do_die()> ")
+        
+        is_player = dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC)
+        room = dying_actor.location_room
+        
+        # Death message to the dying actor
         msg = f"You die!"
         await dying_actor.echo(CommTypes.DYNAMIC, msg, set_vars(dying_actor, dying_actor, dying_actor, msg), game_state=self.game_state)
 
+        # Death messages to killer and room
         if killer:
             msg = f"You kill {dying_actor.art_name}!"
             await killer.echo(CommTypes.DYNAMIC, msg, set_vars(killer, killer, dying_actor, msg), game_state=self.game_state)
@@ -366,52 +535,166 @@ class CoreActions(CoreActionsInterface):
                 await dying_actor.location_room.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(dying_actor, None, dying_actor, msg),
                                                 exceptions=[dying_actor], game_state=self.game_state)
+        
+        # Remove from combat
         if dying_actor in self.game_state.get_characters_fighting():
             self.game_state.remove_character_fighting(dying_actor)
         dying_actor.fighting_whom = None
-        dying_actor.current_hit_points = 0
-        room = dying_actor.location_room
         
+        # Distribute XP to those who killed an NPC
         those_fighting_dier = [c for c in room.get_characters() if c.fighting_whom == dying_actor]
-        if not dying_actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+        if not is_player:
             xp_amount = dying_actor.experience_points
-            logger.critical(f"those_fighting: {those_fighting_dier}")
+            logger.debug3(f"those_fighting: {those_fighting_dier}")
             total_levels = sum([c.total_levels() for c in those_fighting_dier])
-            logger.critical(f"total_levels: {total_levels}")
-            for c in those_fighting_dier:
-                this_xp = math.ceil(xp_amount * c.total_levels() / total_levels)
-                c.experience_points += this_xp
-                msg = f"You gain {this_xp} experience points!"
-                await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=self.game_state)
+            logger.debug3(f"total_levels: {total_levels}")
+            if total_levels > 0:
+                for c in those_fighting_dier:
+                    this_xp = math.ceil(xp_amount * c.total_levels() / total_levels)
+                    c.experience_points += this_xp
+                    msg = f"You gain {this_xp} experience points!"
+                    await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=self.game_state)
 
-
+        # Those fighting the dying actor switch to new targets
         for c in those_fighting_dier:
             c.fighting_whom = None
             if c in self.game_state.get_characters_fighting():
                 self.game_state.remove_character_fighting(c)
             await self.fight_next_opponent(c)
 
+        # Remove from room (temporarily for players)
         dying_actor.location_room.remove_character(dying_actor)
+        dying_actor.location_room = None
+        
+        # Create corpse
         corpse = Corpse(dying_actor, room)
-        corpse.transfer_inventory()
+        
+        if is_player:
+            # PLAYER DEATH: Only drop inventory (not equipped gear)
+            corpse.transfer_inventory_only()
+            corpse.owner_id = dying_actor.id  # Track who owns this corpse
+            
+            # Schedule corpse decay (30 minutes)
+            decay_ticks = ticks_from_seconds(30 * 60)
+            self.game_state.add_scheduled_action(
+                corpse, "corpse_decay", in_ticks=decay_ticks,
+                vars={'corpse': corpse, 'room': room},
+                func=lambda a, v: self._decay_corpse(v['corpse'], v['room'])
+            )
+            
+            # Apply XP penalty (5% of current level's XP, can't de-level)
+            await self._apply_death_xp_penalty(dying_actor)
+            
+            # Respawn player at start room with full HP
+            await self._respawn_player(dying_actor)
+        else:
+            # NPC DEATH: Drop all inventory
+            corpse.transfer_inventory()
+            dying_actor.current_hit_points = 0
+            dying_actor.is_deleted = True
+            
+            # Handle NPC respawn scheduling
+            if dying_actor.spawned_from:
+                dying_actor.spawned_from.spawned.remove(dying_actor)
+                if dying_actor.spawned_from.current_quantity < dying_actor.spawned_from.desired_quantity:
+                    character_def = self.game_state.get_world_definition().find_character_definition(dying_actor.id)
+                    if character_def:
+                        in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
+                                                        + random.randint(0, dying_actor.spawned_from.respawn_time_max 
+                                                                        - dying_actor.spawned_from.respawn_time_min))
+                        vars = { 'spawn_data': dying_actor.spawned_from }
+                        self.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
+                                                            vars=vars, func=lambda a,v: self.game_state.respawn_character(a,v))
+            self.game_state.remove_character(dying_actor)
+        
+        # Add corpse to room
         room.add_object(corpse)
+        
+        # Refresh room display for remaining players
         for c in room.characters:
             if c != dying_actor and c.has_perm_flags(PermanentCharacterFlags.IS_PC):
                 logger.debug(f"{c.rid} is refreshing room")
                 await self.do_look_room(c, room)
-        if dying_actor.spawned_from:
-            dying_actor.spawned_from.spawned.remove(dying_actor)
-            if dying_actor.spawned_from.current_quantity < dying_actor.spawned_from.desired_quantity:
-                character_def = self.game_state.get_world_definition().find_character_definition(dying_actor.id)
-                if character_def:
-                    in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
-                                                    + random.randint(0, dying_actor.spawned_from.respawn_time_max 
-                                                                    - dying_actor.spawned_from.respawn_time_min))
-                    vars = { 'spawn_data': dying_actor.spawned_from }
-                    self.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
-                                                        vars=vars, func=lambda a,v: self.game_state.respawn_character(a,v))
-        self.game_state.remove_character(dying_actor)
-        dying_actor.is_deleted = True
+
+    async def _apply_death_xp_penalty(self, player: Actor):
+        """Apply 5% XP penalty for death. Cannot de-level."""
+        logger = StructuredLogger(__name__, prefix="_apply_death_xp_penalty()> ")
+        
+        total_level = player.total_levels()
+        if total_level <= 1:
+            # Level 1 players have no XP to lose
+            return
+        
+        # Get XP thresholds
+        xp_progression = Constants.XP_PROGRESSION
+        current_level_threshold = xp_progression[total_level - 1] if total_level > 0 else 0
+        
+        # Calculate XP within current level
+        xp_in_level = player.experience_points - current_level_threshold
+        
+        # 5% penalty
+        xp_loss = int(xp_in_level * 0.05)
+        
+        if xp_loss > 0:
+            player.experience_points -= xp_loss
+            # Floor at current level threshold (can't de-level)
+            player.experience_points = max(player.experience_points, current_level_threshold)
+            
+            msg = f"You lose {xp_loss} experience points."
+            await player.echo(CommTypes.DYNAMIC, msg, set_vars(player, player, player, msg), game_state=self.game_state)
+            logger.info(f"Player {player.name} lost {xp_loss} XP on death")
+
+    async def _respawn_player(self, player: Actor):
+        """Respawn player at start location with full HP."""
+        logger = StructuredLogger(__name__, prefix="_respawn_player()> ")
+        
+        # Get start room from config
+        start_location = Constants.DEFAULT_START_LOCATION
+        if "." in start_location:
+            zone_id, room_id = start_location.split(".")
+        else:
+            zone_id = start_location
+            room_id = None
+        
+        start_zone = self.game_state.get_zone_by_id(zone_id)
+        if not start_zone:
+            logger.error(f"Start zone {zone_id} not found for player respawn!")
+            return
+        
+        start_room = start_zone.rooms.get(room_id) if room_id else None
+        if not start_room:
+            # Use first room in zone
+            start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
+        
+        # Restore HP to full
+        player.current_hit_points = player.max_hit_points
+        
+        # Clear any negative states
+        player.remove_temp_flags(TemporaryCharacterFlags.IS_STUNNED | 
+                                  TemporaryCharacterFlags.IS_FROZEN |
+                                  TemporaryCharacterFlags.IS_SLEEPING |
+                                  TemporaryCharacterFlags.IS_SITTING)
+        
+        # Arrive at respawn location
+        logger.info(f"Player {player.name} respawning at {start_room.name}")
+        await self.arrive_room(player, start_room)
+        
+        msg = "You awaken at a safe location."
+        await player.echo(CommTypes.DYNAMIC, msg, set_vars(player, player, player, msg), game_state=self.game_state)
+
+    def _decay_corpse(self, corpse: 'Object', room: 'Room'):
+        """Remove a corpse after decay time, destroying any remaining contents."""
+        logger = StructuredLogger(__name__, prefix="_decay_corpse()> ")
+        
+        if corpse in room.contents:
+            # Destroy any remaining items in the corpse
+            for obj in corpse.contents[:]:
+                corpse.remove_object(obj)
+                obj.is_deleted = True
+            
+            room.remove_object(corpse)
+            corpse.is_deleted = True
+            logger.info(f"Corpse {corpse.name} has decayed")
 
 
     async def do_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True, do_die=True) -> Tuple[int, int]:
@@ -419,6 +702,11 @@ class CoreActions(CoreActionsInterface):
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to do damage.")
+        
+        # Unkillable NPCs (important NPCs without respawn) cannot take damage
+        if target.is_unkillable:
+            logger.debug(f"Target {target.rid} is unkillable, ignoring damage")
+            return 0, target.current_hit_points
         
         if damage < 1 and damage > 0.5:
             damage = 1
@@ -451,6 +739,9 @@ class CoreActions(CoreActionsInterface):
                 await target.location_room.echo(CommTypes.DYNAMIC, msg,
                                                 set_vars(target.location_room, target, target, msg),
                                                 exceptions=[target], game_state=self.game_state)
+        # Send status update to target if they're a PC
+        if target.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            await target.send_status_update()
         return damage, target.current_hit_points
                 
 
@@ -459,6 +750,12 @@ class CoreActions(CoreActionsInterface):
         logger.debug(f"actor: {actor}, target: {target}, damage: {damage}, damage_type: {damage_type}")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to accept damage.")
+        
+        # Unkillable NPCs (important NPCs without respawn) cannot take damage
+        if target.is_unkillable:
+            logger.debug(f"Target {target.rid} is unkillable, ignoring damage")
+            return 0, target.current_hit_points
+        
         target_resistance = (target.damage_resistances.get(damage_type) / 100)
         if target_resistance > 1:
             target_resistance = 1
@@ -473,18 +770,18 @@ class CoreActions(CoreActionsInterface):
         # TODO:M: figure out weapons
         # TODO:L: deal with nouns and verbs correctly
         logger = StructuredLogger(__name__, prefix="do_single_attack()> ")
-        logger.critical(f"actor: {actor.rid}, target: {target.rid}")
-        logger.critical(f"attackdata: {attack.to_dict()}")
+        logger.debug3(f"actor: {actor.rid}, target: {target.rid}")
+        logger.debug3(f"attackdata: {attack.to_dict()}")
         if actor.actor_type != ActorType.CHARACTER:
             raise Exception("Actor must be of type CHARACTER to attack.")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to attack.")
         hit_modifier = actor.hit_modifier + attack.attack_bonus
-        logger.critical(f"dodge_dice_number: {target.dodge_dice_number}, dodge_dice_size: {target.dodge_dice_size}, dodge_modifier: {target.dodge_modifier}")
+        logger.debug3(f"dodge_dice_number: {target.dodge_dice_number}, dodge_dice_size: {target.dodge_dice_size}, dodge_modifier: {target.dodge_modifier}")
         dodge_roll = roll_dice(target.dodge_dice_number, target.dodge_dice_size) + target.dodge_modifier
         hit_roll = random.randint(1, 100)
         if hit_roll + hit_modifier < dodge_roll:
-            logger.critical(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
+            logger.debug3(f"MISS: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
             msg = f"You miss {target.art_name} with {attack.attack_noun}!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
             msg = f"{actor.art_name_cap} misses you with {attack.attack_noun}!"
@@ -496,7 +793,7 @@ class CoreActions(CoreActionsInterface):
             return -1 # a miss
         # is it a critical?
         critical = random.randint(1,100) < actor.critical_chance
-        logger.critical(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
+        logger.debug3(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
         msg = f"You {"critically " if critical else ""}{attack.attack_verb} {target.art_name} with {attack.attack_noun}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
@@ -515,8 +812,8 @@ class CoreActions(CoreActionsInterface):
                 damage *= (100 + actor.critical_damage_bonus) / 100
             await self.do_calculated_damage(actor, target, damage, dp.damage_type)
             total_damage += damage
-            logger.critical(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
-        logger.critical(f"total damage: {total_damage}")
+            logger.debug3(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
+        logger.debug3(f"total damage: {total_damage}")
         return total_damage
             
 
@@ -530,6 +827,22 @@ class CoreActions(CoreActionsInterface):
             return
         target = actor.fighting_whom
         logger.debug3(f"handling combat tick for {actor.rid} against {target.rid}")
+        
+        # For NPCs, use combat AI to decide whether to use a skill
+        # This queues a command rather than executing directly, so NPCs get
+        # the same command handling (duration, queueing, etc.) as players
+        if not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            from .combat_ai import CombatAI
+            skill_queued = CombatAI.queue_combat_action(actor, target)
+            if skill_queued:
+                # A skill command was queued, skip auto-attack this round
+                # The skill will be executed when the command queue is processed
+                # Still need to check if target should fight back
+                if target.fighting_whom == None:
+                    await self.start_fighting(target, actor)
+                return
+        
+        # Standard auto-attack sequence
         total_dmg = 0
         if actor.equipped[EquipLocation.MAIN_HAND] != None \
         or actor.equipped[EquipLocation.BOTH_HANDS] != None:
@@ -540,8 +853,8 @@ class CoreActions(CoreActionsInterface):
             else:
                 hands = "main hand"
                 weapon = actor.equipped[EquipLocation.MAIN_HAND]
-            logger.critical(f"character: {actor.rid} attacking {num_attacks}x with {weapon.name} in {hands})")
-            logger.critical(f"weapon: +{weapon.attack_bonus} {weapon.damage_type}: {weapon.damage_num_dice}d{weapon.damage_dice_size} +{weapon.damage_bonus}")
+            logger.debug3(f"character: {actor.rid} attacking {num_attacks}x with {weapon.name} in {hands})")
+            logger.debug3(f"weapon: +{weapon.attack_bonus} {weapon.damage_type}: {weapon.damage_num_dice}d{weapon.damage_dice_size} +{weapon.damage_bonus}")
             for n in range(num_attacks):
                 attack_data = AttackData(
                     damage_type=weapon.damage_type, 
@@ -552,12 +865,12 @@ class CoreActions(CoreActionsInterface):
                     attack_noun=weapon.damage_type.noun(),
                     attack_bonus=weapon.attack_bonus
                     )
-                logger.critical(f"attack_data: {attack_data.to_dict()}")
+                logger.debug3(f"attack_data: {attack_data.to_dict()}")
                 total_dmg += await self.do_single_attack(actor, target, attack_data)
         if actor.equipped[EquipLocation.OFF_HAND] != None:
             num_attacks = actor.num_off_hand_attacks
             weapon = actor.equipped[EquipLocation.OFF_HAND]
-            logger.critical(f"character: {actor.rid} attacking, {num_attacks} with {weapon.name} in off hand)")
+            logger.debug3(f"character: {actor.rid} attacking, {num_attacks} with {weapon.name} in off hand)")
             for n in range(num_attacks):
                 attack_data = AttackData(
                     damage_type=weapon.damage_type, 
@@ -570,9 +883,9 @@ class CoreActions(CoreActionsInterface):
                     )
                 total_dmg += await self.do_single_attack(actor, target, attack_data)
         if not actor.equipped[EquipLocation.MAIN_HAND] and not actor.equipped[EquipLocation.BOTH_HANDS] and not actor.equipped[EquipLocation.OFF_HAND]:        
-            logger.critical(f"character: {actor.rid} attacking, {len(actor.natural_attacks)} natural attacks)")
+            logger.debug3(f"character: {actor.rid} attacking, {len(actor.natural_attacks)} natural attacks)")
             for natural_attack in actor.natural_attacks:
-                logger.critical(f"natural_attack: {natural_attack.to_dict()}")
+                logger.debug3(f"natural_attack: {natural_attack.to_dict()}")
                 if target:
                     total_dmg += await self.do_single_attack(actor, target, natural_attack)
         if total_dmg > 0 and target and not target.is_dead():
@@ -601,7 +914,7 @@ class CoreActions(CoreActionsInterface):
                     self.game_state.remove_character_fighting(actor)
                 continue
             if actor.actor_type != ActorType.CHARACTER:
-                logger.critical(f"{actor.rid} is not character: Actor must be of type CHARACTER to process fighting.")
+                logger.debug3(f"{actor.rid} is not character: Actor must be of type CHARACTER to process fighting.")
                 return
             await self.handle_actor_combat_tick(actor)
         
@@ -610,11 +923,11 @@ class CoreActions(CoreActionsInterface):
         logger = StructuredLogger(__name__, prefix="do_aggro()> ")
         # logger.critical(f"do_aggro() actor: {actor.rid}")
         if actor.actor_type != ActorType.CHARACTER:
-            logger.critical(f"{actor.rid} is not character")
+            logger.debug3(f"{actor.rid} is not character")
             logger.error("Actor must be of type CHARACTER to aggro.")
             return False
         if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            logger.critical(f"{actor.rid} is PC, skipping aggro")
+            logger.debug3(f"{actor.rid} is PC, skipping aggro")
             return False
         
         # Check if the actor is hostile (either by attitude or by aggressive flag)
@@ -623,20 +936,20 @@ class CoreActions(CoreActionsInterface):
             # not hostile
             return False
         if actor.fighting_whom != None: # don't aggro if already fighting
-            logger.critical(f"{actor.rid} is fighting")
+            logger.debug3(f"{actor.rid} is fighting")
             return False
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
-            logger.critical(f"{actor.rid} is sitting")
+            logger.debug3(f"{actor.rid} is sitting")
             msg = "You can't aggro while sitting!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return False
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
-            logger.critical(f"{actor.rid} is sleeping")
+            logger.debug3(f"{actor.rid} is sleeping")
             msg = "You can't aggro while sleeping!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return False
         elif actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
-            logger.critical(f"{actor.rid} is stunned")
+            logger.debug3(f"{actor.rid} is stunned")
             msg = "You can't aggro while stunned!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, actor, msg), game_state=self.game_state)
             return False
@@ -657,15 +970,15 @@ class CoreActions(CoreActionsInterface):
                 or c.has_temp_flags(TemporaryCharacterFlags.IS_INVISIBLE)) \
                 and not actor.has_perm_flags(PermanentCharacterFlags.SEE_INVISIBLE) \
                 and not actor.has_temp_flags(TemporaryCharacterFlags.SEE_INVISIBLE):
-                    logger.critical(f"{c.rid} is invisible to {actor.rid}, skipping")
+                    logger.debug3(f"{c.rid} is invisible to {actor.rid}, skipping")
                     continue
 
                 if c.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
                     if Skills.stealthcheck(c, actor):
-                        logger.critical(f"{c.rid} is stealthed from {actor.rid}, skipping")
+                        logger.debug3(f"{c.rid} is stealthed from {actor.rid}, skipping")
                         continue
 
-                logger.critical(f"{actor.rid} aggroing {c.rid}")
+                logger.debug3(f"{actor.rid} aggroing {c.rid}")
                 msg = f"You attack {c.art_name}!"
                 vars = set_vars(actor, actor, c, msg)
                 await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)

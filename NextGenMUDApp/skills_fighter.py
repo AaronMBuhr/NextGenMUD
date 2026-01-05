@@ -1,6 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skills, ClassSkills, Skill
-from .skills_interface import Skill
+from .skills_core import Skills, ClassSkills, Skill, SkillAICondition, SkillType
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -10,7 +9,7 @@ from .nondb_models.actor_states import (
     CharacterStateDodgePenalty, Cooldown
 )
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, AttackData
-from .nondb_models.characters import CharacterSkill
+# CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes
 from .utility import roll_dice, set_vars, ticks_from_seconds, firstcap
@@ -67,7 +66,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject=None,
         message_resist_target=None,
         message_resist_room=None,
-        skill_function=Skills.do_fighter_normal_stance
+        skill_function="do_fighter_normal_stance"
     )
     
     MIGHTY_KICK = Skill(
@@ -91,7 +90,12 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to kick %t%, but %r% dodges!",
         message_resist_target="$cap(%a%) tries to kick you, but you dodge!",
         message_resist_room="$cap(%a%) tries to kick %t%, but %r% dodges!",
-        skill_function=Skills.do_fighter_mighty_kick
+        skill_function="do_fighter_mighty_kick",
+        # AI properties
+        ai_priority=70,
+        ai_condition=SkillAICondition.TARGET_NOT_STUNNED,
+        skill_type=SkillType.STUN,
+        stamina_cost=15
     )
 
     DEMORALIZING_SHOUT = Skill(
@@ -115,7 +119,12 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to demoralize %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to demoralize you, but you resist!",
         message_resist_room="$cap(%a%) tries to demoralize %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_demoralizing_shout
+        skill_function="do_fighter_demoralizing_shout",
+        # AI properties
+        ai_priority=60,
+        ai_condition=SkillAICondition.ALWAYS,
+        skill_type=SkillType.DEBUFF,
+        stamina_cost=20
     )
 
     INTIMIDATE = Skill(
@@ -139,7 +148,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to intimidate %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to intimidate you, but you resist!",
         message_resist_room="$cap(%a%) tries to intimidate %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_intimidate
+        skill_function="do_fighter_intimidate"
     )
 
     DISARM = Skill(
@@ -163,7 +172,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to disarm %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to disarm you, but you resist!",
         message_resist_room="$cap(%a%) tries to disarm %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_disarm
+        skill_function="do_fighter_disarm"
     )
 
     SLAM = Skill(
@@ -187,7 +196,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to slam %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to slam you, but you resist!",
         message_resist_room="$cap(%a%) tries to slam %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_slam
+        skill_function="do_fighter_slam"
     )
 
     BASH = Skill(
@@ -211,7 +220,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to bash %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to bash you, but you resist!",
         message_resist_room="$cap(%a%) tries to bash %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_bash
+        skill_function="do_fighter_bash"
     )
 
     RALLY = Skill(
@@ -235,7 +244,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to rally %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to rally you, but you resist!",
         message_resist_room="$cap(%a%) tries to rally %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_rally
+        skill_function="do_fighter_rally"
     )
 
     REND = Skill(
@@ -259,7 +268,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to rend %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to rend you, but you resist!",
         message_resist_room="$cap(%a%) tries to rend %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_rend
+        skill_function="do_fighter_rend"
     )
 
     CLEAVE = Skill(
@@ -283,7 +292,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to cleave through %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to cleave through you, but you resist!",
         message_resist_room="$cap(%a%) tries to cleave through %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_cleave
+        skill_function="do_fighter_cleave"
     )
 
     WHIRLWIND = Skill(
@@ -307,7 +316,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to whirlwind through %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to whirlwind through you, but you resist!",
         message_resist_room="$cap(%a%) tries to whirlwind through %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_whirlwind
+        skill_function="do_fighter_whirlwind"
     )
 
     EXECUTE = Skill(
@@ -331,7 +340,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to execute %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to execute you, but you resist!",
         message_resist_room="$cap(%a%) tries to execute %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_execute
+        skill_function="do_fighter_execute"
     )
 
     ENRAGE = Skill(
@@ -355,7 +364,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to enrage yourself, but fail!",
         message_resist_target="$cap(%a%) tries to enrage %Q%self, but fails!",
         message_resist_room="$cap(%a%) tries to enrage %Q%self, but fails!",
-        skill_function=Skills.do_fighter_enrage
+        skill_function="do_fighter_enrage"
     )
 
     MASSACRE = Skill(
@@ -379,7 +388,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to massacre %t%, but %r% resists!",
         message_resist_target="$cap(%a%) tries to massacre you, but you resist!",
         message_resist_room="$cap(%a%) tries to massacre %t%, but %r% resists!",
-        skill_function=Skills.do_fighter_massacre
+        skill_function="do_fighter_massacre"
     )
 
     SHIELD_BLOCK = Skill(
@@ -403,7 +412,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to block with your shield, but fail!",
         message_resist_target="$cap(%a%) tries to block with %Q% shield, but fails!",
         message_resist_room="$cap(%a%) tries to block with %Q% shield, but fails!",
-        skill_function=Skills.do_fighter_shield_block
+        skill_function="do_fighter_shield_block"
     )
 
     SHIELD_SWEEP = Skill(
@@ -427,7 +436,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to sweep %t% with your shield, but %r% resists!",
         message_resist_target="$cap(%a%) tries to sweep you with %Q% shield, but you resist!",
         message_resist_room="$cap(%a%) tries to sweep %t% with %Q% shield, but %r% resists!",
-        skill_function=Skills.do_fighter_shield_sweep
+        skill_function="do_fighter_shield_sweep"
     )
 
     BERSERKER_STANCE = Skill(
@@ -451,7 +460,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to enter berserker stance, but fail!",
         message_resist_target="$cap(%a%) tries to enter berserker stance, but fails!",
         message_resist_room="$cap(%a%) tries to enter berserker stance, but fails!",
-        skill_function=Skills.do_fighter_berserker_stance
+        skill_function="do_fighter_berserker_stance"
     )
 
     DEFENSIVE_STANCE = Skill(
@@ -475,7 +484,7 @@ class Skills_Fighter(ClassSkills):
         message_resist_subject="You try to enter defensive stance, but fail!",
         message_resist_target="$cap(%a%) tries to enter defensive stance, but fails!",
         message_resist_room="$cap(%a%) tries to enter defensive stance, but fails!",
-        skill_function=Skills.do_fighter_defensive_stance
+        skill_function="do_fighter_defensive_stance"
     )
 
     @classmethod
@@ -546,7 +555,7 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.DEFENSIVE_STANCE
         DEFENSIVE_STANCE_DODGE_BONUS = 10
         DEFENSIVE_STANCE_RESIST_AMOUNT = 5
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         dodge_bonus = DEFENSIVE_STANCE_DODGE_BONUS * level_mult
         resist_amount = DEFENSIVE_STANCE_RESIST_AMOUNT * level_mult
         resistances = DamageResistances({
@@ -558,19 +567,21 @@ class Skills_Fighter(ClassSkills):
             DamageType.LIGHTNING: resist_amount / 3,
             DamageType.ACID: resist_amount / 3,
         })
-        attrib_mod = (actor.attributes_[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.DEFENSIVE_STANCE],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateDodgeBonus(actor, actor, "defensive stance", dodge_bonus, tick_created=game_tick)
+            new_state = CharacterStateDefensiveStance(actor, cls.game_state, actor, "defensive stance", 
+                                                       dodge_bonus=dodge_bonus, hit_penalty=0, 
+                                                       damage_resistances=resistances, tick_created=game_tick)
             new_state.apply_state(game_tick)
-            new_state = CharacterStateShielded(actor, actor, "defensive stance", resistances, tick_created=game_tick)
-            new_state.apply_state(game_tick)
+            vars = set_vars(actor, actor, actor, "")
             send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
+            vars = set_vars(actor, actor, actor, "")
             send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
@@ -598,7 +609,7 @@ class Skills_Fighter(ClassSkills):
     async def do_fighter_shield_block_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.SHIELD_BLOCK
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         resist_amount = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK] / 5
         resistances = DamageResistances({
@@ -610,7 +621,7 @@ class Skills_Fighter(ClassSkills):
             DamageType.LIGHTNING: resist_amount / 3,
             DamageType.ACID: resist_amount / 3,
         })
-        attrib_mod = (actor.attributes_[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -650,10 +661,10 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.SHIELD_SWEEP
         SHIELD_SWEEP_DAMAGE_MIN = 5
         SHIELD_SWEEP_DAMAGE_MAX = 15
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         damage = random.randint(SHIELD_SWEEP_DAMAGE_MIN, SHIELD_SWEEP_DAMAGE_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -701,8 +712,8 @@ class Skills_Fighter(ClassSkills):
                                            difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.MIGHTY_KICK
         kick_duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) \
-            * actor.levels[CharacterClassRole.FIGHTER] / target.total_levels()
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+            * actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = roll_dice(target.dodge_dice_number_, target.dodge_dice_size_, target.dodge_dice_modifier_)
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
@@ -715,9 +726,9 @@ class Skills_Fighter(ClassSkills):
         else:
             send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
-        if does_resist(actor, actor.attributes_[CharacterAttributes.STRENGTH],
+        if does_resist(actor, actor.attributes[CharacterAttributes.STRENGTH],
                        actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK].skill_level, 
-                       target, target.attributes_[CharacterAttributes.STRENGTH], difficulty_modifier):
+                       target, target.attributes[CharacterAttributes.STRENGTH], difficulty_modifier):
             send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
         else:
@@ -759,12 +770,12 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.DEMORALIZING_SHOUT
         DEMORALIZING_SHOUT_HIT_PENALTY_MIN = 10
         DEMORALIZING_SHOUT_HIT_PENALTY_MAX = 40
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         hit_penalty = random.randint(DEMORALIZING_SHOUT_HIT_PENALTY_MIN, DEMORALIZING_SHOUT_HIT_PENALTY_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -777,9 +788,9 @@ class Skills_Fighter(ClassSkills):
             send_failure_message(actor, targets, THIS_SKILL_DATA, vars)    
             return False
         for target in targets:
-            if does_resist(actor, actor.attributes_[CharacterAttributes.STRENGTH],
+            if does_resist(actor, actor.attributes[CharacterAttributes.STRENGTH],
                         actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK].skill_level, 
-                        target, target.attributes_[CharacterAttributes.WISDOM], difficulty_modifier):
+                        target, target.attributes[CharacterAttributes.WISDOM], difficulty_modifier):
                 send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
             else:
                 send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
@@ -814,12 +825,12 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.INTIMIDATE
         INTIMIDATE_HIT_PENALTY_MIN = 10
         INTIMIDATE_HIT_PENALTY_MAX = 40
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         hit_penalty = random.randint(INTIMIDATE_HIT_PENALTY_MIN, INTIMIDATE_HIT_PENALTY_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -859,11 +870,11 @@ class Skills_Fighter(ClassSkills):
     async def do_fighter_disarm_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.DISARM
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -903,12 +914,12 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.SLAM
         SLAM_DODGE_PENALTY_MIN = 10
         SLAM_DODGE_PENALTY_MAX = 40
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         dodge_penalty = random.randint(SLAM_DODGE_PENALTY_MIN, SLAM_DODGE_PENALTY_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -946,11 +957,11 @@ class Skills_Fighter(ClassSkills):
     async def do_fighter_bash_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.BASH
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -992,11 +1003,11 @@ class Skills_Fighter(ClassSkills):
         RALLY_HIT_BONUS_MAX = 20
         RALLY_DAMAGE_BONUS_MIN = 5
         RALLY_DAMAGE_BONUS_MAX = 20
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         hit_bonus = random.randint(RALLY_HIT_BONUS_MIN, RALLY_HIT_BONUS_MAX) * level_mult
         damage_bonus = random.randint(RALLY_DAMAGE_BONUS_MIN, RALLY_DAMAGE_BONUS_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.CHARISMA] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.CHARISMA] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1040,12 +1051,12 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.REND
         REND_DAMAGE_MIN = 5
         REND_DAMAGE_MAX = 15
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         damage = random.randint(REND_DAMAGE_MIN, REND_DAMAGE_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        target_mod = (target.attributes_[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
+        target_mod = (target.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1083,7 +1094,7 @@ class Skills_Fighter(ClassSkills):
     async def do_fighter_cleave_finish(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.CLEAVE
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1252,7 +1263,7 @@ class Skills_Fighter(ClassSkills):
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
             return False
 
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1311,10 +1322,10 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.ENRAGE
         ENRAGE_DAMAGE_BONUS_MIN = 20
         ENRAGE_DAMAGE_BONUS_MAX = 50
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
         damage_bonus = random.randint(ENRAGE_DAMAGE_BONUS_MIN, ENRAGE_DAMAGE_BONUS_MAX) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1352,7 +1363,7 @@ class Skills_Fighter(ClassSkills):
     async def do_fighter_massacre_finish(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.MASSACRE
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
@@ -1411,11 +1422,11 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.BERSERKER_STANCE
         BERSERKER_STANCE_DODGE_PENALTY = 10
         BERSERKER_STANCE_HIT_BONUS = 20
-        level_mult = actor.levels_[CharacterClassRole.FIGHTER] / target.total_levels_()
+        level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         skill_mod = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BERSERKER_STANCE] / 5
         dodge_mod = BERSERKER_STANCE_DODGE_PENALTY * level_mult
         hit_mod = (BERSERKER_STANCE_HIT_BONUS - skill_mod) * level_mult
-        attrib_mod = (actor.attributes_[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
+        attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls.game_state, cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)

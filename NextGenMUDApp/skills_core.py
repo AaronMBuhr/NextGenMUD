@@ -13,12 +13,14 @@ from .nondb_models.actors import Actor
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, PotentialDamage
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
     PermanentCharacterFlags, TemporaryCharacterFlags
-from .nondb_models.characters import Character, CharacterSkill
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
 from .structured_logger import StructuredLogger
 
 
-from typing import Any, Generic, TypeVar, Optional, List, Tuple, Dict
+from typing import Any, Generic, TypeVar, Optional, List, Tuple, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .nondb_models.characters import Character, CharacterSkill
 # Import the interface and Skill class
 from .skills_interface import SkillsInterface, SkillsRegistryInterface
 
@@ -32,9 +34,9 @@ class SkillsRegistry(SkillsRegistryInterface):
     def register_skill_classes(cls):
         """Register all skill classes"""
         logger = StructuredLogger(__name__, prefix="register_skill_classes()> ")
-        logger.critical("Registering skill classes")
+        logger.info("Registering skill classes")
         if cls._classes_registered:
-            logger.critical("Skill classes already registered")
+            logger.debug3("Skill classes already registered")
             return
             
         from .skills_fighter import Skills_Fighter
@@ -79,24 +81,24 @@ class SkillsRegistry(SkillsRegistryInterface):
             Tuple[Optional[str], str]: (skill_name, remainder) - skill_name will be None if no match found
         """
         logger = StructuredLogger(__name__, prefix="parse_skill_name_from_input()> ")
-        logger.critical(f"parse_skill_name_from_input() input: {input}")
+        logger.debug3(f"parse_skill_name_from_input() input: {input}")
         normalized_input = input.lower().strip()
         words = normalized_input.split()
         if not words:
-            logger.critical(f"no words found in input: {input}")
+            logger.debug3(f"no words found in input: {input}")
             return None, ""
             
         # If direct match, return it
         skill = cls._skills_by_name.get(normalized_input)
-        logger.critical(f"direct match: {skill}")
+        logger.debug3(f"direct match: {skill}")
         if skill:
             return skill.name, ""
             
-        logger.critical(f"no direct match, trying partial match against {len(cls._skills_by_name)} skills")
+        logger.debug3(f"no direct match, trying partial match against {len(cls._skills_by_name)} skills")
         # Try partial matching
         matches = []
         for skill_name in cls._skills_by_name.keys():
-            logger.critical(f"checking skill: {skill_name}")
+            logger.debug3(f"checking skill: {skill_name}")
             # Try to match the beginning of the skill name with the input
             input_chars = list(normalized_input)
             skill_chars = list(skill_name)
@@ -109,10 +111,10 @@ class SkillsRegistry(SkillsRegistryInterface):
                 else:
                     break
             
-            logger.critical(f"match length: {match_length}")
+            logger.debug3(f"match length: {match_length}")
             # If we matched at least 4 characters at the beginning
             if match_length >= 4:
-                logger.critical(f"Partial match found: {skill_name} ({match_length} characters matched)")
+                logger.debug3(f"Partial match found: {skill_name} ({match_length} characters matched)")
                 matches.append((skill_name, match_length))
         
         # Find the longest unique match
@@ -122,13 +124,13 @@ class SkillsRegistry(SkillsRegistryInterface):
             
             # If we have a unique longest match
             if len(matches) == 1 or matches[0][1] > matches[1][1]:
-                logger.critical(f"Unique match found: {matches[0][0]} ({matches[0][1]} characters matched)")
+                logger.debug3(f"Unique match found: {matches[0][0]} ({matches[0][1]} characters matched)")
                 matched_skill_name = matches[0][0]
                 matched_skill = cls._skills_by_name.get(matched_skill_name)
                 
                 # Calculate the remainder - everything after the matched portion
                 matched_portion = normalized_input[:matches[0][1]]
-                logger.critical(f"Matched portion: {matched_portion}")
+                logger.debug3(f"Matched portion: {matched_portion}")
                 
                 # If the matched portion ends with a space, or is the whole input
                 if matches[0][1] >= len(normalized_input):
@@ -141,27 +143,149 @@ class SkillsRegistry(SkillsRegistryInterface):
                     while remainder_start < len(normalized_input) and normalized_input[remainder_start].isspace():
                         remainder_start += 1
                     remainder = normalized_input[remainder_start:]
-                logger.critical(f"Remainder: {remainder}")
+                logger.debug3(f"Remainder: {remainder}")
                 return matched_skill.name, remainder
         
         return None, normalized_input
     
     @classmethod
-    def invoke_skill_by_name(cls, game_state: GameStateInterface, actor: Actor, skill_name: str, skill_args: str, difficulty_modifier: int=0) -> bool:
-        """Invoke a skill"""
+    async def invoke_skill_by_name(cls, game_state: GameStateInterface, actor: Actor, skill_name: str, skill_args: str, difficulty_modifier: int=0) -> bool:
+        """Invoke a skill by name, handling target resolution and async execution."""
+        from .structured_logger import StructuredLogger
+        logger = StructuredLogger(__name__, prefix="invoke_skill_by_name()> ")
+        
         normalized_skill = skill_name.lower()
         skill = cls._skills_by_name.get(normalized_skill)
         if not skill:
+            logger.debug(f"Skill not found: {skill_name}")
             return False
         
+        # Resolve skill_function if it's a string reference
+        skill_func = skill.skill_function
+        if isinstance(skill_func, str):
+            # Look up the method in the registered skill classes
+            skill_func = cls._resolve_skill_function(skill_func, skill.base_class)
+        
+        if not skill_func:
+            logger.debug(f"Skill {skill_name} has no function implementation")
+            return False
+        
+        # Resolve target
         target = None
         if skill_args:
             target = game_state.find_target_character(actor, skill_args)
-        if not target:
-            target = game_state.find_target_object(skill_args)
-        return skill.skill_function(actor, target, difficulty_modifier)
+            if not target:
+                target = game_state.find_target_object(skill_args)
+        
+        # If no target specified but skill requires one, default to fighting_whom
+        if not target and skill.requires_target:
+            if hasattr(actor, 'fighting_whom') and actor.fighting_whom:
+                target = actor.fighting_whom
+                logger.debug(f"Using fighting_whom as default target: {target.name}")
+        
+        # Check if skill requires target and we still don't have one
+        if skill.requires_target and not target:
+            from .communication import CommTypes
+            await actor.send_text(CommTypes.DYNAMIC, f"Who do you want to use {skill.name} on?")
+            return False
+        
+        try:
+            # Get current tick for skill timing
+            current_tick = game_state.world_clock_tick if hasattr(game_state, 'world_clock_tick') else 0
+            
+            # Call the skill function with proper parameters
+            result = await skill_func(
+                actor, 
+                target, 
+                difficulty_modifier=difficulty_modifier, 
+                game_tick=current_tick,
+                nowait=False
+            )
+            
+            # Consume resources if skill succeeded
+            if result and (skill.mana_cost > 0 or skill.stamina_cost > 0):
+                await Skills.consume_resources(actor, skill)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error executing skill {skill_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    @classmethod
+    def _resolve_skill_function(cls, func_name: str, base_class: 'CharacterClassRole') -> callable:
+        """Resolve a string skill function name to the actual callable."""
+        from .structured_logger import StructuredLogger
+        logger = StructuredLogger(__name__, prefix="_resolve_skill_function()> ")
+        
+        # Map base_class to skill class
+        class_map = {
+            CharacterClassRole.FIGHTER: 'Skills_Fighter',
+            CharacterClassRole.MAGE: 'Skills_Mage',
+            CharacterClassRole.ROGUE: 'Skills_Rogue',
+            CharacterClassRole.CLERIC: 'Skills_Cleric',
+        }
+        
+        skill_class_name = class_map.get(base_class)
+        if not skill_class_name:
+            logger.error(f"Unknown base class: {base_class}")
+            return None
+        
+        # Import the skill class dynamically
+        try:
+            if skill_class_name == 'Skills_Fighter':
+                from .skills_fighter import Skills_Fighter
+                skill_class = Skills_Fighter
+            elif skill_class_name == 'Skills_Mage':
+                from .skills_mage import Skills_Mage
+                skill_class = Skills_Mage
+            elif skill_class_name == 'Skills_Rogue':
+                from .skills_rogue import Skills_Rogue
+                skill_class = Skills_Rogue
+            elif skill_class_name == 'Skills_Cleric':
+                from .skills_cleric import Skills_Cleric
+                skill_class = Skills_Cleric
+            else:
+                return None
+            
+            # Get the method from the class
+            if hasattr(skill_class, func_name):
+                return getattr(skill_class, func_name)
+            else:
+                logger.error(f"Method {func_name} not found on {skill_class_name}")
+                return None
+        except Exception as e:
+            logger.error(f"Error resolving skill function {func_name}: {e}")
+            return None
 
 # Skill class definition with all properties
+class SkillAICondition:
+    """Conditions for when an NPC should consider using a skill."""
+    ALWAYS = "always"                   # Always consider this skill
+    SELF_HP_BELOW_25 = "self_hp<25"     # Self HP below 25%
+    SELF_HP_BELOW_50 = "self_hp<50"     # Self HP below 50%
+    SELF_HP_ABOVE_75 = "self_hp>75"     # Self HP above 75%
+    TARGET_HP_BELOW_25 = "target_hp<25" # Target HP below 25%
+    TARGET_HP_BELOW_50 = "target_hp<50" # Target HP below 50%
+    TARGET_NOT_STUNNED = "target_not_stunned"
+    IN_COMBAT = "in_combat"             # Must be in combat
+    NOT_IN_COMBAT = "not_in_combat"     # Must NOT be in combat
+
+class SkillType:
+    """Classification of skill effects for AI decision making."""
+    DAMAGE = "damage"           # Direct damage
+    DOT = "dot"                 # Damage over time
+    HEAL_SELF = "heal_self"     # Heals the caster
+    HEAL_OTHER = "heal_other"   # Heals another
+    BUFF_SELF = "buff_self"     # Buffs the caster
+    BUFF_OTHER = "buff_other"   # Buffs another
+    DEBUFF = "debuff"           # Debuffs enemy
+    STUN = "stun"               # Stuns/incapacitates
+    STANCE = "stance"           # Combat stance change
+    UTILITY = "utility"         # Other effects
+
+
 class Skill:
     def __init__(self, 
                  name: str, 
@@ -171,6 +295,8 @@ class Skill:
                  cast_time_ticks: int = 0,
                  duration_min_ticks: int = 0,
                  duration_max_ticks: int = 0,
+                 mana_cost: int = 0,
+                 stamina_cost: int = 0,
                  message_prepare: Optional[str] = None,
                  message_success_subject: Optional[str] = None,
                  message_success_target: Optional[str] = None,
@@ -184,7 +310,12 @@ class Skill:
                  message_resist_subject: Optional[str] = None,
                  message_resist_target: Optional[str] = None,
                  message_resist_room: Optional[str] = None,
-                 skill_function: Optional[callable] = None):
+                 skill_function: Optional[callable] = None,
+                 # AI properties for NPC skill usage
+                 ai_priority: int = 50,
+                 ai_condition: str = SkillAICondition.ALWAYS,
+                 skill_type: str = SkillType.DAMAGE,
+                 requires_target: bool = True):
         self.name = name
         self.base_class = base_class
         self.cooldown_name = cooldown_name
@@ -192,6 +323,8 @@ class Skill:
         self.cast_time_ticks = cast_time_ticks
         self.duration_min_ticks = duration_min_ticks
         self.duration_max_ticks = duration_max_ticks
+        self.mana_cost = mana_cost
+        self.stamina_cost = stamina_cost
         self.message_prepare = message_prepare
         self.message_success_subject = message_success_subject
         self.message_success_target = message_success_target
@@ -206,19 +339,16 @@ class Skill:
         self.message_resist_target = message_resist_target
         self.message_resist_room = message_resist_room
         self.skill_function = skill_function
+        # AI properties
+        self.ai_priority = ai_priority          # Higher = more likely to use (0-100)
+        self.ai_condition = ai_condition        # When to consider using
+        self.skill_type = skill_type            # What type of effect
+        self.requires_target = requires_target  # Needs a target to use
 
 
 class ClassSkills(GenericEnumWithAttributes):
-    # Add a dummy member with a valid Skill instance to make the enum valid
-    BASE_SKILL = Skill(
-        name="base skill",
-        base_class=CharacterClassRole.FIGHTER,
-        cooldown_name=None,
-        cooldown_ticks=0,
-        cast_time_ticks=0,
-        duration_min_ticks=0,
-        duration_max_ticks=0
-    )
+    # NOTE: Do not add any members here - an enum with members cannot be subclassed
+    # Skill subclasses (Skills_Fighter, Skills_Mage, etc.) will define their own members
     
     @abstractmethod
     def get_level_requirement(self, skill_name: str) -> int:
@@ -230,21 +360,34 @@ class ClassSkills(GenericEnumWithAttributes):
         super().__init_subclass__(**kwargs)
         
         logger = StructuredLogger(__name__, prefix="init_subclass()> ")
-        logger.critical(f"Initializing subclass: {cls.__name__}")
+        logger.debug3(f"Initializing subclass: {cls.__name__}")
         
-        # Get the class role name from the class name (e.g., FighterSkills -> fighter)
+        # Get the class role name from the class name (e.g., Skills_Fighter -> fighter)
         class_role = cls.__name__.replace("Skills_", "").lower()
         
         # Collect all Skill instances from class attributes
+        # Since this is an enum, attributes are enum members - we need to check their values
         skills_dict = {}
         for attr_name in dir(cls):
-            attr = getattr(cls, attr_name)
-            if isinstance(attr, Skill):
-                skill_name = attr.name.lower()
-                skills_dict[skill_name] = attr
+            if attr_name.startswith('_'):
+                continue
+            try:
+                attr = getattr(cls, attr_name)
+                # Check if it's an enum member with a Skill value
+                if hasattr(attr, 'value') and isinstance(attr.value, Skill):
+                    skill = attr.value
+                    skill_name = skill.name.lower()
+                    skills_dict[skill_name] = skill
+                # Also check direct Skill instances (for non-enum cases)
+                elif isinstance(attr, Skill):
+                    skill_name = attr.name.lower()
+                    skills_dict[skill_name] = attr
+            except Exception:
+                pass  # Skip attributes that can't be accessed
         
         # Register with the central registry
         SkillsRegistry.register_skill_class(class_role, skills_dict)
+        logger.info(f"Registered {len(skills_dict)} skills for {class_role}")
 
 
 class Skills(SkillsInterface):
@@ -294,7 +437,7 @@ class Skills(SkillsInterface):
         return True
 
     @classmethod
-    def check_skill_roll(cls, skill_roll: int, actor: Actor, skill: CharacterSkill, difficulty_mod: int=0) -> int:
+    def check_skill_roll(cls, skill_roll: int, actor: Actor, skill: 'CharacterSkill', difficulty_mod: int=0) -> int:
         return skill_roll - skill.skill_level - difficulty_mod 
     
     @classmethod
@@ -332,14 +475,36 @@ class Skills(SkillsInterface):
         return success, margin    
     
     @classmethod
-    def check_ready(cls, actor: Actor, cooldown_name: str=None) -> Tuple[bool, str]:
+    def check_ready(cls, actor: Actor, cooldown_name: str=None, skill: Skill=None) -> Tuple[bool, str]:
         can_act, msg = actor.can_act()
         if not can_act:
             return False, msg
         if cooldown_name and actor.has_cooldown(cooldown_name):
             return False, "You can't use that skill again yet!"
         
+        # Check resource costs if skill provided
+        if skill:
+            if skill.mana_cost > 0 and actor.current_mana < skill.mana_cost:
+                return False, f"You don't have enough mana! (need {skill.mana_cost}, have {int(actor.current_mana)})"
+            if skill.stamina_cost > 0 and actor.current_stamina < skill.stamina_cost:
+                return False, f"You don't have enough stamina! (need {skill.stamina_cost}, have {int(actor.current_stamina)})"
+        
         return True, ""
+    
+    @classmethod
+    async def consume_resources(cls, actor: Actor, skill: Skill) -> None:
+        """Consume mana/stamina for using a skill. Call this after skill succeeds."""
+        from .nondb_models.character_interface import PermanentCharacterFlags
+        changed = False
+        if skill.mana_cost > 0:
+            actor.use_mana(skill.mana_cost)
+            changed = True
+        if skill.stamina_cost > 0:
+            actor.use_stamina(skill.stamina_cost)
+            changed = True
+        # Send status update if resources were consumed and actor is a PC
+        if changed and actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            await actor.send_status_update()
 
     @classmethod
     def send_success_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
