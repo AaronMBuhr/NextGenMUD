@@ -401,12 +401,10 @@ ZONES:
         description: >
           The Whispering Pines is a serene grove of tall pine trees, their needles creating a soft, whispering sound as the wind blows through them. The ground is carpeted with a thick layer of fragrant pine needles, softening footsteps and adding to the tranquil ambiance. Sunlight filters through the canopy, casting dappled shadows on the forest floor. The air is crisp and invigorating, filled with the resinous scent of pine. This grove feels like a sanctuary, offering peace and a deep connection with nature.
 
-          Exits: east, west
+          Exits: east
         exits:
           east:
             destination: ancient_oak
-          west:
-            destination: debug_zone.starting_room_2
         triggers:
           - id: timer_tick_the_gentle_whispering
             type: timer_tick

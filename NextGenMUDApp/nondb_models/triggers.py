@@ -426,14 +426,16 @@ class TriggerOnEnter(Trigger):
                 return False
         
         logger.debug3("executing on_enter script")
-        await self.execute_trigger_script(actor, vars, game_state)
+        # Execute script as the trigger owner (room/npc/object), not the entering character
+        # The entering character is still available via %S%, %s%, etc. in vars
+        await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
 
 class TriggerOnExit(Trigger):
     """
     Fires when a character exits the room where this trigger is attached.
-    The exiting character is the 'actor' for script execution.
+    The exiting character is available via %S%, %s%, etc. in vars.
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
         super().__init__(id, TriggerType.ON_EXIT, actor)
@@ -461,7 +463,9 @@ class TriggerOnExit(Trigger):
                 return False
         
         logger.debug3("executing on_exit script")
-        await self.execute_trigger_script(actor, vars, game_state)
+        # Execute script as the trigger owner (room/npc/object), not the exiting character
+        # The exiting character is still available via %S%, %s%, etc. in vars
+        await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
 

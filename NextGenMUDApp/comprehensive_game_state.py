@@ -435,10 +435,30 @@ class ComprehensiveGameState:
             return Actor.get_reference(target_name[1:])
         if target_name.lower() == 'me' or target_name.lower() == 'self' or target_name.lower() == 'here':
             return actor
+        
+        # Handle zone.room_id format (e.g., "gloomy_graveyard.forest_road_s")
+        # If zone is specified, ONLY search in that zone
+        if "." in target_name:
+            zone_id, room_id = target_name.split(".", 1)
+            if zone_id in self.zones:
+                zone = self.zones[zone_id]
+                # Exact match first
+                if room_id in zone.rooms:
+                    return zone.rooms[room_id]
+                # Try partial match on room_id within the specified zone only
+                for rid, room in zone.rooms.items():
+                    if rid.startswith(room_id):
+                        return room
+            # Zone specified but not found, or room not in that zone - return None
+            return None
+        
+        # No zone specified - search in start_zone first
         for room in start_zone.rooms.values():
             if room.name.startswith(target_name) or room.id.startswith(target_name):
                 return room
-        for zone in self.zones:
+        
+        # Then search all zones
+        for zone in self.zones.values():
             for room in zone.rooms.values():
                 if room.id.startswith(target_name):
                     return room

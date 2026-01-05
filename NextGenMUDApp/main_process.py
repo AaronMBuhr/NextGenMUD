@@ -12,6 +12,8 @@ import time
 from .constants import Constants
 import logging
 from .core_actions_interface import CoreActionsInterface
+import signal
+import sys
 
 
 class MainProcess:
@@ -45,6 +47,7 @@ class MainProcess:
             pass  # Not on Windows or policy unavailable
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        
         # Add custom exception handler to capture and log asyncio callback exceptions at debug3 level
         def handle_asyncio_exception(loop, context):
             logger = StructuredLogger(__name__, prefix="asyncio_exception_handler()> ")
@@ -59,8 +62,13 @@ class MainProcess:
             if exc:
                 logger.debug3(f"Exception details: {exc}")
         loop.set_exception_handler(handle_asyncio_exception)
-        loop.run_until_complete(cls.main_game_loop())
-        loop.close()
+        
+        try:
+            loop.run_until_complete(cls.main_game_loop())
+        except asyncio.CancelledError:
+            pass  # Expected on shutdown
+        finally:
+            loop.close()
     
 
     @classmethod
@@ -92,18 +100,18 @@ class MainProcess:
                 logger.debug3(f"running timer tick trigger for {trig.actor_.rid} ({trig.actor_.id}))")
                 await trig.run(trig.actor_, "", {}, cls._game_state)
 
-            # Process command queues for non-busy NPCs (not PCs - they get commands from input_queue)
-            # This gives NPCs natural reaction timing (~0.5s per tick)
+            # Process command queues for non-busy characters (NPCs and PCs)
+            # This gives natural reaction timing (~0.5s per tick)
+            # PCs use this for system-queued commands like walkto; direct input goes through input_queue
             for ref_id, actor in list(Actor.references_.items()):
                 if actor.actor_type == ActorType.CHARACTER and actor.command_queue:
                     if not actor.is_busy(cls._game_state.world_clock_tick):
                         # Process one command per tick for natural pacing
-                        if not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                            next_command = actor.command_queue.pop(0)
-                            try:
-                                await CommandHandlerInterface.get_instance().process_command(actor, next_command)
-                            except Exception as e:
-                                logger.error(f"Error processing queued command for {actor.rid}: {e}")
+                        next_command = actor.command_queue.pop(0)
+                        try:
+                            await CommandHandlerInterface.get_instance().process_command(actor, next_command)
+                        except Exception as e:
+                            logger.error(f"Error processing queued command for {actor.rid}: {e}")
 
             # Handle fighting ticks
             if cls._game_state.world_clock_tick > last_fighting_tick + Constants.TICKS_PER_ROUND:
@@ -129,11 +137,11 @@ class MainProcess:
             await cls._game_state.perform_scheduled_events(cls._game_state.world_clock_tick)
             await cls.check_aggressive_near_players()
 
-            # Sleep for remaining tick time
+            # Sleep for remaining tick time (use asyncio.sleep for better signal handling)
             time_taken = time.time() - start_tick_time
             sleep_time = Constants.GAME_TICK_SEC - time_taken
             if sleep_time > 0:
-                time.sleep(sleep_time)
+                await asyncio.sleep(sleep_time)
             cls._game_state.world_clock_tick += 1
 
 

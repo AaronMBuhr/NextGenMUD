@@ -15,7 +15,8 @@ ZONES:
           To the north, beyond the gates, you can see the bustle of the city's Market Square. 
           The sounds of haggling merchants and the aroma of fresh bread waft through the air. 
           To the south, a well-traveled road leads into the mysterious Forest of Whispers, its 
-          dense foliage a stark contrast to the urban landscape.
+          dense foliage a stark contrast to the urban landscape. To the west, a shadowy trail 
+          disappears into the dark forest, where the trees grow thick and the light grows dim.
 
           Guards in polished armor stand at attention on either side of the gates, keeping a 
           watchful eye on all who enter and exit the city.
@@ -28,7 +29,8 @@ ZONES:
             real_destination: forest_of_whispers.entrance
             destination: city_gates
           west:
-            destination: debug_zone.starting_room
+            destination: gloomy_graveyard.forest_road_s
+            description: A shadowy trail leads westward into the dark forest.
           east:
             destination: enchanted_forest.whispering_pines
         triggers:

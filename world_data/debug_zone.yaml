@@ -6,12 +6,16 @@ ZONES:
       starting_room:
         name: Starting Room
         description: >
-          The fundamental system starting room.
+          You find yourself in a small, peaceful clearing. Soft grass cushions your feet, 
+          and the air carries the fresh scent of pine. Tall trees surround you on all sides, 
+          their whispering branches swaying gently in the breeze. A well-worn path leads 
+          northward into a grove of towering pines.
           
           Exits: north
         exits:
           north:
-            destination: starting_room_2
+            destination: enchanted_forest.whispering_pines
+            description: A path leads north into the whispering pines.
         triggers:
           - id: catch_say_random
             type: catch_say

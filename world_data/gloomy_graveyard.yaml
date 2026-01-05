@@ -162,9 +162,9 @@ ZONES:
       forest_road_s:
         name: South Dark Forest Road
         description: >
-          A narrow, winding path shrouded in shadows, marking the southern entrance to the dark forest. The dense canopy overhead allows only slivers of moonlight to penetrate, casting eerie patterns on the ground. The air is thick with the scent of moss and damp earth. An unsettling silence pervades, broken occasionally by distant, unidentifiable sounds.
+          A narrow, winding path shrouded in shadows, marking the southern entrance to the dark forest. The dense canopy overhead allows only slivers of moonlight to penetrate, casting eerie patterns on the ground. The air is thick with the scent of moss and damp earth. An unsettling silence pervades, broken occasionally by distant, unidentifiable sounds. To the east, the trees thin out and you can see the imposing silhouette of city walls in the distance.
 
-          Exits: north, south
+          Exits: north, south, east
         exits:
           north:
             destination: forest_road_mid
@@ -172,6 +172,9 @@ ZONES:
           south:
             destination: enchanted_forest.misty_copse
             description: Through the thinning trees, you glimpse a misty copse bathed in an ethereal glow.
+          east:
+            destination: central_city.city_gates
+            description: A well-worn trail leads eastward toward the grand gates of Central City.
         triggers:
           - id: catch_any_howl
             type: catch_any

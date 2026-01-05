@@ -87,6 +87,7 @@ class CommandHandler(CommandHandlerInterface):
         "command": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_command(char, input),
         "stop": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_stop(char, input),
         "walkto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_walkto(char, input),
+        "route": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_route(char, input),
         "delay": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_delay(char, input),
         "setquestvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_setquestvar(char, input),
         "getquestvar": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_getquestvar(char, input),
@@ -193,7 +194,15 @@ class CommandHandler(CommandHandlerInterface):
         msg = None
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
-        commands = [cmd.strip() for cmd in input.split(';') if cmd.strip()]
+        
+        # Check if this is a 'force' command - if so, don't split by semicolon
+        # because force handles semicolon-separated commands internally for the target
+        input_stripped = input.strip()
+        first_word = input_stripped.split()[0].lower() if input_stripped else ""
+        if first_word == "force":
+            commands = [input_stripped]
+        else:
+            commands = [cmd.strip() for cmd in input.split(';') if cmd.strip()]
         try:
             if not commands:
                 msg = "Did you want to do something?"
@@ -3507,52 +3516,129 @@ class CommandHandler(CommandHandlerInterface):
         else:
             await actor.send_text(CommTypes.DYNAMIC, "You have no queued commands to stop.")
 
+    # Direction abbreviation mapping for route output
+    DIRECTION_ABBREV = {
+        'north': 'N', 'south': 'S', 'east': 'E', 'west': 'W',
+        'up': 'U', 'down': 'D', 'in': 'IN', 'out': 'OUT',
+        'n': 'N', 's': 'S', 'e': 'E', 'w': 'W', 'u': 'U', 'd': 'D'
+    }
+
     def find_path(cls, start_room: Room, target_room: Room) -> List[str]:
         """Find the shortest path between two rooms using breadth-first search."""
         if start_room == target_room:
             return []
             
-        # Keep track of visited rooms and their parent rooms
-        visited = {start_room: None}
+        # Keep track of visited rooms and the direction taken to reach them
+        # visited[room] = (parent_room, direction_from_parent)
+        visited = {start_room: (None, None)}
         queue = [start_room]
         
         while queue:
             current = queue.pop(0)
             
             # Check all exits from current room
-            for direction, dest_id in current.exits.items():
+            for direction, exit_obj in current.exits.items():
+                dest_id = exit_obj.destination
                 if "." in dest_id:
-                    zone_id, room_id = dest_id.split(".")
+                    zone_id, room_id = dest_id.split(".", 1)
                 else:
                     zone_id = current.zone.id
                     room_id = dest_id
+                
+                zone = cls._game_state.get_zone_by_id(zone_id)
+                if not zone or room_id not in zone.rooms:
+                    continue  # Skip invalid destinations
                     
-                next_room = cls._game_state.get_zone_by_id(zone_id).rooms[room_id]
+                next_room = zone.rooms[room_id]
                 
                 if next_room == target_room:
                     # Found the target, reconstruct the path
                     path = [direction]
-                    while current != start_room:
-                        # Find the direction that led to current room
-                        for dir, room_id in visited[current].exits.items():
-                            if "." in room_id:
-                                z_id, r_id = room_id.split(".")
-                            else:
-                                z_id = visited[current].zone.id
-                                r_id = room_id
-                            if cls._game_state.get_zone_by_id(z_id).rooms[r_id] == current:
-                                path.append(dir)
-                                break
-                        current = visited[current]
+                    while visited[current][0] is not None:
+                        parent, dir_from_parent = visited[current]
+                        path.append(dir_from_parent)
+                        current = parent
                     return list(reversed(path))
                     
                 if next_room not in visited:
-                    visited[next_room] = current
+                    visited[next_room] = (current, direction)
                     queue.append(next_room)
         
         return None  # No path found
+    
+    def get_route_string(cls, path: List[str]) -> str:
+        """Convert a path list to abbreviated direction string like 'E E S D E N U'."""
+        if not path:
+            return ""
+        abbrevs = []
+        for direction in path:
+            abbrev = cls.DIRECTION_ABBREV.get(direction.lower(), direction.upper())
+            abbrevs.append(abbrev)
+        return " ".join(abbrevs)
+
+    async def cmd_route(cls, actor: Actor, input: str):
+        """
+        Find and display the route to a target.
+        
+        This is a privileged/NPC command.
+        
+        Usage: route <target>
+        
+        Target can be:
+        - An NPC name
+        - An object name (in any room)
+        - A room name or ID
+        
+        Output is a string of abbreviated directions like "E E S D E N U"
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_route()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Route to what?")
+            return
+            
+        # Try to find target in order: characters, objects, rooms
+        target = cls._game_state.find_target_character(actor, input, search_world=True)
+        if not target:
+            target = cls._game_state.find_target_object(input, actor, search_world=True)
+        if not target and actor.location_room and actor.location_room.zone:
+            target = cls._game_state.find_target_room(actor, input, actor.location_room.zone)
+            
+        if not target:
+            await actor.send_text(CommTypes.DYNAMIC, "Target can't be found.")
+            return
+            
+        # Get the target's room
+        target_room = target.location_room if hasattr(target, 'location_room') else target
+        
+        if target_room == actor.location_room:
+            await actor.send_text(CommTypes.DYNAMIC, "You are already there.")
+            return
+        
+        # Find path to target
+        path = cls.find_path(actor.location_room, target_room)
+        if path is None:
+            await actor.send_text(CommTypes.DYNAMIC, "No route exists.")
+            return
+            
+        # Output abbreviated route
+        route_str = cls.get_route_string(path)
+        await actor.send_text(CommTypes.DYNAMIC, route_str)
 
     async def cmd_walkto(cls, actor: Actor, input: str):
+        """
+        Find a path to a target and queue movement commands to walk there.
+        
+        This is a privileged/NPC command.
+        
+        Usage: walkto <target>
+        
+        Target can be:
+        - An NPC name
+        - An object name (in any room)
+        - A room name or ID
+        """
         logger = StructuredLogger(__name__, prefix="cmd_walkto()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
         
@@ -3564,27 +3650,32 @@ class CommandHandler(CommandHandlerInterface):
         target = cls._game_state.find_target_character(actor, input, search_world=True)
         if not target:
             target = cls._game_state.find_target_object(input, actor, search_world=True)
-        if not target:
+        if not target and actor.location_room and actor.location_room.zone:
             target = cls._game_state.find_target_room(actor, input, actor.location_room.zone)
             
         if not target:
-            await actor.send_text(CommTypes.DYNAMIC, "Could not find that target.")
+            await actor.send_text(CommTypes.DYNAMIC, "Target can't be found.")
             return
             
         # Get the target's room
         target_room = target.location_room if hasattr(target, 'location_room') else target
         
+        if target_room == actor.location_room:
+            await actor.send_text(CommTypes.DYNAMIC, "You are already there.")
+            return
+        
         # Find path to target
         path = cls.find_path(actor.location_room, target_room)
-        if not path:
-            await actor.send_text(CommTypes.DYNAMIC, "You can't find a path to that target.")
+        if path is None:
+            await actor.send_text(CommTypes.DYNAMIC, "No route exists.")
             return
             
         # Queue the movement commands
         for direction in path:
             actor.command_queue.append(direction)
-            
-        await actor.send_text(CommTypes.DYNAMIC, f"Queued {len(path)} movement command(s) to reach {target.art_name}.")
+        
+        route_str = cls.get_route_string(path)
+        await actor.send_text(CommTypes.DYNAMIC, f"Walking: {route_str}")
 
     async def cmd_delay(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_delay()> ")
