@@ -642,6 +642,7 @@ class NPCConversationHandler:
 4. Only reveal secrets if your disposition is high enough AND they ask/it's relevant
 5. Use *asterisks* for actions/emotes in your dialogue
 6. Don't explain game mechanics or your own decision-making
+7. NEVER prefix your dialogue with your name (e.g. don't say "Maggie: Hello" - just say "Hello")
 
 ## CRITICAL: No Hallucination
 - ONLY state facts that are explicitly in your knowledge above or common knowledge

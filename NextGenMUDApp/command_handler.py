@@ -317,7 +317,7 @@ class CommandHandler(CommandHandlerInterface):
         await actor.send_text(CommTypes.DYNAMIC, f"You say to {target.name}, \"{text}\"")
         msg = f"{actor.art_name_cap} says to you, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
-        await target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+        await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor._location_room if actor._location_room else actor.in_actor_.location_room_
         
         # Check if target has LLM conversation enabled
@@ -370,7 +370,7 @@ class CommandHandler(CommandHandlerInterface):
         await actor.send_text(CommTypes.DYNAMIC, f"You ask {target.name}, \"{text}\"")
         msg = f"{actor.art_name_cap} asks you, \"{text}\""
         vars = set_vars(actor, actor, target, msg)
-        await target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+        await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor._location_room if actor._location_room else actor.in_actor_.location_room_
         
         # Check if target has LLM conversation enabled

@@ -2,6 +2,7 @@
 Google Gemini LLM Client
 
 Concrete implementation of LLMClient for Google's Gemini API.
+Uses the new google-genai SDK.
 """
 
 import os
@@ -16,17 +17,18 @@ from .llm_client import (
 
 
 try:
-    import google.generativeai as genai
-    from google.generativeai.types import GenerationConfig
+    from google import genai
+    from google.genai import types
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
     genai = None
-    GenerationConfig = None
+    types = None
 
 
 class GeminiModel(Enum):
     """Available Gemini model variants."""
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_FLASH = "gemini-2.0-flash"
     GEMINI_2_FLASH_LITE = "gemini-2.0-flash-lite"
     GEMINI_1_5_PRO = "gemini-1.5-pro"
@@ -38,7 +40,7 @@ class GeminiClient(LLMClient):
     """
     Client for interacting with Google's Gemini LLM.
     
-    Implements the LLMClient interface for the Gemini API.
+    Implements the LLMClient interface for the Gemini API using the new google-genai SDK.
     
     Example usage:
         client = GeminiClient(api_key="your-api-key")
@@ -85,8 +87,8 @@ class GeminiClient(LLMClient):
         """
         if not GEMINI_AVAILABLE:
             raise LLMConfigError(
-                "google-generativeai package is not installed. "
-                "Install with: pip install google-generativeai"
+                "google-genai package is not installed. "
+                "Install with: pip install google-genai"
             )
         
         # Resolve API key
@@ -119,61 +121,58 @@ class GeminiClient(LLMClient):
             default_config=default_config or LLMConfig(),
         )
         
-        # Configure the API
-        genai.configure(api_key=self._api_key)
-        
-        # Initialize the model
-        self._model = genai.GenerativeModel(
-            model_name=self._model_name,
-            system_instruction=self._system_instruction,
-        )
+        # Create the client
+        self._client = genai.Client(api_key=self._api_key)
     
     def set_system_instruction(self, instruction: Optional[str]) -> None:
         """
-        Update the system instruction and reinitialize the model.
+        Update the system instruction.
         
         Args:
             instruction: New system instruction, or None to remove.
         """
         self._system_instruction = instruction
-        self._model = genai.GenerativeModel(
-            model_name=self._model_name,
-            system_instruction=self._system_instruction,
-        )
     
-    def _to_gemini_config(self, config: LLMConfig) -> 'GenerationConfig':
-        """Convert LLMConfig to Gemini GenerationConfig."""
-        return GenerationConfig(
+    def _to_gemini_config(self, config: LLMConfig) -> 'types.GenerateContentConfig':
+        """Convert LLMConfig to Gemini GenerateContentConfig."""
+        return types.GenerateContentConfig(
             temperature=config.temperature,
             max_output_tokens=config.max_output_tokens,
             top_p=config.top_p,
             top_k=config.top_k,
-            stop_sequences=config.stop_sequences,
+            stop_sequences=config.stop_sequences if config.stop_sequences else None,
+            system_instruction=self._system_instruction,
         )
     
-    def _message_to_gemini_format(self, message: LLMMessage) -> Dict[str, Any]:
-        """Convert LLMMessage to Gemini's expected message format."""
+    def _message_to_gemini_content(self, message: LLMMessage) -> 'types.Content':
+        """Convert LLMMessage to Gemini Content format."""
         # Gemini uses "user" and "model" roles
         gemini_role = "model" if message.role == "assistant" else message.role
-        return {"role": gemini_role, "parts": [message.content]}
+        return types.Content(
+            role=gemini_role,
+            parts=[types.Part.from_text(text=message.content)]
+        )
     
     def _parse_response(self, response) -> LLMResponse:
         """Parse a Gemini response into an LLMResponse object."""
-        # Extract content
+        # Extract content using the simple .text accessor
         content = ""
         finish_reason = None
         
-        if response.candidates:
-            candidate = response.candidates[0]
-            if candidate.content and candidate.content.parts:
-                content = "".join(
-                    part.text for part in candidate.content.parts 
-                    if hasattr(part, 'text')
-                )
-            if hasattr(candidate, 'finish_reason'):
-                finish_reason = str(candidate.finish_reason)
-        else:
-            content = response.text if hasattr(response, 'text') else ""
+        try:
+            content = response.text or ""
+        except Exception:
+            # Fallback to parsing candidates
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and candidate.content:
+                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        content = "".join(
+                            part.text for part in candidate.content.parts 
+                            if hasattr(part, 'text') and part.text
+                        )
+                if hasattr(candidate, 'finish_reason'):
+                    finish_reason = str(candidate.finish_reason)
         
         # Extract usage metadata if available
         usage = None
@@ -202,9 +201,10 @@ class GeminiClient(LLMClient):
         """Generate a response for a single prompt."""
         try:
             generation_config = self._to_gemini_config(config or self._default_config)
-            response = self._model.generate_content(
-                prompt,
-                generation_config=generation_config,
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=generation_config,
             )
             return self._parse_response(response)
         except Exception as e:
@@ -218,9 +218,10 @@ class GeminiClient(LLMClient):
         """Asynchronously generate a response for a single prompt."""
         try:
             generation_config = self._to_gemini_config(config or self._default_config)
-            response = await self._model.generate_content_async(
-                prompt,
-                generation_config=generation_config,
+            response = await self._client.aio.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=generation_config,
             )
             return self._parse_response(response)
         except Exception as e:
@@ -238,16 +239,12 @@ class GeminiClient(LLMClient):
             generation_config = self._to_gemini_config(config or self._default_config)
             
             # Convert messages to Gemini format
-            history = [self._message_to_gemini_format(msg) for msg in messages[:-1]]
+            contents = [self._message_to_gemini_content(msg) for msg in messages]
             
-            # Start a new chat with history
-            chat = self._model.start_chat(history=history)
-            
-            # Send the last message
-            last_message = messages[-1].content if messages else ""
-            response = chat.send_message(
-                last_message,
-                generation_config=generation_config,
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=contents,
+                config=generation_config,
             )
             
             return self._parse_response(response)
@@ -264,16 +261,12 @@ class GeminiClient(LLMClient):
             generation_config = self._to_gemini_config(config or self._default_config)
             
             # Convert messages to Gemini format
-            history = [self._message_to_gemini_format(msg) for msg in messages[:-1]]
+            contents = [self._message_to_gemini_content(msg) for msg in messages]
             
-            # Start a new chat with history
-            chat = self._model.start_chat(history=history)
-            
-            # Send the last message asynchronously
-            last_message = messages[-1].content if messages else ""
-            response = await chat.send_message_async(
-                last_message,
-                generation_config=generation_config,
+            response = await self._client.aio.models.generate_content(
+                model=self._model_name,
+                contents=contents,
+                config=generation_config,
             )
             
             return self._parse_response(response)
@@ -290,13 +283,12 @@ class GeminiClient(LLMClient):
         """Generate a streaming response for a single prompt."""
         try:
             generation_config = self._to_gemini_config(config or self._default_config)
-            response = self._model.generate_content(
-                prompt,
-                generation_config=generation_config,
-                stream=True,
-            )
             
-            for chunk in response:
+            for chunk in self._client.models.generate_content_stream(
+                model=self._model_name,
+                contents=prompt,
+                config=generation_config,
+            ):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
@@ -310,13 +302,12 @@ class GeminiClient(LLMClient):
         """Asynchronously generate a streaming response for a single prompt."""
         try:
             generation_config = self._to_gemini_config(config or self._default_config)
-            response = await self._model.generate_content_async(
-                prompt,
-                generation_config=generation_config,
-                stream=True,
-            )
             
-            async for chunk in response:
+            async for chunk in self._client.aio.models.generate_content_stream(
+                model=self._model_name,
+                contents=prompt,
+                config=generation_config,
+            ):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
@@ -332,20 +323,13 @@ class GeminiClient(LLMClient):
             generation_config = self._to_gemini_config(config or self._default_config)
             
             # Convert messages to Gemini format
-            history = [self._message_to_gemini_format(msg) for msg in messages[:-1]]
+            contents = [self._message_to_gemini_content(msg) for msg in messages]
             
-            # Start a new chat with history
-            chat = self._model.start_chat(history=history)
-            
-            # Send the last message with streaming
-            last_message = messages[-1].content if messages else ""
-            response = chat.send_message(
-                last_message,
-                generation_config=generation_config,
-                stream=True,
-            )
-            
-            for chunk in response:
+            for chunk in self._client.models.generate_content_stream(
+                model=self._model_name,
+                contents=contents,
+                config=generation_config,
+            ):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
@@ -356,7 +340,10 @@ class GeminiClient(LLMClient):
     def count_tokens(self, text: str) -> int:
         """Count the number of tokens in a text string."""
         try:
-            result = self._model.count_tokens(text)
+            result = self._client.models.count_tokens(
+                model=self._model_name,
+                contents=text,
+            )
             return result.total_tokens
         except Exception as e:
             raise LLMAPIError(f"Token counting failed: {e}") from e
@@ -364,8 +351,11 @@ class GeminiClient(LLMClient):
     def count_message_tokens(self, messages: List[LLMMessage]) -> int:
         """Count the number of tokens in a list of messages."""
         try:
-            contents = [self._message_to_gemini_format(msg) for msg in messages]
-            result = self._model.count_tokens(contents)
+            contents = [self._message_to_gemini_content(msg) for msg in messages]
+            result = self._client.models.count_tokens(
+                model=self._model_name,
+                contents=contents,
+            )
             return result.total_tokens
         except Exception as e:
             raise LLMAPIError(f"Message token counting failed: {e}") from e

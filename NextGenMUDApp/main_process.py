@@ -17,6 +17,8 @@ from .core_actions_interface import CoreActionsInterface
 class MainProcess:
     _game_state: ComprehensiveGameState = live_game_state
 
+    _shutdown_flag = False
+    
     @classmethod
     def start_main_process(cls):
         logger = StructuredLogger(__name__, prefix="start_main_process()> ")
@@ -24,8 +26,14 @@ class MainProcess:
         # logger.setLevel(logging.WARNING)
         logger.set_detail_level(1)  # Set to debug level 1
         # logger.debug(f"logging level set to {logger.getEffectiveLevel()}")
-        main_process_thread = threading.Thread(target=cls.run_main_game_loop)
+        cls._shutdown_flag = False
+        main_process_thread = threading.Thread(target=cls.run_main_game_loop, daemon=True)
         main_process_thread.start()
+    
+    @classmethod
+    def shutdown(cls):
+        """Signal the main game loop to stop."""
+        cls._shutdown_flag = True
 
     @classmethod
     def run_main_game_loop(cls):
@@ -64,7 +72,7 @@ class MainProcess:
         # Check linkdead every ~5 seconds (10 ticks at 0.5s per tick)
         linkdead_check_interval = int(5 / Constants.GAME_TICK_SEC)
         
-        while True:
+        while not cls._shutdown_flag:
             logger.debug3(f"tick {cls._game_state.world_clock_tick}")
             start_tick_time = time.time()
             # Process input queues
