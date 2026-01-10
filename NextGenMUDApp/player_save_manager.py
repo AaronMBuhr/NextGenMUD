@@ -715,15 +715,17 @@ class PlayerSaveManager:
             with open(save_path, 'r', encoding='utf-8') as f:
                 data = self.yaml.load(f)
             
-            # Stub file = fresh
-            if 'level' not in data:
+            # Stub file = fresh (no class_priority means not fully created yet)
+            if 'class_priority' not in data:
                 return True
             
             # Check if level 1 with starting skill points
-            level = data.get('level', 1)
+            # Use levels_by_role to calculate total level (not the old 'level' field)
+            levels_by_role = data.get('levels_by_role', {})
+            total_level = sum(levels_by_role.values()) if levels_by_role else 1
             skill_points = data.get('skill_points_available', 0)
             
-            return level == 1 and skill_points >= starting_skill_points
+            return total_level == 1 and skill_points >= starting_skill_points
         except Exception as e:
             logger.error(f"Error checking fresh character status for {character_name}: {e}")
             return True

@@ -507,6 +507,52 @@ class CoreActions(CoreActionsInterface):
                 break
         logger.debug3(f"actor: {actor} no opponent found")
 
+    async def trigger_group_aggro(self, attacker: Actor, target: Actor) -> None:
+        """
+        Trigger group members of target to join combat against attacker.
+        Call this when dealing damage to a target to alert their group.
+        """
+        logger = StructuredLogger(__name__, prefix="trigger_group_aggro()> ")
+        
+        if target.location_room is None:
+            return
+            
+        # Check each character in the room for group loyalty
+        for c in target.location_room.get_characters():
+            logger.debug3(f"checking {c.rid}: attitude={c.attitude}, group={c.group_id}")
+            
+            # Skip if already fighting, or is the attacker/target
+            if c.fighting_whom is not None or c == attacker or c == target:
+                continue
+            
+            # Skip PCs - they make their own decisions
+            if c.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                continue
+                
+            will_join_fight = False
+            
+            # Group loyalty - members of same group help each other
+            # But CHARMED NPCs ignore group loyalty
+            if c.group_id is not None and c.attitude != ActorAttitude.CHARMED:
+                # Help group member under attack
+                if c.group_id == target.group_id:
+                    will_join_fight = True
+            
+            if will_join_fight:
+                logger.debug3(f"found {c.rid} joining in against {attacker.rid}")
+                msg = f"You join the attack against {attacker.art_name}!"
+                vars = set_vars(c, c, attacker, msg)
+                await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{c.art_name_cap} joins the attack against you!"
+                vars = set_vars(c, c, attacker, msg)
+                await attacker.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{c.art_name_cap} joins the attack against {attacker.art_name}!"
+                vars = set_vars(c, c, attacker, msg)
+                await attacker.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c, attacker], game_state=self.game_state)
+                c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
+                c.fighting_whom = attacker
+                self.game_state.add_character_fighting(c)
+
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
         from .nondb_models.objects import Corpse
         logger = StructuredLogger(__name__, prefix="do_die()> ")
@@ -577,10 +623,10 @@ class CoreActions(CoreActionsInterface):
             
             # Schedule corpse decay (30 minutes)
             decay_ticks = ticks_from_seconds(30 * 60)
-            self.game_state.add_scheduled_action(
-                corpse, "corpse_decay", in_ticks=decay_ticks,
+            self.game_state.add_scheduled_event(
+                EventType.CORPSE_DECAY, corpse, "corpse_decay", in_ticks=decay_ticks,
                 vars={'corpse': corpse, 'room': room},
-                func=lambda a, v: self._decay_corpse(v['corpse'], v['room'])
+                func=lambda subject, current_tick, game_state, vars: self._decay_corpse(vars['corpse'], vars['room'])
             )
             
             # Apply XP penalty (5% of current level's XP, can't de-level)
@@ -603,9 +649,9 @@ class CoreActions(CoreActionsInterface):
                         in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
                                                         + random.randint(0, dying_actor.spawned_from.respawn_time_max 
                                                                         - dying_actor.spawned_from.respawn_time_min))
-                        vars = { 'spawn_data': dying_actor.spawned_from }
-                        self.game_state.add_scheduled_action(dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
-                                                            vars=vars, func=lambda a,v: self.game_state.respawn_character(a,v))
+                        event_vars = { 'spawn_data': dying_actor.spawned_from }
+                        self.game_state.add_scheduled_event(EventType.RESPAWN, dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
+                                                            vars=event_vars, func=lambda subject, current_tick, game_state, vars: self.game_state.respawn_character(subject, vars))
             self.game_state.remove_character(dying_actor)
         
         # Add corpse to room

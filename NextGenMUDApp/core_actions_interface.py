@@ -24,4 +24,8 @@ class CoreActionsInterface(metaclass=ABCMeta):
 
     async def do_calculated_damage(self, actor: Actor, target: Actor, damage: int, damage_type: DamageType, do_msg=True) -> int:
         pass
+
+    async def trigger_group_aggro(self, attacker: Actor, target: Actor) -> None:
+        """Trigger group members of target to join combat against attacker."""
+        pass
     

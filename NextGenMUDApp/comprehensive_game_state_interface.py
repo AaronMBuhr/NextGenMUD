@@ -9,6 +9,8 @@ class EventType:
     STATE_PULSE = "state_pulse"
     CAST_FINISHED = "cast_finished"
     STATE_END = "state_end"
+    CORPSE_DECAY = "corpse_decay"
+    RESPAWN = "respawn"
 
 class ScheduledEvent:
     def __init__(self, on_tick: int, event_type: EventType, subject: Any, name: str, vars: Dict[str, Any], 
@@ -18,7 +20,7 @@ class ScheduledEvent:
         self.vars: Dict[str, Any] = vars
         self.name = name
         self.func = func
-        self.on_tick: int = 0
+        self.on_tick: int = on_tick
 
     async def run(self, current_tick: int, game_state: 'GameStateInterface'):
         if self.func:

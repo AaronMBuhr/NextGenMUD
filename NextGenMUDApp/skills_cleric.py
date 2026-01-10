@@ -138,19 +138,19 @@ class Skills_Cleric(Skills):
     @classmethod
     async def do_cleric_cure_light_wounds(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
-        actor.send_text(CommTypes.DYNAMIC, "Cure light wounds is not yet implemented!", cls.game_state)
+        actor.send_text(CommTypes.DYNAMIC, "Cure light wounds is not yet implemented!", cls._game_state)
         return False
 
     @classmethod
     async def do_cleric_cure_serious_wounds(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
-        actor.send_text(CommTypes.DYNAMIC, "Cure serious wounds is not yet implemented!", cls.game_state)
+        actor.send_text(CommTypes.DYNAMIC, "Cure serious wounds is not yet implemented!", cls._game_state)
         return False
 
     @classmethod
     async def do_cleric_cure_critical_wounds(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
-        actor.send_text(CommTypes.DYNAMIC, "Cure critical wounds is not yet implemented!", cls.game_state)
+        actor.send_text(CommTypes.DYNAMIC, "Cure critical wounds is not yet implemented!", cls._game_state)
         return False
 
     @classmethod
@@ -161,7 +161,7 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
         
         # Default to self if no target
@@ -169,12 +169,12 @@ class Skills_Cleric(Skills):
             target = actor
             
         continue_func = lambda: cls.do_cleric_heal_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -194,9 +194,9 @@ class Skills_Cleric(Skills):
         heal_bonus = int(HEAL_BASE_BONUS + (cleric_level * HEAL_PER_LEVEL))
         heal_amount = roll_dice(HEAL_DICE_NUM, HEAL_DICE_SIZE) + heal_bonus
         
-        cooldown = Cooldown(actor, "heal", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "heal", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": HEAL_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, HEAL_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), HEAL_COOLDOWN_TICKS)
 
         # Apply healing
         old_hp = target.current_hit_points
@@ -207,20 +207,20 @@ class Skills_Cleric(Skills):
         if target == actor:
             msg = f"Divine energy washes over you, healing {actual_heal} hit points!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine energy washes over {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You channel divine energy into {target.art_name}, healing {actual_heal} hit points!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} channels divine energy into you, healing {actual_heal} hit points!"
             vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} channels divine energy into {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Send status update to target if they're a PC
         from .nondb_models.character_interface import PermanentCharacterFlags
@@ -239,21 +239,21 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to smite?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
             return False
             
         continue_func = lambda: cls.do_cleric_smite_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -279,9 +279,9 @@ class Skills_Cleric(Skills):
         if is_undead:
             damage = int(damage * SMITE_UNDEAD_MULTIPLIER)
         
-        cooldown = Cooldown(actor, "smite", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "smite", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": SMITE_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, SMITE_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), SMITE_COOLDOWN_TICKS)
 
         # Send messages
         if is_undead:
@@ -289,15 +289,18 @@ class Skills_Cleric(Skills):
         else:
             msg = f"You smite {target.art_name} with holy power!"
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         
         msg = f"{actor.art_name_cap} smites you with holy power!"
         vars = set_vars(actor, actor, target, msg)
-        target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         
         msg = f"{actor.art_name_cap} smites {target.art_name} with holy power!"
         vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+        
+        # Trigger group aggro
+        await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
         
         # Deal holy damage
         await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.HOLY)
@@ -314,7 +317,7 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
         
         # Default to self if no target
@@ -322,12 +325,12 @@ class Skills_Cleric(Skills):
             target = actor
             
         continue_func = lambda: cls.do_cleric_bless_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -348,38 +351,38 @@ class Skills_Cleric(Skills):
         hit_bonus = int(BLESS_HIT_BONUS_BASE + (cleric_level * BLESS_HIT_BONUS_PER_LEVEL))
         damage_bonus = int(BLESS_DAMAGE_BONUS_BASE + (cleric_level * BLESS_DAMAGE_BONUS_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "bless", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "bless", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": BLESS_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, BLESS_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), BLESS_COOLDOWN_TICKS)
 
         # Apply the bless effect
         if target == actor:
             msg = "Divine favor surrounds you!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine favor surrounds {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You bestow divine blessings upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} bestows divine blessings upon you!"
             vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} bestows divine blessings upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Apply hit bonus
-        hit_state = CharacterStateHitBonus(target, cls.game_state, actor, "blessed", 
+        hit_state = CharacterStateHitBonus(target, cls._game_state, actor, "blessed", 
                                           affect_amount=hit_bonus, tick_created=game_tick)
-        hit_state.apply_state(game_tick or cls.game_state.current_tick, BLESS_DURATION_TICKS)
+        hit_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
         
         # Apply damage bonus
-        damage_state = CharacterStateDamageBonus(target, cls.game_state, actor, "blessed", 
+        damage_state = CharacterStateDamageBonus(target, cls._game_state, actor, "blessed", 
                                                 affect_amount=damage_bonus, tick_created=game_tick)
-        damage_state.apply_state(game_tick or cls.game_state.current_tick, BLESS_DURATION_TICKS)
+        damage_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.BLESS)
@@ -393,16 +396,16 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
             
         continue_func = lambda: cls.do_cleric_consecrate_finish(actor, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, None, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -422,17 +425,17 @@ class Skills_Cleric(Skills):
         cleric_level = actor.levels_by_role.get(CharacterClassRole.CLERIC, 1)
         damage_per_tick = int(CONSECRATE_DAMAGE_BASE + (cleric_level * CONSECRATE_DAMAGE_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "consecrate", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "consecrate", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": CONSECRATE_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, CONSECRATE_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), CONSECRATE_COOLDOWN_TICKS)
 
         # Send initial message
         msg = "You consecrate the ground with holy fire!"
         vars = set_vars(actor, actor, None, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} consecrates the ground with holy fire!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Apply to all enemies in the room
         enemies_hit = 0
@@ -448,15 +451,15 @@ class Skills_Cleric(Skills):
                 continue  # Don't hit other players
             
             # Apply the consecrate effect
-            new_state = CharacterStateConsecrated(char, cls.game_state, actor, "consecrated", 
+            new_state = CharacterStateConsecrated(char, cls._game_state, actor, "consecrated", 
                                                  damage_amount=damage_per_tick, tick_created=game_tick)
-            new_state.apply_state(game_tick or cls.game_state.current_tick, CONSECRATE_DURATION_TICKS,
+            new_state.apply_state(game_tick or cls._game_state.get_current_tick(), CONSECRATE_DURATION_TICKS,
                                  pulse_period_ticks=CONSECRATE_PULSE_TICKS)
             enemies_hit += 1
         
         if enemies_hit == 0:
             msg = "But there are no enemies to burn!"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.CONSECRATE)
@@ -470,16 +473,16 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
             
         continue_func = lambda: cls.do_cleric_zealotry_finish(actor, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, None, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -497,23 +500,23 @@ class Skills_Cleric(Skills):
         cleric_level = actor.levels_by_role.get(CharacterClassRole.CLERIC, 1)
         damage_bonus = int(ZEALOTRY_DAMAGE_BONUS_BASE + (cleric_level * ZEALOTRY_DAMAGE_BONUS_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "zealotry", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "zealotry", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": ZEALOTRY_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, ZEALOTRY_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), ZEALOTRY_COOLDOWN_TICKS)
 
         # Send messages
         msg = "Divine fury fills you! Your attacks grow stronger but you become reckless!"
         vars = set_vars(actor, actor, None, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} is filled with zealous fury!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Apply the zealotry effect
-        new_state = CharacterStateZealotry(actor, cls.game_state, actor, "zealous", 
+        new_state = CharacterStateZealotry(actor, cls._game_state, actor, "zealous", 
                                           damage_bonus=damage_bonus, healing_penalty=ZEALOTRY_HEALING_PENALTY,
                                           tick_created=game_tick)
-        new_state.apply_state(game_tick or cls.game_state.current_tick, ZEALOTRY_DURATION_TICKS)
+        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ZEALOTRY_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.ZEALOTRY)
@@ -527,21 +530,21 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to judge?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
             return False
             
         continue_func = lambda: cls.do_cleric_judgment_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -567,9 +570,9 @@ class Skills_Cleric(Skills):
         if is_undead:
             damage = int(damage * JUDGMENT_UNDEAD_MULTIPLIER)
         
-        cooldown = Cooldown(actor, "judgment", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "judgment", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": JUDGMENT_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, JUDGMENT_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), JUDGMENT_COOLDOWN_TICKS)
 
         # Send messages
         if is_undead:
@@ -577,15 +580,18 @@ class Skills_Cleric(Skills):
         else:
             msg = f"You pass divine judgment upon {target.art_name}!"
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         
         msg = f"{actor.art_name_cap} passes divine judgment upon you!"
         vars = set_vars(actor, actor, target, msg)
-        target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         
         msg = f"{actor.art_name_cap} passes divine judgment upon {target.art_name}!"
         vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+        
+        # Trigger group aggro
+        await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
         
         # Deal holy damage
         await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.HOLY)
@@ -602,16 +608,16 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
             
         continue_func = lambda: cls.do_cleric_divine_reckoning_finish(actor, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, None, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -632,17 +638,17 @@ class Skills_Cleric(Skills):
         cleric_level = actor.levels_by_role.get(CharacterClassRole.CLERIC, 1)
         damage_bonus = int(RECKONING_BASE_BONUS + (cleric_level * RECKONING_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "divine_reckoning", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "divine_reckoning", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": RECKONING_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, RECKONING_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), RECKONING_COOLDOWN_TICKS)
 
         # Send initial message
         msg = "You invoke DIVINE RECKONING! Holy light blazes forth!"
         vars = set_vars(actor, actor, None, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} invokes DIVINE RECKONING! Blinding holy light blazes forth!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Hit all enemies in the room
         enemies_hit = 0
@@ -660,21 +666,24 @@ class Skills_Cleric(Skills):
             # Roll damage for each target
             damage = roll_dice(RECKONING_DICE_NUM, RECKONING_DICE_SIZE) + damage_bonus
             
+            # Trigger group aggro
+            await CoreActionsInterface.get_instance().trigger_group_aggro(actor, char)
+            
             # Deal holy damage
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, char, damage, DamageType.HOLY)
             
             # Apply stun
-            stun_state = CharacterStateStunned(char, cls.game_state, actor, "divine reckoning", 
+            stun_state = CharacterStateStunned(char, cls._game_state, actor, "divine reckoning", 
                                               tick_created=game_tick)
-            stun_state.apply_state(game_tick or cls.game_state.current_tick, RECKONING_STUN_DURATION_TICKS)
+            stun_state.apply_state(game_tick or cls._game_state.get_current_tick(), RECKONING_STUN_DURATION_TICKS)
             enemies_hit += 1
         
         if enemies_hit == 0:
             msg = "But there are no enemies to judge!"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
         else:
             msg = f"Divine reckoning strikes {enemies_hit} enemies!"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.DIVINE_RECKONING)
@@ -688,7 +697,7 @@ class Skills_Cleric(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             return False
         
         # Default to self if no target
@@ -696,12 +705,12 @@ class Skills_Cleric(Skills):
             target = actor
             
         continue_func = lambda: cls.do_cleric_cast_armor_of_faith_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls.game_state.current_tick) + actor.recovery_time
+        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
         if nowait:
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -719,32 +728,32 @@ class Skills_Cleric(Skills):
         cleric_level = actor.levels_by_role.get(CharacterClassRole.CLERIC, 1)
         armor_bonus = int(ARMOR_BONUS_BASE + (cleric_level * ARMOR_BONUS_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "armor_of_faith", cls.game_state, cooldown_source=actor, 
+        cooldown = Cooldown(actor, "armor_of_faith", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": ARMOR_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls.game_state.current_tick, ARMOR_COOLDOWN_TICKS)
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), ARMOR_COOLDOWN_TICKS)
 
         # Apply the armor of faith effect
         if target == actor:
             msg = "Divine armor shimmers around you, protecting you from harm!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine armor shimmers around {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You invoke divine protection upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} invokes divine protection upon you! Shimmering armor surrounds you!"
             vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls.game_state)
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} invokes divine protection upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls.game_state)
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
-        new_state = CharacterStateArmorBonus(target, cls.game_state, actor, "armor of faith", 
+        new_state = CharacterStateArmorBonus(target, cls._game_state, actor, "armor of faith", 
                                             affect_amount=armor_bonus, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls.game_state.current_tick, ARMOR_DURATION_TICKS)
+        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ARMOR_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.ARMOR_OF_FAITH)

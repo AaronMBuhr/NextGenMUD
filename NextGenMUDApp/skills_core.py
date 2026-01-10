@@ -495,14 +495,24 @@ class Skills(SkillsInterface):
        
     @classmethod
     async def start_casting(cls, actor: Actor, duration_ticks: int, cast_function: callable):
-        game_tick = cls._get_game_state().current_tick
-        new_state = CharacterStateCasting(actor, cls._get_game_state(), actor, "casting", tick_created=game_tick, cast_function=cast_function)
+        game_tick = cls._get_game_state().get_current_tick()
+        new_state = CharacterStateCasting(actor, cls._get_game_state(), actor, "casting", tick_created=game_tick, casting_finish_func=cast_function)
         new_state.apply_state(game_tick, duration_ticks)
         return True
 
     @classmethod
     def check_skill_roll(cls, skill_roll: int, actor: Actor, skill: 'CharacterSkill', difficulty_mod: int=0) -> int:
-        return skill_roll - skill.skill_level - difficulty_mod 
+        return skill_roll - skill.skill_level - difficulty_mod
+    
+    @classmethod
+    def do_skill_check(cls, actor: Actor, skill: 'CharacterSkill', difficulty_mod: int=0) -> bool:
+        """
+        Perform a skill check by rolling 1-100 and comparing against skill level.
+        Returns True if the check succeeds (roll >= skill_level + difficulty_mod).
+        """
+        skill_roll = random.randint(1, 100)
+        result = cls.check_skill_roll(skill_roll, actor, skill, difficulty_mod)
+        return result >= 0 
     
     @classmethod
     def does_resist(cls, actor: Actor, initiator_attribute: int, skill_level: int, target: Actor, 

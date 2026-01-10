@@ -660,9 +660,10 @@ class ComprehensiveGameState:
         con_value = new_player.attributes.get(CharacterAttributes.CONSTITUTION, 10)
         con_multiplier = Constants.CON_HP_MULTIPLIER_BY_CLASS.get(role, 1.0)
         con_bonus = int((con_value - 10) * con_multiplier)
-        new_player.max_hit_points = max(1, base_hp + con_bonus)  # Minimum 1 HP
+        BASE_STARTING_HP = 20  # All new characters start with 20 base HP
+        new_player.max_hit_points = max(1, BASE_STARTING_HP + base_hp + con_bonus)  # 20 base + class HP + constitution bonus
         new_player.current_hit_points = new_player.max_hit_points
-        logger.debug(f"HP calculation: base={base_hp}, CON={con_value}, mult={con_multiplier}, bonus={con_bonus}, total={new_player.max_hit_points}")
+        logger.debug(f"HP calculation: base_starting=20, class_hp={base_hp}, CON={con_value}, mult={con_multiplier}, bonus={con_bonus}, total={new_player.max_hit_points}")
         
         # Combat stats from template
         new_player.base_hit_modifier = class_template.get('base_hit_modifier', 50)

@@ -104,7 +104,11 @@ class Actor(ActorInterface):
         self.states.append(state)
 
     def remove_state(self, state: "ActorState"):
-        self.states.remove(state)
+        if state in self.states:
+            self.states.remove(state)
+        else:
+            logger = StructuredLogger(__name__, prefix="Actor.remove_state()> ")
+            logger.warning(f"Attempted to remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from actor {self.name} ({self.id}), but state was not in states list.")
         
     def can_act(self, allow_if_hindered=False) -> tuple[bool, str]:
         if self.has_temp_flags(TemporaryCharacterFlags.IS_DEAD):
@@ -189,10 +193,10 @@ class Actor(ActorInterface):
         # you can only have one busy cooldown at a time
         self.cooldowns = [c for c in self.cooldowns if c.cooldown_name != "busy"]
         busy_cooldown = Cooldown(self, "busy", self.game_state, cooldown_source=self, cooldown_vars=None, cooldown_end_fn=become_ready)
-        busy_cooldown.start(self.game_state.current_tick, 0, game_tick)
+        busy_cooldown.start(self.game_state.get_current_tick(), 0, game_tick)
 
     def make_busy_for(self, game_ticks: int):
-        self.make_busy_until(self.game_state.current_tick + game_ticks)
+        self.make_busy_until(self.game_state.get_current_tick() + game_ticks)
 
     def is_busy(self, current_tick: int) -> bool:
         return current_tick <= self.recovers_at

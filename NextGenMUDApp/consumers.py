@@ -151,13 +151,14 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
                 
             if player_save_manager.verify_password(self.pending_character_name, message):
                 # Password correct - check if this is a stub save (needs character creation)
-                # or a fresh character (level 1, full skill points) for the welcome message
+                # or a full save (load existing character)
                 is_stub = player_save_manager.is_stub_save(self.pending_character_name)
-                is_fresh = player_save_manager.is_fresh_character(self.pending_character_name)
                 if is_stub:
                     # Get the selected class from the save file
                     self.pending_class = player_save_manager.get_selected_class(self.pending_character_name)
-                await self._complete_login(is_new=is_fresh)
+                # Use is_stub to decide create vs load - NOT is_fresh!
+                # is_stub means save only has credentials + class choice, no actual character data
+                await self._complete_login(is_new=is_stub)
             else:
                 # Wrong password
                 await self.send(text_data=json.dumps({

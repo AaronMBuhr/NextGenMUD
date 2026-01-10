@@ -5,51 +5,52 @@ pronoun_subject: they
 pronoun_object: them
 pronoun_possessive: their
 location:
-  zone: shattered_dominion
-  room: room_desert_crossroads_waystone
+  zone:
+  room:
 was_in_combat: false
 class_priority:
-- FIGHTER
+- MAGE
 levels_by_role:
-  FIGHTER: 1
+  MAGE: 1
 specializations: {}
 skill_levels: {}
-skill_points_available: 75
+skill_points_available: 0
 skill_levels_by_role:
-  FIGHTER:
-    bash: 0
-    cleave: 0
-    demoralizing_shout: 0
-    intimidate: 0
-    mighty_kick: 0
-    normal_stance: 0
-    slam: 0
+  MAGE:
+    animate_dead: 32
+    blur: 0
+    detect_magic: 0
+    ignite: 0
+    light: 0
+    magic_missile: 32
+    mana_burn: 0
+    shield: 11
 attributes:
-  STRENGTH: 14
-  DEXTERITY: 12
-  CONSTITUTION: 14
-  INTELLIGENCE: 8
-  WISDOM: 10
-  CHARISMA: 10
+  STRENGTH: 6
+  DEXTERITY: 10
+  CONSTITUTION: 10
+  INTELLIGENCE: 25
+  WISDOM: 8
+  CHARISMA: 1
 permanent_flags: 1
 game_permission_flags: 0
 experience_points: 0
 hit_dice: 1
-hit_dice_size: 10
-hit_point_bonus: 4
-max_hit_points: 20
-current_hit_points: 20
-max_mana: 0
-current_mana: 0
-max_stamina: 23
-current_stamina: 23
+hit_dice_size: 4
+hit_point_bonus: 0
+max_hit_points: 2
+current_hit_points: -1
+max_mana: 45
+current_mana: 42
+max_stamina: 0
+current_stamina: 0
 max_carrying_capacity: 100
-base_hit_modifier: 55
-base_dodge_modifier: 8
+base_hit_modifier: 40
+base_dodge_modifier: 5
 dodge_dice_number: 1
 dodge_dice_size: 50
 critical_chance: 5
-critical_multiplier: 150
+critical_multiplier: 100
 num_main_hand_attacks: 1
 num_off_hand_attacks: 0
 damage_multipliers:
@@ -109,6 +110,10 @@ equipment:
   EYES:
 temporary_flags: 0
 states: []
-cooldowns: []
+cooldowns:
+- name: ''
+  source_type:
+  start_tick: 0
+  duration_ticks: 0
 password_hash: 
-  f0be2ab0f697fdc9f50c6b66f4731dabff30f2b6ce68df32291afb518ee55099$9c186f0a80185df0abb6431a9c966957e702c504025ce8319625bbad7c98566a
+  646ce7c8231fa02267c098818bff2649a78a3b04e67bccd513a805237ec2041f$9cfe857f74245ff8801bb389acc7b34f40779e57a4152f99041a007afc530dca

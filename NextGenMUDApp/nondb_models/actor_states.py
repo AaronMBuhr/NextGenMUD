@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import asyncio
 from typing import Dict, List, Any, TYPE_CHECKING
 from ..command_handler_interface import CommandHandlerInterface
 from ..communication import CommTypes
@@ -7,7 +8,7 @@ from .actor_interface import ActorType, ActorInterface
 from .character_interface import PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags, EquipLocation, CharacterInterface
 from .attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
 from ..utility import set_vars
-from ..comprehensive_game_state_interface import GameStateInterface
+from ..comprehensive_game_state_interface import GameStateInterface, EventType
 
 if TYPE_CHECKING:
     from .actors import Actor
@@ -56,8 +57,10 @@ class Cooldown:
             self.cooldown_duration_ = cooldown_end_tick - current_tick
             
         self.actor.cooldowns.append(self)
-        self.game_state.add_scheduled_event(self, EventType.COOLDOWN_OVER, 
-                                            self.cooldown_name, self.cooldown_vars, self.end_cooldown)
+        self.game_state.add_scheduled_event(EventType.COOLDOWN_OVER, self, self.cooldown_name, 
+                                            scheduled_tick=self.cooldown_end_tick, 
+                                            vars=self.cooldown_vars, 
+                                            func=self.end_cooldown)
         return True
 
     def to_dict(self):
@@ -139,10 +142,10 @@ class ActorState:
         self.last_tick_acted = start_tick
         self.duration_remaining = self.tick_ending - self.tick_started
         self.actor.apply_state(self)
-        self.game_state.add_scheduled_event(self, EventType.STATE_END, self, "state_end", self.tick_ending, 
+        self.game_state.add_scheduled_event(EventType.STATE_END, self, "state_end", self.tick_ending, 
                                             None, None, lambda a, t, s, v: self.remove_state())
         if pulse_period_ticks:
-            self.game_state.add_scheduled_event(self, EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
+            self.game_state.add_scheduled_event(EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
                                                 self.next_tick, self.tick_period, None, lambda a, t, s, v: self.perform_pulse(t, s, v))
         return self.next_tick
 
@@ -151,8 +154,7 @@ class ActorState:
         """
         Returns True if the state was removed, False if it was not removed.
         """
-        self.actor.remove_state(self)
-        return True
+        return self.actor.remove_state(self)
 
     def does_affect_flag(self, flag: TemporaryCharacterFlags) -> bool:
         """
@@ -721,11 +723,16 @@ class CharacterStateCasting(ActorState):
                  state_type_name=None, tick_created=None, casting_finish_func: callable=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.casting_finish_func = casting_finish_func
+    
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        return super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         
-    def remove_state(self) -> bool:
+    async def remove_state(self, force=False) -> bool:
         if self.casting_finish_func:
-            self.casting_finish_func(self)
-        return super().remove_state()
+            result = self.casting_finish_func()
+            if asyncio.iscoroutine(result):
+                await result
+        return super().remove_state(force)
         
 
 class CharacterStateRecoveryModifier(ActorState):
@@ -733,10 +740,10 @@ class CharacterStateRecoveryModifier(ActorState):
                  state_type_name=None, recovery_modifier: int = 0, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.recovery_modifier = recovery_modifier
-        actor.recovery_time += recovery_modifier
+        actor.recovery_ticks += recovery_modifier
         
     def remove_state(self) -> bool:
-        self.actor.recovery_time -= self.recovery_modifier
+        self.actor.recovery_ticks -= self.recovery_modifier
         return super().remove_state()
         
 

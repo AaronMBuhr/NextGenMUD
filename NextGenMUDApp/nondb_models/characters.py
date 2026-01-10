@@ -857,8 +857,12 @@ class Character(Actor, CharacterInterface):
         return True
 
     def remove_state(self, state: 'ActorState') -> bool:
-        self.current_states.remove(state)
-        return True
+        if state in self.current_states:
+            self.current_states.remove(state)
+            return True
+        else:
+            logger.warning(f"Attempted to remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from character {self.name} ({self.id}), but state was not in current_states list.")
+            return False
     
     def remove_states_by_flag(self, flags: TemporaryCharacterFlags) -> bool:
         for state in self.get_character_states_by_flag(flags):
@@ -1132,7 +1136,7 @@ class Character(Actor, CharacterInterface):
         return True
     
     def has_cooldown(self, cooldown_source=None, cooldown_name: str = None):
-        return Cooldown.has_cooldown(self, cooldown_source, cooldown_name)
+        return Cooldown.has_cooldown(self.cooldowns, cooldown_source, cooldown_name)
     
     def add_cooldown(self, cooldown: Cooldown):
         self.cooldowns.append(cooldown)
@@ -1141,10 +1145,10 @@ class Character(Actor, CharacterInterface):
         self.cooldowns.remove(cooldown)
 
     def current_cooldowns(self, cooldown_source=None, cooldown_name: str = None):
-        return Cooldown.current_cooldowns(self, cooldown_source, cooldown_name)
+        return Cooldown.current_cooldowns(self.cooldowns, cooldown_source, cooldown_name)
     
     def last_cooldown(self, cooldown_source=None, cooldown_name: str=None):
-        return Cooldown.last_cooldown(self, cooldown_source, cooldown_name)
+        return Cooldown.last_cooldown(self.cooldowns, cooldown_source, cooldown_name)
 
     def get_states(self):
         return self.current_states

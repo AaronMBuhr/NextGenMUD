@@ -231,6 +231,7 @@ class CommandHandler(CommandHandlerInterface):
         "improvestat": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_improvestat(char, input),
         "character": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
         "char": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
+        "self": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_self(char, input),
         "triggers": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_triggers(char, input),
         "quit": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_quit(char, input),
         "logout": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_quit(char, input),
@@ -4210,8 +4211,8 @@ class CommandHandler(CommandHandlerInterface):
         # Create and start a cooldown that doesn't make the actor busy
         delay_cooldown = Cooldown(actor, "delay", cls._game_state, cooldown_source=actor, 
                                  cooldown_vars=None, cooldown_end_fn=lambda: None)
-        delay_cooldown.start(cls._game_state.current_tick, 0, 
-                           cls._game_state.current_tick + delay_ticks)
+        delay_cooldown.start(cls._game_state.get_current_tick(), 0, 
+                           cls._game_state.get_current_tick() + delay_ticks)
         
         if rounded_ms != delay_ms:
             await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {rounded_ms} milliseconds (rounded from {delay_ms}ms).")
@@ -4695,6 +4696,109 @@ class CommandHandler(CommandHandlerInterface):
                 for key, value in target.perm_variables.items():
                     await actor.send_text(CommTypes.STATIC, f"  {key}: {value}")
 
+
+    async def cmd_self(cls, actor: Actor, input: str):
+        """Show detailed information about your character: classes, attributes, resources, and skills."""
+        from .nondb_models.character_interface import CharacterAttributes
+        
+        logger = StructuredLogger(__name__, prefix="cmd_self()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can use this command.")
+            return
+        
+        target = actor
+        lines = []
+        
+        # Header with name
+        lines.append(f"===== {target.art_name_cap} =====")
+        lines.append("")
+        
+        # --- Classes Section ---
+        lines.append("--- Classes ---")
+        total_level = target.total_levels()
+        for role in target.class_priority:
+            class_name = target.get_display_class_name(role)
+            class_level = target.levels_by_role.get(role, 0)
+            lines.append(f"  {class_name.title():20} Level {class_level}")
+        lines.append(f"  {'Total Level:':20} {total_level}")
+        lines.append("")
+        
+        # --- Attributes Section ---
+        lines.append("--- Attributes ---")
+        # Define attribute short names for compact display
+        attr_display = [
+            (CharacterAttributes.STRENGTH, "STR"),
+            (CharacterAttributes.DEXTERITY, "DEX"),
+            (CharacterAttributes.CONSTITUTION, "CON"),
+            (CharacterAttributes.INTELLIGENCE, "INT"),
+            (CharacterAttributes.WISDOM, "WIS"),
+            (CharacterAttributes.CHARISMA, "CHA"),
+        ]
+        # Display as two rows for readability
+        row1_parts = []
+        row2_parts = []
+        for attr, abbrev in attr_display:
+            value = target.attributes.get(attr, 10)
+            modifier = (value - 10) // 2
+            sign = "+" if modifier >= 0 else ""
+            row1_parts.append(f"{abbrev}: {value:2}")
+            row2_parts.append(f"    ({sign}{modifier})")
+        
+        lines.append("  " + "   ".join(row1_parts))
+        lines.append("  " + "   ".join(row2_parts))
+        lines.append("")
+        
+        # --- Resources Section ---
+        lines.append("--- Resources ---")
+        hp_percent = int((target.current_hit_points / target.max_hit_points) * 100) if target.max_hit_points > 0 else 0
+        lines.append(f"  HP:      {target.current_hit_points:4}/{target.max_hit_points:<4} ({hp_percent}%)")
+        
+        if target.max_mana > 0:
+            mana_percent = int((target.current_mana / target.max_mana) * 100) if target.max_mana > 0 else 0
+            lines.append(f"  Mana:    {int(target.current_mana):4}/{target.max_mana:<4} ({mana_percent}%)")
+        
+        if target.max_stamina > 0:
+            stamina_percent = int((target.current_stamina / target.max_stamina) * 100) if target.max_stamina > 0 else 0
+            lines.append(f"  Stamina: {int(target.current_stamina):4}/{target.max_stamina:<4} ({stamina_percent}%)")
+        
+        lines.append(f"  XP:      {target.experience_points:,}")
+        lines.append("")
+        
+        # --- Skills Section ---
+        lines.append("--- Known Skills ---")
+        lines.append(f"  Skill Points Available: {target.skill_points_available}")
+        lines.append("")
+        
+        has_skills = False
+        for role in target.class_priority:
+            if role not in target.skill_levels_by_role:
+                continue
+            class_skills = target.skill_levels_by_role[role]
+            # Show all known skills (level > 0 means trained)
+            known_skills = {k: v for k, v in class_skills.items() if v > 0}
+            
+            if known_skills:
+                has_skills = True
+                class_name = target.get_display_class_name(role)
+                class_level = target.levels_by_role.get(role, 0)
+                lines.append(f"  [{class_name.title()} - Level {class_level}]")
+                
+                # Sort skills alphabetically
+                for skill_name, skill_level in sorted(known_skills.items()):
+                    display_name = skill_name.replace('_', ' ').title()
+                    lines.append(f"    {display_name:25} {skill_level:>2}/{Constants.MAX_SKILL_LEVEL}")
+                lines.append("")
+        
+        if not has_skills:
+            lines.append("  No trained skills yet.")
+            lines.append("  Use 'skillup <skill> <points>' to train skills.")
+            lines.append("")
+        
+        # Send all lines
+        for line in lines:
+            await actor.send_text(CommTypes.STATIC, line)
 
     async def cmd_triggers(cls, actor: Actor, input: str):
         # triggers <character|room|object> <name|me|here> <enable|disable|show|list> [<all|trigger_id>]
