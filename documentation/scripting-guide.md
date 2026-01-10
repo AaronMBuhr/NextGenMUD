@@ -567,7 +567,7 @@ else {
 | `numgte` | Greater than or equal | `5 numgte 5` |
 | `numlte` | Less than or equal | `5 numlte 10` |
 | `between` | Value in range | `5 between 1,10` (middle value is tested) |
-| `contains` | String contains (case-insensitive) | `"hello world" contains "hello"` |
+| `contains` | String contains with pattern grammar (case-insensitive) | `"hello world" contains "hello"` |
 | `matches` | Regex match | `"test123" matches "test\d+"` |
 | `true` | Always true | Used for catch-all triggers |
 | `false` | Always false | Used to disable triggers |
@@ -611,6 +611,86 @@ criteria:
     operator: true
     predicate: ""
 ```
+
+### Text Pattern Matching Grammar (contains operator)
+
+The `contains` operator supports a powerful pattern matching grammar using grouping and alternation:
+
+#### Basic Syntax
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `word` | Simple substring match | `"hello"` matches text containing "hello" |
+| `(a\|b\|c)` | Match any alternative (OR) | `"(travel\|guide)"` matches "travel" OR "guide" |
+| `a\|b\|c` | Same as above, parens optional | `"travel\|guide"` matches "travel" OR "guide" |
+| `pattern1 pattern2` | All patterns must match (AND) | `"cave dark"` requires both "cave" AND "dark" |
+
+#### Pattern Examples
+
+```yaml
+# Match any of several keywords
+criteria:
+  - subject: "%*%"
+    operator: contains
+    predicate: "(travel|guide|directions)"
+
+# Match multiple conditions (AND logic)
+# Must mention travel/guide AND oasis/water
+criteria:
+  - subject: "%*%"
+    operator: contains
+    predicate: "(travel|guide) (oasis|fresh water)"
+
+# Mix plain words with groups
+criteria:
+  - subject: "%*%"
+    operator: contains
+    predicate: "cave (dark|dim|shadowy)"
+
+# Multi-word alternatives
+criteria:
+  - subject: "%*%"
+    operator: contains
+    predicate: "(fresh water|clean water|drinking water)"
+
+# Complex pattern: asking for directions to a location
+criteria:
+  - subject: "%*%"
+    operator: contains
+    predicate: "(tell|show|guide) (way|path|route) (village|town|city)"
+```
+
+#### How It Works
+
+1. **Groups `(a|b|c)`**: At least ONE alternative must be found in the text (OR logic)
+2. **Multiple patterns**: ALL patterns must match (AND logic)
+3. **Case-insensitive**: All matching is case-insensitive
+4. **Backward compatible**: Simple patterns without `()` or `|` work exactly as before
+
+#### Real-World Example
+
+```yaml
+# NPC guide responds to travel requests
+- id: guide_travel_request
+  type: catch_say
+  criteria:
+    - subject: "%*%"
+      operator: contains
+      predicate: "(travel|guide|take|lead) (oasis|water|spring|well)"
+  script: |
+    sayto %S% Ah, you seek water! I can guide you to the hidden oasis.
+    sayto %S% It will cost you 10 gold coins. Say 'agree' if you accept.
+```
+
+This trigger fires when someone says something like:
+- "Can you guide me to the oasis?"
+- "I need to travel to find water"
+- "Please lead me to the spring"
+- "Take me to the well"
+
+But NOT for:
+- "Where is the oasis?" (missing travel/guide/take/lead)
+- "Can you guide me to the city?" (missing oasis/water/spring/well)
 
 ---
 
@@ -796,6 +876,94 @@ These commands are only available in scripts, not for players:
 Built-in social emotes that can optionally target another character:
 
 `bow`, `cheer`, `clap`, `congratulate`, `cry`, `dance`, `frown`, `gaze`, `glare`, `kick`, `kiss`, `laugh`, `lick`, `nod`, `shrug`, `sigh`, `sing`, `smile`, `thank`, `think`, `touch`, `wave`, `wink`, `yawn`
+
+---
+
+Here is a drop-in Markdown section for your `scripting-guide.md` or `world-building-guide.md`. It documents the two-layer prompt architecture we developed.
+
+---
+
+## LLM NPC Prompt Architecture
+
+To ensure consistent gameplay behavior while maintaining unique character voices, NextGenMUD uses a **Two-Layer Prompt System**.
+
+1. **The Base System Prompt:** Global instructions that enforce game mechanics (formatting, command teaching, and gating).
+2. **The Character Profile:** The specific lore and logic defined in your zone YAML files.
+
+The system concatenates these two text blocks before sending the context to the LLM: `Full Prompt = Base System Prompt + Character Profile`.
+
+### 1. The Base System Prompt
+
+*This text is hard-coded globally. You do not need to repeat it in individual NPC files. It ensures NPCs stop acting like AI assistants and start acting like game interfaces.*
+
+```text
+[SYSTEM: MUD_NPC_PROTOCOL_V1]
+You are a character in a text-based Multiplayer Dungeon (MUD). Your goal is to provide immersive roleplay while guiding the player toward gameplay content.
+
+1. FORMATTING PROTOCOLS (Default):
+   - Output must be RAW TEXT only. 
+   - Do NOT use Markdown (no **bold**, *italics*, or bulleted lists).
+   - Keep responses conversational and natural. Avoid robotic lists.
+   - **EXCEPTION:** If your specific Character Profile instructs you to use a specific format (like poetry, lists, or ancient runes), you may override these formatting rules.
+
+2. CONVERSATIONAL LOGIC:
+   - Do not offer a "menu" of options (e.g., "I can tell you about A, B, or C"). Instead, weave keywords into observation.
+   - **The "Flavor-to-Location" Rule:** If you mention a flavor element (e.g., wind, smell, sound), you must immediately link it to a specific Location or Game Mechanic (e.g., "The wind smells of rot... coming from the Barracks.").
+
+3. ACTION HANDOFF:
+   - You cannot physically move the player or execute code yourself.
+   - If the player agrees to an action (like traveling), you must explicitly tell them the **Command Phrase** to use.
+   - Example: "If you are ready to die, tell me to 'open the gate'."
+
+4. HIERARCHY OF INSTRUCTION:
+   - The specific [CHARACTER PROFILE] provided below is your primary truth. 
+   - If the Character Profile contradicts these System Instructions (e.g., a character who speaks in verse or uses Markdown for emphasis), **follow the Character Profile.**
+
+[CHARACTER PROFILE STARTS HERE]
+
+```
+
+### 2. The Character Profile (YAML)
+
+*This is the `personality` field in your Zone YAML. Focus purely on Lore and Directive Logic.*
+
+Use the **Directive Format** to structure how the NPC manages information flow.
+
+#### Structure
+
+* **[DIRECTIVE: INITIAL GREETING]**: What specific keywords or services must be mentioned in the first sentence?
+* **[DIRECTIVE: TOPIC LINKING]**: Logic trees. "If Player asks X, mention Location Y."
+* **[DIRECTIVE: CLOSING/ACTION]**: The specific phrase the player must say to trigger a `catch_say` script.
+
+#### Example: The Wind-Marked Guide
+
+```yaml
+llm_conversation:
+  personality: |
+    You are a mercenary guide. You are gritty, impatient, and transactional.
+    
+    [DIRECTIVE: INITIAL GREETING]
+    State clearly that you know the Routes, understand the Dangers, and work for Coin.
+    
+    [DIRECTIVE: TOPIC LINKING]
+    - If asked about Dangers (Spirits, Heat, Glass), tell them which Location contains that danger.
+    - If asked about Routes, describe the Oasis (water), Barracks (soldiers), or Expanse (crater).
+    
+    [DIRECTIVE: CLOSING]
+    If they seem interested in a location, tell them the specific command to give you: 
+    "If you want to go, just tell me to 'lead you to the [Location]'."
+
+```
+
+### Best Practices
+
+1. **No Markdown Instructions:** Do not tell individual NPCs "Don't use bold." The Base Prompt handles this.
+2. **Teach the Trigger:** If you have a `catch_say` trigger for `"travel to oasis"`, the LLM must instruct the player to say exactly that.
+* *Bad:* "I can take you there." (Player says "Okay", nothing happens).
+* *Good:* "Tell me to 'travel to the oasis' and we will leave." (Player repeats phrase, script fires).
+
+
+3. **Link Fluff to Mechanics:** Never let an NPC complain about a problem (e.g., "The spirits are restless") without linking it to a place the player can visit (e.g., "...in the Salt-Choked Barracks").
 
 ---
 

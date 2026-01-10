@@ -2,7 +2,7 @@ from .structured_logger import StructuredLogger
 from enum import IntFlag
 import re
 import random
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from .constants import Constants
 
 
@@ -47,6 +47,105 @@ def replace_vars(script, vars: dict) -> str:
     return script
 
 
+def parse_text_pattern_tokens(pattern: str) -> List[Tuple[str, any]]:
+    """
+    Parse a text pattern into tokens for matching.
+    
+    Returns a list of tuples: ('word', 'text') or ('group', ['alt1', 'alt2', ...])
+    """
+    tokens = []
+    i = 0
+    pattern_len = len(pattern)
+    
+    while i < pattern_len:
+        if pattern[i] == '(':
+            # Find matching closing paren
+            depth = 1
+            start = i + 1
+            i += 1
+            while i < pattern_len and depth > 0:
+                if pattern[i] == '(':
+                    depth += 1
+                elif pattern[i] == ')':
+                    depth -= 1
+                i += 1
+            group_content = pattern[start:i-1]
+            # Split by | to get alternatives
+            alternatives = [alt.strip() for alt in group_content.split('|')]
+            tokens.append(('group', alternatives))
+        elif pattern[i].isspace():
+            i += 1
+        else:
+            # Plain word/phrase - read until space or open paren
+            start = i
+            while i < pattern_len and not pattern[i].isspace() and pattern[i] != '(':
+                i += 1
+            word = pattern[start:i]
+            if word:
+                # Handle standalone pipe operator outside parens - treat as alternatives
+                if '|' in word:
+                    alternatives = [alt.strip() for alt in word.split('|')]
+                    tokens.append(('group', alternatives))
+                else:
+                    tokens.append(('word', word))
+    
+    return tokens
+
+
+def matches_text_pattern(text: str, pattern: str) -> bool:
+    """
+    Match text against a pattern using a grammar with grouping and alternation.
+    
+    Grammar:
+    - (a|b|c) - matches if text contains 'a' OR 'b' OR 'c' (group with alternatives)
+    - a|b|c - same as above, parens optional for single group
+    - Multiple groups/terms separated by spaces are ANDed together
+    
+    Examples:
+    - "hello" - simple substring match (backward compatible)
+    - "(travel|guide)" - matches if text contains "travel" OR "guide"
+    - "(oasis|fresh water)" - matches if text contains "oasis" OR "fresh water"
+    - "(travel|guide) (oasis|fresh water)" - must match at least one from each group
+    - "cave (dark|dim)" - must contain "cave" AND either "dark" or "dim"
+    
+    Args:
+        text: The text to search in
+        pattern: The pattern to match against
+        
+    Returns:
+        True if the text matches the pattern, False otherwise
+    """
+    text_lower = text.lower()
+    pattern = pattern.strip()
+    
+    if not pattern:
+        return False
+    
+    # If no special grammar characters, use simple substring match (backward compatible)
+    if '(' not in pattern and '|' not in pattern:
+        return pattern.lower() in text_lower
+    
+    # Parse and evaluate the grammar
+    tokens = parse_text_pattern_tokens(pattern)
+    
+    # All tokens must match (AND logic)
+    for token_type, value in tokens:
+        if token_type == 'word':
+            if value.lower() not in text_lower:
+                return False
+        elif token_type == 'group':
+            # At least one alternative must match (OR logic)
+            found = False
+            for alt in value:
+                if alt.lower() in text_lower:
+                    found = True
+                    break
+            if not found:
+                return False
+    
+    return True
+
+
 IF_CONDITIONS = {
     "eq": lambda a,b,c: a == b,
     "neq": lambda a,b,c: a != b,
@@ -58,7 +157,7 @@ IF_CONDITIONS = {
     "numgte": lambda a,b,c: to_int(a) >= to_int(b),
     "numlte": lambda a,b,c: to_int(a) <= to_int(b),
     "between": lambda a,b,c: to_int(a) <= to_int(b) <= to_int(c),
-    "contains": lambda a,b,c: b.lower() in a.lower(),
+    "contains": lambda a,b,c: matches_text_pattern(a, b),
     "matches": lambda a,b,c: re.match(b, a),
     "true": lambda a,b,c: True,
     "false": lambda a,b,c: False,

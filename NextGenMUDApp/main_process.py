@@ -29,6 +29,25 @@ class MainProcess:
         logger.set_detail_level(1)  # Set to debug level 1
         # logger.debug(f"logging level set to {logger.getEffectiveLevel()}")
         cls._shutdown_flag = False
+        
+        # Intercept SIGINT (Ctrl+C) to set shutdown flags BEFORE Uvicorn closes connections.
+        # This ensures handle_disconnect sees shutting_down=True and skips linkdead timer.
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+        def signal_handler(signum, frame):
+            logger.info("Received shutdown signal (SIGINT). Setting game state shutdown flags.")
+            
+            # Set the flags immediately so handle_disconnect knows to skip linkdead
+            cls.shutdown()
+            
+            # Call the original handler so Uvicorn/Django can shut down gracefully
+            if callable(original_sigint_handler):
+                original_sigint_handler(signum, frame)
+            elif original_sigint_handler == signal.SIG_DFL:
+                sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        
         main_process_thread = threading.Thread(target=cls.run_main_game_loop, daemon=True)
         main_process_thread.start()
     
@@ -36,6 +55,7 @@ class MainProcess:
     def shutdown(cls):
         """Signal the main game loop to stop."""
         cls._shutdown_flag = True
+        cls._game_state.shutting_down = True
 
     @classmethod
     def run_main_game_loop(cls):

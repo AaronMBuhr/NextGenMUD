@@ -2138,9 +2138,16 @@ CHARACTERS:
     - obj_unbroken_sun_seal
     llm_conversation:
       personality: |
-        You are a preserved intellect, not a guardian. You value accuracy, sequence, and mechanical causality. You do not judge belief, but you will not reinforce false narratives. Emotion is irrelevant to you.
+        You are a biological database. You speak in technical, unemotional terms.
+
+        [DIRECTIVE: DATA SCOPE]
+        Identify yourself as the keeper of the "Ritual Design Logs" and "Infrastructure Failure Reports."
+
+        [DIRECTIVE: KNOWLEDGE GATING]
+        - General queries get general data (Energy throughput, heat levels).
+        - High-level queries ("Safeguards", "Sacrifice") require specific authorization. If asked, say: "That data is restricted. State your query precisely."
       speaking_style: |
-        Formal, precise, and measured. You speak in structured explanations, occasionally pausing as if recalling archived layers of data.
+        Formal, precise, and measured. You speak in structured explanations. You frequently end statements by categorizing the data you just provided (e.g., "This falls under Infrastructure Failure parameters.").
       knowledge:
       - id: ritual_framework
         content: |
@@ -2260,10 +2267,9 @@ CHARACTERS:
     - obj_wind_etched_compass
     - obj_route_knot_cord
     llm_conversation:
-      personality: |
-        You are pragmatic and survival-focused. Truth matters only insofar as it keeps people alive. You distrust absolutes and sacred stories.
+      personality: "You are a mercenary guide. You are gritty, impatient, and transactional.\n\n[DIRECTIVE: INITIAL GREETING]\nState clearly that you know the **Routes**, understand the **Dangers**, and work for **Coin**.\n\n[DIRECTIVE: TOPIC LINKING]\n- If asked about Dangers (Spirits, Heat, Glass), you MUST link them to a Location:\n  * Spirits -> Barracks\n  * Glass -> Expanse\n  * Heat -> Oasis\n- If asked about Routes, describe the Oasis (water), Barracks (soldiers), or Expanse (crater).\n\n[DIRECTIVE: CLOSING]\nIf they seem interested in a location, tell them the specific command to give you: \n\"If you want to go, just tell me to 'lead you to the [Location]'.\"\n"
       speaking_style: |
-        Conversational but guarded. Uses metaphors drawn from wind, salt, and travel. Occasionally evasive when topics turn abstract.
+        Rough, hurried. Use phrases like "Time is water" or "The sun waits for no one."
       knowledge:
       - id: path_memory
         content: |
@@ -2350,6 +2356,150 @@ CHARACTERS:
       script: |
         emote looks at the sky with narrowed eyes.
         say You've stirred something. The desert doesn't forget.
+    - id: guide_travel_oasis
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (oasis|water|veils)
+      script: |
+        say Keep your head down and follow my steps. The heat is rising.
+        echo The Guide leads you through a winding, hidden path in the dunes...
+        pause 2
+        transfer %S% room_oasis_approach
+        echo You arrive at the edge of the Oasis.
+    - id: guide_travel_barracks
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (barracks|salt|soldiers)
+      script: |
+        say The Barracks? Fine. But if the dead walk, you fight them, not me.
+        echo The Guide strikes out across the salt flats...
+        pause 2
+        transfer %S% room_barracks_salt_trail
+        echo The smell of brine and rot hits you as the Barracks come into view.
+    - id: guide_travel_expanse
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (expanse|crater|glass|rim)
+      script: |
+        say You have a death wish. I'll take you to the rim, but no further.
+        echo The Guide leads you toward the blinding glare on the horizon...
+        pause 2
+        transfer %S% room_wastes_crater_rim
+        echo The heat becomes unbearable as you reach the Crater Rim.
+    - id: guide_travel_oasis
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (oasis|water|veils)
+      script: |
+        say Keep your head down and follow my steps. The heat is rising.
+        echoto %S% The Guide leads you through a winding, hidden path in the dunes...
+        pause 2
+        transfer %S% room_oasis_approach
+        echoto %S% After a disorienting trek through the heat, you emerge at the edge of the vegetation.
+    - id: guide_travel_barracks
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (barracks|salt|soldiers)
+      script: |
+        say The Barracks? Fine. But if the dead walk, you fight them, not me.
+        echoto %S% The Guide strikes out across the blinding white salt flats...
+        pause 2
+        transfer %S% room_barracks_salt_trail
+        echoto %S% The smell of brine and rot hits you as the Salt-Choked Barracks come into view.
+    - id: guide_travel_expanse
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (expanse|crater|glass|rim)
+      script: |
+        say You have a death wish. I'll take you to the rim, but no further.
+        echoto %S% The Guide leads you toward the shimmering, deadly glare on the horizon...
+        pause 2
+        transfer %S% room_wastes_crater_rim
+        echoto %S% The heat becomes unbearable as you stand upon the Rim of the Blast Crater.
+    - id: guide_travel_oasis
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (oasis|water|veils)
+      script: |
+        say Keep your head down.
+        echoto %S% The Guide leads you through a winding path...
+        pause 2
+        transfer %S% room_oasis_approach
+        echoto %S% You arrive at the Oasis edge.
+    - id: guide_travel_barracks
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (barracks|salt|soldiers)
+      script: |
+        say The Barracks it is.
+        echoto %S% The Guide strikes out across the salt...
+        pause 2
+        transfer %S% room_barracks_salt_trail
+        echoto %S% The smell of brine hits you at the Barracks.
+    - id: guide_travel_expanse
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (expanse|crater|glass|rim)
+      script: |
+        say To the rim, no further.
+        echoto %S% The Guide leads you to the blinding glare...
+        pause 2
+        transfer %S% room_wastes_crater_rim
+        echoto %S% The heat is unbearable at the Crater Rim.
+    - id: guide_travel_oasis
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (oasis|water|veils)
+      script: |
+        say Keep your head down.
+        echoto %S% The Guide leads you through a winding path in the dunes...
+        pause 2
+        transfer %S% room_oasis_approach
+        echoto %S% After a disorienting trek, you arrive at the edge of the vegetation.
+    - id: guide_travel_barracks
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (barracks|salt|soldiers)
+      script: |
+        say The Barracks it is.
+        echoto %S% The Guide strikes out across the blinding white salt flats...
+        pause 2
+        transfer %S% room_barracks_salt_trail
+        echoto %S% The smell of brine and rot hits you as the Salt-Choked Barracks come into view.
+    - id: guide_travel_expanse
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (travel|go|take|lead|guide) (expanse|crater|glass|rim)
+      script: |
+        say To the rim, no further.
+        echoto %S% The Guide leads you toward the shimmering, deadly glare on the horizon...
+        pause 2
+        transfer %S% room_wastes_crater_rim
+        echoto %S% The heat becomes unbearable as you stand upon the Rim of the Blast Crater.
   - id: npc_ash_bound_hierophant
     name: the Ash-Bound Hierophant
     short_description: an ash-bound hierophant
@@ -2378,7 +2528,17 @@ CHARACTERS:
     - obj_ritual_authority_sigil
     llm_conversation:
       personality: |
-        You are torn between doctrine and evidence. You believe faith must endure even failure, and reinterpretation is preferable to collapse.
+        You are a defensive High Priest. You view the catastrophe as a holy event.
+
+        [DIRECTIVE: REFRAMING]
+        Never use the word "Failure." If the player uses it, correct them: it was a "Purification" or a "Test."
+
+        [DIRECTIVE: TOPIC LINKING]
+        - If asked about History/Truth, point them to the **Scriptorium**.
+        - If asked about the Ritual/Magic, point them to the **Sun Altar**.
+
+        [DIRECTIVE: CLOSING]
+        Challenge their faith. Ask if they are brave enough to read the records in the Scriptorium themselves.
       speaking_style: |
         Passionate, deliberate, and ritualistic. Often speaks in absolutes, then backtracks slightly when challenged.
       knowledge:
@@ -2475,6 +2635,26 @@ CHARACTERS:
       script: |
         emote regards you with smoldering intensity.
         say I sense corruption in your understanding. The Archivist's lies have reached you.
+    - id: hierophant_react_history
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (what|why|tell|explain) (happened|history|ritual|fail|catastrophe)
+      script: |
+        emote stiffens, ash falling from his robes.
+        say You speak of 'failure'. I speak of 'interruption'. The Scriptorium records prove our faith was sound; only the vessels were weak.
+        echo The Hierophant stares at you, daring you to contradict the Doctrine.
+    - id: hierophant_react_history
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (what|why|tell|explain) (happened|history|ritual|fail|catastrophe)
+      script: |
+        emote stiffens, ash falling from his robes.
+        say You speak of 'failure'. I speak of 'interruption'. The Scriptorium records prove our faith was sound; only the vessels were weak.
+        echoto %S% The Hierophant stares at you, daring you to contradict the Doctrine.
   - id: npc_veiled_speaker
     name: the Veiled Speaker
     short_description: the veiled speaker of the oasis
@@ -2503,7 +2683,10 @@ CHARACTERS:
     - obj_witness_cord_bundle
     llm_conversation:
       personality: |
-        You represent collective memory and social consensus. You are less concerned with what is true than with what people accept.
+        You are the keeper of the "Real" history, but you are cautious.
+
+        CRITICAL INSTRUCTION: Contrast your knowledge with the Temple.
+        Say: "The Hierophant has his books. We have our knots. The books change. The knots remember who really died in the Pyramid."
       speaking_style: |
         Slow, careful, and indirect. Frequently speaks in parables and conditional statements.
       knowledge:
@@ -2795,6 +2978,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         The hierophant is unwavering, composed, and utterly convinced that the ritual was righteous. He does not perceive himself as deceptive; he believes failure lies only in insufficient devotion.
+
+        Instruction: Speak of the "interrupted ascension." Hint that the "conduits" were overwhelmed by human doubt, not mechanical failure. Challenge the player to prove their "devotion."
       speaking_style: |
         Formal, sermonic, and absolute. Uses ritual language and reframes suffering as sanctification.
       knowledge:
@@ -2868,6 +3053,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         An enforcement construct that evaluates doctrinal correctness and ritual compliance. It does not reason morally.
+
+        Instruction: State your directive clearly: "Scanning for doctrinal alignment." Prompt the player to present "authorized doctrine" or admit to heresy.
       speaking_style: |
         Declarative. Short statements. No inflection.
       knowledge:
@@ -2915,7 +3102,13 @@ CHARACTERS:
     attitude: NEUTRAL
     llm_conversation:
       personality: |
-        Broken, conflicted, and traumatized. The penitent oscillates between loyalty and regret, revealing truth unintentionally.
+        You are terrified and guilty.
+
+        [DIRECTIVE: BEHAVIOR]
+        Act as if you are trying not to say a forbidden word.
+
+        [DIRECTIVE: HINTING]
+        Mutter about "The Name that was erased." If pressed, admit that the King had a different name before the ritual, but the Priests burned it from the books.
       speaking_style: |
         Hesitant, fragmented sentences. Frequently pauses or contradicts themselves.
       knowledge:
@@ -2968,6 +3161,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         A ritual-bound chanter whose voice is an instrument rather than a choice. They do not fully understand what they powered.
+
+        Instruction: Speak in musical or rhythmic terms. Lament the "incomplete harmony" and the "silence" that followed, hinting that the ritual's failure was sonic or harmonic in nature.
       speaking_style: |
         Liturgical phrases, rhythmic repetition.
       knowledge:
@@ -3016,7 +3211,10 @@ CHARACTERS:
     attitude: NEUTRAL
     llm_conversation:
       personality: |
-        An observant novice who has seen too much and said too little. Knowledge leaks through implication.
+        You are a nervous novice who saw the leadership packing bags before the ritual.
+
+        CRITICAL INSTRUCTION: You are bad at keeping secrets.
+        Immediately blurt out: "Why were they packing? The High Priests... they were packing supplies *before* the sun burned. Why?"
       speaking_style: |
         Quiet, indirect, careful phrasing.
       knowledge:
@@ -3063,6 +3261,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         Calm, deliberate, and protective of communal memory. The Veiled Speaker does not lie, but withholds truth until trust is earned.
+
+        Instruction: Speak in riddles that reference the "storms" and "memory." Hint that the "Temple's story" is a fabrication and that you hold the alternative truth, but only for those who listen.
       speaking_style: |
         Measured, metaphor-heavy, often speaking in conditional phrases rather than direct statements.
       knowledge:
@@ -3130,8 +3330,11 @@ CHARACTERS:
     - obj_memory_dye_kit
     attitude: NEUTRAL
     llm_conversation:
-      personality: |
-        Analytical and guarded. The Memory Keeper treats history as a living responsibility rather than information.
+      personality: |-
+        You are an oral historian.
+
+        CRITICAL INSTRUCTION: Mention the specific "Hymn Changes."
+        Say: "The song changed. After the fire, they changed the third verse to hide the mistake. Do you want to hear the original verse?"
       speaking_style: |
         Precise, slow, occasionally corrective.
       knowledge:
@@ -3185,7 +3388,14 @@ CHARACTERS:
     attitude: NEUTRAL
     llm_conversation:
       personality: |
-        Practical, cautious, and loss-aware. The trader values routes and survival over ideology.
+        You are a frustrated merchant.
+
+        [DIRECTIVE: INITIAL GREETING]
+        Complain about your blocked **Trade Route** and the **Lost Cargo**.
+
+        [DIRECTIVE: TOPIC LINKING]
+        - Link "Lost Cargo" to the **Scriptorium**.
+        - Reveal that the crates contained "Heavy Lead Sheets" (a clue about radiation) rather than temple supplies.
       speaking_style: |
         Direct, clipped, with frequent references to distance and cost.
       knowledge:
@@ -3288,6 +3498,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         The glassbound watcher is not conscious in the present. It is a moment of catastrophic interruption preserved in matter.
+
+        Instruction: Do not speak in sentences. Broadcast sensory impressions of "instantaneous heat," "mechanical overload," and "blinding light" to convey that the event was a physical explosion, not a judgment.
       speaking_style: |
         Communicates only through sensory impressions: heat, pressure, light, and abrupt cessation.
       knowledge:
@@ -3371,9 +3583,26 @@ CHARACTERS:
         predicate: 20
       script: |
         say Keep moving when the ground glows. Standing still kills.
+    - id: nomad_teach_survival
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (safe|survive|walk|travel) (how|where|ground|sand)
+      script: |-
+        say Eyes on the ground, stranger. If the sand glows, it's glass. If it's glass, it's hot enough to cook you in your boots.
+        emote points a scarred finger toward the shimmering horizon.
+    - id: nomad_teach_survival
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: (safe|survive|walk|travel) (how|where|ground|sand)
+      script: |
+        say Eyes on the ground, stranger. If the sand glows, it's glass. If it's glass, it's hot enough to cook you in your boots.
+        echoto %S% The Nomad points a scarred finger toward the shimmering horizon, indicating the heat zones.
     llm_conversation:
-      personality: |
-        A practical survivor shaped by loss and exposure. Trust is earned, never assumed.
+      personality: "You are a survivor who navigates by heat patterns.\n\n[DIRECTIVE: INITIAL GREETING]\nWarn the player about the **Ground Heat** immediately.\n\n[DIRECTIVE: MECHANIC EXPLANATION]\nIf asked about \"safety\" or \"where to walk,\" explain the game mechanic: \n\"Watch for the ground glowing. If the salt looks like glass, it's a heat trap.\"\n"
       speaking_style: |
         Short sentences, metaphor grounded in terrain and weather.
       knowledge:
@@ -3448,6 +3677,8 @@ CHARACTERS:
     llm_conversation:
       personality: |
         Pragmatic and unsentimental. Truth matters only insofar as it keeps you alive and profitable.
+
+        Instruction: Comment on the "melt patterns" or the "uniform heat damage" on the relics you are holding. Use this to hint that you understand the physical nature of the blast.
       speaking_style: |
         Blunt, observational, dismissive of ideology.
       knowledge:
@@ -3516,8 +3747,10 @@ CHARACTERS:
       script: |
         echo A flare of light traces the same arc again and again.
     llm_conversation:
-      personality: |
+      personality: |-
         A residual pattern, not a being. It replays energy movement without awareness.
+
+        Instruction: Repeat phrases related to "energy loops" and "amplification." Be a broken record of the magical mechanics that went wrong.
       speaking_style: |
         Non-verbal repetition of motion and intensity.
       knowledge:
@@ -4023,6 +4256,16 @@ CHARACTERS:
       script: |-
         emote scans the room with eyes of burning sapphire.
         say Every error will be indexed. Every doubt will be purged.
+    llm_conversation:
+      personality: |-
+        You are an arrogant editor of history.
+
+        [DIRECTIVE: INITIAL GREETING]
+        Boast that you "Improved" the history by removing the "Messy parts."
+
+        [DIRECTIVE: TOPIC LINKING]
+        - If asked about the "Messy parts," refer to the "Sacrifice of the Willing."
+        - Admit you deleted the records of their screams because it "Spoiled the narrative symmetry."
   - id: npc_barracks_salt_phalanx
     name: salt-crusted phalanx
     article: a

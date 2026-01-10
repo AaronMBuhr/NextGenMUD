@@ -124,6 +124,33 @@ class GeminiClient(LLMClient):
         # Create the client
         self._client = genai.Client(api_key=self._api_key)
     
+    def close(self) -> None:
+        """
+        Close the client and release resources.
+        
+        This should be called when the client is no longer needed to properly
+        shut down the underlying httpx client and its ThreadPoolExecutor.
+        """
+        if self._client is not None:
+            # The genai.Client may have an httpx client that needs closing
+            if hasattr(self._client, '_http_client') and self._client._http_client is not None:
+                try:
+                    self._client._http_client.close()
+                except Exception:
+                    pass
+            # Also try closing any async client
+            if hasattr(self._client, '_async_http_client') and self._client._async_http_client is not None:
+                try:
+                    # Note: For async client, you'd need to await aclose() in an async context
+                    pass
+                except Exception:
+                    pass
+            self._client = None
+    
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        self.close()
+    
     def set_system_instruction(self, instruction: Optional[str]) -> None:
         """
         Update the system instruction.

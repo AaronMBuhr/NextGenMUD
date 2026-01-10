@@ -819,7 +819,7 @@ def apply_single_revision(base: dict, revisions: dict) -> dict:
     return base
 
 
-def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bool:
+def merge_mud_files(base_path: str, revisions_path: str, output_path: str, force: bool = False) -> bool:
     """
     Merge a revisions file into a base MUD zone file.
     
@@ -831,6 +831,7 @@ def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bo
         base_path: Path to the original zone file
         revisions_path: Path to the revisions file
         output_path: Path for the merged output file
+        force: If True, proceed even without ruamel.yaml (comments will be deleted)
         
     Returns:
         True if successful, False otherwise
@@ -840,8 +841,13 @@ def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bo
         yaml_handler = create_yaml_handler()
         
         if not RUAMEL_AVAILABLE:
-            print("[WARNING] ruamel.yaml not installed - comments will NOT be preserved!")
-            print("          Install with: pip install ruamel.yaml")
+            if not force:
+                print("[ERROR] ruamel.yaml not found - comments will be deleted!")
+                print("        Install with: pip install ruamel.yaml")
+                print("        Or use -f / --force to proceed anyway (comments will be lost).")
+                return False
+            else:
+                print("[WARNING] ruamel.yaml not installed - proceeding with --force, comments will be DELETED!")
         
         # Load base file
         base = load_yaml(base_path, yaml_handler)
@@ -870,7 +876,10 @@ def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bo
         save_yaml(base, output_path, yaml_handler, original_path=base_path)
         
         print(f"[OK] Successfully merged: {output_path}")
-        print("     Comments preserved.")
+        if RUAMEL_AVAILABLE:
+            print("     Comments preserved.")
+        else:
+            print("     WARNING: Comments were NOT preserved (ruamel.yaml not available).")
         return True
         
     except FileNotFoundError as e:
@@ -902,6 +911,8 @@ Note: Install ruamel.yaml to preserve comments: pip install ruamel.yaml
     parser.add_argument("output_file", nargs="?", help="Output file path (optional)")
     parser.add_argument("--in-place", "-i", action="store_true", 
                         help="Modify the base file in place (dangerous!)")
+    parser.add_argument("--force", "-f", action="store_true",
+                        help="Force merge even without ruamel.yaml (comments will be deleted)")
     
     args = parser.parse_args()
     
@@ -915,7 +926,7 @@ Note: Install ruamel.yaml to preserve comments: pip install ruamel.yaml
         base = Path(args.base_file)
         output_path = str(base.parent / f"{base.stem}_merged{base.suffix}")
     
-    success = merge_mud_files(args.base_file, args.revisions_file, output_path)
+    success = merge_mud_files(args.base_file, args.revisions_file, output_path, force=args.force)
     sys.exit(0 if success else 1)
 
 

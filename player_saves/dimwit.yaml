@@ -1,11 +1,114 @@
 name: Dimwit
+description: ''
+article: ''
+pronoun_subject: they
+pronoun_object: them
+pronoun_possessive: their
+location:
+  zone: shattered_dominion
+  room: room_desert_crossroads_waystone
+was_in_combat: false
+class_priority:
+- FIGHTER
+levels_by_role:
+  FIGHTER: 1
+specializations: {}
+skill_levels: {}
+skill_points_available: 75
+skill_levels_by_role:
+  FIGHTER:
+    bash: 0
+    cleave: 0
+    demoralizing_shout: 0
+    intimidate: 0
+    mighty_kick: 0
+    normal_stance: 0
+    slam: 0
+attributes:
+  STRENGTH: 14
+  DEXTERITY: 12
+  CONSTITUTION: 14
+  INTELLIGENCE: 8
+  WISDOM: 10
+  CHARISMA: 10
+permanent_flags: 1
+game_permission_flags: 0
+experience_points: 0
+hit_dice: 1
+hit_dice_size: 10
+hit_point_bonus: 4
+max_hit_points: 19
+current_hit_points: 19
+max_mana: 0
+current_mana: 0
+max_stamina: 23
+current_stamina: 23
+max_carrying_capacity: 100
+base_hit_modifier: 55
+base_dodge_modifier: 8
+dodge_dice_number: 1
+dodge_dice_size: 50
+critical_chance: 5
+critical_multiplier: 150
+num_main_hand_attacks: 1
+num_off_hand_attacks: 0
+damage_multipliers:
+  RAW: 1
+  SLASHING: 1
+  PIERCING: 1
+  BLUDGEONING: 1
+  FIRE: 1
+  COLD: 1
+  LIGHTNING: 1
+  ACID: 1
+  POISON: 1
+  DISEASE: 1
+  HOLY: 1
+  UNHOLY: 1
+  ARCANE: 1
+  PSYCHIC: 1
+  FORCE: 1
+  NECROTIC: 1
+  RADIANT: 1
+damage_reduction:
+  RAW: 0
+  SLASHING: 0
+  PIERCING: 0
+  BLUDGEONING: 0
+  FIRE: 0
+  COLD: 0
+  LIGHTNING: 0
+  ACID: 0
+  POISON: 0
+  DISEASE: 0
+  HOLY: 0
+  UNHOLY: 0
+  ARCANE: 0
+  PSYCHIC: 0
+  FORCE: 0
+  NECROTIC: 0
+  RADIANT: 0
+inventory: []
+equipment:
+  MAIN_HAND:
+  OFF_HAND:
+  BOTH_HANDS:
+  HEAD:
+  NECK:
+  SHOULDERS:
+  ARMS:
+  WRISTS:
+  HANDS:
+  LEFT_FINGER:
+  RIGHT_FINGER:
+  WAIST:
+  LEGS:
+  FEET:
+  BODY:
+  BACK:
+  EYES:
+temporary_flags: 0
+states: []
+cooldowns: []
 password_hash: 
   f0be2ab0f697fdc9f50c6b66f4731dabff30f2b6ce68df32291afb518ee55099$9c186f0a80185df0abb6431a9c966957e702c504025ce8319625bbad7c98566a
-selected_class: mage
-allocated_stats:
-  STRENGTH: 6
-  DEXTERITY: 10
-  CONSTITUTION: 10
-  INTELLIGENCE: 25
-  WISDOM: 8
-  CHARISMA: 1

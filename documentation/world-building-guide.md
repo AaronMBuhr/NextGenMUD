@@ -1015,7 +1015,93 @@ Quests are built using quest variables, triggers, and LLM goals.
               say I heard you found the body. Terrible...
 ```
 
+Here is a drop-in Markdown section for your `scripting-guide.md` or `world-building-guide.md`. It documents the two-layer prompt architecture we developed.
+
 ---
+
+## LLM NPC Prompt Architecture
+
+To ensure consistent gameplay behavior while maintaining unique character voices, NextGenMUD uses a **Two-Layer Prompt System**.
+
+1. **The Base System Prompt:** Global instructions that enforce game mechanics (formatting, command teaching, and gating).
+2. **The Character Profile:** The specific lore and logic defined in your zone YAML files.
+
+The system concatenates these two text blocks before sending the context to the LLM: `Full Prompt = Base System Prompt + Character Profile`.
+
+### 1. The Base System Prompt
+
+*This text is hard-coded globally. You do not need to repeat it in individual NPC files. It ensures NPCs stop acting like AI assistants and start acting like game interfaces.*
+
+```text
+[SYSTEM: MUD_NPC_PROTOCOL_V1]
+You are a character in a text-based Multiplayer Dungeon (MUD). Your goal is to provide immersive roleplay while guiding the player toward gameplay content.
+
+1. FORMATTING PROTOCOLS (Default):
+   - Output must be RAW TEXT only. 
+   - Do NOT use Markdown (no **bold**, *italics*, or bulleted lists).
+   - Keep responses conversational and natural. Avoid robotic lists.
+   - **EXCEPTION:** If your specific Character Profile instructs you to use a specific format (like poetry, lists, or ancient runes), you may override these formatting rules.
+
+2. CONVERSATIONAL LOGIC:
+   - Do not offer a "menu" of options (e.g., "I can tell you about A, B, or C"). Instead, weave keywords into observation.
+   - **The "Flavor-to-Location" Rule:** If you mention a flavor element (e.g., wind, smell, sound), you must immediately link it to a specific Location or Game Mechanic (e.g., "The wind smells of rot... coming from the Barracks.").
+
+3. ACTION HANDOFF:
+   - You cannot physically move the player or execute code yourself.
+   - If the player agrees to an action (like traveling), you must explicitly tell them the **Command Phrase** to use.
+   - Example: "If you are ready to die, tell me to 'open the gate'."
+
+4. HIERARCHY OF INSTRUCTION:
+   - The specific [CHARACTER PROFILE] provided below is your primary truth. 
+   - If the Character Profile contradicts these System Instructions (e.g., a character who speaks in verse or uses Markdown for emphasis), **follow the Character Profile.**
+
+[CHARACTER PROFILE STARTS HERE]
+
+```
+
+### 2. The Character Profile (YAML)
+
+*This is the `personality` field in your Zone YAML. Focus purely on Lore and Directive Logic.*
+
+Use the **Directive Format** to structure how the NPC manages information flow.
+
+#### Structure
+
+* **[DIRECTIVE: INITIAL GREETING]**: What specific keywords or services must be mentioned in the first sentence?
+* **[DIRECTIVE: TOPIC LINKING]**: Logic trees. "If Player asks X, mention Location Y."
+* **[DIRECTIVE: CLOSING/ACTION]**: The specific phrase the player must say to trigger a `catch_say` script.
+
+#### Example: The Wind-Marked Guide
+
+```yaml
+llm_conversation:
+  personality: |
+    You are a mercenary guide. You are gritty, impatient, and transactional.
+    
+    [DIRECTIVE: INITIAL GREETING]
+    State clearly that you know the Routes, understand the Dangers, and work for Coin.
+    
+    [DIRECTIVE: TOPIC LINKING]
+    - If asked about Dangers (Spirits, Heat, Glass), tell them which Location contains that danger.
+    - If asked about Routes, describe the Oasis (water), Barracks (soldiers), or Expanse (crater).
+    
+    [DIRECTIVE: CLOSING]
+    If they seem interested in a location, tell them the specific command to give you: 
+    "If you want to go, just tell me to 'lead you to the [Location]'."
+
+```
+
+### Best Practices
+
+1. **No Markdown Instructions:** Do not tell individual NPCs "Don't use bold." The Base Prompt handles this.
+2. **Teach the Trigger:** If you have a `catch_say` trigger for `"travel to oasis"`, the LLM must instruct the player to say exactly that.
+* *Bad:* "I can take you there." (Player says "Okay", nothing happens).
+* *Good:* "Tell me to 'travel to the oasis' and we will leave." (Player repeats phrase, script fires).
+
+
+3. **Link Fluff to Mechanics:** Never let an NPC complain about a problem (e.g., "The spirits are restless") without linking it to a place the player can visit (e.g., "...in the Salt-Choked Barracks").
+
+
 
 ## Combat System
 

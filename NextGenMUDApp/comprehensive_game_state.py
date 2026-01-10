@@ -82,6 +82,7 @@ class ComprehensiveGameState:
         self.scheduled_events = defaultdict(list)
         self.xp_progression: List[int] = []
         self.linkdead_characters: Dict[str, LinkdeadCharacter] = {}  # name -> LinkdeadCharacter
+        self.shutting_down: bool = False  # Flag to indicate server is stopping
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
@@ -820,10 +821,14 @@ class ComprehensiveGameState:
         await CoreActionsInterface.get_instance().arrive_room(new_player, start_room)
 
 
-    async def handle_disconnect(self, consumer: 'MyWebsocketConsumer'):
+    async def handle_disconnect(self, consumer: 'MyWebsocketConsumer', close_code: int = None):
         """
         Handle a player disconnecting.
         Starts the linkdead grace period if configured.
+        
+        Args:
+            consumer: The WebSocket consumer that disconnected
+            close_code: WebSocket close code (1001=Going Away, 1012=Service Restart indicate server shutdown)
         """
         logger = StructuredLogger(__name__, prefix="handle_disconnect()> ")
         
@@ -847,6 +852,18 @@ class ComprehensiveGameState:
         # Clear the connection reference but keep the character
         character.connection = None
         connection.character = None
+        
+        # If server is shutting down, skip linkdead and complete logoff immediately
+        # Detect shutdown via:
+        # 1. Our shutting_down flag
+        # 2. WebSocket close codes: 1001 (Going Away) or 1012 (Service Restart)
+        #    These indicate the server is closing the connection, not the client
+        server_initiated_close = close_code in (1001, 1012)
+        if self.shutting_down or server_initiated_close:
+            self.shutting_down = True  # Ensure flag is set for other checks
+            logger.info(f"Server shutting down (close_code={close_code}), skipping linkdead for {character.name}")
+            await self._complete_logoff(character)
+            return
         
         grace_period = Constants.DISCONNECT_GRACE_PERIOD_SECONDS
         
@@ -1434,4 +1451,3 @@ class ComprehensiveGameState:
 
 live_game_state = ComprehensiveGameState()
 GameStateInterface.set_instance(live_game_state)
-

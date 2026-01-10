@@ -3,6 +3,7 @@ from .structured_logger import get_logger, set_global_log_width, set_detail_leve
 import logging
 import sys
 import os
+import atexit
 
 # Add custom debug levels
 logging.DEBUG2 = 9  # Between DEBUG(10) and NOTSET(0)
@@ -50,6 +51,25 @@ class NextGenMUDAppConfig(AppConfig):
             # Import here to avoid premature loading
             from .main_process import MainProcess
             from .comprehensive_game_state import live_game_state
+            
+            # Register shutdown cleanup as a safety net.
+            # Note: This atexit handler may not run if os._exit() is called in asgi.py
+            # (which is intentional to avoid hanging on non-daemon ThreadPoolExecutor threads).
+            # The primary cleanup happens in the ASGI lifespan shutdown handler.
+            def shutdown_cleanup():
+                cleanup_logger = get_logger(__name__)
+                cleanup_logger.debug("Atexit handler running...")
+                
+                live_game_state.shutting_down = True
+                
+                # Save any linkdead characters that weren't already saved
+                for ld_char in list(live_game_state.linkdead_characters.values()):
+                    cleanup_logger.info(f"Saving linkdead character: {ld_char.character.name}")
+                    live_game_state._save_character(ld_char.character)
+                
+                MainProcess.shutdown()
+            
+            atexit.register(shutdown_cleanup)
             
             live_game_state.Initialize()
             MainProcess.start_main_process()

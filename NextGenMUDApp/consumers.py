@@ -75,11 +75,13 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.disconnect()> ")
-        logger.debug("disconnecting")
+        logger.debug(f"disconnecting with close_code={close_code}")
         try:
             if MyWebsocketConsumer.game_state is not None and self.login_state == LoginState.LOGGED_IN:
                 # Only handle character disconnect if they were logged in
-                await MyWebsocketConsumer.game_state.handle_disconnect(self)
+                # Pass close_code so handle_disconnect can detect server-initiated shutdown
+                # (close_code 1001=Going Away, 1012=Service Restart indicate server shutdown)
+                await MyWebsocketConsumer.game_state.handle_disconnect(self, close_code=close_code)
             # Clear the input queue
             self.input_queue_.clear()
         except Exception as e:
