@@ -665,7 +665,7 @@ CHARACTERS:
                 predicate: "hello"
             script: |
               emote squeaks a greeting.
-        damage_resistances:
+        damage_multipliers:
           bludgeoning: 0.5
           unholy: 0
           psychic: 2
@@ -698,7 +698,7 @@ CHARACTERS:
           Fighter:
             level: 1
         hit_dice: 1d6+2
-        damage_resistances:
+        damage_multipliers:
           unholy: 0
           psychic: 0.5
         natural_attacks:
@@ -739,7 +739,7 @@ CHARACTERS:
           Fighter:
             level: 1
         hit_dice: 1d8+2
-        damage_resistances:
+        damage_multipliers:
           unholy: 0
           psychic: 0.5
         natural_attacks:

@@ -1,5 +1,5 @@
 import asyncio
-from .structured_logger import StructuredLogger
+from .structured_logger import StructuredLogger, set_current_actor, clear_current_actor, flush_admin_log_queue
 import itertools
 import logging
 from num2words import num2words
@@ -61,6 +61,72 @@ class CommandHandler(CommandHandlerInterface):
     _game_state: ComprehensiveGameState = live_game_state
     executing_actors = {}
 
+    # Commands that cannot be executed via the "command" command (privileged/script-only)
+    privileged_commands = {
+        "show", "echo", "echoto", "echoexcept", "settempvar", "setpermvar", "spawn",
+        "makeadmin", "possess", "goto", "list", "at", "setloglevel", "setlogfilter",
+        "getlogfilter", "deltempvar", "delpermvar", "save", "load", "saves", "deletesave",
+        "stop", "walkto", "route", "delay", "setquestvar", "getquestvar", "spawnobj",
+        "pause", "damage", "heal", "removeitem", "transfer", "force", "command",
+        "interrupt", "teleport", "_trigger_start", "_trigger_end"
+    }
+
+    # Instant commands - these don't take any time and immediately process the next queued command
+    # Useful for internal commands that shouldn't delay script execution
+    instant_commands = {
+        "_trigger_start", "_trigger_end",
+        "settempvar", "setpermvar", "deltempvar", "delpermvar",
+        "setquestvar", "getquestvar"
+    }
+
+    @classmethod
+    def is_instant_command(cls, command_str: str) -> bool:
+        """
+        Check if a command is an instant command that doesn't take any game time.
+        
+        Instant commands don't delay processing of the next queued command.
+        """
+        if not command_str:
+            return False
+        first_word = command_str.strip().split()[0].lower() if command_str.strip() else ""
+        return first_word in cls.instant_commands
+    
+    @classmethod
+    async def process_command_queue(cls, actor: Actor, game_state: 'ComprehensiveGameState') -> bool:
+        """
+        Process commands from an actor's queue, handling instant commands.
+        
+        After executing any command, peeks at the next command in queue.
+        If the next command is instant, executes it immediately without waiting
+        for a game tick. Continues until queue is empty or next command is non-instant.
+        
+        Returns:
+            bool: True if any command was processed, False if queue was empty
+        """
+        if not actor.command_queue:
+            return False
+        
+        while actor.command_queue:
+            # Pop and execute current command
+            current_command = actor.command_queue.pop(0)
+            
+            try:
+                await cls.process_command(actor, current_command)
+            except Exception as e:
+                logger = StructuredLogger(__name__, prefix="process_command_queue()> ")
+                logger.error(f"Error processing queued command for {actor.rid}: {e}")
+            
+            # Peek at next command - if it's instant, continue immediately
+            if actor.command_queue:
+                next_command = actor.command_queue[0]  # Peek, don't pop
+                if cls.is_instant_command(next_command):
+                    continue  # Next command is instant, process it now
+            
+            # Next command is not instant (or queue empty), stop and wait for next tick
+            break
+        
+        return True
+
     command_handlers = {
         # privileged commands
         "show": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_show(char, input),
@@ -84,7 +150,6 @@ class CommandHandler(CommandHandlerInterface):
         "load": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_load(char, input),
         "saves": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_saves(char, input),
         "deletesave": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_deletesave(char, input),
-        "command": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_command(char, input),
         "stop": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_stop(char, input),
         "walkto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_walkto(char, input),
         "route": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_route(char, input),
@@ -98,7 +163,11 @@ class CommandHandler(CommandHandlerInterface):
         "removeitem": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_removeitem(char, input),
         "transfer": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_transfer(char, input),
         "force": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_force(char, input),
+        "command": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_command(char, input),
         "interrupt": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_interrupt(char, input),
+        "teleport": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_teleport(char, input),
+        "_trigger_start": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_trigger_start(char, input),
+        "_trigger_end": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_trigger_end(char, input),
 
         # normal commands
         "give": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_give(char, input),
@@ -156,6 +225,10 @@ class CommandHandler(CommandHandlerInterface):
         "flee": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_flee(char, input),
         "leaverandom": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_leaverandom(char, input),
         "skills": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_skills(char, input),
+        "level": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_level(char, input),
+        "levelup": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_levelup(char, input),
+        "skillup": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_skillup(char, input),
+        "improvestat": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_improvestat(char, input),
         "character": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
         "char": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_character(char, input),
         "triggers": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_triggers(char, input),
@@ -174,10 +247,21 @@ class CommandHandler(CommandHandlerInterface):
             logger.warning(f"Movement failed - destination room not found: {e} when moving {direction} from {char.location_room.name}")
             await char.send_text(CommTypes.DYNAMIC, "There is a problem with going that direction.")
 
-    async def process_command(cls, actor: Actor, input: str, vars: dict = None, from_script: bool = False):
+    @classmethod
+    async def process_command(cls, actor: Actor, input: str, vars: dict = None, from_script: bool = False) -> bool:
+        """
+        Process a command for an actor.
+        
+        Returns:
+            bool: True if command succeeded (or made progress), False if it failed completely
+        """
+        from .command_handler_interface import CommandResult
         logger = StructuredLogger(__name__, prefix="process_command()> ")
         # print(actor)
         logger.debug3(f"processing input for actor {actor.id}: {input}")
+        
+        # Set current actor context for admin log echoing (warning+ messages echoed to admins)
+        set_current_actor(actor)
         
         # Echo the command back to the user (but not for script-invoked commands)
         if not from_script:
@@ -192,6 +276,7 @@ class CommandHandler(CommandHandlerInterface):
             logger.debug3(f"pushing {actor.rid} ({input}) onto executing_actors")
             cls.executing_actors[actor.rid] = input
         msg = None
+        succeeded = True  # Assume success unless we hit an error
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
         
@@ -199,6 +284,10 @@ class CommandHandler(CommandHandlerInterface):
         # because force handles semicolon-separated commands internally for the target
         input_stripped = input.strip()
         first_word = input_stripped.split()[0].lower() if input_stripped else ""
+        
+        # Don't record internal trigger commands in the trigger context
+        is_internal_trigger_cmd = first_word in ("_trigger_start", "_trigger_end")
+        
         if first_word == "force":
             commands = [input_stripped]
         else:
@@ -206,33 +295,42 @@ class CommandHandler(CommandHandlerInterface):
         try:
             if not commands:
                 msg = "Did you want to do something?"
+                succeeded = False
             else:
                 # Process first command normally
                 first_command = commands[0]
                 if first_command == "":
                     msg = "Did you want to do something?"
+                    succeeded = False
                 elif actor.actor_type == ActorType.CHARACTER and actor.is_dead():
                     msg = "You are dead.  You can't do anything."
+                    succeeded = False
                 elif actor.actor_type == ActorType.CHARACTER \
                     and actor.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING) \
                     and not first_command.startswith("stand"):
                     msg = "You can't do that while you're sleeping."
+                    succeeded = False
                 elif actor.actor_type == ActorType.CHARACTER \
                     and actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING) \
                     and not first_command.startswith("stand"):
                     msg = "You can't do that while you're sitting."
+                    succeeded = False
                 elif actor.actor_type == ActorType.CHARACTER \
                     and actor.has_temp_flags(TemporaryCharacterFlags.IS_STUNNED):
                     msg = "You are stunned!"
+                    succeeded = False
                 elif actor.is_busy(cls._game_state.get_current_tick()):
                     # Queue the commands if the actor is busy
                     for cmd in commands:
                         actor.command_queue.append(cmd)
                     msg = "You are busy. Your command has been queued."
+                    # Queued is still considered "success" as it will execute later
+                    succeeded = True
                 else:
                     parts = split_preserving_quotes(first_command)
                     if len(parts) == 0:
                         msg = "Did you want to do something?"
+                        succeeded = False
                     else:
                         command = parts[0]
                         if command in cls.command_handlers:
@@ -250,6 +348,7 @@ class CommandHandler(CommandHandlerInterface):
                                     logger.debug3(f"no skill found")
                                     logger.debug3(f"Unknown command: {command}")
                                     msg = "Unknown command"
+                                    succeeded = False
 
                 # Queue any additional commands
                 if len(commands) > 1:
@@ -259,10 +358,16 @@ class CommandHandler(CommandHandlerInterface):
         except KeyError:
             logger.error(f"KeyError processing command {command}")
             msg = "Command failure."
+            succeeded = False
             raise
         except:
             logger.exception(f"exception handling input '{input}' for actor {actor.rid}")
+            succeeded = False
             raise
+        finally:
+            # Flush any queued admin log messages and clear the actor context
+            await flush_admin_log_queue()
+            clear_current_actor()
 
         if msg and hasattr(actor, 'connection') and actor.connection:
             await actor.send_text(CommTypes.DYNAMIC, msg)
@@ -270,12 +375,23 @@ class CommandHandler(CommandHandlerInterface):
             set_vars(actor, actor, actor, msg)
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         
+        # Record command result in trigger context if active (but not for internal trigger commands)
+        if not is_internal_trigger_cmd and actor.trigger_context is not None and actor.trigger_context.current_trigger is not None:
+            # Only record the first command (the one we actually executed)
+            cmd_to_record = commands[0] if commands else input
+            actor.trigger_context.current_trigger.command_results.append(
+                CommandResult(command=cmd_to_record, succeeded=succeeded, message=msg)
+            )
+            logger.debug3(f"Recorded command result: {cmd_to_record} -> {'succeeded' if succeeded else 'failed'}")
+        
         # Only remove from executing_actors if we added it (not a nested call)
         if not is_nested:
             if not actor.rid in cls.executing_actors:
                 logger.warning(f"actor {actor.rid} not in executing_actors")
             else:
                 del cls.executing_actors[actor.rid]
+        
+        return succeeded
 
 
     async def cmd_say(cls, actor: Actor, input: str):
@@ -329,15 +445,18 @@ class CommandHandler(CommandHandlerInterface):
         await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor._location_room if actor._location_room else actor.in_actor_.location_room_
         
-        # Check if target has LLM conversation enabled
+        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         from .llm_npc_conversation import NPCConversationHandler
-        if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
-            # Use LLM conversation handler for this NPC
-            await cls._handle_llm_conversation(actor, target, text, room)
-        elif target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
-            # Fall back to traditional CATCH_SAY triggers
+        any_trigger_fired = False
+        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
             for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
-                await trig.run(target, text, vars, cls._game_state)
+                if await trig.run(target, text, vars, cls._game_state):
+                    any_trigger_fired = True
+        
+        # If no trigger fired but NPC has LLM, call LLM directly
+        if not any_trigger_fired and room and target in room.get_characters():
+            if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
+                await cls._handle_llm_conversation(actor, target, text, room)
         
         if room:
             msg = f"{actor.art_name_cap} says to {target.name}, \"{text}\""
@@ -354,7 +473,10 @@ class CommandHandler(CommandHandlerInterface):
     async def cmd_ask(cls, actor: Actor, input: str):
         """
         Ask a question to someone in the room. Works like sayto but with different messages.
-        Triggers LLM conversation or CATCH_SAY triggers.
+        
+        If target has triggers: runs triggers (which queue script commands and _trigger_end).
+        If target has LLM but no triggers: calls LLM directly.
+        If target has both: triggers run first, then _trigger_end sends results to LLM.
         
         Usage: ask <target> <question>
         """
@@ -382,15 +504,18 @@ class CommandHandler(CommandHandlerInterface):
         await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor._location_room if actor._location_room else actor.in_actor_.location_room_
         
-        # Check if target has LLM conversation enabled
+        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         from .llm_npc_conversation import NPCConversationHandler
-        if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
-            # Use LLM conversation handler for this NPC
-            await cls._handle_llm_conversation(actor, target, text, room)
-        elif target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
-            # Fall back to traditional CATCH_SAY triggers
+        any_trigger_fired = False
+        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
             for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
-                await trig.run(target, text, vars, cls._game_state)
+                if await trig.run(target, text, vars, cls._game_state):
+                    any_trigger_fired = True
+        
+        # If no trigger fired but NPC has LLM, call LLM directly
+        if not any_trigger_fired and room and target in room.get_characters():
+            if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
+                await cls._handle_llm_conversation(actor, target, text, room)
         
         if room:
             msg = f"{actor.art_name_cap} asks {target.name}, \"{text}\""
@@ -404,15 +529,24 @@ class CommandHandler(CommandHandlerInterface):
                     for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
     
-    async def _handle_llm_conversation(cls, actor: Actor, target: Character, text: str, room) -> None:
-        """Handle LLM-driven NPC conversation."""
+    async def _handle_llm_conversation(cls, actor: Actor, target: Character, text: str, room, trigger_actions: list = None) -> None:
+        """
+        Handle LLM-driven NPC conversation.
+        
+        Args:
+            actor: The player speaking
+            target: The NPC being spoken to
+            text: What the player said
+            room: The room where this is happening
+            trigger_actions: Optional list of trigger scripts that just ran (to provide context to LLM)
+        """
         logger = StructuredLogger(__name__, prefix="_handle_llm_conversation()> ")
         
         from .llm_npc_conversation import get_conversation_handler
         
         try:
             handler = get_conversation_handler()
-            result = await handler.process_speech(actor, target, text, cls._game_state)
+            result = await handler.process_speech(actor, target, text, cls._game_state, trigger_actions=trigger_actions)
             
             if result.error:
                 logger.error(f"LLM conversation error: {result.error}")
@@ -423,6 +557,14 @@ class CommandHandler(CommandHandlerInterface):
                     game_state=cls._game_state
                 )
                 return
+            
+            # Show any emotes extracted from the response (displayed as actions, not speech)
+            for emote in result.emotes:
+                await room.echo(
+                    CommTypes.DYNAMIC,
+                    f'{target.art_name_cap} {emote}',
+                    game_state=cls._game_state
+                )
             
             if result.dialogue:
                 # Show NPC's response to everyone in the room
@@ -714,6 +856,7 @@ class CommandHandler(CommandHandlerInterface):
         if is_whisper:
             # Whisper - private, but others in room can see it happening
             msg = f"{firstcap(actor.name)} whispers something to you: '{text}'."
+            vars = set_vars(actor, actor, target, msg)
             await target.echo(CommTypes.DYNAMIC, msg, game_state=cls._game_state)
             await actor.send_text(CommTypes.DYNAMIC, f"You whisper to {target.name} '{text}'.")
             
@@ -730,17 +873,20 @@ class CommandHandler(CommandHandlerInterface):
             await target.echo(CommTypes.DYNAMIC, msg, game_state=cls._game_state)
             await actor.send_text(CommTypes.DYNAMIC, f"You tell {target.name} '{text}'.")
         
-        # If target is an NPC in the same room, trigger NPC response (LLM or CATCH_SAY)
+        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         room = actor._location_room if actor._location_room else None
+        from .llm_npc_conversation import NPCConversationHandler
+        any_trigger_fired = False
         if room and target in room.get_characters():
-            from .llm_npc_conversation import NPCConversationHandler
-            if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
-                # Use LLM conversation handler for this NPC
-                await cls._handle_llm_conversation(actor, target, text, room)
-            elif TriggerType.CATCH_SAY in target.triggers_by_type:
-                # Fall back to traditional CATCH_SAY triggers
+            if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
                 for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
-                    await trig.run(target, text, vars, cls._game_state)
+                    if await trig.run(target, text, vars, cls._game_state):
+                        any_trigger_fired = True
+            
+            # If no trigger fired but NPC has LLM, call LLM directly
+            if not any_trigger_fired:
+                if target.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is not None:
+                    await cls._handle_llm_conversation(actor, target, text, room)
 
 
     async def cmd_emote(cls, actor: Actor, input: str):
@@ -1338,6 +1484,186 @@ class CommandHandler(CommandHandlerInterface):
         await asyncio.sleep(seconds)
 
 
+    async def cmd_trigger_start(cls, actor: Actor, input: str):
+        """
+        Begin a trigger context for tracking script command results.
+        This is an internal privileged command inserted automatically by trigger execution.
+        
+        Usage: _trigger_start <trigger_type>|<trigger_id>|<trigger_criteria>|<initiator_ref>
+        
+        The parameters are pipe-separated to allow spaces in criteria.
+        """
+        from .command_handler_interface import TriggerContext, TriggerResult
+        logger = StructuredLogger(__name__, prefix="cmd_trigger_start()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Parse pipe-separated parameters
+        parts = input.split('|')
+        if len(parts) < 4:
+            logger.warning(f"Invalid _trigger_start format: {input}")
+            return True
+        
+        trigger_type = parts[0].strip()
+        trigger_id = parts[1].strip()
+        trigger_criteria = parts[2].strip()
+        initiator_ref = parts[3].strip()
+        
+        # Create or update trigger context
+        if actor.trigger_context is None:
+            actor.trigger_context = TriggerContext(
+                initiator_ref=initiator_ref,
+                trigger_results=[],
+                nesting_level=0
+            )
+        
+        # Create new trigger result for this trigger
+        new_trigger_result = TriggerResult(
+            trigger_type=trigger_type,
+            trigger_id=trigger_id,
+            trigger_criteria=trigger_criteria,
+            command_results=[]
+        )
+        
+        # Set as current trigger and add to results
+        actor.trigger_context.current_trigger = new_trigger_result
+        actor.trigger_context.trigger_results.append(new_trigger_result)
+        actor.trigger_context.nesting_level += 1
+        
+        logger.debug3(f"Started trigger context: {trigger_type}/{trigger_id}, nesting={actor.trigger_context.nesting_level}")
+        return True
+
+
+    async def cmd_trigger_end(cls, actor: Actor, input: str):
+        """
+        End a trigger context and optionally send results to LLM.
+        This is an internal privileged command inserted automatically by trigger execution.
+        
+        Usage: _trigger_end
+        
+        When nesting level returns to 0, sends accumulated results to LLM if actor is LLM-enabled.
+        """
+        from .llm_npc_conversation import NPCConversationHandler, get_conversation_handler
+        logger = StructuredLogger(__name__, prefix="cmd_trigger_end()> ")
+        logger.debug3(f"actor.rid: {actor.rid}")
+        
+        if actor.trigger_context is None:
+            logger.warning(f"_trigger_end called but no trigger context exists for {actor.rid}")
+            return True
+        
+        # Decrement nesting level
+        actor.trigger_context.nesting_level -= 1
+        actor.trigger_context.current_trigger = None
+        
+        logger.debug3(f"Ended trigger, nesting now={actor.trigger_context.nesting_level}")
+        
+        # Only send to LLM when nesting returns to 0
+        if actor.trigger_context.nesting_level > 0:
+            return True
+        
+        # Check if actor is LLM-enabled
+        if actor.get_perm_var(NPCConversationHandler.VAR_CONTEXT, None) is None:
+            logger.debug3(f"Actor {actor.rid} not LLM-enabled, skipping LLM response")
+            actor.trigger_context = None
+            return True
+        
+        # Send trigger results to LLM
+        await cls._send_trigger_results_to_llm(actor)
+        
+        # Clear the trigger context
+        actor.trigger_context = None
+        return True
+
+
+    async def _send_trigger_results_to_llm(cls, actor: Actor):
+        """
+        Send accumulated trigger results to the LLM for a natural response.
+        """
+        from .llm_npc_conversation import get_conversation_handler
+        logger = StructuredLogger(__name__, prefix="_send_trigger_results_to_llm()> ")
+        
+        if actor.trigger_context is None or not actor.trigger_context.trigger_results:
+            return
+        
+        context = actor.trigger_context
+        
+        # Find the initiator (player/character who triggered this)
+        initiator = None
+        if context.initiator_ref:
+            initiator = Actor.get_reference(context.initiator_ref.lstrip('@'))
+        
+        room = actor.location_room if hasattr(actor, 'location_room') else None
+        if room is None and hasattr(actor, '_location_room'):
+            room = actor._location_room
+        
+        # Format trigger results for LLM
+        trigger_actions = []
+        for trigger_result in context.trigger_results:
+            # Format: "CATCH_SAY trigger (matched 'gold'): say 'Here!' (succeeded), give gold player (failed)"
+            trigger_desc = f"{trigger_result.trigger_type} trigger"
+            if trigger_result.trigger_criteria:
+                trigger_desc += f" ({trigger_result.trigger_criteria})"
+            trigger_desc += ":"
+            
+            if trigger_result.command_results:
+                cmd_descs = []
+                for cmd_result in trigger_result.command_results:
+                    status = "succeeded" if cmd_result.succeeded else "failed"
+                    cmd_descs.append(f"{cmd_result.command} ({status})")
+                trigger_desc += " " + ", ".join(cmd_descs)
+            else:
+                trigger_desc += " (no commands executed)"
+            
+            trigger_actions.append(trigger_desc)
+        
+        if not trigger_actions:
+            return
+        
+        try:
+            handler = get_conversation_handler()
+            
+            # Build a context speech that describes what triggered this
+            # The LLM will respond to the trigger actions
+            result = await handler.process_speech(
+                player=initiator if initiator else actor,
+                npc=actor,
+                speech="[trigger event - respond to your actions]",
+                game_state=cls._game_state,
+                trigger_actions=trigger_actions
+            )
+            
+            if result.error:
+                logger.error(f"LLM trigger response error: {result.error}")
+                return
+            
+            # Show any emotes extracted from the response (displayed as actions, not speech)
+            if room:
+                for emote in result.emotes:
+                    await room.echo(
+                        CommTypes.DYNAMIC,
+                        f'{actor.art_name_cap} {emote}',
+                        game_state=cls._game_state
+                    )
+            
+            if result.dialogue and room:
+                # Show NPC's response to everyone in the room
+                await room.echo(
+                    CommTypes.DYNAMIC,
+                    f'{actor.art_name_cap} says, "{result.dialogue}"',
+                    game_state=cls._game_state
+                )
+            
+            # Handle any state changes or commands from the LLM response
+            if result.state_change.npc_action:
+                await cls._handle_llm_npc_action(
+                    initiator if initiator else actor, actor, result.state_change.npc_action, room
+                )
+                
+        except Exception as e:
+            logger.error(f"Exception sending trigger results to LLM: {e}")
+            import traceback
+            traceback.print_exc()
+
+
     async def cmd_removeitem(cls, actor: Actor, input: str):
         """
         Remove an item from a character's inventory (destroys it).
@@ -1476,6 +1802,123 @@ class CommandHandler(CommandHandlerInterface):
         await target.send_text(CommTypes.DYNAMIC, "...and find yourself somewhere else!")
 
 
+    async def cmd_teleport(cls, actor: Actor, input: str):
+        """
+        Teleport a character/NPC to a target location.
+        
+        This is a privileged/script command. The target can be a room, NPC, or object.
+        If the target is an NPC or object, teleports to their location.
+        
+        When executed by an NPC, no text output is produced - the NPC script should
+        handle any messaging if desired.
+        
+        Usage: teleport <who> <target>
+        
+        Arguments:
+            who: "me" or NPC name/reference to teleport
+            target: destination - can be:
+                - A room reference (@R123) or zone.room_id
+                - An NPC name/reference (teleports to their location)
+                - An object name/reference (teleports to its location)
+        
+        Examples:
+            teleport me debug_zone.starting_room
+            teleport me @R42
+            teleport me guard
+            teleport @C15 merchant
+            teleport goblin me
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_teleport()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        # Check if actor is a player (PC) - NPCs get no text output
+        is_player = hasattr(actor, 'has_perm_flags') and actor.has_perm_flags(PermanentCharacterFlags.IS_PC)
+        
+        if not input:
+            if is_player:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: teleport <who> <target>")
+            return
+        
+        pieces = split_preserving_quotes(input)
+        if len(pieces) < 2:
+            if is_player:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: teleport <who> <target>")
+            return
+        
+        who_name = pieces[0]
+        target_name = pieces[1]
+        
+        # Find who to teleport
+        if who_name.lower() == "me":
+            who = actor
+        else:
+            who = cls._game_state.find_target_character(actor, who_name, search_world=True)
+        
+        if who is None:
+            if is_player:
+                await actor.send_text(CommTypes.DYNAMIC, f"Could not find '{who_name}' to teleport.")
+            return
+        
+        # Find destination - try multiple target types
+        destination_room = None
+        destination_description = None
+        
+        # Try as a character reference first
+        target_char = cls._game_state.find_target_character(actor, target_name, search_world=True, exclude_initiator=False)
+        if target_char and hasattr(target_char, 'location_room') and target_char.location_room:
+            destination_room = target_char.location_room
+            destination_description = f"{target_char.art_name}'s location"
+        
+        # Try as an object
+        if not destination_room:
+            target_obj = cls._game_state.find_target_object(target_name, actor, search_world=True)
+            if target_obj:
+                if hasattr(target_obj, '_location_room') and target_obj._location_room:
+                    destination_room = target_obj._location_room
+                    destination_description = f"where {target_obj.art_name} is"
+                elif hasattr(target_obj, 'location_room') and target_obj.location_room:
+                    destination_room = target_obj.location_room
+                    destination_description = f"where {target_obj.art_name} is"
+        
+        # Try as a room
+        if not destination_room:
+            start_zone = actor.location_room.zone if hasattr(actor, 'location_room') and actor.location_room else None
+            if start_zone:
+                destination_room = cls._game_state.find_target_room(actor, target_name, start_zone)
+            else:
+                # Try parsing as zone.room format directly
+                if "." in target_name:
+                    zone_id, room_id = target_name.split(".", 1)
+                    zone = cls._game_state.zones.get(zone_id)
+                    if zone and room_id in zone.rooms:
+                        destination_room = zone.rooms[room_id]
+            if destination_room:
+                destination_description = destination_room.name
+        
+        if not destination_room:
+            if is_player:
+                await actor.send_text(CommTypes.DYNAMIC, f"Could not find destination '{target_name}'.")
+            return
+        
+        # Don't teleport to same room
+        if hasattr(who, 'location_room') and who.location_room == destination_room:
+            if is_player:
+                await actor.send_text(CommTypes.DYNAMIC, f"{who.art_name_cap} is already there.")
+            return
+        
+        # Remove from current room (silently for NPC-initiated teleports)
+        if hasattr(who, 'location_room') and who.location_room:
+            who.location_room.remove_character(who)
+            who.location_room = None
+        
+        # Arrive at destination
+        await CoreActionsInterface.get_instance().arrive_room(who, destination_room)
+        
+        # Only show feedback to player actors
+        if is_player:
+            await actor.send_text(CommTypes.DYNAMIC, f"Teleported {who.art_name} to {destination_description}.")
+
+
     async def cmd_interrupt(cls, actor: Actor, input: str):
         """
         Clear a character's command queue.
@@ -1559,6 +2002,71 @@ class CommandHandler(CommandHandlerInterface):
         logger.debug(f"Forcing {target.name} to execute {len(commands)} command(s): {commands}")
         for command in commands:
             await cls.process_command(target, command, {})
+
+
+    async def cmd_command(cls, actor: Actor, input: str):
+        """
+        Command a charmed creature to do something.
+        
+        Usage: command <target> <action>
+        
+        The target must be charmed by/under control of the actor.
+        
+        Examples:
+            command zombie kill orc
+            command zombie follow me
+            command zombie get sword
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_command()> ")
+        logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
+        
+        if not input:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: command <target> <action>")
+            return
+        
+        pieces = split_preserving_quotes(input)
+        if len(pieces) < 2:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: command <target> <action>")
+            return
+        
+        target_name = pieces[0]
+        command_string = ' '.join(pieces[1:])
+        
+        # Find target character in the same room
+        target = cls._game_state.find_target_character(actor, target_name)
+        
+        if target is None:
+            await actor.send_text(CommTypes.DYNAMIC, f"Could not find '{target_name}'.")
+            return
+        
+        # Check if the target is charmed by the actor
+        if not hasattr(target, 'charmed_by') or target.charmed_by != actor:
+            await actor.send_text(CommTypes.DYNAMIC, f"{target.art_name_cap} is not under your control!")
+            return
+        
+        # Check if the command is privileged (not allowed via command)
+        cmd_parts = command_string.strip().split(None, 1)
+        if cmd_parts:
+            cmd_name = cmd_parts[0].lower()
+            if cmd_name in cls.privileged_commands:
+                await actor.send_text(CommTypes.DYNAMIC, f"You cannot command {target.art_name} to do that!")
+                logger.debug(f"Blocked privileged command '{cmd_name}' via command")
+                return
+        
+        # Execute the command for the charmed creature
+        logger.debug(f"Commanding {target.name} to: {command_string}")
+        
+        # Send feedback to the actor
+        msg = f"You command {target.art_name} to '{command_string}'."
+        await actor.send_text(CommTypes.DYNAMIC, msg)
+        
+        # Show to the room
+        msg = f"{actor.art_name_cap} commands {target.art_name}."
+        vars = {"actor": actor, "target": target}
+        await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+        
+        # Process the command for the charmed creature
+        await cls.process_command(target, command_string, {})
 
 
     def _find_exit_door(cls, actor: Actor, keyword: str):
@@ -3711,21 +4219,369 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, f"Delaying for {delay_ms} milliseconds.")
 
     async def cmd_skills(cls, actor: Actor, input: str):
+        """Show skills for the character, organized by class with level progression."""
+        from .skills_core import SkillsRegistry, Skills
         logger = StructuredLogger(__name__, prefix="cmd_skills()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
-        if input and input != "":
-            if actor.actor_type != ActorType.CHARACTER:
-                await actor.send_text(CommTypes.DYNAMIC, "Only characters have skills.")
-                return
-            target = actor
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters have skills.")
+            return
+        
+        target = actor
+        lines = []
+        
+        # Header
+        lines.append("=== Your Skills ===")
+        lines.append(f"Skill Points Available: {target.skill_points_available}")
+        lines.append(f"Skill caps increase as you level up (shown as current/cap)")
+        lines.append("")
+        
+        # Show skills by class
+        has_skills = False
+        for role in target.class_priority:
+            class_name = target.get_display_class_name(role)
+            class_level = target.levels_by_role.get(role, 0)
+            lines.append(f"--- {class_name.title()} (Level {class_level}) ---")
+            
+            # Get all skills from the registry for this class
+            role_name = role.name.lower()
+            all_class_skills = SkillsRegistry.get_class_skills(role_name)
+            
+            if not all_class_skills:
+                lines.append("  No skills defined for this class.")
+                lines.append("")
+                continue
+            
+            has_skills = True
+            
+            # Get skill class for level requirements
+            skill_class = target._get_skill_class_for_role(role)
+            
+            # Build list of (skill_name, display_name, level_req, current_points)
+            skill_info = []
+            for skill_key, skill in all_class_skills.items():
+                normalized_name = skill_key.lower().replace(' ', '_').replace('-', '_')
+                
+                # Get level requirement
+                level_req = 1
+                if skill_class is not None:
+                    try:
+                        level_req = skill_class.get_level_requirement(skill_class, skill_key)
+                    except Exception:
+                        pass
+                
+                # Get current points (0 if not unlocked or not trained)
+                current_points = 0
+                if role in target.skill_levels_by_role and normalized_name in target.skill_levels_by_role[role]:
+                    current_points = target.skill_levels_by_role[role][normalized_name]
+                
+                # Use original skill name for display
+                display_name = skill.name if hasattr(skill, 'name') else normalized_name.replace('_', ' ').title()
+                
+                skill_info.append((normalized_name, display_name, level_req, current_points))
+            
+            # Sort by level requirement (low to high), then by current points (high to low), then alphabetically
+            skill_info.sort(key=lambda x: (x[2], -x[3], x[1].lower()))
+            
+            # Group skills by tier for cleaner display
+            current_tier = None
+            tier_names = {
+                Skills.TIER1_MIN_LEVEL: "Tier 1 (Level 1-9)",
+                Skills.TIER2_MIN_LEVEL: "Tier 2 (Level 10-19)",
+                Skills.TIER3_MIN_LEVEL: "Tier 3 (Level 20-29)",
+                Skills.TIER4_MIN_LEVEL: "Tier 4 (Level 30-39)",
+                Skills.TIER5_MIN_LEVEL: "Tier 5 (Level 40-49)",
+                Skills.TIER6_MIN_LEVEL: "Tier 6 (Level 50-59)",
+                Skills.TIER7_MIN_LEVEL: "Tier 7 (Level 60)",
+            }
+            
+            def get_tier(level_req):
+                if level_req >= Skills.TIER7_MIN_LEVEL:
+                    return Skills.TIER7_MIN_LEVEL
+                elif level_req >= Skills.TIER6_MIN_LEVEL:
+                    return Skills.TIER6_MIN_LEVEL
+                elif level_req >= Skills.TIER5_MIN_LEVEL:
+                    return Skills.TIER5_MIN_LEVEL
+                elif level_req >= Skills.TIER4_MIN_LEVEL:
+                    return Skills.TIER4_MIN_LEVEL
+                elif level_req >= Skills.TIER3_MIN_LEVEL:
+                    return Skills.TIER3_MIN_LEVEL
+                elif level_req >= Skills.TIER2_MIN_LEVEL:
+                    return Skills.TIER2_MIN_LEVEL
+                else:
+                    return Skills.TIER1_MIN_LEVEL
+            
+            for normalized_name, display_name, level_req, current_points in skill_info:
+                tier = get_tier(level_req)
+                if tier != current_tier:
+                    current_tier = tier
+                    lines.append(f"  [{tier_names.get(tier, f'Level {tier}+')}]")
+                
+                # Calculate current skill cap for this skill
+                skill_cap = target.get_skill_cap(normalized_name, role)
+                
+                # Determine status/display
+                is_locked = class_level < level_req
+                if is_locked:
+                    status = f"[Locked - Lvl {level_req}]"
+                elif current_points == 0:
+                    status = f"0/{skill_cap}"
+                elif current_points >= Constants.MAX_SKILL_LEVEL:
+                    status = f"{current_points} pts [MASTERED]"
+                elif current_points >= skill_cap:
+                    status = f"{current_points}/{skill_cap} [CAPPED]"
+                else:
+                    status = f"{current_points}/{skill_cap}"
+                
+                lines.append(f"    {display_name:28} {status:>18}")
+            
+            lines.append("")
+        
+        if not has_skills:
+            lines.append("You have no class with skills yet.")
+        
+        # Footer with usage hint
+        if target.skill_points_available > 0:
+            lines.append("Use 'skillup <skill> [points]' to improve a skill.")
+        
+        await actor.send_text(CommTypes.STATIC, "\n".join(lines))
+
+    async def cmd_level(cls, actor: Actor, input: str):
+        """Show level and XP status."""
+        from .constants import Constants, CharacterClassRole
+        from .handlers.level_up_handler import LevelUpHandler
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters have levels.")
+            return
+        
+        target = actor
+        total_level = target.total_levels()
+        
+        lines = [
+            "=== Character Level Status ===",
+            f"Total Level: {total_level} / {Constants.MAX_LEVEL}",
+            f"Experience: {target.experience_points:,} XP"
+        ]
+        
+        # Show XP needed for next level
+        if total_level < Constants.MAX_LEVEL:
+            next_level_xp = Constants.XP_PROGRESSION[total_level]
+            xp_needed = next_level_xp - target.experience_points
+            if xp_needed > 0:
+                lines.append(f"XP to next level: {xp_needed:,}")
+            else:
+                lines.append("Ready to level up!")
         else:
-            pieces = split_preserving_quotes(input)
-            target = cls._game_state.find_target_character(actor, pieces[0])
-            if not target:
-                await actor.send_text(CommTypes.DYNAMIC, "No target found.")
+            lines.append("Maximum level reached!")
+        
+        lines.append("")
+        
+        # Add class breakdown
+        lines.append("Class Levels:")
+        for role in target.class_priority:
+            class_name = target.get_display_class_name(role)
+            level = target.levels_by_role[role]
+            lines.append(f"  {class_name.title()}: Level {level}")
+        
+        # Show multiclass option
+        if len(target.class_priority) < target.max_class_count:
+            available_classes = []
+            for base_class in CharacterClassRole.get_base_classes():
+                if base_class not in target.class_priority:
+                    available_classes.append(CharacterClassRole.field_name(base_class).title())
+            if available_classes:
+                lines.append("")
+                lines.append(f"Multiclass available ({target.max_class_count - len(target.class_priority)} slot(s)):")
+                lines.append(f"  Available: {', '.join(available_classes)}")
+        
+        # Show combat stats
+        lines.append("")
+        lines.append("Combat Stats:")
+        lines.append(f"  Hit Chance: {target.hit_modifier}%")
+        lines.append(f"  Dodge: +{target.dodge_modifier}")
+        if target.spell_power > 0:
+            lines.append(f"  Spell Power: {target.spell_power}")
+        
+        # Show saving throws (skill-based opposed check system)
+        lines.append("")
+        lines.append("Saving Throws (Skill + Attribute Bonus):")
+        fort_total = target.get_save_value("fortitude")
+        ref_total = target.get_save_value("reflex")
+        will_total = target.get_save_value("will")
+        lines.append(f"  Fortitude: {fort_total} (skill: {target.get_save_skill('fortitude')}, CON: {target.get_save_attribute('fortitude')})")
+        lines.append(f"  Reflex: {ref_total} (skill: {target.get_save_skill('reflex')}, DEX: {target.get_save_attribute('reflex')})")
+        lines.append(f"  Will: {will_total} (skill: {target.get_save_skill('will')}, WIS: {target.get_save_attribute('will')})")
+        
+        lines.append("")
+        lines.append(f"Skill Points Available: {target.skill_points_available}")
+        
+        # Show attribute points if any
+        if target.unspent_attribute_points > 0:
+            lines.append(f"Attribute Points Available: {target.unspent_attribute_points}")
+            lines.append("Use 'improvestat <attribute>' to spend them.")
+        
+        # Check for available level-ups
+        if target.can_level():
+            if target.has_unspent_skill_points():
+                lines.append("")
+                lines.append(f"You have {target.skill_points_available} unspent skill points!")
+                lines.append("Use 'skillup <skill> <points>' to spend them before leveling up.")
+            else:
+                lines.append("")
+                lines.append("You have enough experience to advance a level!")
+                lines.append("Use 'levelup <class>' to level up.")
+        
+        # Check for available specializations
+        available_specs = LevelUpHandler.get_available_specializations(target)
+        if available_specs:
+            lines.append("")
+            lines.append("Specialization available for:")
+            for base_class, specializations in available_specs.items():
+                from .constants import CharacterClassRole
+                base_name = CharacterClassRole.field_name(base_class)
+                spec_names = [CharacterClassRole.field_name(spec).title() for spec in specializations]
+                lines.append(f"  {base_name.title()}: {', '.join(spec_names)}")
+            lines.append("Use 'specialize <class> <specialization>' to choose.")
+        
+        await actor.send_text(CommTypes.STATIC, "\n".join(lines))
+
+    async def cmd_levelup(cls, actor: Actor, input: str):
+        """Level up a class."""
+        from .constants import CharacterClassRole
+        from .handlers.level_up_handler import LevelUpHandler
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can level up.")
+            return
+        
+        args = split_preserving_quotes(input) if input else []
+        
+        if not args:
+            # If only one class, level that one automatically
+            if len(actor.class_priority) == 1:
+                role = actor.class_priority[0]
+            else:
+                class_names = [CharacterClassRole.field_name(r).title() for r in actor.class_priority]
+                await actor.send_text(CommTypes.DYNAMIC, f"Usage: levelup <class>")
+                await actor.send_text(CommTypes.DYNAMIC, f"Your classes: {', '.join(class_names)}")
                 return
-        for skill_name, skill_level in target.skill_levels.items():
-            await actor.send_text(CommTypes.DYNAMIC, f"{skill_name}: {skill_level}")
+        else:
+            class_name = args[0].upper()
+            try:
+                role = CharacterClassRole[class_name]
+            except KeyError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Unknown class: {args[0]}")
+                return
+        
+        success, message = LevelUpHandler.handle_level_up(actor, role)
+        await actor.send_text(CommTypes.DYNAMIC, message)
+        
+        # Send status update if successful
+        if success:
+            await actor.send_status_update()
+
+    async def cmd_skillup(cls, actor: Actor, input: str):
+        """Spend skill points to improve a skill."""
+        from .handlers.level_up_handler import LevelUpHandler
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can improve skills.")
+            return
+        
+        args = split_preserving_quotes(input) if input else []
+        
+        if len(args) < 1:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: skillup <skill> [points]")
+            await actor.send_text(CommTypes.DYNAMIC, f"You have {actor.skill_points_available} skill points available.")
+            await actor.send_text(CommTypes.DYNAMIC, "Use 'skills' to see your available skills.")
+            return
+        
+        # Parse skill name and points
+        # Last argument might be a number (points to spend)
+        points = 1  # Default to 1 point
+        skill_parts = args[:]
+        
+        if len(args) >= 2 and args[-1].isdigit():
+            points = int(args[-1])
+            skill_parts = args[:-1]
+        
+        skill_name = ' '.join(skill_parts)
+        
+        success, message = LevelUpHandler.handle_skill_up(actor, skill_name, points)
+        await actor.send_text(CommTypes.DYNAMIC, message)
+
+    async def cmd_improvestat(cls, actor: Actor, input: str):
+        """Spend attribute points to improve a stat (STR, DEX, CON, INT, WIS, CHA)."""
+        from .nondb_models.character_interface import CharacterAttributes
+        
+        if actor.actor_type != ActorType.CHARACTER:
+            await actor.send_text(CommTypes.DYNAMIC, "Only characters can improve stats.")
+            return
+        
+        if actor.unspent_attribute_points <= 0:
+            await actor.send_text(CommTypes.DYNAMIC, "You have no attribute points to spend.")
+            await actor.send_text(CommTypes.DYNAMIC, "Attribute points are gained every 10 character levels.")
+            return
+        
+        args = split_preserving_quotes(input) if input else []
+        
+        if len(args) < 1:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: improvestat <attribute>")
+            await actor.send_text(CommTypes.DYNAMIC, f"You have {actor.unspent_attribute_points} attribute point(s) available.")
+            await actor.send_text(CommTypes.DYNAMIC, "")
+            await actor.send_text(CommTypes.DYNAMIC, "Available attributes:")
+            await actor.send_text(CommTypes.DYNAMIC, "  STR (Strength)     - Melee damage, carrying capacity")
+            await actor.send_text(CommTypes.DYNAMIC, "  DEX (Dexterity)    - Reflex saves, hit chance")
+            await actor.send_text(CommTypes.DYNAMIC, "  CON (Constitution) - Fortitude saves, hit points")
+            await actor.send_text(CommTypes.DYNAMIC, "  INT (Intelligence) - Spell power (mage)")
+            await actor.send_text(CommTypes.DYNAMIC, "  WIS (Wisdom)       - Will saves, healing power")
+            await actor.send_text(CommTypes.DYNAMIC, "  CHA (Charisma)     - Social interactions, leadership")
+            await actor.send_text(CommTypes.DYNAMIC, "")
+            await actor.send_text(CommTypes.DYNAMIC, "Current attributes:")
+            for attr in CharacterAttributes:
+                value = actor.attributes.get(attr, 10)
+                await actor.send_text(CommTypes.DYNAMIC, f"  {attr.name}: {value}")
+            return
+        
+        # Map short names to attributes
+        attr_map = {
+            "str": CharacterAttributes.STRENGTH,
+            "strength": CharacterAttributes.STRENGTH,
+            "dex": CharacterAttributes.DEXTERITY,
+            "dexterity": CharacterAttributes.DEXTERITY,
+            "con": CharacterAttributes.CONSTITUTION,
+            "constitution": CharacterAttributes.CONSTITUTION,
+            "int": CharacterAttributes.INTELLIGENCE,
+            "intelligence": CharacterAttributes.INTELLIGENCE,
+            "wis": CharacterAttributes.WISDOM,
+            "wisdom": CharacterAttributes.WISDOM,
+            "cha": CharacterAttributes.CHARISMA,
+            "charisma": CharacterAttributes.CHARISMA,
+        }
+        
+        attr_name = args[0].lower()
+        if attr_name not in attr_map:
+            await actor.send_text(CommTypes.DYNAMIC, f"Unknown attribute: {args[0]}")
+            await actor.send_text(CommTypes.DYNAMIC, "Valid attributes: STR, DEX, CON, INT, WIS, CHA")
+            return
+        
+        attr = attr_map[attr_name]
+        old_value = actor.attributes.get(attr, 10)
+        new_value = old_value + 1
+        
+        actor.attributes[attr] = new_value
+        actor.unspent_attribute_points -= 1
+        
+        await actor.send_text(CommTypes.DYNAMIC, f"Your {attr.name} has increased from {old_value} to {new_value}!")
+        
+        if actor.unspent_attribute_points > 0:
+            await actor.send_text(CommTypes.DYNAMIC, f"You have {actor.unspent_attribute_points} attribute point(s) remaining.")
+        
+        # Recalculate combat bonuses which may be affected by attribute changes
+        actor.calculate_combat_bonuses()
+        await actor.send_status_update()
 
     async def cmd_character(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_character()> ")
@@ -3791,13 +4647,24 @@ class CommandHandler(CommandHandlerInterface):
         if not has_equipment:
             await actor.send_text(CommTypes.STATIC, "Nothing equipped")
         
-        # Display skills
+        # Display skills by class
         await actor.send_text(CommTypes.STATIC, "\n--- Skills ---")
-        if not target.skill_levels:
-            await actor.send_text(CommTypes.STATIC, "No skills")
-        else:
-            for skill_name, skill_level in target.skill_levels.items():
-                await actor.send_text(CommTypes.STATIC, f"    {skill_name:30}: {skill_level:>2}")
+        await actor.send_text(CommTypes.STATIC, f"Skill Points: {target.skill_points_available}")
+        has_skills = False
+        for role in target.class_priority:
+            if role not in target.skill_levels_by_role:
+                continue
+            class_skills = target.skill_levels_by_role[role]
+            trained_skills = {k: v for k, v in class_skills.items() if v > 0}
+            if trained_skills:
+                has_skills = True
+                class_name = target.get_display_class_name(role)
+                await actor.send_text(CommTypes.STATIC, f"  {class_name.title()}:")
+                for skill_name, skill_level in sorted(trained_skills.items()):
+                    display_name = skill_name.replace('_', ' ').title()
+                    await actor.send_text(CommTypes.STATIC, f"    {display_name:28}: {skill_level:>2}/{Constants.MAX_SKILL_LEVEL}")
+        if not has_skills:
+            await actor.send_text(CommTypes.STATIC, "  No trained skills")
         
         # Admin-only information
         if is_admin:

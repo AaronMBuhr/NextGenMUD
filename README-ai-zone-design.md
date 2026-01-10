@@ -37,6 +37,7 @@ Initial Prompt:
 > **Requirements for this phase:**
 > 1. **Zone Metadata:** Name and a high-level description for builders.
 > 2. **Common Knowledge:** Define 5–8 key lore points and geographic facts that NPCs in this zone will know.
+> 2.5 **Quest Plotlines and Advancement** Define the stories behind the quests and the quest progress points
 > 3. **Quest Variables:** Establish the initial state machine (booleans/integers) for the zone's primary narrative arcs.
 > 4. **Core Hub Rooms:** Provide the YAML for the central hub (5–10 rooms) that connects the major regions. Include detailed descriptions and initial exits.
 > 
@@ -54,6 +55,7 @@ Revised methodology:
   and indicating how they connect and relate.
 - determine major npcs (people and creatures) for each zone, so that we have a zone-wide cast
 - determine some quests or other multi-step-interaction-sequences, that may span sub-zones
+  - develop the quest story lines, the progress measurement and steps, and the quest variables
 - develop zone-wide common knowledge
 - develop each sub-zone one at a time:
   - determine for each first the detailed map
@@ -70,6 +72,7 @@ Revised methodology:
   - full sub-zone room detail, with triggers
   - full sub-zone npc list, without triggers or llm parameters
   - full sub-zone object list, with triggers, (whether held or in a room)
+  - go back over the rooms and add the npcs and objects as appropriate
   - come back and add triggers and llm parameters to sub-zone npcs,
     over multiple responses as necessary for context limits
   - revise any of the above, and common knowledge, as appropriate

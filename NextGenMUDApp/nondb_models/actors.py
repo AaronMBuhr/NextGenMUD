@@ -11,8 +11,8 @@ from ..basic_types import DescriptiveFlags
 from ..communication import CommTypes
 from .object_interface import ObjectInterface
 from .trigger_interface import TriggerType
-from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, set_vars, evaluate_functions_in_line
-from ..command_handler_interface import CommandHandlerInterface
+from ..utility import replace_vars, get_dice_parts, roll_dice, article_plus_name, generate_article, set_vars, evaluate_functions_in_line
+from ..command_handler_interface import CommandHandlerInterface, TriggerContext
 if TYPE_CHECKING:
     from .actor_states import ActorState, Cooldown
 from .character_interface import TemporaryCharacterFlags
@@ -27,7 +27,7 @@ class Actor(ActorInterface):
         self.actor_type = actor_type
         self.id = id
         self.name = name
-        self.article = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
+        self.article = generate_article(name)
         self.pronoun_subject = "it"
         self.pronoun_object = "it"
         self.pronoun_possessive = "its"
@@ -43,6 +43,7 @@ class Actor(ActorInterface):
         self.recovers_at = 0
         self.recovery_ticks = CONSTANTS.RECOVERY_TICKS
         self.command_queue: List[str] = []
+        self.trigger_context: TriggerContext = None  # Active trigger context for LLM integration
         if create_reference:
             self.create_reference()
 
@@ -197,12 +198,11 @@ class Actor(ActorInterface):
         return current_tick <= self.recovers_at
 
     async def become_ready(self):
+        """Called when an actor finishes being busy and can process queued commands."""
         self.recovers_at = 0
         if self.command_queue:
-            next_command = self.command_queue.pop(0)
-            try:
-                await CommandHandlerInterface.get_instance().process_command(self, next_command)
-            except Exception as e:
-                logger = StructuredLogger(__name__, prefix="Actor.become_ready()> ")
-                logger.error(f"Error processing queued command: {e}")
+            # Use CommandHandler's queue processor to handle instant commands properly
+            from ..command_handler import CommandHandler
+            from ..comprehensive_game_state import live_game_state
+            await CommandHandler.process_command_queue(self, live_game_state)
 

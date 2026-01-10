@@ -28,24 +28,55 @@ class DamageType(Enum):
         return self.name.lower()
     
     def verb(self):
-        return ['slashes','pierces','bludgeons','burns','freezes','shocks',
-                'corrodes','poisons','diseases','burns','corrupts','zaps',
-                'mentally crushes','crushes','corrupts','burns'][self.value - 1]
+        verbs = ['damages',        # RAW = 1
+                 'slashes',        # SLASHING = 2
+                 'pierces',        # PIERCING = 3
+                 'bludgeons',      # BLUDGEONING = 4
+                 'burns',          # FIRE = 5
+                 'freezes',        # COLD = 6
+                 'shocks',         # LIGHTNING = 7
+                 'corrodes',       # ACID = 8
+                 'poisons',        # POISON = 9
+                 'infects',        # DISEASE = 10
+                 'smites',         # HOLY = 11
+                 'corrupts',       # UNHOLY = 12
+                 'zaps',           # ARCANE = 13
+                 'mentally crushes', # PSYCHIC = 14
+                 'crushes',        # FORCE = 15
+                 'withers',        # NECROTIC = 16
+                 'sears']          # RADIANT = 17
+        return verbs[self.value - 1]
+    
     def noun(self):
-        return ['slash','pierce','bludgeon','burn','freeze','shock',
-                'corrode','poison','disease','burn','corrupt','zap',
-                'mental crush','crush','corrupt','burn'][self.value - 1]
+        nouns = ['damage',         # RAW = 1
+                 'slash',          # SLASHING = 2
+                 'pierce',         # PIERCING = 3
+                 'bludgeon',       # BLUDGEONING = 4
+                 'burn',           # FIRE = 5
+                 'freeze',         # COLD = 6
+                 'shock',          # LIGHTNING = 7
+                 'corrosion',      # ACID = 8
+                 'poison',         # POISON = 9
+                 'infection',      # DISEASE = 10
+                 'smite',          # HOLY = 11
+                 'corruption',     # UNHOLY = 12
+                 'zap',            # ARCANE = 13
+                 'mental crush',   # PSYCHIC = 14
+                 'crush',          # FORCE = 15
+                 'wither',         # NECROTIC = 16
+                 'sear']           # RADIANT = 17
+        return nouns[self.value - 1]
     
 
 
-class DamageResistances:
-    def __init__(self, profile=None, resistances_by_type: Dict[DamageType, int]=None):
+class DamageMultipliers:
+    def __init__(self, profile=None, multipliers_by_type: Dict[DamageType, int]=None):
         if profile:
             self.profile = profile
         else:
             self.profile = {loc: 1 for loc in DamageType}
-        if resistances_by_type:
-            for damage_type, amount in resistances_by_type.items():
+        if multipliers_by_type:
+            for damage_type, amount in multipliers_by_type.items():
                 self.profile[damage_type] = amount
 
     def to_dict(self):
@@ -58,12 +89,12 @@ class DamageResistances:
     def get(self, damage_type: DamageType):
         return self.profile[damage_type]
     
-    def add_resistances(self, more_resistances: 'DamageResistances'):
-        for damage_type, amount in more_resistances.profile.items():
+    def add_multipliers(self, more_multipliers: 'DamageMultipliers'):
+        for damage_type, amount in more_multipliers.profile.items():
             self.profile[damage_type] += amount
 
-    def minus_resistances(self, more_resistances: 'DamageResistances'):
-        for damage_type, amount in more_resistances.profile.items():
+    def minus_multipliers(self, more_multipliers: 'DamageMultipliers'):
+        for damage_type, amount in more_multipliers.profile.items():
             self.profile[damage_type] -= amount
     
 
@@ -120,7 +151,7 @@ class PotentialDamage:
             total_damage *= critical_multiplier
         return total_damage
     
-    def calc_susceptibility(self, damage_type: DamageType, damage_profile: List[DamageResistances]) -> float:
+    def calc_susceptibility(self, damage_type: DamageType, damage_profile: List[DamageMultipliers]) -> float:
         logger = StructuredLogger(__name__, prefix="PotentialDamage.calc_susceptibility()> ")
         logger.debug(f"damage_type: {damage_type}, damage_profile: {[ x.to_dict() for x in damage_profile ]}")
         mult = 1

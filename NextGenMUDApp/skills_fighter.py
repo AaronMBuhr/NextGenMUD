@@ -8,7 +8,7 @@ from .nondb_models.actor_states import (
     CharacterStateBerserkerStance, CharacterStateDefensiveStance, CharacterStateBleeding,
     CharacterStateDodgePenalty, Cooldown
 )
-from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, AttackData
+from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageMultipliers, AttackData
 # CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes
@@ -557,15 +557,15 @@ class Skills_Fighter(ClassSkills):
         DEFENSIVE_STANCE_RESIST_AMOUNT = 5
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         dodge_bonus = DEFENSIVE_STANCE_DODGE_BONUS * level_mult
-        resist_amount = DEFENSIVE_STANCE_RESIST_AMOUNT * level_mult
-        resistances = DamageResistances({
-            DamageType.SLASHING: resist_amount,
-            DamageType.PIERCING: resist_amount,
-            DamageType.BLUDGEONING: resist_amount,
-            DamageType.FIRE: resist_amount / 3,
-            DamageType.COLD: resist_amount / 3,
-            DamageType.LIGHTNING: resist_amount / 3,
-            DamageType.ACID: resist_amount / 3,
+        multiplier_value = DEFENSIVE_STANCE_RESIST_AMOUNT * level_mult
+        multipliers = DamageMultipliers({
+            DamageType.SLASHING: multiplier_value,
+            DamageType.PIERCING: multiplier_value,
+            DamageType.BLUDGEONING: multiplier_value,
+            DamageType.FIRE: multiplier_value / 3,
+            DamageType.COLD: multiplier_value / 3,
+            DamageType.LIGHTNING: multiplier_value / 3,
+            DamageType.ACID: multiplier_value / 3,
         })
         attrib_mod = (actor.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -575,7 +575,7 @@ class Skills_Fighter(ClassSkills):
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateDefensiveStance(actor, cls.game_state, actor, "defensive stance", 
                                                        dodge_bonus=dodge_bonus, hit_penalty=0, 
-                                                       damage_resistances=resistances, tick_created=game_tick)
+                                                       damage_multipliers=multipliers, tick_created=game_tick)
             new_state.apply_state(game_tick)
             vars = set_vars(actor, actor, actor, "")
             send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
@@ -611,15 +611,15 @@ class Skills_Fighter(ClassSkills):
         THIS_SKILL_DATA = Skills_Fighter.SHIELD_BLOCK
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
         duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        resist_amount = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK] / 5
-        resistances = DamageResistances({
-            DamageType.SLASHING: resist_amount,
-            DamageType.PIERCING: resist_amount,
-            DamageType.BLUDGEONING: resist_amount,
-            DamageType.FIRE: resist_amount / 3,
-            DamageType.COLD: resist_amount / 3,
-            DamageType.LIGHTNING: resist_amount / 3,
-            DamageType.ACID: resist_amount / 3,
+        multiplier_value = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK] / 5
+        multipliers = DamageMultipliers({
+            DamageType.SLASHING: multiplier_value,
+            DamageType.PIERCING: multiplier_value,
+            DamageType.BLUDGEONING: multiplier_value,
+            DamageType.FIRE: multiplier_value / 3,
+            DamageType.COLD: multiplier_value / 3,
+            DamageType.LIGHTNING: multiplier_value / 3,
+            DamageType.ACID: multiplier_value / 3,
         })
         attrib_mod = (actor.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -627,7 +627,7 @@ class Skills_Fighter(ClassSkills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateShielded(actor, actor, "shielded", resistances, tick_created=game_tick)
+            new_state = CharacterStateShielded(actor, actor, "shielded", multipliers, tick_created=game_tick)
             new_state.apply_state(game_tick, duration)
             send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True

@@ -1,3 +1,4 @@
+import contextvars
 import inspect
 import logging
 import structlog
@@ -7,6 +8,115 @@ import traceback
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 from typing import Dict, Any, Optional, List, Callable
+
+# Context variable to track the current actor for logging purposes
+# This allows warning+ level logs to be echoed to admin players
+_current_actor_context: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar('current_actor', default=None)
+
+# Queue for admin log messages: list of (actor, message) tuples
+_admin_log_queue: List[tuple] = []
+
+
+def set_current_actor(actor):
+    """Set the current actor for log message association.
+    
+    Call this at the start of command processing to associate
+    subsequent log messages with the actor. If the actor is an admin,
+    warning+ level messages will be queued for delivery.
+    """
+    _current_actor_context.set(actor)
+
+
+def get_current_actor():
+    """Get the current actor context."""
+    return _current_actor_context.get()
+
+
+def clear_current_actor():
+    """Clear the current actor context."""
+    _current_actor_context.set(None)
+
+
+class AdminLogEchoProcessor:
+    """Processor that queues warning+ log messages for admin actors.
+    
+    When an admin player triggers a warning, error, or critical log message,
+    this processor queues a simplified version of the message to be sent
+    to that admin in-game, helping them debug issues in real-time.
+    """
+    
+    WARNING_LEVELS = {'warning', 'error', 'critical', 'exception'}
+    
+    def __call__(self, logger, method_name, event_dict):
+        global _admin_log_queue
+        
+        # Check if this is a warning+ level message
+        level = event_dict.get('level', '').lower()
+        if level not in self.WARNING_LEVELS:
+            return event_dict
+        
+        # Check if there's a current actor in context
+        actor = get_current_actor()
+        if actor is None:
+            return event_dict
+        
+        # Check if actor is an admin (lazy import to avoid circular imports)
+        try:
+            from .nondb_models.character_interface import GamePermissionFlags
+            if not hasattr(actor, 'has_game_flags') or not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+                return event_dict
+        except (ImportError, AttributeError):
+            return event_dict
+        
+        # Build a concise message for the admin
+        level_abbrev = {'warning': 'WRN', 'error': 'ERR', 'critical': 'CRT', 'exception': 'EXC'}.get(level, level.upper())
+        msg = f"[{level_abbrev}] {event_dict.get('event', '')}"
+        
+        # Add file/function info if available
+        if 'function' in event_dict and 'file' in event_dict:
+            msg += f" ({event_dict['file']}:{event_dict['function']})"
+        
+        # Queue the message for async delivery
+        _admin_log_queue.append((actor, msg))
+        
+        return event_dict
+
+
+async def flush_admin_log_queue():
+    """Send all queued log messages to admin actors.
+    
+    Call this after command processing completes to deliver any
+    warning+ log messages to the admin who triggered them.
+    """
+    global _admin_log_queue
+    
+    if not _admin_log_queue:
+        return
+    
+    # Import here to avoid circular imports
+    try:
+        from .communication import CommTypes
+    except ImportError:
+        _admin_log_queue = []
+        return
+    
+    # Process queued messages
+    for actor, msg in _admin_log_queue:
+        try:
+            await actor.send_text(CommTypes.DYNAMIC, msg)
+        except Exception:
+            pass  # Don't let log delivery failures crash anything
+    
+    _admin_log_queue = []
+
+
+def get_admin_log_queue_size() -> int:
+    """Return the current size of the admin log queue."""
+    return len(_admin_log_queue)
+
+
+# Create the global processor instance
+admin_log_echo_processor = AdminLogEchoProcessor()
 
 # Configure the standard Python logging to work with structlog
 logging.basicConfig(
@@ -465,6 +575,7 @@ structlog.configure(
         prefix_filter,
         progress_handler,
         message_store,
+        admin_log_echo_processor,  # Queue warning+ messages for admin actors
         format_yaml_values,
         wrap_text,
         global_renderer  # Use our global renderer instance

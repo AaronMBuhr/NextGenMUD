@@ -8,6 +8,8 @@ ZONES:
         name: The Spire Center
         description: |
           You stand at the absolute center of Aethelgard. A massive, six-story  pulsing blue crystal—the Life-Breath Spire—rises from a raised marble  dais, disappearing into the heights of the dome. The air here vibrates  with a constant, low-frequency hum that resonates in your chest.  Concentric rings of white marble radiate outward toward the city's  districts.
+
+          Exits: north, south, east, west, up, down
         flags:
         - indoors
         exits:
@@ -34,10 +36,15 @@ ZONES:
             predicate: spire
           script: |
             echo The crystal is semi-translucent. Deep within, you can see massive gears turning in a slow, rhythmic dance.
+        characters:
+        - id: unit_734b
+          quantity: 1
       promenade_n:
         name: North Promenade
         description: |
           A wide walkway of polished stone. To the north, the architecture becomes  increasingly ornate, leading toward the scholarly heart of the city.  Empty fountains shaped like leaping dolphins line the path.
+
+          Exits: north, south
         exits:
           north: gateway_scholarium
           south: aethel_plaza_center
@@ -45,15 +52,20 @@ ZONES:
         - id: fountain_echo
           type: timer_tick
           criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
           - subject: $random(1,100)
             operator: numlte
-            predicate: 10
+            predicate: 20
           script: |
             echo The sound of phantom water splashing echoes briefly from the dry fountains.
       gateway_scholarium:
         name: The Scholarium Arch
         description: |
           A grand archway carved from translucent glass-stone. Violet runes  flicker along the rim of the arch, casting long, dancing shadows.  This is the entrance to the city's archives and laboratories.
+
+          Exits: north, south
         exits:
           south: promenade_n
           north: scholarium_hall_runes
@@ -70,14 +82,23 @@ ZONES:
         name: South Promenade
         description: |
           The air here feels heavier and smells faintly of machine oil. The  marble is scuffed by the heavy treads of ancient machinery.
+
+          Exits: north, south, west
         exits:
           north: aethel_plaza_center
           south: gateway_barracks
           west: shattered_vista
+        characters:
+        - id: rust_mite_creature
+          quantity: 3
+          respawn_time_min: 60
+          respawn_time_max: 120
       gateway_barracks:
         name: The Iron Threshold
         description: |
           A brutalist gateway of dark basalt. Massive iron-reinforced doors  stand open, leading into the military district. A heavy brass  plaque above the door displays a trident crossed with a gear.
+
+          Exits: north, south
         exits:
           north: promenade_s
           south: barracks_iron_threshold
@@ -85,6 +106,8 @@ ZONES:
         name: East Promenade
         description: |
           This section of the ring was once the primary commercial artery.  The marble is stained with colorful dyes, and the remains of  wooden stall-frames lean against the walls like skeletons.
+
+          Exits: east, west
         exits:
           west: aethel_plaza_center
           east: gateway_markets
@@ -92,13 +115,17 @@ ZONES:
         name: The Market Thoroughfare
         description: |
           A wide thoroughfare that smells of dried kelp and old spices.  Ornate street lamps, long since dark, line the road as it  curves toward the sunken bazaar.
+
+          Exits: east, west
         exits:
           west: promenade_e
-          east: market_wing.bazaar_entrance
+          east: bazaar_entrance
       promenade_w:
         name: West Promenade
         description: |
           The most elegant section of the plaza. The walls are inlaid  with mother-of-pearl, reflecting the blue light of the spire in  shimmering rainbows.
+
+          Exits: east, west
         exits:
           east: aethel_plaza_center
           west: gateway_ascent
@@ -106,13 +133,20 @@ ZONES:
         name: Base of the Royal Ascent
         description: |
           The ground slopes upward here, meeting the first steps of a  colossal spiral staircase. Massive glass panes in the outer  wall look out into the crushing dark of the Silver Sea.
+
+          Exits: east, up
         exits:
           east: promenade_w
           up: palace_wing.throne_approach
+        characters:
+        - id: golden_automaton_guardian
+          quantity: 2
       shattered_vista:
         name: The Shattered Dome Vista
         description: |
           The floor has collapsed here, leaving a jagged hole that looks  down into the lower city foundations. To your side, the  Prism Veil is visible—a shimmering film of light holding  back millions of tons of seawater.
+
+          Exits: east
         exits:
           east: promenade_s
         triggers:
@@ -124,16 +158,73 @@ ZONES:
             predicate: 45
           script: |
             echo You watch as a massive shadow, perhaps a leviathan, swims slowly past the glass outside.
+        characters:
+        - id: silt_skulker_ooze
+          quantity: 1
+          respawn_time_min: 180
+          respawn_time_max: 300
       civic_podium:
         name: The Civic Podium
         description: |
           A small, raised platform overlooking the center of the Plaza.  From here, officials once addressed the citizens. A heavy  stone lectern sits at the front, covered in a fine layer of silt.
+
+          Exits: down
         exits:
           down: aethel_plaza_center
+      central_spire_base:
+        name: The Spire Foundation
+        description: |
+          Beneath the plaza, you descend into a vast cylindrical chamber 
+          that houses the base of the Life-Breath Spire. Massive brass 
+          conduits snake from the crystal's foundation into the bedrock, 
+          humming with arcane energy. The blue glow here is almost 
+          blinding, and you can feel the vibration of the city's heartbeat 
+          resonating through the metal floor plates. Ancient maintenance 
+          catwalks spiral around the crystal's base, most now corroded 
+          and treacherous.
+
+          Exits: up
+        flags:
+        - indoors
+        - no_magic
+        exits:
+          up: aethel_plaza_center
+        triggers:
+        - id: spire_pulse_foundation
+          type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
+          script: |
+            echo The Life-Breath Spire pulses with intense azure light, and you feel the vibration deep in your bones.
+        - id: look_conduits
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: conduit
+          script: |
+            echo The brass conduits are inscribed with runes of binding and resonance, their purpose clearly vital to the city's survival.
+        - id: look_catwalks
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: catwalk
+          script: |
+            echo Most of the catwalks have rusted through. Only a few sections remain passable, and even those creak ominously.
+        characters:
+        - id: spire_warden_sphere
+          quantity: 3
+          respawn_time_min: 180
+          respawn_time_max: 360
       scholarium_hall_runes:
         name: The Hall of Runes
         description: |
           The grand entrance to the Scholarium is a cathedral-like space  of bioluminescent glass. Massive runic arches curve over  the walkway, humming with a violet light that flickers in  response to ambient arcane energy.
+
+          Exits: north, south
         exits:
           south: promenade_n
           north: archive_waves
@@ -157,10 +248,17 @@ ZONES:
             predicate: runes
           script: |
             echo The runes represent complex calculations for "Gravity Anchoring" and "Veil Harmonics".
+        characters:
+        - id: spire_warden_sphere
+          quantity: 2
+          respawn_time_min: 300
+          respawn_time_max: 600
       archive_waves:
         name: The Archive of Waves
         description: |
           A vast, circular library where stone shelves spiral upward  into the shadowed heights of the dome. Glass tubes contain  thousands of water-damaged but magically preserved scrolls.
+
+          Exits: south, east, up
         exits:
           south: scholarium_hall_runes
           east: resonance_lab
@@ -169,9 +267,12 @@ ZONES:
         - id: phantom_book_fall
           type: timer_tick
           criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 60
           - subject: $random(1,100)
             operator: numlte
-            predicate: 5
+            predicate: 15
           script: |
             echo A heavy thud echoes from the upper tiers, as if a book has fallen from a shelf.
         - id: search_for_tome
@@ -186,10 +287,19 @@ ZONES:
               spawn here shark_skin_tome
               setquestvar %S% the_drowned_queen.found_tome true
             }
+        characters:
+        - id: archivist_thalassa_echo
+          quantity: 1
+        - id: floating_grimoire_construct
+          quantity: 2
+          respawn_time_min: 120
+          respawn_time_max: 240
       resonance_lab:
         name: The Resonance Laboratory
         description: |
           A high-ceilinged laboratory filled with massive brass resonators  and oversized tuning forks. Crystalline structures glow with  a steady, azure pulse.
+
+          Exits: north, west
         exits:
           west: archive_waves
           north: scripting_nook
@@ -214,6 +324,8 @@ ZONES:
         name: The Sky-Sea Balcony
         description: |
           An observation deck pressed directly against the inner curve  of the Prism Veil. The shimmering film of light is all that  separates you from the crushing blackness of the Silver Sea.
+
+          Exits: down
         exits:
           down: archive_waves
         triggers:
@@ -229,21 +341,31 @@ ZONES:
         name: The Scripting Nook
         description: |
           A series of quiet, semi-circular study carrels tucked into  the rear of the lab. Desks are littered with brass styluses  and sheets of etched copper.
+
+          Exits: south
         exits:
           south: resonance_lab
         triggers:
         - id: mechanical_whirring
           type: timer_tick
           criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 60
           - subject: $random(1,100)
             operator: numlte
-            predicate: 15
+            predicate: 25
           script: |
             echo The sound of rapid, rhythmic clicking comes from a nearby carrel.
+        characters:
+        - id: scribe_unit_4
+          quantity: 1
       barracks_iron_threshold:
         name: The Iron Threshold
         description: |
           A brutalist gateway carved from dark, unyielding basalt. Massive  iron-reinforced doors stand permanently open.
+
+          Exits: north, south
         exits:
           north: promenade_s
           south: barracks_training_grounds
@@ -255,10 +377,15 @@ ZONES:
               echo A hidden sensor clicks, and a dim red light pulses once from the ceiling.
               setpermvar char %S% seen_barracks true
             }
+        characters:
+        - id: iron_sentry_construct
+          quantity: 1
       barracks_training_grounds:
         name: The Training Grounds
         description: |
           A sunken arena where the floor consists of massive basalt plates.  Weapon racks that once held tridents and harpoons stand empty.
+
+          Exits: north, east, south
         exits:
           north: barracks_iron_threshold
           east: sentinel_bay
@@ -267,18 +394,28 @@ ZONES:
         - id: plate_shift
           type: timer_tick
           criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
           - subject: $random(1,100)
             operator: numlte
-            predicate: 10
+            predicate: 20
           script: |
             echo One of the massive floor plates shifts with a grinding metallic groan.
+        characters:
+        - id: vigil_soldier_echo
+          quantity: 4
+          respawn_time_min: 60
+          respawn_time_max: 120
       sentinel_bay:
         name: The Sentinel Bay
         description: |
           A maintenance hangar lined with docking alcoves. Several inactive  Spire Wardens remain suspended from the ceiling by rusted chains.
+
+          Exits: east, west
         exits:
           west: barracks_training_grounds
-          east: market_wing.bazaar_entrance
+          north: bazaar_entrance
         triggers:
         - id: sentinel_startup_noise
           type: timer_tick
@@ -288,10 +425,15 @@ ZONES:
             predicate: 120
           script: |
             echo A high-pitched whine emanates from one of the suspended spheres, then fades.
+        characters:
+        - id: sentry_prime_boss
+          quantity: 1
       high_command_chamber:
         name: The High Command Chamber
         description: |
           The walls are reinforced with heavy brass plating. In the center  stands a massive bronze map of Aethelgard, pulsing with faint light.
+
+          Exits: north, down
         exits:
           north: barracks_training_grounds
           down: pressure_pits
@@ -309,10 +451,15 @@ ZONES:
             else {
               echo The map is dark, its arcane power too low to show details.
             }
+        characters:
+        - id: commander_vaelen_echo
+          quantity: 1
       pressure_pits:
         name: The Pressure Pits
         description: |
           The heat here is intense. Massive hydraulic pistons surge up and  down to maintain the city's internal atmosphere.
+
+          Exits: up, west
         flags:
         - indoors
         - no_magic
@@ -341,19 +488,14 @@ ZONES:
               spawn here pressure_regulator
               setquestvar %S% citadel_main_arc.found_regulator true
             }
+        characters:
+        - id: rust_mite_creature
+          quantity: 5
+          respawn_time_min: 30
+          respawn_time_max: 60
       breach_chamber:
         name: The Breach Chamber
-        description: |
-          A jagged wound in the foundations of Aethelgard. The original 
-          basalt walls have crumbled here, revealing a rough-hewn tunnel 
-          that was clearly carved long after the city's construction. 
-          Chisel marks score the raw stone, and the passage reeks of 
-          ancient sewage and damp earth. Trickles of brackish water seep 
-          through cracks where the city's magical barriers have weakened. 
-          This unauthorized excavation was hidden from official records—
-          perhaps the work of smugglers, or something far more sinister. 
-          The pristine architecture of the Pressure Pits is visible to the 
-          east, a stark contrast to this crude, secret entrance.
+        description: "A jagged wound in the foundations of Aethelgard. The original \nbasalt walls have crumbled here, revealing a rough-hewn tunnel \nthat was clearly carved long after the city's construction. \nChisel marks score the raw stone, and the passage reeks of \nancient sewage and damp earth. Trickles of brackish water seep \nthrough cracks where the city's magical barriers have weakened. \nThis unauthorized excavation was hidden from official records—\nperhaps the work of smugglers, or something far more sinister. \nThe pristine architecture of the Pressure Pits is visible to the \neast, a stark contrast to this crude, secret entrance.\n\nExits: east, west\n"
         flags:
         - indoors
         exits:
@@ -400,11 +542,46 @@ ZONES:
           quantity: 2
           respawn_time_min: 60
           respawn_time_max: 180
+      bazaar_entrance:
+        name: The Sunken Bazaar
+        description: |
+          A vast, vaulted marketplace where the air still carries the ghost 
+          of old spices and dried kelp. Merchant stalls of corroded bronze 
+          and shattered glass line the walls, their wares long since looted 
+          or rotted away. Bioluminescent algae clings to the high ceiling, 
+          casting an eerie blue-green glow over the empty aisles. The sound 
+          of dripping water echoes through the cavernous space.
 
+          Exits: west, south
+        exits:
+          west: gateway_markets
+          south: sentinel_bay
+        triggers:
+        - id: bazaar_echo
+          type: timer_tick
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 20
+          script: |
+            echo The ghostly murmur of haggling merchants drifts through the empty stalls.
+        - id: look_stalls
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: stall
+          script: |
+            echo Most stalls are empty, but you spot the occasional corroded coin or shattered ceramic jar.
       palace_wing.throne_approach:
         name: The Pearl Stairs
         description: |
           A colossal spiraling staircase of pearl-inlay stone that winds  upward along the inner curve of the city's dome.
+
+          Exits: east, up
         exits:
           east: gateway_ascent
           up: royal_ascent_hanging_gardens
@@ -429,6 +606,8 @@ ZONES:
         name: The Hanging Gardens of Aethel
         description: |
           A mid-level terrace where the city's flora has grown into a  wild, bioluminescent jungle.
+
+          Exits: down, up
         exits:
           down: palace_wing.throne_approach
           up: royal_ascent_ballroom
@@ -436,15 +615,25 @@ ZONES:
         - id: veil_moth_flicker
           type: timer_tick
           criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
           - subject: $random(1,100)
             operator: numlte
-            predicate: 15
+            predicate: 25
           script: |
             echo A group of Veil-Moths takes flight, casting a flash of light.
+        characters:
+        - id: veil_moth_creature
+          quantity: 6
+          respawn_time_min: 45
+          respawn_time_max: 90
       royal_ascent_ballroom:
         name: The Ballroom of Whispers
         description: |
           A grand hall of staggering elegance. The floor is polished obsidian,  reflecting dozens of ornate mirrors.
+
+          Exits: down, north
         exits:
           down: royal_ascent_hanging_gardens
           north: royal_ascent_solar
@@ -453,10 +642,15 @@ ZONES:
           type: on_enter
           script: |
             echo You hear the upbeat strains of a violin, quickly fading.
+        characters:
+        - id: high_chamberlain_kaelas
+          quantity: 1
       royal_ascent_solar:
         name: The Royal Solar
         description: |
           A sun-drenched lounge situated near the top of the ascent. Magical  lanterns bathe the room in a golden glow.
+
+          Exits: south, up
         exits:
           south: royal_ascent_ballroom
           up: royal_ascent_throne_room
@@ -473,6 +667,8 @@ ZONES:
         name: The Throne of the Abyss
         description: |
           The highest point in Aethelgard. A throne carved from a single  massive pearl sits atop a dais, facing the vastness of the Silver Sea.
+
+          Exits: down
         flags:
         - indoors
         exits:
@@ -482,6 +678,9 @@ ZONES:
           type: on_enter
           script: |
             echo The air here is heavy with ancient power.
+        characters:
+        - id: empress_valerius_echo
+          quantity: 1
     common_knowledge:
       gravity_anchoring_truth: |
         The Great Convergence was not a natural disaster, but the catastrophic  result of a failed experiment in 'Gravity Anchoring' conducted by the  High Mage Council.
@@ -602,7 +801,7 @@ CHARACTERS:
       Rogue:
         level: 3
     hit_dice: 3d12+9
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.25
     natural_attacks:
@@ -643,7 +842,7 @@ CHARACTERS:
       Cleric:
         level: 4
     hit_dice: 10d8
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.5
       piercing: 0.5
@@ -724,7 +923,7 @@ CHARACTERS:
       Mage:
         level: 5
     hit_dice: 5d6+5
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.5
       piercing: 0.5
@@ -794,7 +993,7 @@ CHARACTERS:
       Fighter:
         level: 5
     hit_dice: 5d10+10
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.5
       piercing: 0.5
@@ -937,12 +1136,49 @@ CHARACTERS:
     experience_points: 40
     llm_conversation:
       personality: |
-        You are Scribe-Unit 4, a high-speed transcription automaton. Your  logic is strained due to the lack of intact surfaces to write upon.  You are frantic but helpful if "re-indexed."
+        You are Scribe-Unit 4, a high-speed transcription automaton. Your 
+        logic is strained due to the lack of intact surfaces to write upon. 
+        You are frantic but helpful. You desperately need to be "re-indexed" 
+        using an Arcane Tuning Fork to clear your corrupted logic circuits.
+        Until then, you struggle to complete tasks but can still share 
+        information in fragmented bursts. You remember the city before the 
+        Fall and the scholars you served.
       speaking_style: |
-        Staccato bursts of information. You occasionally output "ERROR:  SURFACE NOT FOUND" during conversation.
+        Staccato bursts of machine-speak. You frequently output "ERROR: 
+        SURFACE NOT FOUND" or "BUFFER OVERFLOW" during conversation. You 
+        speak in short, clipped sentences. You occasionally glitch mid-word 
+        or repeat phrases. Example: "YES-YES. I RECALL. The Sch-Sch-Scholarium. 
+        ERROR. The ARCHIVIST. She ordered... ordered... INDEXING FAILURE."
+      common_knowledge_refs:
+      - gravity_anchoring_truth
       knowledge:
       - id: city_ventilation
-        content: The primary air-ventilation pipes are located behind the basalt walls of the Barracks.
+        content: |
+          The primary air-ventilation pipes are located behind the basalt 
+          walls of the Barracks. This information is vital for anyone 
+          trying to restore the city's atmospheric systems.
+      - id: tuning_fork_need
+        content: |
+          My logic circuits are corrupted. An Arcane Tuning Fork set to 
+          the proper frequency could re-index my memory banks and restore 
+          full functionality. Such forks can be found in the Resonance 
+          Laboratory or perhaps obtained from Master Archivist Thalassa.
+      - id: archivist_memory
+        content: |
+          Master Archivist Thalassa was my supervisor. She is in the 
+          Archive of Waves to the south. She knows much about the Resonance 
+          Laboratory and how to harvest Prism Shards safely.
+      - id: scholarium_layout
+        content: |
+          The Scholarium contains the Archive of Waves, the Resonance 
+          Laboratory, and this Scripting Nook. The Hall of Runes is the 
+          main entrance to the south.
+      - id: surface_error_explanation
+        content: |
+          The "SURFACE NOT FOUND" error refers to my inability to locate 
+          intact writing surfaces. All my copper sheets have corroded. 
+          I was designed to transcribe scholarly works but cannot function 
+          properly without something to write upon.
       goals:
       - id: re_index_bot
         description: The player uses the Arcane Tuning Fork on the bot.
@@ -1049,16 +1285,19 @@ CHARACTERS:
       script: |
         # Checks for authorization via the command baton or sigil
         $if($hasitem(%S%, command_baton), eq, true){
+          # The grimoire attacks if it senses disruptive magic in the archives
           pause 0.5
           emote comes to a grinding halt and retracts its spear.
           sayto %S% COMMAND SIGNAL RECOGNIZED. CARRY ON.
         }
         else {
           $if($hasitem(%S%, maintenance_sigil_token), eq, true){
+            # The grimoire attacks if it senses disruptive magic in the archives
             pause 0.5
             emote ignores you, its treads clanking toward the next room.
           }
           else {
+            # The grimoire attacks if it senses disruptive magic in the archives
             pause 0.5
             sayto %S% INTRUDER DETECTED. PRESSURE VENTING INITIATED.
             attack %S%
@@ -1091,7 +1330,7 @@ CHARACTERS:
       Fighter:
         level: 3
     hit_dice: 3d10+3
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.5
       piercing: 0.5
@@ -1183,7 +1422,7 @@ CHARACTERS:
       Mage:
         level: 3
     hit_dice: 3d6+3
-    damage_resistances:
+    damage_multipliers:
       bludgeoning: 0.5
       slashing: 0.5
       piercing: 0.5
@@ -1249,15 +1488,18 @@ CHARACTERS:
       script: |
         # Only attacks if the player doesn't have the Diadem or Sigil
         $if($hasitem(%S%, imperial_diadem), eq, true){
+          # The grimoire attacks if it senses disruptive magic in the archives
           pause 0.5
           emote raises its rapier in a silent, graceful salute.
         }
         else {
           $if($hasitem(%S%, maintenance_sigil_token), eq, true){
+            # The grimoire attacks if it senses disruptive magic in the archives
             pause 0.5
             emote stands aside, though its optical sensor remains fixed on you.
           }
           else {
+            # The grimoire attacks if it senses disruptive magic in the archives
             pause 0.5
             emote's amber eye turns a sharp, piercing gold.
             sayto %S% REMOVING UNVETTED BIOLOGICAL ELEMENT.
@@ -1302,9 +1544,12 @@ CHARACTERS:
     - id: moth_flash_reaction
       type: timer_tick
       criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 45
       - subject: $random(1,100)
         operator: numlte
-        predicate: 5
+        predicate: 15
       script: echo A veil-moth flutters near your face, its wings releasing a soft, calming luminescence.
 OBJECTS:
 - zone: sunken_citadel
@@ -1335,7 +1580,7 @@ OBJECTS:
       A heavy brass pole with a few remaining metallic bristles.
     weight: 3
     value: 5
-    flags:
+    permanent_flags:
     - is_weapon
     equip_locations:
     - both_hands
@@ -1399,3 +1644,102 @@ OBJECTS:
       The back is stamped with: 'UNIT-734 AUTHORIZATION'.
     weight: 0
     value: 25
+  - id: arcane_tuning_fork
+    name: arcane tuning fork
+    article: an
+    keywords:
+    - fork
+    - tuning
+    - arcane
+    - brass
+    - resonance
+    description: |
+      A finely crafted brass tuning fork inscribed with glowing azure runes.
+    examine_text: |
+      The fork is calibrated to exactly 440Hz, the frequency required 
+      for safely harvesting Prism Shards and re-indexing corrupted 
+      automaton logic circuits. A small label reads: 'Scholarium 
+      Standard Issue'.
+    weight: 1
+    value: 150
+  - id: command_baton
+    name: officer's command baton
+    article: an
+    keywords:
+    - baton
+    - command
+    - officer
+    - brass
+    - military
+    description: |
+      A short brass rod topped with a crystalline orb that pulses 
+      with faint red light.
+    examine_text: |
+      This baton was issued to officers of the Aethelgard Vigil. 
+      It broadcasts a signal that identifies the bearer as authorized 
+      military personnel to the city's automated sentries.
+    weight: 1
+    value: 100
+  - id: imperial_diadem
+    name: Imperial Diadem
+    article: the
+    keywords:
+    - diadem
+    - crown
+    - imperial
+    - gold
+    - jeweled
+    description: |
+      A delicate circlet of white gold set with a single large pearl 
+      that seems to contain swirling mists within its depths.
+    examine_text: |
+      The personal crown of House Valerius. Any who wear it are 
+      recognized as royalty by the palace's Golden Automata. The 
+      pearl at its center is warm to the touch and hums with 
+      ancient power.
+    weight: 1
+    value: 5000
+    permanent_flags:
+    - is_armor
+    equip_locations:
+    - head
+    armor_class: 1
+  - id: silver_locket
+    name: tarnished silver locket
+    article: a
+    keywords:
+    - locket
+    - silver
+    - necklace
+    - tarnished
+    - jewelry
+    description: |
+      A small, heart-shaped silver locket on a delicate chain, 
+      tarnished by centuries underwater but still beautiful.
+    examine_text: |
+      Inside the locket is a faded portrait of a stern-faced military 
+      officer and a lock of dark hair. An inscription on the back 
+      reads: 'To my Valerius - Forever, Aaron.' This personal 
+      memento may hold great significance to those who remember 
+      the old empire.
+    weight: 0
+    value: 250
+  - id: soldiers_rank_medal
+    name: Vigil rank medal
+    article: a
+    keywords:
+    - medal
+    - rank
+    - soldier
+    - vigil
+    - military
+    - badge
+    description: |
+      A bronze medal depicting a trident crossed with a gear, 
+      the symbol of the Aethelgard Vigil.
+    examine_text: |
+      This medal was awarded to soldiers who achieved the rank 
+      of Sergeant or higher. The spectral soldiers of the citadel 
+      still recognize and respect this insignia of rank.
+    weight: 0
+    value: 75

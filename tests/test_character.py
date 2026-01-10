@@ -14,7 +14,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from NextGenMUDApp.constants import CharacterClassRole
-from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes
+from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes, PermanentCharacterFlags
 
 
 class TestCharacterCreation:
@@ -230,3 +230,183 @@ class TestCharacterFlags:
         test_fighter.add_temp_flags(TemporaryCharacterFlags.IS_SITTING)
         test_fighter.remove_temp_flags(TemporaryCharacterFlags.IS_SITTING)
         assert not test_fighter.has_temp_flags(TemporaryCharacterFlags.IS_SITTING)
+    
+    def test_load_permanent_flags_from_yaml(self, create_test_character, base_character_data):
+        """Permanent flags should be loaded from YAML."""
+        data = base_character_data.copy()
+        data['permanent_flags'] = ['is_aggressive', 'is_undead']
+        
+        char = create_test_character(data)
+        
+        assert char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)
+        assert char.has_perm_flags(PermanentCharacterFlags.IS_UNDEAD)
+    
+    def test_new_permanent_flags_available(self, test_fighter):
+        """All new permanent flags should be available."""
+        # Test that new flags exist and can be added
+        test_fighter.add_perm_flags(PermanentCharacterFlags.NO_WANDER)
+        assert test_fighter.has_perm_flags(PermanentCharacterFlags.NO_WANDER)
+        
+        test_fighter.add_perm_flags(PermanentCharacterFlags.IS_SENTINEL)
+        assert test_fighter.has_perm_flags(PermanentCharacterFlags.IS_SENTINEL)
+        
+        test_fighter.add_perm_flags(PermanentCharacterFlags.QUEST_GIVER)
+        assert test_fighter.has_perm_flags(PermanentCharacterFlags.QUEST_GIVER)
+
+
+class TestDamageMultipliers:
+    """Tests for damage multiplier loading and usage."""
+    
+    def test_load_damage_multipliers_from_yaml(self, create_test_character, base_character_data):
+        """Damage multipliers should be loaded from YAML."""
+        from NextGenMUDApp.nondb_models.attacks_and_damage import DamageType
+        
+        data = base_character_data.copy()
+        data['damage_multipliers'] = {
+            'fire': 0.5,
+            'poison': 0,
+            'cold': 2
+        }
+        
+        char = create_test_character(data)
+        
+        assert char.damage_multipliers.profile[DamageType.FIRE] == 0.5
+        assert char.damage_multipliers.profile[DamageType.POISON] == 0  # Immune
+        assert char.damage_multipliers.profile[DamageType.COLD] == 2  # Vulnerable
+    
+    def test_immune_poison_flag_converts_to_multiplier(self, create_test_character, base_character_data):
+        """Legacy immune_poison flag should convert to damage multiplier."""
+        from NextGenMUDApp.nondb_models.attacks_and_damage import DamageType
+        
+        data = base_character_data.copy()
+        data['permanent_flags'] = ['immune_poison']
+        
+        char = create_test_character(data)
+        
+        # Should be immune (0 damage multiplier)
+        assert char.damage_multipliers.profile[DamageType.POISON] == 0
+
+
+class TestSavingThrowBonuses:
+    """Tests for saving throw bonus system."""
+    
+    def test_load_saving_throw_bonuses_from_yaml(self, create_test_character, base_character_data):
+        """Saving throw bonuses should be loaded from YAML."""
+        data = base_character_data.copy()
+        data['saving_throw_bonuses'] = {
+            'will': 100,
+            'fortitude': 50
+        }
+        
+        char = create_test_character(data)
+        
+        assert char.saving_throw_bonuses.get('will') == 100
+        assert char.saving_throw_bonuses.get('fortitude') == 50
+        assert char.saving_throw_bonuses.get('reflex', 0) == 0  # Not set
+    
+    def test_get_saving_throw_bonus(self, create_test_character, base_character_data):
+        """get_saving_throw_bonus should return the correct bonus."""
+        data = base_character_data.copy()
+        data['saving_throw_bonuses'] = {'will': 75}
+        
+        char = create_test_character(data)
+        
+        assert char.get_saving_throw_bonus('will') == 75
+        assert char.get_saving_throw_bonus('WILL') == 75  # Case insensitive
+        assert char.get_saving_throw_bonus('fortitude') == 0  # Not set
+    
+    def test_immune_charm_converts_to_will_bonus(self, create_test_character, base_character_data):
+        """Legacy immune_charm flag should convert to will save bonus."""
+        data = base_character_data.copy()
+        data['permanent_flags'] = ['immune_charm']
+        
+        char = create_test_character(data)
+        
+        assert char.saving_throw_bonuses.get('will') == 100
+    
+    def test_immune_fear_converts_to_will_bonus(self, create_test_character, base_character_data):
+        """Legacy immune_fear flag should convert to will save bonus."""
+        data = base_character_data.copy()
+        data['permanent_flags'] = ['immune_fear']
+        
+        char = create_test_character(data)
+        
+        assert char.saving_throw_bonuses.get('will') == 100
+    
+    def test_multiple_immunity_flags_combine(self, create_test_character, base_character_data):
+        """Multiple immunity flags should work together."""
+        from NextGenMUDApp.nondb_models.attacks_and_damage import DamageType
+        
+        data = base_character_data.copy()
+        data['permanent_flags'] = ['immune_poison', 'immune_charm', 'immune_fear', 'is_undead']
+        
+        char = create_test_character(data)
+        
+        # Should have poison immunity
+        assert char.damage_multipliers.profile[DamageType.POISON] == 0
+        # Should have will save bonus
+        assert char.saving_throw_bonuses.get('will') == 100
+        # Should have undead flag
+        assert char.has_perm_flags(PermanentCharacterFlags.IS_UNDEAD)
+
+
+class TestSavingThrowResolution:
+    """Tests for saving throw resolution with bonuses."""
+    
+    def test_resolve_saving_throw_with_bonus(self):
+        """Save bonus should be applied after normal clamping."""
+        from NextGenMUDApp.nondb_models.characters import Character
+        
+        # Without bonus: 50 + (50-50) = 50, clamped to 50
+        # With 25% bonus: 50 + 25 = 75
+        save_chance, _ = Character.resolve_saving_throw(50, 50, 0, 25)
+        assert save_chance == 75
+    
+    def test_resolve_saving_throw_bonus_exceeds_normal_max(self):
+        """Save bonus can exceed the normal 95% maximum."""
+        from NextGenMUDApp.nondb_models.characters import Character
+        from NextGenMUDApp.constants import Constants
+        
+        # Normal max is 95%, but with 10% bonus should be 100% (capped at 100)
+        save_chance, _ = Character.resolve_saving_throw(100, 10, 0, 10)
+        assert save_chance == 100  # 95 + 10 = 105, capped to 100
+    
+    def test_resolve_saving_throw_100_bonus_is_immune(self):
+        """A 100% bonus should result in automatic success."""
+        from NextGenMUDApp.nondb_models.characters import Character
+        
+        # Even with terrible base values, 100% bonus = success
+        save_chance, saved = Character.resolve_saving_throw(10, 100, 0, 100)
+        # Base: 50 + (10-100) = -40, clamped to 5
+        # With 100% bonus: 5 + 100 = 105, capped to 100
+        assert save_chance == 100
+        # With 100% chance, should always save
+        assert saved == True
+    
+    def test_resolve_saving_throw_bonus_applied_after_clamp(self):
+        """Bonus should be applied AFTER the 5-95 clamp."""
+        from NextGenMUDApp.nondb_models.characters import Character
+        from NextGenMUDApp.constants import Constants
+        
+        # Base would be very low, clamped to 5
+        # Then bonus of 20 added: 5 + 20 = 25
+        save_chance, _ = Character.resolve_saving_throw(0, 100, 0, 20)
+        assert save_chance == Constants.SAVE_CHANCE_MIN + 20  # 5 + 20 = 25
+    
+    def test_attempt_save_uses_bonus(self, create_test_character, base_character_data):
+        """attempt_save should incorporate saving_throw_bonuses."""
+        data = base_character_data.copy()
+        data['saving_throw_bonuses'] = {'will': 100}
+        data['class'] = {'fighter': {'level': 1}}
+        
+        defender = create_test_character(data)
+        
+        # Create attacker
+        attacker_data = base_character_data.copy()
+        attacker_data['class'] = {'mage': {'level': 10}}
+        attacker = create_test_character(attacker_data)
+        
+        # Even against a high-level attacker, 100% will bonus = always save
+        save_chance, saved = defender.attempt_save('will', attacker, 'fireball')
+        assert save_chance == 100
+        assert saved == True

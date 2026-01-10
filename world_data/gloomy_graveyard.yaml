@@ -538,10 +538,13 @@ ZONES:
       forest_road_n:
         name: North Dark Forest Road
         description: >
-          The forest road here begins to widen as it approaches the edge of the graveyard. Old, gnarled trees line the path, their branches like twisted hands reaching towards the sky. A chill breeze whispers through the leaves, carrying a hint of decay. The graveyard's wrought iron gates loom in the distance, while a cozy looking inn sits invitingly to the east, its windows glowing with warm light.
+          The forest road here begins to widen as it approaches the edge of the graveyard. Old, gnarled trees line the path, their branches like twisted hands reaching towards the sky. A chill breeze whispers through the leaves, carrying a hint of decay. The graveyard's wrought iron gates loom in the distance, while a cozy looking inn sits invitingly to the east, its windows glowing with warm light. To the north, a dusty trail climbs toward barren hills where the trees grow thin and sparse.
 
-          Exits: south, east, west
+          Exits: north, south, east, west
         exits:
+          north:
+            destination: forest_northern_edge
+            description: A dusty trail leads north toward the barren hills where trees grow sparse.
           south:
             destination: forest_road_mid
           east:
@@ -565,6 +568,80 @@ ZONES:
                 predicate: 55
             script: |
               echo A cold gust of wind blows down the road, rustling leaves and stirring up small whirlwinds of dust.
+
+      forest_northern_edge:
+        name: Northern Edge of the Forest
+        description: >
+          The forest thins dramatically here as the land rises toward barren, sun-bleached hills. Gnarled trees give way to scraggly brush and wind-twisted shrubs. The soil underfoot transitions from dark loam to pale, dusty earth. The air grows noticeably drier, carrying hints of distant heat rather than forest decay. A well-worn trail continues north, climbing toward increasingly arid terrain.
+
+          Exits: north, south
+        flags:
+        - outdoors
+        exits:
+          north:
+            destination: arid_borderlands
+            description: The trail climbs north through increasingly barren terrain.
+          south:
+            destination: forest_road_n
+            description: The path descends back toward the dark forest and the road.
+        triggers:
+          - id: northern_edge_wind
+            type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 40
+              - subject: $random(1,100)
+                operator: numlte
+                predicate: 30
+            script: |
+              echo A dry wind sweeps down from the barren hills, rustling the dying brush.
+          - id: northern_edge_first_visit
+            type: on_enter
+            criteria:
+              - subject: $permvar(%S%, visited_forest_northern_edge)
+                operator: "!="
+                predicate: "true"
+            script: |
+              setpermvar char %S% visited_forest_northern_edge true
+              echo The change in terrain is striking - the lush darkness of the forest gives way to pale, sun-scorched earth.
+
+      arid_borderlands:
+        name: Arid Borderlands
+        description: >
+          This windswept stretch of barren terrain marks the boundary between the forested lowlands and the great desert beyond. Only the hardiest vegetation survives here - thorny scrub and sun-bleached grasses that crackle underfoot. To the north, the land flattens into an expanse of sand and heat-shimmered air. Ancient stone markers, half-buried in drifted sand, line what was once a proper road.
+
+          Exits: north, south
+        flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: shattered_dominion.room_desert_southern_trail
+            description: The path continues north into the desert wastes.
+          south:
+            destination: forest_northern_edge
+            description: The trail descends south toward the edge of the forest.
+        triggers:
+          - id: borderlands_heat
+            type: timer_tick
+            criteria:
+              - subject: "%time_elapsed%"
+                operator: "numgte"
+                predicate: 35
+              - subject: $random(1,100)
+                operator: numlte
+                predicate: 35
+            script: |
+              echo Waves of heat shimmer across the barren landscape ahead.
+          - id: borderlands_markers
+            type: catch_look
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: marker
+            script: |
+              echo The stone markers are weathered beyond reading, but their placement suggests this was once a well-traveled trade route.
 
       inn_common_room:
         name: Inn Common Room
@@ -1570,7 +1647,7 @@ CHARACTERS:
                 predicate: 10
             script: |
               leaverandom stayinzone
-        damage_resistances:
+        damage_multipliers:
           piercing: 0.25
         natural_attacks:
           - attack_noun: club
@@ -1615,7 +1692,7 @@ CHARACTERS:
                 predicate: 10
             script: |
               leaverandom stayinzone
-        damage_resistances:
+        damage_multipliers:
           bludgeoning: 0.5
           unholy: 0
         natural_attacks:
@@ -1647,7 +1724,7 @@ CHARACTERS:
           Fighter:
             level: 1
         hit_dice: 1d8+2
-        damage_resistances:
+        damage_multipliers:
           bludgeoning: 0.5
           slashing: 0.5
           piercing: 0.5
@@ -2181,7 +2258,7 @@ CHARACTERS:
           Fighter:
             level: 2
         hit_dice: 2d8
-        damage_resistances:
+        damage_multipliers:
           bludgeoning: 0.9
           slashing: 0.9
           piercing: 0.9
@@ -2432,6 +2509,8 @@ OBJECTS:
           - chest
           - wooden
           - old
+        weight: 50
+        value: 10
         description: >
           An old wooden chest sits in the corner, its iron bands rusted but still
           sturdy. It has a heavy lock on the front.
@@ -2464,6 +2543,8 @@ OBJECTS:
           - key
           - iron
           - rusty
+        weight: 1
+        value: 1
         description: >
           A rusty iron key, old but still functional.
         examine_text: >
@@ -2496,6 +2577,8 @@ OBJECTS:
         weight: 1
         value: 5
         flags: []
+        equip_locations:
+          - main_hand
 
       # Items found in manor bedroom (demonstrates container get/put)
       - id: old_coins
@@ -2550,6 +2633,8 @@ OBJECTS:
           - lever
           - rusty
           - hidden
+        weight: 0
+        value: 0
         description: >
           A rusty lever protrudes from the wall, almost hidden by cobwebs.
         examine_text: >

@@ -6,11 +6,11 @@ from .actors import Actor
 from .character_interface import CharacterInterface, EquipLocation
 from ..communication import CommTypes
 from ..comprehensive_game_state_interface import GameStateInterface
-from .attacks_and_damage import DamageType, DamageResistances, DamageReduction
+from .attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
 from .object_interface import ObjectInterface, ObjectFlags
 from .room_interface import RoomInterface
 from .triggers import TriggerType, Trigger
-from ..utility import get_dice_parts, replace_vars, firstcap, evaluate_functions_in_line
+from ..utility import get_dice_parts, generate_article, replace_vars, firstcap, evaluate_functions_in_line
 
 
 
@@ -18,15 +18,14 @@ class Object(Actor, ObjectInterface):
     def __init__(self, id: str, definition_zone_id: str, name: str = "", create_reference=False):
         super().__init__(ActorType.OBJECT, id, name=name, create_reference=create_reference)
         self.definition_zone_id: str = definition_zone_id
-        self.name: str = name
-        self.article = "" if name == "" else "a" if name[0].lower() in "aeiou" else "an" if name else ""
+        # Note: self.name and self.article are set by Actor.__init__
         self.zone: 'Zone' = None
         self.in_actor: Actor = None
         self.object_flags = ObjectFlags(0)
         self.equipped_location: EquipLocation = None
         self.equip_locations: List[EquipLocation] = []
         # for armor
-        self.damage_resistances = DamageResistances()
+        self.damage_multipliers = DamageMultipliers()
         self.damage_reduction = DamageReduction()
         # for weapons
         self.attack_bonus: int = 0
@@ -54,7 +53,7 @@ class Object(Actor, ObjectInterface):
             'article': self.article,
             'definition zone id': self.definition_zone_id,
             'equip_locations': [ loc.name.lower() for loc in self.equip_locations ],
-            'damage_resistances': self.damage_resistances.to_dict(),
+            'damage_multipliers': self.damage_multipliers.to_dict(),
             'damage_reduction': self.damage_reduction,
             'damage_type': self.damage_type.name.lower() if self.damage_type else None,
             'damage_dice_number': self.damage_num_dice,
@@ -71,12 +70,12 @@ class Object(Actor, ObjectInterface):
             self.name = yaml_data['name']
             self.definition_zone_id = definition_zone_id
             self.description_ = yaml_data['description']
-            self.article = yaml_data['article'] if 'article' in yaml_data else "a" if self.name[0].lower() in "aeiou" else "an" if self.name else ""
+            self.article = yaml_data['article'] if 'article' in yaml_data else generate_article(self.name)
             self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
             self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
-            self.weight = yaml_data['weight']
-            self.value = yaml_data['value']
+            self.weight = yaml_data.get('weight', 0)
+            self.value = yaml_data.get('value', 0)
             if 'equip_locations' in yaml_data:
                 logger.debug3(f"object.from_yaml()> equip_locations: {yaml_data['equip_locations']}")
                 for el in yaml_data['equip_locations']:
@@ -92,10 +91,10 @@ class Object(Actor, ObjectInterface):
                 self.damage_dice_size = dmg_parts[1]
                 self.damage_bonus = dmg_parts[2]
             self.dodge_penalty = yaml_data['dodge_penalty'] if 'dodge_penalty' in yaml_data else 0
-            logger.debug3(f"object.from_yaml()> damage_resistances")
-            if 'damage_resistances' in yaml_data:
-                for dt, mult in yaml_data['damage_resistances'].items():
-                    self.damage_resistances.set(DamageType[dt.upper()], mult)
+            logger.debug3(f"object.from_yaml()> damage_multipliers")
+            if 'damage_multipliers' in yaml_data:
+                for dt, mult in yaml_data['damage_multipliers'].items():
+                    self.damage_multipliers.set(DamageType[dt.upper()], mult)
             logger.debug3(f"object.from_yaml()> damage_reduction")
             if 'damage_reduction' in yaml_data:
                 for dt, amount in yaml_data['damage_reduction'].items():
@@ -112,7 +111,8 @@ class Object(Actor, ObjectInterface):
                 #     self.triggers_by_type_[trigger_type] += trigger_info
                 for trig in yaml_data['triggers']:
                     # logger.debug3(f"loading trigger_type: {trigger_type}")
-                    new_trigger = Trigger.new_trigger(trig["type"], self, disabled=False).from_dict(trig)
+                    # Triggers on definitions should be disabled; they get enabled when instances are created
+                    new_trigger = Trigger.new_trigger(trig["type"], self, disabled=True).from_dict(trig)
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
             
             # Consumable properties
@@ -130,9 +130,9 @@ class Object(Actor, ObjectInterface):
             if 'charges' in yaml_data:
                 self.charges = yaml_data['charges']
             
-            # Object flags (support both 'flags' and 'object_flags' keys)
-            logger.debug3(f"object.from_yaml()> object_flags")
-            flags_data = yaml_data.get('flags') or yaml_data.get('object_flags') or []
+            # Object permanent flags
+            logger.debug3(f"object.from_yaml()> permanent_flags")
+            flags_data = yaml_data.get('permanent_flags', [])
             for flag_name in flags_data:
                 flag_name_upper = flag_name.upper().replace("-", "_")
                 if hasattr(ObjectFlags, flag_name_upper):

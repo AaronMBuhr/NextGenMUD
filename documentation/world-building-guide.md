@@ -200,10 +200,10 @@ When players do `look north`, they see the description.
 | key_id | string | Object ID required to unlock (optional) |
 | linked_exit | string | Format: `zone.room.direction` - syncs lock state |
 
-### Room Flags
+### Room Permanent Flags
 
 ```yaml
-        flags:
+        permanent_flags:
           - dark           # Requires light to see
           - no_mob         # NPCs won't wander here
           - indoors        # Protected from weather
@@ -385,11 +385,71 @@ NPCs can guard specific rooms, blocking player access until certain conditions a
 
 ```yaml
         permanent_flags:
-          - is_aggressive       # Attacks players on sight
-          - can_dual_wield     # Can wield two weapons
-          - is_invisible       # Hidden until player has see_invisible
-          - see_invisible      # Can see invisible entities
-          - darkvision         # Can see in dark rooms
+          - is_aggressive         # Attacks players on sight
+          - can_dual_wield       # Can wield two weapons
+          - is_invisible         # Hidden until player has see_invisible
+          - see_invisible        # Can see invisible entities
+          - darkvision           # Can see in dark rooms
+          - is_undead            # Undead creature type
+          - is_sentinel          # Guards a location
+          - no_wander            # Won't wander between rooms
+          - stationary           # Completely immobile
+          - evasive              # Tends to flee from combat
+          - quest_giver          # Offers quests to players
+          - aggressive_if_attacked  # Attacks only if attacked first
+          - mindless             # No intelligence, cannot be reasoned with
+          - cowardly             # Tends to flee when wounded
+          - protected            # Cannot be directly attacked
+```
+
+### Damage Multipliers
+
+Specify damage multipliers. A value of `1` is normal damage, `0` is immune, `0.5` is 50% damage taken (resistant), `2` is double damage (vulnerable).
+
+```yaml
+        damage_multipliers:
+          fire: 0.5       # Takes 50% fire damage (resistant)
+          cold: 2         # Takes 200% cold damage (vulnerable)
+          poison: 0       # Immune to poison damage
+          slashing: 0.75  # 75% damage taken (25% reduction)
+```
+
+**Available Damage Types:**
+- Physical: `slashing`, `piercing`, `bludgeoning`
+- Elemental: `fire`, `cold`, `lightning`, `acid`
+- Magical: `arcane`, `holy`, `unholy`, `psychic`, `force`
+- Special: `poison`, `disease`, `necrotic`, `radiant`, `raw`
+
+### Saving Throw Bonuses
+
+Percentage bonuses applied to saving throws. These bonuses are applied AFTER the normal 5-95% clamping, allowing values to exceed the normal limits. A bonus of `100` means automatic success (immune to that save type).
+
+```yaml
+        saving_throw_bonuses:
+          will: 100       # Immune to will saves (charm, fear, etc.)
+          fortitude: 50   # +50% bonus to fortitude saves
+          reflex: 25      # +25% bonus to reflex saves
+```
+
+**Saving Throw Types:**
+| Save Type | Associated Attribute | Used Against |
+|-----------|---------------------|--------------|
+| `fortitude` | Constitution | Poison, disease, physical effects |
+| `reflex` | Dexterity | Area effects, dodging |
+| `will` | Wisdom | Charm, fear, mental effects |
+
+**Example - Undead Construct:**
+```yaml
+        permanent_flags:
+          - is_undead
+          - is_aggressive
+        damage_multipliers:
+          poison: 0       # Immune to poison
+          necrotic: 0.5   # Resistant to necrotic
+          radiant: 2      # Vulnerable to radiant
+        saving_throw_bonuses:
+          will: 100       # Immune to charm/fear (mindless)
+          fortitude: 50   # Bonus vs physical effects
 ```
 
 ### Attitude
@@ -453,10 +513,10 @@ OBJECTS:
           The note reads: "...hereby dismiss you from service..."
 ```
 
-### Object Flags
+### Object Permanent Flags
 
 ```yaml
-        flags:
+        permanent_flags:
           - is_armor          # Wearable armor
           - is_weapon         # Usable as weapon
           - is_container      # Can hold other objects
@@ -468,6 +528,10 @@ OBJECTS:
           - locked            # Starts locked
           - hidden            # Hidden until found
           - door              # Is a door object
+          - takeable          # Can be picked up
+          - stationary        # Cannot be moved
+          - container         # Alias for is_container
+          - dangerous         # Potentially harmful to use
 ```
 
 ### Weapons
@@ -478,7 +542,7 @@ OBJECTS:
         article: a
         keywords: [sword, rusty]
         description: A battered blade showing signs of neglect.
-        flags:
+        permanent_flags:
           - is_weapon
         equip_location: main_hand
         damage_dice: 1d6
@@ -503,7 +567,7 @@ OBJECTS:
         article: ""
         keywords: [leather, armor]
         description: Simple but serviceable protection.
-        flags:
+        permanent_flags:
           - is_armor
         equip_location: body
         armor_value: 2
@@ -518,7 +582,7 @@ OBJECTS:
         article: an
         keywords: [chest, wooden]
         description: An old wooden chest with a heavy lock.
-        flags:
+        permanent_flags:
           - is_container
           - openable
           - closed
@@ -687,8 +751,8 @@ Triggers are event-driven scripts that execute when conditions are met.
           - id: unique_trigger_id      # Must be unique to this entity
             type: trigger_type         # See types below
             disabled: false            # Optional, default false
-            flags:                      # Optional
-              - only when pc is in room
+            flags:                      # Optional trigger execution flags
+              - only_when_pc_room
             criteria:                   # Conditions to check
               - subject: "%value%"
                 operator: eq
@@ -719,10 +783,12 @@ Triggers are event-driven scripts that execute when conditions are met.
 
 ### Trigger Flags
 
+Trigger flags control when triggers can fire. Note: These are specific trigger execution flags, separate from permanent/temporary flags.
+
 ```yaml
             flags:
-              - only when pc is in room    # Only fires if a player is present
-              - only when pc is in zone    # Only fires if player is in zone
+              - only_when_pc_room     # Only fires if a player is present in room
+              - only_when_pc_zone     # Only fires if player is in zone
 ```
 
 ### Criteria
@@ -1382,7 +1448,7 @@ Variables in scripts use `%symbol%` format.
           A heavy brass candlestick stained with dried blood.
         examine_text: >
           Old blood clings to the brass. Gray hair is caught in it.
-        flags: []
+        permanent_flags: []
         triggers:
           - id: find_weapon
             type: on_get

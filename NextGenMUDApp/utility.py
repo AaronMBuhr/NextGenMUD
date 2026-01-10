@@ -354,6 +354,28 @@ def firstcap(s: str) -> str:
     return s[0].upper() + s[1:] if s else ""
 
 
+def generate_article(name: str) -> str:
+    """
+    Generate the appropriate article ('a', 'an', or '') for a name.
+    
+    Returns '' if:
+    - Name is empty
+    - Name already starts with an article ('The ', 'A ', 'An ')
+    
+    Returns 'an' if name starts with a vowel sound, 'a' otherwise.
+    """
+    if not name:
+        return ""
+    
+    # Names that already have an article don't need another one
+    name_lower = name.lower()
+    if name_lower.startswith("the ") or name_lower.startswith("a ") or name_lower.startswith("an "):
+        return ""
+    
+    # Use 'an' for vowels, 'a' for consonants
+    return "an" if name[0].lower() in "aeiou" else "a"
+
+
 def article_plus_name(article: str, name: str, cap: bool=False):
     if cap:
         return firstcap(article_plus_name(article, name)) if article != None and article != "" else firstcap(name)

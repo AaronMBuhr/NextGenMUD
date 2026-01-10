@@ -216,6 +216,7 @@ class ConversationResult:
     dialogue: str
     state_change: StateChange
     raw_response: str
+    emotes: List[str] = field(default_factory=list)  # Extracted *emotes* from dialogue
     error: Optional[str] = None
 
 
@@ -509,7 +510,8 @@ class NPCConversationHandler:
         player: 'Character',
         npc: 'Character',
         speech: str,
-        game_state: 'GameStateInterface'
+        game_state: 'GameStateInterface',
+        trigger_actions: list = None
     ) -> ConversationResult:
         """
         Process player speech directed at an NPC.
@@ -519,11 +521,15 @@ class NPCConversationHandler:
             npc: The NPC being spoken to
             speech: What the player said
             game_state: Current game state
+            trigger_actions: Optional list of trigger scripts that just executed
+                            (provides context for LLM about what the NPC just did)
             
         Returns:
             ConversationResult with NPC's response and any state changes
         """
         self._logger.debug(f"Processing speech from {player.name} to {npc.name}: {speech}")
+        if trigger_actions:
+            self._logger.debug(f"Trigger actions executed: {trigger_actions}")
         
         try:
             # Get context and state
@@ -548,7 +554,8 @@ class NPCConversationHandler:
                 revealed=revealed,
                 achieved=achieved,
                 speech=speech,
-                common_knowledge=common_knowledge
+                common_knowledge=common_knowledge,
+                trigger_actions=trigger_actions
             )
             
             # Get LLM response with config from app settings
@@ -565,11 +572,11 @@ class NPCConversationHandler:
             self._logger.debug(f"LLM response: {raw_response}")
             
             # Parse response
-            dialogue, state_change = self._parse_response(raw_response, context)
+            dialogue, state_change, emotes = self._parse_response(raw_response, context)
             
-            # Update conversation history
+            # Update conversation history (store full dialogue including emotes for context)
             self.add_to_history(npc, player, "user", speech)
-            self.add_to_history(npc, player, "assistant", dialogue)
+            self.add_to_history(npc, player, "assistant", raw_response.split('```')[0].strip())
             
             # Apply state changes
             await self._apply_state_changes(npc, player, state_change, game_state)
@@ -577,7 +584,8 @@ class NPCConversationHandler:
             return ConversationResult(
                 dialogue=dialogue,
                 state_change=state_change,
-                raw_response=raw_response
+                raw_response=raw_response,
+                emotes=emotes
             )
             
         except Exception as e:
@@ -599,7 +607,8 @@ class NPCConversationHandler:
         revealed: List[str],
         achieved: List[str],
         speech: str,
-        common_knowledge: Optional[List[str]] = None
+        common_knowledge: Optional[List[str]] = None,
+        trigger_actions: Optional[List[str]] = None
     ) -> str:
         """Build the conversation prompt for the LLM."""
         
@@ -624,12 +633,23 @@ class NPCConversationHandler:
 {ck_items}
 """
         
+        # Format trigger actions context (scripted actions that just happened)
+        trigger_context_section = ""
+        if trigger_actions:
+            # Join multiple trigger scripts and format them
+            actions_text = "\n".join(f"- {action.strip()}" for action in trigger_actions)
+            trigger_context_section = f"""
+## You Just Performed These Scripted Actions
+(Your scripted triggers just executed the following - acknowledge or respond to what you just did)
+{actions_text}
+"""
+        
         # Build prompt
         prompt = f"""You are roleplaying as {npc.name} in a text-based fantasy MUD game.
 
 ## Your Character
 {context.to_prompt_section()}
-{common_knowledge_section}
+{common_knowledge_section}{trigger_context_section}
 ## Current State
 - Your disposition toward this player ({player.name}): {disposition}/100
   (0=hostile, 25=distrustful, 50=neutral, 75=friendly, 100=devoted)
@@ -640,9 +660,10 @@ class NPCConversationHandler:
 2. Keep responses concise (1-3 sentences typically, can be longer for important moments)
 3. Your disposition can change based on how the player treats you
 4. Only reveal secrets if your disposition is high enough AND they ask/it's relevant
-5. Use *asterisks* for actions/emotes in your dialogue
+5. For physical actions/emotes, put them on their own line with *asterisks* (e.g. "*tilts head thoughtfully*"). Do NOT use asterisks for emphasis in speech.
 6. Don't explain game mechanics or your own decision-making
-7. NEVER prefix your dialogue with your name (e.g. don't say "Maggie: Hello" - just say "Hello")
+7. NEVER prefix your dialogue with your name (e.g. don't say "The Archivist: Hello" - just say "Hello")
+8. If scripted actions are listed above, you already performed them - acknowledge or followup naturally, don't repeat the action
 
 ## CRITICAL: No Hallucination
 - ONLY state facts that are explicitly in your knowledge above or common knowledge
@@ -675,8 +696,8 @@ Respond as {npc.name}:"""
         
         return prompt
     
-    def _parse_response(self, response: str, context: NPCConversationContext) -> tuple[str, StateChange]:
-        """Parse LLM response into dialogue and state changes."""
+    def _parse_response(self, response: str, context: NPCConversationContext) -> tuple[str, StateChange, List[str]]:
+        """Parse LLM response into dialogue, state changes, and extracted emotes."""
         
         # Try to extract JSON block
         json_match = re.search(r'```json\s*(\{[^`]+\})\s*```', response, re.DOTALL)
@@ -722,7 +743,47 @@ Respond as {npc.name}:"""
         if dialogue.endswith("```"):
             dialogue = dialogue[:-3].strip()
         
-        return dialogue, state_change
+        # Extract emotes - only asterisk-wrapped text that looks like an action, not emphasis
+        # Emotes are typically: at the start of dialogue, on their own line, or multi-word actions
+        # Single words like *how* or *past* are emphasis, not emotes
+        emotes = []
+        
+        # Pattern for emotes: must be multi-word (contains a space) to distinguish from emphasis
+        # Also check if at start of line/dialogue
+        lines = dialogue.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            # Check if entire line is an emote (starts and ends with asterisks, multi-word)
+            emote_line_match = re.match(r'^\*([^*]+)\*$', line)
+            if emote_line_match:
+                emote_text = emote_line_match.group(1).strip()
+                # Only treat as emote if it's multi-word (likely an action)
+                if ' ' in emote_text:
+                    emotes.append(emote_text)
+                    continue  # Don't add this line to dialogue
+            
+            # Check for emote at start of line followed by speech
+            start_emote_match = re.match(r'^\*([^*]+)\*\s*(.*)$', line)
+            if start_emote_match:
+                emote_text = start_emote_match.group(1).strip()
+                rest_of_line = start_emote_match.group(2).strip()
+                # Only treat as emote if it's multi-word (likely an action)
+                if ' ' in emote_text:
+                    emotes.append(emote_text)
+                    if rest_of_line:
+                        cleaned_lines.append(rest_of_line)
+                    continue
+            
+            # Keep the line as-is (including any *emphasis* words)
+            cleaned_lines.append(line)
+        
+        dialogue = ' '.join(cleaned_lines)
+        # Clean up any double spaces
+        dialogue = ' '.join(dialogue.split())
+        
+        return dialogue, state_change, emotes
     
     async def _apply_state_changes(
         self,

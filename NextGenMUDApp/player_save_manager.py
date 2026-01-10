@@ -212,14 +212,17 @@ class PlayerSaveManager:
             traceback.print_exc()
             return None
     
-    def create_new_character(self, character_name: str, password: str) -> bool:
+    def create_new_character(self, character_name: str, password: str, selected_class: str = None,
+                              allocated_stats: dict = None) -> bool:
         """
-        Create a new character save file with just name and password.
+        Create a new character save file with name, password, selected class, and allocated stats.
         The actual character will be created from template when they log in.
         
         Args:
             character_name: Name for the new character
             password: Password for the new character
+            selected_class: The class chosen by the player (fighter, rogue, mage, cleric)
+            allocated_stats: Dict of stat allocations (e.g., {'STRENGTH': 12, 'DEXTERITY': 14, ...})
             
         Returns:
             True if creation successful, False otherwise
@@ -234,19 +237,55 @@ class PlayerSaveManager:
             save_data = {
                 'name': character_name,
                 'password_hash': PasswordManager.hash_password(password),
-                'is_new_character': True
+                'selected_class': selected_class or 'fighter'  # Default to fighter if not specified
             }
+            
+            # Store allocated stats if provided
+            if allocated_stats:
+                save_data['allocated_stats'] = allocated_stats
             
             save_path = self._get_save_path(character_name)
             with open(save_path, 'w', encoding='utf-8') as f:
                 self.yaml.dump(save_data, f)
                 
-            logger.info(f"New character {character_name} created")
+            logger.info(f"New character {character_name} ({selected_class}) created with stats: {allocated_stats}")
             return True
             
         except Exception as e:
             logger.error(f"Error creating new character {character_name}: {e}")
             return False
+    
+    def get_selected_class(self, character_name: str) -> Optional[str]:
+        """Get the selected class for a new character."""
+        logger = StructuredLogger(__name__, prefix="get_selected_class()> ")
+        try:
+            save_path = self._get_save_path(character_name)
+            if not os.path.exists(save_path):
+                return None
+                
+            with open(save_path, 'r', encoding='utf-8') as f:
+                data = self.yaml.load(f)
+                
+            return data.get('selected_class', 'fighter')
+        except Exception as e:
+            logger.error(f"Error getting selected class for {character_name}: {e}")
+            return 'fighter'  # Default
+    
+    def get_allocated_stats(self, character_name: str) -> Optional[dict]:
+        """Get the allocated stats for a new character."""
+        logger = StructuredLogger(__name__, prefix="get_allocated_stats()> ")
+        try:
+            save_path = self._get_save_path(character_name)
+            if not os.path.exists(save_path):
+                return None
+                
+            with open(save_path, 'r', encoding='utf-8') as f:
+                data = self.yaml.load(f)
+                
+            return data.get('allocated_stats', None)
+        except Exception as e:
+            logger.error(f"Error getting allocated stats for {character_name}: {e}")
+            return None
     
     def _character_to_dict(self, character: 'Character', 
                            save_states: bool, save_cooldowns: bool) -> Dict[str, Any]:
@@ -274,9 +313,15 @@ class PlayerSaveManager:
             'levels_by_role': {role.name: level for role, level in character.levels_by_role.items()},
             'specializations': {base.name: spec.name for base, spec in character.specializations.items()},
             
-            # Skills
+            # Skills (legacy format)
             'skill_levels': character.skill_levels.copy() if hasattr(character, 'skill_levels') else {},
             'skill_points_available': character.skill_points_available,
+            
+            # Skills by class (new format)
+            'skill_levels_by_role': {
+                role.name: skills.copy() 
+                for role, skills in character.skill_levels_by_role.items()
+            } if hasattr(character, 'skill_levels_by_role') else {},
             
             # Attributes
             'attributes': {attr.name: val for attr, val in character.attributes.items()},
@@ -298,18 +343,18 @@ class PlayerSaveManager:
             'current_stamina': int(character.current_stamina),
             'max_carrying_capacity': character.max_carrying_capacity,
             
-            # Combat stats
-            'hit_modifier': character.hit_modifier,
+            # Combat stats (base values - level bonuses are recalculated on load)
+            'base_hit_modifier': character.base_hit_modifier,
+            'base_dodge_modifier': character.base_dodge_modifier,
             'dodge_dice_number': character.dodge_dice_number,
             'dodge_dice_size': character.dodge_dice_size,
-            'dodge_modifier': character.dodge_modifier,
             'critical_chance': character.critical_chance,
             'critical_multiplier': character.critical_multiplier,
             'num_main_hand_attacks': character.num_main_hand_attacks,
             'num_off_hand_attacks': character.num_off_hand_attacks,
             
-            # Damage resistances and reductions
-            'damage_resistances': {dt.name: val for dt, val in character.damage_resistances.profile.items()},
+            # Damage multipliers and reductions
+            'damage_multipliers': {dt.name: val for dt, val in character.damage_multipliers.profile.items()},
             'damage_reduction': {dt.name: val for dt, val in character.damage_reduction.items()},
             
             # Inventory
@@ -348,7 +393,7 @@ class PlayerSaveManager:
             'object_flags': obj.object_flags.value,
             'equip_locations': [loc.name for loc in obj.equip_locations],
             'equipped_location': obj.equipped_location.name if obj.equipped_location else None,
-            'damage_resistances': {dt.name: val for dt, val in obj.damage_resistances.profile.items()},
+            'damage_multipliers': {dt.name: val for dt, val in obj.damage_multipliers.profile.items()},
             'damage_reduction': {dt.name: val for dt, val in obj.damage_reduction.profile.items()},
             'damage_type': obj.damage_type.name if obj.damage_type else None,
             'damage_num_dice': obj.damage_num_dice,
@@ -384,7 +429,7 @@ class PlayerSaveManager:
             PermanentCharacterFlags, TemporaryCharacterFlags, 
             GamePermissionFlags, EquipLocation, CharacterAttributes
         )
-        from .nondb_models.attacks_and_damage import DamageType, DamageResistances
+        from .nondb_models.attacks_and_damage import DamageType, DamageMultipliers
         from .nondb_models.objects import Object, ObjectFlags
         
         logger = StructuredLogger(__name__, prefix="_apply_data_to_character()> ")
@@ -423,10 +468,20 @@ class PlayerSaveManager:
                     except KeyError:
                         logger.warning(f"Unknown specialization: {base_name} -> {spec_name}")
             
-            # Skills
+            # Skills (legacy format)
             if 'skill_levels' in data:
                 character.skill_levels = data['skill_levels'].copy()
             character.skill_points_available = data.get('skill_points_available', 0)
+            
+            # Skills by class (new format)
+            if 'skill_levels_by_role' in data:
+                character.skill_levels_by_role = {}
+                for role_name, skills in data['skill_levels_by_role'].items():
+                    try:
+                        role = CharacterClassRole[role_name]
+                        character.skill_levels_by_role[role] = skills.copy()
+                    except KeyError:
+                        logger.warning(f"Unknown class role in skills: {role_name}")
             
             # Attributes
             if 'attributes' in data:
@@ -457,21 +512,25 @@ class PlayerSaveManager:
             character.current_stamina = data.get('current_stamina', character.max_stamina)
             character.max_carrying_capacity = data.get('max_carrying_capacity', 100)
             
-            # Combat stats
-            character.hit_modifier = data.get('hit_modifier', 0)
+            # Combat stats (base values - level bonuses calculated after)
+            # Support loading old saves that had hit_modifier instead of base_hit_modifier
+            character.base_hit_modifier = data.get('base_hit_modifier', data.get('hit_modifier', 50))
+            character.base_dodge_modifier = data.get('base_dodge_modifier', data.get('dodge_modifier', 0))
             character.dodge_dice_number = data.get('dodge_dice_number', 1)
             character.dodge_dice_size = data.get('dodge_dice_size', 50)
-            character.dodge_modifier = data.get('dodge_modifier', 0)
             character.critical_chance = data.get('critical_chance', 5)
             character.critical_multiplier = data.get('critical_multiplier', 200)
             character.num_main_hand_attacks = data.get('num_main_hand_attacks', 1)
             character.num_off_hand_attacks = data.get('num_off_hand_attacks', 0)
             
-            # Damage resistances
-            if 'damage_resistances' in data:
-                for dt_name, val in data['damage_resistances'].items():
+            # Recalculate level-based combat bonuses (hit_modifier, dodge_modifier, spell_power)
+            character.calculate_combat_bonuses()
+            
+            # Damage multipliers
+            if 'damage_multipliers' in data:
+                for dt_name, val in data['damage_multipliers'].items():
                     try:
-                        character.damage_resistances.profile[DamageType[dt_name]] = val
+                        character.damage_multipliers.profile[DamageType[dt_name]] = val
                     except KeyError:
                         logger.warning(f"Unknown damage type: {dt_name}")
                         
@@ -516,7 +575,7 @@ class PlayerSaveManager:
     def _dict_to_object(self, data: Dict[str, Any]) -> Optional['Object']:
         """Convert a dictionary back to an Object."""
         from .nondb_models.character_interface import EquipLocation
-        from .nondb_models.attacks_and_damage import DamageType, DamageResistances, DamageReduction
+        from .nondb_models.attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
         from .nondb_models.objects import Object, ObjectFlags
         
         logger = StructuredLogger(__name__, prefix="_dict_to_object()> ")
@@ -549,11 +608,11 @@ class PlayerSaveManager:
                 except KeyError:
                     pass
             
-            # Damage resistances
-            if 'damage_resistances' in data:
-                for dt_name, val in data['damage_resistances'].items():
+            # Damage multipliers
+            if 'damage_multipliers' in data:
+                for dt_name, val in data['damage_multipliers'].items():
                     try:
-                        obj.damage_resistances.set(DamageType[dt_name], val)
+                        obj.damage_multipliers.set(DamageType[dt_name], val)
                     except KeyError:
                         pass
                         
@@ -620,20 +679,53 @@ class PlayerSaveManager:
             logger.error(f"Error getting location for {character_name}: {e}")
             return None
     
-    def is_new_character(self, character_name: str) -> bool:
-        """Check if a character save file represents a new (unplayed) character."""
-        logger = StructuredLogger(__name__, prefix="is_new_character()> ")
+    def is_stub_save(self, character_name: str) -> bool:
+        """
+        Check if a character save file is a stub (just credentials + creation choices)
+        vs a full character save. A stub file hasn't been fully instantiated yet.
+        """
+        logger = StructuredLogger(__name__, prefix="is_stub_save()> ")
         try:
             save_path = self._get_save_path(character_name)
             if not os.path.exists(save_path):
-                return True  # No save file means definitely new
+                return True  # No save file means definitely needs creation
                 
             with open(save_path, 'r', encoding='utf-8') as f:
                 data = self.yaml.load(f)
-                
-            return data.get('is_new_character', False)
+            
+            # A stub file won't have character data like 'level' or 'class_priority'
+            # These are only present after the character has been fully created and saved
+            return 'level' not in data and 'class_priority' not in data
         except Exception as e:
-            logger.error(f"Error checking new character status for {character_name}: {e}")
+            logger.error(f"Error checking stub status for {character_name}: {e}")
+            return True
+    
+    def is_fresh_character(self, character_name: str, starting_skill_points: int = 60) -> bool:
+        """
+        Check if a character is "fresh" (new player experience).
+        A fresh character is level 1 with all starting skill points unspent.
+        Also returns True for stub saves (character hasn't logged in yet).
+        """
+        logger = StructuredLogger(__name__, prefix="is_fresh_character()> ")
+        try:
+            save_path = self._get_save_path(character_name)
+            if not os.path.exists(save_path):
+                return True
+                
+            with open(save_path, 'r', encoding='utf-8') as f:
+                data = self.yaml.load(f)
+            
+            # Stub file = fresh
+            if 'level' not in data:
+                return True
+            
+            # Check if level 1 with starting skill points
+            level = data.get('level', 1)
+            skill_points = data.get('skill_points_available', 0)
+            
+            return level == 1 and skill_points >= starting_skill_points
+        except Exception as e:
+            logger.error(f"Error checking fresh character status for {character_name}: {e}")
             return True
 
 

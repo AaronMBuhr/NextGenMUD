@@ -302,10 +302,11 @@ class CoreActions(CoreActionsInterface):
         
         try:        
             new_room = self.game_state.get_zone_by_id(zone_id).rooms[room_id]
-        except KeyError:
+        except (KeyError, AttributeError):
+            current_room_id = f"{old_room.zone.id}.{old_room.id}" if old_room.zone else f"unknown_zone.{old_room.id}"
+            destination_id = f"{zone_id}.{room_id}"
+            logger.warning(f"Invalid room reference: player in '{current_room_id}' tried to move {direction} to non-existent room '{destination_id}'")
             msg = f"There was a problem moving that direction."
-            if actor.actor_type == ActorType.CHARACTER and actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
-                msg += f"> Zone: {zone_id}, Room: {room_id}"
             vars = set_vars(actor, actor, actor, msg)
             await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             return
@@ -756,10 +757,10 @@ class CoreActions(CoreActionsInterface):
             logger.debug(f"Target {target.rid} is unkillable, ignoring damage")
             return 0, target.current_hit_points
         
-        target_resistance = (target.damage_resistances.get(damage_type) / 100)
-        if target_resistance > 1:
-            target_resistance = 1
-        damage = damage * (1 - target_resistance) - target.damage_reduction.get(damage_type)
+        target_multiplier = (target.damage_multipliers.get(damage_type) / 100)
+        if target_multiplier > 1:
+            target_multiplier = 1
+        damage = damage * (1 - target_multiplier) - target.damage_reduction.get(damage_type)
         if damage < 1:
             return 0
         damage, target_hp = await self.do_damage(actor, target, damage, damage_type, do_msg=do_msg, do_die=do_die)
@@ -776,6 +777,16 @@ class CoreActions(CoreActionsInterface):
             raise Exception("Actor must be of type CHARACTER to attack.")
         if target.actor_type != ActorType.CHARACTER:
             raise Exception("Target must be of type CHARACTER to attack.")
+        
+        # Fire ON_ATTACKED triggers on the target when an attack is attempted
+        if TriggerType.ON_ATTACKED in target.triggers_by_type:
+            attack_vars = {
+                'attack_noun': attack.attack_noun,
+                'attack_verb': attack.attack_verb
+            }
+            for trigger in target.triggers_by_type[TriggerType.ON_ATTACKED]:
+                await trigger.run(actor, "", attack_vars, self.game_state)
+        
         hit_modifier = actor.hit_modifier + attack.attack_bonus
         logger.debug3(f"dodge_dice_number: {target.dodge_dice_number}, dodge_dice_size: {target.dodge_dice_size}, dodge_modifier: {target.dodge_modifier}")
         dodge_roll = roll_dice(target.dodge_dice_number, target.dodge_dice_size) + target.dodge_modifier

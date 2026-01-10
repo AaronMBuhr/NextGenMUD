@@ -177,6 +177,94 @@ class TestSkillsBaseClass:
         assert Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT > 0
 
 
+class TestSkillCapCalculation:
+    """Tests for the dynamic skill cap calculation system.
+    
+    The skill cap system works as follows:
+    - Level 1 skills (treated as level 0): cap of ~32 at level 1, reaches 100 at level 10
+    - Level 10 skills: cap of 25 at level 10, reaches 100 at level 20
+    - Level 20 skills: cap of 25 at level 20, reaches 100 at level 30
+    - And so on (75 points over 10 levels = 7.5 per level)
+    """
+    
+    def test_skill_cap_constants(self):
+        """Skill cap constants should be defined."""
+        assert Skills.SKILL_CAP_BASE == 25
+        assert Skills.SKILL_CAP_MAX == 100
+        assert Skills.SKILL_CAP_LEVELS_TO_MAX == 10
+        assert Skills.SKILL_CAP_PER_LEVEL == 7.5
+    
+    def test_level1_skills_at_level1(self):
+        """Level 1 skills at character level 1 should have cap of 32 (25 + 1*7.5)."""
+        cap = Skills.calculate_skill_cap(character_level=1, skill_requirement_level=1)
+        assert cap == 32
+    
+    def test_level1_skills_at_level10(self):
+        """Level 1 skills at character level 10 should have cap of 100."""
+        cap = Skills.calculate_skill_cap(character_level=10, skill_requirement_level=1)
+        assert cap == 100
+    
+    def test_level1_skills_at_level5(self):
+        """Level 1 skills at character level 5 should have cap of 62 (25 + 5*7.5)."""
+        cap = Skills.calculate_skill_cap(character_level=5, skill_requirement_level=1)
+        assert cap == 62
+    
+    def test_level10_skills_at_level10(self):
+        """Level 10 skills at character level 10 should have cap of 25."""
+        cap = Skills.calculate_skill_cap(character_level=10, skill_requirement_level=10)
+        assert cap == 25
+    
+    def test_level10_skills_at_level20(self):
+        """Level 10 skills at character level 20 should have cap of 100."""
+        cap = Skills.calculate_skill_cap(character_level=20, skill_requirement_level=10)
+        assert cap == 100
+    
+    def test_level10_skills_at_level15(self):
+        """Level 10 skills at character level 15 should have cap of 62 (25 + 5*7.5)."""
+        cap = Skills.calculate_skill_cap(character_level=15, skill_requirement_level=10)
+        assert cap == 62
+    
+    def test_level20_skills_at_level20(self):
+        """Level 20 skills at character level 20 should have cap of 25."""
+        cap = Skills.calculate_skill_cap(character_level=20, skill_requirement_level=20)
+        assert cap == 25
+    
+    def test_level20_skills_at_level30(self):
+        """Level 20 skills at character level 30 should have cap of 100."""
+        cap = Skills.calculate_skill_cap(character_level=30, skill_requirement_level=20)
+        assert cap == 100
+    
+    def test_level30_skills_at_level30(self):
+        """Level 30 skills at character level 30 should have cap of 25."""
+        cap = Skills.calculate_skill_cap(character_level=30, skill_requirement_level=30)
+        assert cap == 25
+    
+    def test_level30_skills_at_level40(self):
+        """Level 30 skills at character level 40 should have cap of 100."""
+        cap = Skills.calculate_skill_cap(character_level=40, skill_requirement_level=30)
+        assert cap == 100
+    
+    def test_skill_below_requirement_returns_zero(self):
+        """Skills at character levels below requirement should have cap of 0."""
+        cap = Skills.calculate_skill_cap(character_level=5, skill_requirement_level=10)
+        assert cap == 0
+    
+    def test_override_cap(self):
+        """YAML override cap should take precedence."""
+        cap = Skills.calculate_skill_cap(character_level=1, skill_requirement_level=1, override_cap=50)
+        assert cap == 50
+    
+    def test_override_cap_clamped_to_max(self):
+        """YAML override cap should not exceed MAX_SKILL_LEVEL."""
+        cap = Skills.calculate_skill_cap(character_level=1, skill_requirement_level=1, override_cap=150)
+        assert cap == 100
+    
+    def test_cap_does_not_exceed_max(self):
+        """Cap should never exceed MAX_SKILL_LEVEL even with high character levels."""
+        cap = Skills.calculate_skill_cap(character_level=50, skill_requirement_level=1)
+        assert cap == 100
+
+
 @pytest.mark.asyncio
 class TestSkillInvocation:
     """Tests for skill invocation via the registry."""

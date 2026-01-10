@@ -9,12 +9,52 @@ Merges revision YAML files into base zone files with support for:
 - List extension or replacement
 - Field removal via `-fieldname` syntax
 - All room fields (exits, triggers, characters, objects, etc.)
+- Multi-section revisions via `# ===` break indicator
 
 Usage:
     python merge_mud_files.py <base_file> <revisions_file> [output_file]
     
 Example:
     python merge_mud_files.py world_data/gloomy_graveyard.yaml revisions_gloomy_graveyard.yaml world_data/gloomy_graveyard_merged.yaml
+
+Multi-Section Revisions:
+    When collecting multiple LLM responses, you can concatenate them into a single
+    revisions file by inserting `# ===` between each response. Each section is 
+    processed as a fresh revision and applied sequentially to the base file.
+    
+    Valid break indicators:
+        # ===
+        # === Some note here
+        # ===   (with trailing spaces)
+    
+    NOT break indicators (decorative comment lines are ignored):
+        # ====
+        # =========================================================
+        # ============ SECTION HEADER ============
+    
+    Example revisions file with multiple sections:
+    
+        ZONES:
+          my_zone:
+            rooms:
+              room1:
+                name: Updated Room 1
+        
+        # === Second LLM response below ===
+        
+        ZONES:
+          my_zone:
+            rooms:
+              room2:
+                name: Updated Room 2
+        
+        # ===
+        
+        CHARACTERS:
+          - zone: my_zone
+            characters:
+              - id: new_npc
+                name: New NPC
 
 Requirements:
     pip install ruamel.yaml
@@ -236,6 +276,110 @@ def load_yaml(path: str, yaml_handler=None):
             return yaml_handler.load(f)
         else:
             return yaml.safe_load(f)
+
+
+def is_break_indicator(line: str) -> bool:
+    """
+    Check if a line is a `# ===` break indicator.
+    
+    A break indicator is a line that:
+    - Starts with `# ===` (after stripping whitespace)
+    - Is NOT a decorative line like `# ===========` (4+ consecutive `=` chars)
+    
+    Valid break indicators:
+    - `# ===`
+    - `# === Some note here`
+    - `# ===   ` (with trailing spaces)
+    
+    NOT break indicators (decorative lines):
+    - `# ====`
+    - `# =========================================================`
+    - `# ============ SECTION HEADER ============`
+    """
+    stripped = line.strip()
+    if not stripped.startswith('# ==='):
+        return False
+    
+    # Get what comes after "# ==="
+    after_prefix = stripped[5:]  # Everything after "# ==="
+    
+    # If there are more `=` characters immediately after, it's decorative
+    if after_prefix.startswith('='):
+        return False
+    
+    # It's a valid break indicator
+    return True
+
+
+def split_revisions_by_break_indicator(content: str) -> list:
+    """
+    Split revision file content by `# ===` break indicators.
+    
+    This allows multiple LLM responses to be concatenated into a single file,
+    with each section separated by a line starting with `# ===`.
+    Each section is treated as a fresh revision to be applied sequentially.
+    
+    Note: Decorative comment lines like `# ==========` are NOT treated as
+    break indicators - only `# ===` (optionally followed by a space and text).
+    
+    Args:
+        content: The full text content of the revisions file
+        
+    Returns:
+        List of YAML content strings, one per section
+    """
+    sections = []
+    current_section_lines = []
+    
+    for line in content.split('\n'):
+        # Check if this line is a break indicator
+        if is_break_indicator(line):
+            # Save the current section if it has content
+            section_content = '\n'.join(current_section_lines).strip()
+            if section_content:
+                sections.append(section_content)
+            current_section_lines = []
+        else:
+            current_section_lines.append(line)
+    
+    # Don't forget the last section
+    section_content = '\n'.join(current_section_lines).strip()
+    if section_content:
+        sections.append(section_content)
+    
+    return sections
+
+
+def load_yaml_sections(path: str, yaml_handler=None) -> list:
+    """
+    Load a YAML file, splitting by `# ===` break indicators.
+    
+    Returns a list of parsed YAML documents. If no break indicators are found,
+    returns a single-element list with the entire file's content.
+    
+    Args:
+        path: Path to the YAML file
+        yaml_handler: Optional ruamel.yaml handler
+        
+    Returns:
+        List of parsed YAML documents (dicts)
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    sections = split_revisions_by_break_indicator(content)
+    
+    parsed_sections = []
+    for section in sections:
+        if yaml_handler and RUAMEL_AVAILABLE:
+            parsed = yaml_handler.load(io.StringIO(section))
+        else:
+            parsed = yaml.safe_load(section)
+        
+        if parsed is not None:
+            parsed_sections.append(parsed)
+    
+    return parsed_sections
 
 
 def save_yaml(data, path: str, yaml_handler=None, original_path: str = None):
@@ -638,9 +782,50 @@ def merge_section_list(base_list, revision_list, item_key: str):
     return result
 
 
+def apply_single_revision(base: dict, revisions: dict) -> dict:
+    """
+    Apply a single revision document to the base data.
+    
+    Args:
+        base: The current base data (will be modified)
+        revisions: A single revision document to apply
+        
+    Returns:
+        The modified base data
+    """
+    if revisions is None:
+        return base
+    
+    # Merge ZONES
+    if "ZONES" in revisions:
+        base["ZONES"] = merge_zones(base.get("ZONES"), revisions["ZONES"])
+    
+    # Merge CHARACTERS
+    if "CHARACTERS" in revisions:
+        base["CHARACTERS"] = merge_section_list(
+            base.get("CHARACTERS"),
+            revisions["CHARACTERS"],
+            "characters"
+        )
+    
+    # Merge OBJECTS
+    if "OBJECTS" in revisions:
+        base["OBJECTS"] = merge_section_list(
+            base.get("OBJECTS"),
+            revisions["OBJECTS"],
+            "objects"
+        )
+    
+    return base
+
+
 def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bool:
     """
     Merge a revisions file into a base MUD zone file.
+    
+    Supports multi-section revisions files where sections are separated by
+    lines starting with `# ===`. Each section is processed as a fresh revision
+    and applied sequentially to the base file.
     
     Args:
         base_path: Path to the original zone file
@@ -658,34 +843,28 @@ def merge_mud_files(base_path: str, revisions_path: str, output_path: str) -> bo
             print("[WARNING] ruamel.yaml not installed - comments will NOT be preserved!")
             print("          Install with: pip install ruamel.yaml")
         
-        # Load files
+        # Load base file
         base = load_yaml(base_path, yaml_handler)
         if base is None:
             base = create_mapping()
         
-        revisions = load_yaml(revisions_path, yaml_handler)
-        if revisions is None:
-            revisions = create_mapping()
+        # Load revisions file, splitting by # === break indicators
+        revision_sections = load_yaml_sections(revisions_path, yaml_handler)
         
-        # Merge ZONES
-        if "ZONES" in revisions:
-            base["ZONES"] = merge_zones(base.get("ZONES"), revisions["ZONES"])
+        if not revision_sections:
+            print("[WARNING] Revisions file is empty or contains no valid YAML.")
+            revision_sections = []
         
-        # Merge CHARACTERS
-        if "CHARACTERS" in revisions:
-            base["CHARACTERS"] = merge_section_list(
-                base.get("CHARACTERS"),
-                revisions["CHARACTERS"],
-                "characters"
-            )
+        # Report the number of sections found
+        num_sections = len(revision_sections)
+        if num_sections > 1:
+            print(f"[INFO] Found {num_sections} revision sections (split by '# ===' indicators)")
         
-        # Merge OBJECTS
-        if "OBJECTS" in revisions:
-            base["OBJECTS"] = merge_section_list(
-                base.get("OBJECTS"),
-                revisions["OBJECTS"],
-                "objects"
-            )
+        # Apply each revision section sequentially
+        for i, revisions in enumerate(revision_sections, 1):
+            if num_sections > 1:
+                print(f"[INFO] Applying revision section {i}/{num_sections}...")
+            base = apply_single_revision(base, revisions)
         
         # Write output (pass base_path for comment restoration)
         save_yaml(base, output_path, yaml_handler, original_path=base_path)

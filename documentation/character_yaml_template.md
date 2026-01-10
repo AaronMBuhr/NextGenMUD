@@ -50,7 +50,7 @@ permanent_flags:
 
 experience_points: 5000
 
-damage_resistances:
+damage_multipliers:
   physical: 0.8
   fire: 0.9
   cold: 1.1

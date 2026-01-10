@@ -180,6 +180,9 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.ON_USE:
             logger.debug3("returning TriggerOnUse")
             return TriggerOnUse(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_ATTACKED:
+            logger.debug3("returning TriggerOnAttacked")
+            return TriggerOnAttacked(trigger_id, actor, disabled)
         else:
             logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
             raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
@@ -198,17 +201,65 @@ class Trigger(TriggerInterface):
     def are_flags_set(self, flags: TriggerFlags) -> bool:
         return self.flags.are_flags_set(flags)
 
-    async def execute_trigger_script(self, actor: 'Actor', vars: dict, game_state: GameStateInterface = None) -> None:
+    def get_criteria_summary(self) -> str:
+        """Get a human-readable summary of this trigger's criteria."""
+        if not self.criteria_:
+            return "no criteria"
+        
+        summaries = []
+        for crit in self.criteria_:
+            if hasattr(crit, 'subject') and hasattr(crit, 'operator') and hasattr(crit, 'predicate'):
+                summaries.append(f"{crit.subject} {crit.operator} '{crit.predicate}'")
+            else:
+                summaries.append(str(crit))
+        return "; ".join(summaries) if summaries else "no criteria"
+
+    async def execute_trigger_script(self, actor: 'Actor', vars: dict, game_state: GameStateInterface = None, 
+                                      initiator_ref: str = None, enable_llm_tracking: bool = True) -> None:
+        """
+        Execute the trigger's script.
+        
+        Args:
+            actor: The actor (NPC/room/object) that owns this trigger
+            vars: Variable dictionary for substitution
+            game_state: Current game state
+            initiator_ref: Reference to the character who triggered this (e.g., %S% value)
+            enable_llm_tracking: Whether to track script execution for LLM integration
+        """
         logger = StructuredLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
-        # for line in self.script_.splitlines():
-        #     logger.debug3(f"running script line: {line}")
-        #     await process_command(actor, line, vars)
-        # script = self.script_
-        # while script := process_line(actor, script, vars):
-        #     pass
         logger.debug3("executing execute_trigger_script")
         logger.debug3(f"script: {self.script_}")
-        await self.script_handler_.run_script(actor, self.script_, vars, game_state)
+        
+        # For Characters with LLM tracking enabled (not TIMER_TICK), wrap script with tracking commands
+        from .actor_interface import ActorType
+        should_track = (
+            enable_llm_tracking and 
+            actor.actor_type == ActorType.CHARACTER and
+            self.trigger_type_ != TriggerType.TIMER_TICK
+        )
+        
+        if should_track:
+            # Get initiator reference from vars if not provided
+            if initiator_ref is None:
+                initiator_ref = vars.get('S', '')  # %S% is usually the triggering character's reference
+            
+            # Build criteria summary for LLM context
+            criteria_summary = self.get_criteria_summary()
+            
+            # Build trigger info - use pipe separator since criteria might contain spaces
+            trigger_info = f"{self.trigger_type_.name}|{self.id}|{criteria_summary}|{initiator_ref}"
+            
+            # Queue _trigger_start before script commands
+            actor.command_queue.append(f"_trigger_start {trigger_info}")
+            
+            # Run the script (which queues its commands for Characters)
+            await self.script_handler_.run_script(actor, self.script_, vars, game_state)
+            
+            # Queue _trigger_end after script commands
+            actor.command_queue.append("_trigger_end")
+        else:
+            # No tracking - just run the script normally
+            await self.script_handler_.run_script(actor, self.script_, vars, game_state)
 
 
 
@@ -736,4 +787,61 @@ class TriggerOnUse(Trigger):
                 return False
         
         await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnAttacked(Trigger):
+    """
+    Fires when an attack is attempted against an actor (NPC/character),
+    regardless of whether it hits or misses.
+    
+    Variables available:
+    - %S% = the character who was attacked (the trigger owner)
+    - %a% / %A% = the attacker's name / reference
+    - %attack_noun% = the attack noun (e.g., "sword", "claws")
+    - %attack_verb% = the attack verb (e.g., "slashes", "bites")
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_ATTACKED, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        """
+        Run this trigger when an attack is attempted against the owner.
+        
+        Args:
+            actor: The character who attacked (the attacker)
+            text: Unused for this trigger type
+            vars: Variables dict containing attack info
+            game_state: Current game state
+            
+        Returns:
+            True if the trigger executed, False otherwise
+        """
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnAttacked.run()> ")
+        if self.disabled_:
+            return False
+        
+        # Build vars - attacker info goes in 'a'/'A', defender (trigger owner) in 's'/'S'
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     's': self.actor_.name, 'S': Constants.REFERENCE_SYMBOL + self.actor_.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("a")),
+                **(self.actor_.get_vars("s"))}
+        
+        logger.debug3(f"evaluating on_attacked for {self.actor_.name} (attacked by {actor.name})")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                logger.debug3("criteria not met")
+                return False
+        
+        logger.debug3("executing on_attacked script")
+        # Execute script as the trigger owner (the one being attacked)
+        await self.execute_trigger_script(self.actor_, vars, game_state)
         return True

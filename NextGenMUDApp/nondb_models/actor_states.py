@@ -5,7 +5,7 @@ from ..communication import CommTypes
 from ..core_actions_interface import CoreActionsInterface
 from .actor_interface import ActorType, ActorInterface
 from .character_interface import PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags, EquipLocation, CharacterInterface
-from .attacks_and_damage import DamageType, DamageResistances, DamageReduction
+from .attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
 from ..utility import set_vars
 from ..comprehensive_game_state_interface import GameStateInterface
 
@@ -601,26 +601,26 @@ class CharacterStateBerserkerStance(ActorState):
 
 class CharacterStateDefensiveStance(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
-                 state_type_name=None, dodge_bonus:int = 0, hit_penalty:int = 0, damage_resistances=None, tick_created=None):
+                 state_type_name=None, dodge_bonus:int = 0, hit_penalty:int = 0, damage_multipliers=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.dodge_bonus = dodge_bonus
         self.hit_penalty = hit_penalty
-        self.damage_resistances = damage_resistances
+        self.damage_multipliers = damage_multipliers
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         self.actor.dodge_modifier += self.dodge_bonus
         self.actor.hit_modifier -= self.hit_penalty
-        if self.damage_resistances:
-            self.actor.damage_resistances.add_resistances(self.damage_resistances)
+        if self.damage_multipliers:
+            self.actor.damage_multipliers.add_multipliers(self.damage_multipliers)
         return True
     
     def remove_state(self) -> bool:
         self.actor.dodge_modifier -= self.dodge_bonus
         self.actor.hit_modifier += self.hit_penalty
-        if self.damage_resistances:
-            self.actor.damage_resistances.remove_resistances(self.damage_resistances)
+        if self.damage_multipliers:
+            self.actor.damage_multipliers.minus_multipliers(self.damage_multipliers)
         return super().remove_state()
         
 
@@ -691,27 +691,28 @@ class CharacterStateStealthed(ActorState):
 
 class CharacterStateShielded(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface = None, 
-                 state_type_name=None, resistances: DamageResistances = None, reductions: DamageReduction = None,
+                 state_type_name=None, multipliers: DamageMultipliers = None, reductions: DamageReduction = None,
                  vars=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, vars, tick_created)
-        self.extra_resistances: DamageResistances = resistances
+        self.extra_multipliers: DamageMultipliers = multipliers
         self.extra_reductions: DamageReduction = reductions
 
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+        if not retval:
             return False
-        if self.extra_resistances:
-                self.actor.damage_resistances_.add_resistances(self.resistances)
+        if self.extra_multipliers:
+            self.actor.damage_multipliers.add_multipliers(self.extra_multipliers)
         if self.extra_reductions:
-            self.actor.damage_reductions_.add_reductions(self.reductions)
+            self.actor.damage_reductions_.add_reductions(self.extra_reductions)
         return retval
     
     def remove_state(self) -> bool:
         if retval := super().remove_state():
-            if self.extra_resistances:
-                self.actor.damage_resistances_.remove_resistances(self.resistances)
+            if self.extra_multipliers:
+                self.actor.damage_multipliers.minus_multipliers(self.extra_multipliers)
             if self.extra_reductions:
-                self.actor.damage_reductions_.remove_reductions(self.reductions)
+                self.actor.damage_reductions_.remove_reductions(self.extra_reductions)
         return retval
     
 
@@ -739,20 +740,20 @@ class CharacterStateRecoveryModifier(ActorState):
         return super().remove_state()
         
 
-class CharacterStateDamageResistance(ActorState):
+class CharacterStateDamageMultipliers(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
-                 state_type_name=None, damage_resistances: DamageResistances = None, tick_created=None):
+                 state_type_name=None, damage_multipliers: DamageMultipliers = None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
-        self.damage_resistances = damage_resistances
+        self.damage_multipliers = damage_multipliers
         
     def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
-        self.actor.damage_resistances_.add_resistances(self.damage_resistances)
+        self.actor.damage_multipliers.add_multipliers(self.damage_multipliers)
         return True
         
     def remove_state(self) -> bool:
-        self.actor.damage_resistances_.remove_resistances(self.damage_resistances)
+        self.actor.damage_multipliers.minus_multipliers(self.damage_multipliers)
         return super().remove_state()
         
 
@@ -778,6 +779,242 @@ class CharacterStateBurning(ActorState):
                 CoreActionsInterface.get_instance().do_die(self.actor, self.actor)
         return retval
 
+
+
+class CharacterStateArmorBonus(ActorState):
+    """Adds flat damage reduction to physical damage types (slashing, piercing, bludgeoning)."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, affect_amount: int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.affect_amount = affect_amount
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+            return False
+        # Add armor bonus to physical damage types
+        self.actor.current_damage_reduction[DamageType.SLASHING] += self.affect_amount
+        self.actor.current_damage_reduction[DamageType.PIERCING] += self.affect_amount
+        self.actor.current_damage_reduction[DamageType.BLUDGEONING] += self.affect_amount
+        return True
+    
+    def remove_state(self) -> bool:
+        # Remove armor bonus from physical damage types
+        self.actor.current_damage_reduction[DamageType.SLASHING] -= self.affect_amount
+        self.actor.current_damage_reduction[DamageType.PIERCING] -= self.affect_amount
+        self.actor.current_damage_reduction[DamageType.BLUDGEONING] -= self.affect_amount
+        return super().remove_state()
+
+
+class CharacterStateRegenerating(ActorState):
+    """Heals the target periodically over time."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, heal_amount: int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.heal_amount = heal_amount
+        self.total_healed = 0
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick, 
+                                     pulse_period_ticks=pulse_period_ticks)
+        if retval is not None:
+            if self.source_actor and self.source_actor != self.actor:
+                msg = f"You invoke regenerative magic upon {self.actor.art_name}!"
+                vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
+                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{self.source_actor.art_name_cap} invokes regenerative magic upon you!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            else:
+                msg = "Regenerative magic flows through you!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"Regenerative magic surrounds {self.actor.art_name}!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                         exceptions=[self.actor, self.source_actor] if self.source_actor else [self.actor],
+                                         game_state=self.game_state)
+        return retval
+
+    async def remove_state(self, force=False) -> bool:
+        if retval := super().remove_state(force):
+            msg = f"The regenerative magic fades. (Total healed: {self.total_healed})"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        return retval
+    
+    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num, game_state, vars):
+            old_hp = self.actor.current_hit_points
+            self.actor.current_hit_points = min(self.actor.max_hit_points, 
+                                                self.actor.current_hit_points + self.heal_amount)
+            actual_heal = int(self.actor.current_hit_points - old_hp)
+            self.total_healed += actual_heal
+            
+            if actual_heal > 0:
+                msg = f"Regenerative magic heals you for {actual_heal} hit points!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        return retval
+
+
+class CharacterStateZealotry(ActorState):
+    """Increases damage dealt but reduces healing received."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, damage_bonus: int = 0, healing_penalty: int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.damage_bonus = damage_bonus
+        self.healing_penalty = healing_penalty  # Percentage reduction in healing received (e.g., 50 = 50% less healing)
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+            return False
+        self.actor.damage_modifier += self.damage_bonus
+        # Store healing penalty on actor for healing spells to check
+        if not hasattr(self.actor, 'healing_received_modifier'):
+            self.actor.healing_received_modifier = 0
+        self.actor.healing_received_modifier -= self.healing_penalty
+        return True
+    
+    def remove_state(self) -> bool:
+        self.actor.damage_modifier -= self.damage_bonus
+        self.actor.healing_received_modifier += self.healing_penalty
+        return super().remove_state()
+
+
+class CharacterStateCharmed(ActorState):
+    """Marks a character as charmed/controlled by another character."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.charmed_by = source_actor
+        self.character_flags_added = TemporaryCharacterFlags(0)  # Could add IS_CHARMED flag if needed
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+        if retval is not None:
+            # Store reference to who charmed this character
+            self.actor.charmed_by = self.charmed_by
+        return retval
+
+    async def remove_state(self, force=False) -> bool:
+        if retval := super().remove_state(force):
+            # Check if still charmed by another effect
+            still_charmed = any(s for s in self.actor.current_states 
+                               if s is not self and isinstance(s, CharacterStateCharmed))
+            if not still_charmed:
+                self.actor.charmed_by = None
+                msg = f"{self.actor.art_name_cap} is no longer under your control!"
+                vars = set_vars(self.charmed_by, self.charmed_by, self.actor, msg)
+                await self.charmed_by.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{self.actor.art_name_cap} breaks free from {self.charmed_by.art_name}'s control!"
+                vars = set_vars(self.actor, self.charmed_by, self.actor, msg)
+                await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                                   exceptions=[self.charmed_by], game_state=self.game_state)
+        return retval
+
+
+class CharacterStateConsecrated(ActorState):
+    """Burns the target with holy fire periodically over time, dealing holy damage."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, damage_amount: int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.damage_amount = damage_amount
+        self.total_damage = 0
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
+                                     pulse_period_ticks=pulse_period_ticks)
+        if retval is not None:
+            if self.source_actor:
+                msg = f"Holy fire engulfs {self.actor.art_name}!"
+                vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
+                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"Holy fire engulfs you!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"Holy fire engulfs {self.actor.art_name}!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                         exceptions=[self.actor, self.source_actor],
+                                         game_state=self.game_state)
+        return retval
+
+    async def remove_state(self, force=False) -> bool:
+        if retval := super().remove_state(force):
+            msg = "The holy fire fades."
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        return retval
+    
+    async def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num, game_state, vars):
+            damage, target_hp = await CoreActionsInterface.get_instance().do_calculated_damage(
+                self.source_actor, self.actor, self.damage_amount, DamageType.HOLY, do_msg=False, do_die=True)
+            self.total_damage += damage
+            
+            if damage > 0:
+                msg = f"Holy fire burns you for {damage} damage!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{self.actor.art_name_cap} burns with holy fire!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                                   exceptions=[self.actor], game_state=self.game_state)
+        return retval
+
+
+class CharacterStateIgnited(ActorState):
+    """Burns the target periodically over time, dealing fire damage."""
+    def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
+                 state_type_name=None, damage_amount: int = 0, tick_created=None):
+        super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.damage_amount = damage_amount
+        self.total_damage = 0
+
+    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
+                                     pulse_period_ticks=pulse_period_ticks)
+        if retval is not None:
+            if self.source_actor:
+                msg = f"You set {self.actor.art_name} ablaze!"
+                vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
+                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"{self.source_actor.art_name_cap} sets you ablaze!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"{self.source_actor.art_name_cap} sets {self.actor.art_name} ablaze!"
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                         exceptions=[self.actor, self.source_actor],
+                                         game_state=self.game_state)
+        return retval
+
+    async def remove_state(self, force=False) -> bool:
+        if retval := super().remove_state(force):
+            msg = "The flames on you die out."
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"The flames on {self.actor.art_name} die out."
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                               exceptions=[self.actor], game_state=self.game_state)
+        return retval
+    
+    async def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num, game_state, vars):
+            damage, target_hp = await CoreActionsInterface.get_instance().do_calculated_damage(
+                self.source_actor, self.actor, self.damage_amount, DamageType.FIRE, do_msg=False, do_die=True)
+            self.total_damage += damage
+            
+            if damage > 0:
+                msg = f"You burn for {damage} fire damage!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"{self.actor.art_name_cap} burns!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+                                                   exceptions=[self.actor], game_state=self.game_state)
+        return retval
 
 
 class CharacterStateFrozen(ActorState):

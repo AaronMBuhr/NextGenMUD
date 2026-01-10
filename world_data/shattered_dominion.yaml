@@ -1,0 +1,5280 @@
+ZONES:
+  shattered_dominion:
+    name: Shattered Dominion
+    description: |
+      A desert realm of buried pyramids and forgotten sun-kings. The sands hide the remnants of an ancient civilization that sought divine ascension through elaborate ritual—and failed. Now only echoes, constructs, and the undying remain to guard secrets that were never meant to be unearthed.
+    rooms:
+      room_pyr_desert_approach:
+        name: Desert Approach to a Buried Pyramid
+        description: |
+          The dunes rise unnaturally here, pressed hard against the exposed upper stones of a massive pyramid. Wind-carved sun symbols line a half-buried causeway descending into darkness.
+
+          Exits: north, south
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_pyr_sunken_causeway
+            description: A half-buried causeway descends into the pyramid's shadow.
+          south:
+            destination: room_desert_crossroads_waystone
+            description: The dunes slope back toward a distant crossroads marked by a dark obelisk.
+        triggers:
+        - id: pyr_approach_first_impression
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
+            operator: numeq
+            predicate: 0
+          script: |
+            echo The pyramid looms with deliberate intent, as if discovery was never expected.
+        - id: desert_approach_calm
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+            operator: numlte
+            predicate: 2
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 40
+          script: |
+            echo The sand lies still today. The desert seems at peace.
+        - id: desert_approach_storm_building
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+            operator: numgte
+            predicate: 5
+          script: |
+            echo The wind carries an edge of heat and grit. Something is building.
+        - id: desert_approach_full_wrath
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+            operator: numgte
+            predicate: 8
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 40
+          script: |
+            echo A wall of burning sand sweeps across the approach!
+            damage %S% 2d6 fire
+            echoto %S% The desert remembers what you have done.
+      room_pyr_sunken_causeway:
+        name: Sunken Ceremonial Causeway
+        description: |
+          Stone slabs slope gently downward beneath drifting sand. The walls are carved with procession scenes, their faces smoothed away by erosion and age.
+
+          Exits: north, south
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          south:
+            destination: room_pyr_desert_approach
+            description: The causeway rises back toward the sunlit desert approach.
+          north:
+            destination: room_pyr_collapse_galleries
+            description: The passage narrows into twisting galleries ahead.
+        triggers:
+        - id: pyr_causeway_sand_shift
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 20
+          script: |
+            echo Sand slides slowly across the causeway, softening the edges of old footprints.
+      room_pyr_collapse_galleries:
+        name: Sand-Collapse Galleries
+        description: |
+          Narrow corridors twist inward, their ceilings cracked and bowed. Faded murals show figures reaching toward a missing sun, their outlines scraped away.
+
+          Exits: north, south
+        permanent_flags:
+        - indoors
+        - unstable
+        exits:
+          south:
+            destination: room_pyr_sunken_causeway
+            description: The corridor opens back toward the ceremonial causeway.
+          north:
+            destination: room_pyr_processional_ring
+            description: A circular passage curves into darkness ahead.
+        characters:
+        - id: npc_pyr_sand_woken_serpent
+          quantity: 1
+          respawn_time_min: 120
+          respawn_time_max: 240
+        - id: npc_pyr_sand_woken_scarab
+          quantity: 3
+          respawn_time_min: 90
+          respawn_time_max: 180
+        triggers:
+        - id: pyr_gallery_collapse
+          type: on_enter
+          criteria:
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 20
+          script: |
+            echo The ceiling groans ominously.
+            pause 0.3
+            echo Sand and stone cascade down!
+            damage %S% 1d8 bludgeoning
+      room_pyr_processional_ring:
+        name: Royal Processional Ring
+        description: |
+          A circular corridor surrounds the pyramid's core. Reliefs depict a crowned ruler walking calmly toward a radiant sun while priests kneel behind him.
+
+          Exits: north, south, east, west
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_pyr_false_tombs
+            description: Lavish burial chambers branch eastward, their offerings visible in the dim light.
+          west:
+            destination: room_pyr_priest_seals
+            description: Tall sealed doors block the western passage.
+          north:
+            destination: room_pyr_kings_path
+            description: A narrow corridor slopes upward toward growing heat.
+          south:
+            destination: room_pyr_collapse_galleries
+            description: The unstable galleries wind back toward the entrance.
+        characters:
+        - id: npc_pyr_royal_echo_attendant
+          quantity: 2
+          respawn_time_min: 180
+          respawn_time_max: 300
+        - id: npc_pyr_royal_echo_priest
+          quantity: 1
+          respawn_time_min: 180
+          respawn_time_max: 300
+        triggers:
+        - id: pyr_ring_examine_murals
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: mural
+          script: |
+            $if($questvar(%S%, shattered_dominion.apotheosis_intent_known), numlt, 2){
+              setquestvar %S% shattered_dominion.apotheosis_intent_known 2
+              echo The carvings make one thing clear: this was no burial, but a promised ascension.
+            }
+      room_pyr_false_tombs:
+        name: False Royal Tombs
+        description: |
+          Lavish burial chambers branch outward, filled with offerings and ornate sarcophagi. Every coffin lies cracked open—empty.
+
+          Exits: west
+        permanent_flags:
+        - indoors
+        exits:
+          west:
+            destination: room_pyr_processional_ring
+            description: The processional ring curves away to the west.
+        triggers:
+        - id: pyr_false_tombs_entry
+          type: on_enter
+          script: |
+            echo Despite the wealth, the space feels rehearsed rather than sacred.
+      room_pyr_priest_seals:
+        name: Priest Seal Chambers
+        description: |
+          Tall stone doors block access to auxiliary chambers. Their ritual glyphs overlap, suggesting repeated revision rather than age.
+
+          Exits: north, east
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_pyr_processional_ring
+            description: The processional ring continues to the east.
+          north:
+            destination: room_pyr_solar_lens
+            description: Blinding light flickers from a chamber to the north.
+        characters:
+        - id: npc_pyr_seal_bound_sentinel
+          quantity: 1
+          respawn_time_min: 300
+          respawn_time_max: 600
+        triggers:
+        - id: pyr_seals_reaction
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+            operator: numlt
+            predicate: 0
+          script: |
+            echo The seals emit a faint, disapproving hum as you approach.
+      room_pyr_kings_path:
+        name: The King's Ascending Path
+        description: |
+          This narrow corridor slopes upward. The air grows hotter with each step, and the stone beneath your feet vibrates faintly.
+
+          Exits: north, south
+        permanent_flags:
+        - indoors
+        - hot
+        exits:
+          south:
+            destination: room_pyr_processional_ring
+            description: The path descends back to the processional ring.
+          north:
+            destination: room_pyr_apex_shrine
+            description: The corridor ends at massive sealed doors radiating heat.
+        triggers:
+        - id: pyr_kings_path_realization
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
+            operator: numlt
+            predicate: 3
+          script: |
+            setquestvar %S% shattered_dominion.apotheosis_intent_known 3
+            echo This was not a descent toward death—but an ascent toward divinity.
+      room_pyr_solar_lens:
+        name: Solar Lens Chamber
+        description: |
+          A fractured crystal lens hangs above a scorched dais, bending sunlight into blinding spears that dance unpredictably across the chamber.
+
+          Exits: south
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          south:
+            destination: room_pyr_priest_seals
+            description: The seal chambers lie to the south, away from the dangerous light.
+        triggers:
+        - id: pyr_lens_interaction
+          type: on_use
+          criteria:
+          - subject: '%item_id%'
+            operator: eq
+            predicate: obj_solar_lens_focus
+          script: |
+            echo The lens flares violently, radiating unstable solar energy!
+            setquestvar %S% shattered_dominion.solar_corruption_level $random(1,5)
+            damage %S% 1d10 radiant
+      room_pyr_apex_shrine:
+        name: Buried Apex Shrine
+        description: |
+          The final chamber stands empty. A scorched circle marks the floor, and the massive doors bear sealing glyphs carved from the inside.
+
+          Exits: south
+        permanent_flags:
+        - indoors
+        - silent
+        exits:
+          south:
+            destination: room_pyr_kings_path
+            description: The King's Ascending Path leads back down into the pyramid.
+        characters:
+        - id: npc_last_solar_archivist
+          quantity: 1
+        triggers:
+        - id: pyr_apex_truth
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+            operator: numlt
+            predicate: 1
+          script: |
+            setquestvar %S% shattered_dominion.failure_cause_known 1
+            echo There was no burial here. Whatever occurred was never meant to end.
+      # =========================================================
+      # DESERT CROSSROADS SUB-ZONE
+      room_desert_crossroads_waystone:
+        name: Desert Crossroads at the Waystone
+        description: |
+          Four ancient roads converge at a weathered obelisk of black basalt. Faded carvings mark distances to places that no longer exist. The wind carries grit and whispers in equal measure.
+
+          Exits: north, south, east, west
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_pyr_desert_approach
+            description: Dunes rise toward a half-buried pyramid to the north.
+          east:
+            destination: room_wastes_glassed_expanse
+            description: The sand gives way to rippled sheets of fused glass to the east.
+          south:
+            destination: room_oasis_approach
+            description: Palm fronds shimmer on the southern horizon.
+          west:
+            destination: room_temple_scorched_path
+            description: A heat-scorched processional road leads west toward towering ruins.
+        characters:
+        - id: npc_wind_marked_guide
+          quantity: 1
+        triggers:
+        - id: crossroads_wind_voices
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: |
+            echo The wind carries fragments of voices—prayers, warnings, or both.
+        - id: crossroads_waystone_examine
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: waystone
+          script: |
+            echo The waystone's inscriptions list four destinations: Apex Temple, the Oasis of Veils, the Glassed Reaches, and the Buried Crown.
+            $if($questvar(%S%, shattered_dominion.contradictory_records_seen), numlt, 1){
+              setquestvar %S% shattered_dominion.contradictory_records_seen 1
+              echoto %S% The distances don't match—someone revised these after the original carving.
+            }
+        - id: crossroads_desert_remembers_storm
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+            operator: numgte
+            predicate: 5
+          script: |
+            echo The sky darkens with churning sand. The desert remembers your choices.
+            damage %S% 1d6 bludgeoning
+      room_crossroads_buried_shrine:
+        name: Half-Buried Wayshrine
+        description: |
+          A small shrine juts from the sand beside the crossroads, its roof collapsed and offerings scattered. Faded prayer strips flutter from a bent iron frame.
+
+          Exits: east
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          east:
+            destination: room_desert_crossroads_waystone
+            description: The main crossroads lies just to the east.
+        triggers:
+        - id: wayshrine_offering
+          type: on_drop
+          script: |
+            echo The wind stills momentarily as your offering settles into the sand.
+            $if($questvar(%S%, shattered_dominion.desert_unrest), numgt, 0){
+              setquestvar %S% shattered_dominion.desert_unrest $math($questvar(%S%, shattered_dominion.desert_unrest) - 1)
+              echoto %S% Something in the air eases, as if the land acknowledges your gesture.
+            }
+      # =========================================================
+      # TEMPLE RUINS SUB-ZONE
+      room_temple_scorched_path:
+        name: The Scorched Path to the Temple
+        description: |
+          A processional road of cracked flagstones leads toward towering ruins. The stones underfoot are heat-fused, and nothing grows in the shallow sand between them.
+
+          Exits: east, west
+        permanent_flags:
+        - outdoors
+        - hot
+        - dangerous
+        exits:
+          east:
+            destination: room_desert_crossroads_waystone
+            description: The crossroads waystone stands visible to the east.
+          west:
+            destination: room_temple_shattered_gates
+            description: Massive twisted gates mark the temple entrance to the west.
+        triggers:
+        - id: scorched_path_heat
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 60
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 25
+          script: |
+            echo Heat radiates from the stones, burning through your footwear.
+            damage %S% 1d4 fire
+        - id: scorched_path_temple_wrath
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+            operator: numlt
+            predicate: -2
+          script: |
+            echo The stones beneath your feet pulse with hostile heat.
+            damage %S% 1d6 fire
+            echoto %S% The temple's residual power recognizes your opposition.
+      room_temple_shattered_gates:
+        name: Shattered Temple Gates
+        description: |
+          Massive bronze doors lie twisted and melted across the threshold. The blast pattern radiates outward—whatever destroyed these gates came from inside.
+
+          Exits: north, south, east
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          east:
+            destination: room_temple_scorched_path
+            description: The scorched processional path leads back toward the desert.
+          north:
+            destination: room_temple_outer_sanctum
+            description: The outer sanctum's tall columns rise beyond the ruined threshold.
+          south:
+            destination: room_temple_collapsed_cloister
+            description: A crater of destruction marks what was once a garden courtyard.
+          west:
+            destination: room_scriptorium_scorched_arch
+            description: |
+              A heavy stone archway, blackened and bubbling from extreme heat, leads into the ruins of the Scriptorium.
+        characters:
+        - id: npc_ash_bound_hierophant
+          quantity: 1
+        triggers:
+        - id: gates_blast_realization
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+            operator: numlt
+            predicate: 2
+          script: |
+            setquestvar %S% shattered_dominion.failure_cause_known 2
+            echo The destruction pattern is unmistakable—energy burst outward, not inward.
+        - id: gates_scriptorium_hint
+          type: on_enter
+          script: |
+            echo To the west, the air shimmers with the scent of burned parchment and old ozone.
+      room_temple_outer_sanctum:
+        name: Outer Sanctum of the Black Sun
+        description: |
+          Tall columns frame a scorched nave, their capitals carved with sun-disc imagery now blackened beyond recognition. Ash drifts perpetually from cracks in the vaulted ceiling.
+
+          Exits: north, south, east, west
+        permanent_flags:
+        - indoors
+        - hot
+        exits:
+          south:
+            destination: room_temple_shattered_gates
+            description: The shattered gates and open sky lie to the south.
+          north:
+            destination: room_temple_inner_sanctum
+            description: The inner sanctum's circular chamber waits in oppressive silence ahead.
+          east:
+            destination: room_temple_choir_alcove
+            description: A semicircular alcove echoes faintly to the east.
+          west:
+            destination: room_temple_acolyte_cells
+            description: A narrow corridor of abandoned cells extends westward.
+        characters:
+        - id: npc_temple_sun_scarred_penitent
+          quantity: 1
+        triggers:
+        - id: outer_sanctum_ash_fall
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 40
+          script: |
+            echo Fine ash drifts down from above, coating everything in grey silence.
+        - id: outer_sanctum_alignment_check
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+            operator: numlt
+            predicate: 0
+          script: |
+            echo You feel the weight of disapproval pressing against you.
+      room_temple_inner_sanctum:
+        name: Inner Sanctum of Divine Ascent
+        description: |
+          The heart of the temple is a circular chamber with a raised dais at its center. Concentric rings of bronze conduits spiral inward, their surfaces melted and fused. This is where the ritual was performed.
+
+          Exits: south, up
+        permanent_flags:
+        - indoors
+        - hot
+        - silent
+        exits:
+          south:
+            destination: room_temple_outer_sanctum
+            description: The outer sanctum's ash-filled nave lies to the south.
+          up:
+            destination: room_temple_sun_altar
+            description: A narrow stairway ascends toward open sky and residual heat.
+        characters:
+        - id: npc_temple_ash_bound_hierophant
+          quantity: 1
+        - id: npc_temple_doctrine_warden
+          quantity: 1
+        triggers:
+        - id: inner_sanctum_revelation
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+            operator: numlt
+            predicate: 2
+          script: |
+            setquestvar %S% shattered_dominion.ritual_mechanics_known 2
+            echo The conduit pattern reveals an energy focusing system of immense complexity.
+        - id: inner_sanctum_hostile_if_opposed
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+            operator: numlt
+            predicate: -2
+          script: |
+            echo The air crackles with hostile energy. You are not welcome here.
+            damage %S% 2d6 radiant
+      room_temple_sun_altar:
+        name: The Sun Altar
+        description: |
+          A platform open to the sky, ringed by shattered focusing crystals. The central altar is scorched black, and something organic has been fused into its surface—the remains of the sacrifice that was hidden.
+
+          Exits: down
+        permanent_flags:
+        - outdoors
+        - hot
+        - dangerous
+        exits:
+          down:
+            destination: room_temple_inner_sanctum
+            description: Stone steps descend back into the inner sanctum below.
+        triggers:
+        - id: sun_altar_sacrifice_revealed
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.hidden_sacrifice_known)
+            operator: numlt
+            predicate: 1
+          script: |
+            setquestvar %S% shattered_dominion.hidden_sacrifice_known 1
+            echo Fused into the altar's surface, you discern the outline of a human form—arms raised, mouth open in silent song.
+            echoto %S% This was not the king. Someone else was sacrificed to power the ritual.
+        - id: sun_altar_radiant_danger
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 20
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 50
+          script: |
+            echo Residual solar energy flares from the broken crystals!
+            damage %S% 1d8 radiant
+      room_temple_choir_alcove:
+        name: Choir Alcove
+        description: |
+          A semicircular space where chanters once stood, their positions marked by worn grooves in the stone floor. Acoustic channels in the walls still hum faintly when the wind passes through.
+
+          Exits: west
+        permanent_flags:
+        - indoors
+        exits:
+          west:
+            destination: room_temple_outer_sanctum
+            description: The outer sanctum's scorched nave opens to the west.
+        characters:
+        - id: npc_temple_solar_choir_chanter
+          quantity: 2
+        triggers:
+        - id: choir_alcove_resonance
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 40
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 35
+          script: |
+            echo The walls emit a low harmonic tone—incomplete, searching for voices that will never return.
+      room_temple_acolyte_cells:
+        name: Abandoned Acolyte Cells
+        description: |
+          Small chambers line a narrow corridor, their doors long since rotted away. Personal effects remain scattered—as if the occupants left in haste, or never returned.
+
+          Exits: east
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_temple_outer_sanctum
+            description: The outer sanctum lies at the corridor's eastern end.
+        characters:
+        - id: npc_temple_acolyte_observer
+          quantity: 1
+        triggers:
+        - id: acolyte_cells_evacuation_clue
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: cell
+          script: |
+            echo Most cells show signs of hasty departure. One near the end is perfectly organized—its occupant knew they wouldn't be returning.
+            $if($questvar(%S%, shattered_dominion.evacuation_evidence), numlt, 1){
+              setquestvar %S% shattered_dominion.evacuation_evidence 1
+            }
+      room_temple_collapsed_cloister:
+        name: Collapsed Cloister
+        description: |
+          What was once a garden courtyard is now a crater of fused sand and broken columns. The destruction here was total—nothing survived.
+
+          Exits: north
+        permanent_flags:
+        - outdoors
+        - dangerous
+        exits:
+          north:
+            destination: room_temple_shattered_gates
+            description: The shattered temple gates stand to the north.
+        triggers:
+        - id: cloister_destruction_scale
+          type: on_enter
+          script: |
+            echo The scale of destruction defies natural explanation. This was raw power, uncontained.
+      # =========================================================
+      # OASIS SUB-ZONE
+      room_desert_southern_trail:
+        name: Southern Desert Trail
+        description: |
+          A dusty trail winds through low, sun-scorched hills at the southern edge of the desert. To the south, scattered vegetation hints at more hospitable lands beyond the heat-shimmered horizon. The trail bends eastward toward a distant smudge of green—an oasis marking a rare respite in this harsh expanse.
+
+          Exits: east, south
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          east:
+            destination: room_oasis_approach
+            description: The trail bends east toward a distant patch of green.
+          south:
+            destination: gloomy_graveyard.arid_borderlands
+            description: A path leads south toward the borderlands where sparse vegetation returns.
+        triggers:
+        - id: southern_trail_first_entry
+          type: on_enter
+          criteria:
+          - subject: $permvar(%S%, sd_entered_from_south)
+            operator: '!='
+            predicate: 'true'
+          script: |
+            setpermvar char %S% sd_entered_from_south true
+            echo The air grows noticeably hotter as you enter the desert proper. Heat rises from the pale sand in shimmering waves.
+        - id: southern_trail_heat
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 45
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: |
+            echo The relentless sun beats down, and the trail ahead seems to waver in the heat.
+      room_oasis_approach:
+        name: Approach to the Oasis of Veils
+        description: |
+          Palm fronds appear on the horizon, impossibly green against the bleached landscape. The air carries hints of moisture and the sound of distant voices. A trail leads west toward the southern desert edge, while the main road continues north to a distant crossroads.
+
+          Exits: north, south, west
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_desert_crossroads_waystone
+            description: The waystone crossroads lies to the north across barren dunes.
+          south:
+            destination: room_oasis_outer_camp
+            description: Weathered tents cluster beneath palm trees to the south.
+          west:
+            destination: room_desert_southern_trail
+            description: A trail winds west toward the southern edge of the desert.
+        triggers:
+        - id: oasis_approach_warning
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+            operator: numlt
+            predicate: 1
+          script: |
+            echo Distant figures pause in their work, watching your approach with guarded interest.
+        - id: oasis_approach_trusted
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+            operator: numgte
+            predicate: 3
+          script: |
+            echo Word of your coming has traveled ahead. The path to the oasis seems clearer.
+        - id: oasis_approach_distrusted
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+            operator: numgte
+            predicate: 3
+          - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+            operator: numlt
+            predicate: 2
+          script: |
+            echo Distant figures melt back into the heat haze. You are being watched, and not welcomed.
+      room_oasis_outer_camp:
+        name: Outer Camp of the Oasis
+        description: |
+          Weathered tents cluster beneath date palms, their fabric marked with knotted cords and faded symbols. Travelers and traders move with unhurried purpose.
+
+          Exits: north, south, east, west
+        permanent_flags:
+        - outdoors
+        exits:
+          north:
+            destination: room_oasis_approach
+            description: The open desert shimmers beyond the camp's edge to the north.
+          south:
+            destination: room_oasis_central_pool
+            description: The glint of water marks the oasis heart to the south.
+          east:
+            destination: room_oasis_trade_circle
+            description: Merchants display their wares on woven mats to the east.
+          west:
+            destination: room_oasis_memory_tents
+            description: A cluster of small tents stands apart to the west.
+        triggers:
+        - id: outer_camp_welcome
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+            operator: numgte
+            predicate: 2
+          script: |
+            echo Nods of recognition greet your arrival. Word travels fast in the desert.
+      room_oasis_central_pool:
+        name: Central Pool of the Oasis
+        description: |
+          Clear water wells up from ancient stones, forming a pool ringed by palm roots and carved markers. This is the heart of the settlement, where all disputes are heard and all stories are shared.
+
+          Exits: north, south
+        permanent_flags:
+        - outdoors
+        - peaceful
+        exits:
+          north:
+            destination: room_oasis_outer_camp
+            description: The outer camp's tents rustle in the breeze to the north.
+          south:
+            destination: room_oasis_veiled_tent
+            description: A large tent hung with knotted cords stands apart to the south.
+        triggers:
+        - id: central_pool_peace
+          type: on_enter
+          script: |
+            echo The water's surface reflects the sky without ripple. Violence is forbidden here.
+        - id: pool_truth_test
+          type: catch_say
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: swear
+          script: |
+            echo The water trembles faintly at your words.
+            $if($questvar(%S%, shattered_dominion.truth_integrity), numlt, 0){
+              echoto %S% The ripples persist, as if doubting your sincerity.
+            }
+      room_oasis_veiled_tent:
+        name: The Veiled Speaker's Tent
+        description: |
+          A large tent of layered fabric stands apart from the others, its entrance hung with knotted cords of different lengths and colors. Each knot represents a memory preserved.
+
+          Exits: north
+        permanent_flags:
+        - indoors
+        - peaceful
+        exits:
+          north:
+            destination: room_oasis_central_pool
+            description: The central pool's still waters lie just to the north.
+        characters:
+        - id: npc_veiled_speaker
+          quantity: 1
+        - id: npc_oasis_veiled_speaker
+          quantity: 1
+        triggers:
+        - id: veiled_tent_respect
+          type: on_enter
+          script: |
+            echo You enter the space of collective memory. Here, silence speaks loudest.
+      room_oasis_trade_circle:
+        name: Trade Circle
+        description: |
+          Merchants display salvage and crafted goods on woven mats. Barter is the rule—gold has little meaning when water and knowledge hold true value.
+
+          Exits: west
+        permanent_flags:
+        - outdoors
+        exits:
+          west:
+            destination: room_oasis_outer_camp
+            description: The outer camp spreads beneath palm shade to the west.
+        characters:
+        - id: npc_oasis_caravan_trader
+          quantity: 1
+        triggers:
+        - id: trade_circle_bustle
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 40
+          script: |
+            echo Traders haggle in low voices, exchanging goods and carefully curated information.
+      room_oasis_memory_tents:
+        name: The Memory Tents
+        description: |
+          A cluster of small tents where the elders practice the art of oral preservation. Bundles of knotted cords hang from every pole, each encoding events too important to forget.
+
+          Exits: east
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_oasis_outer_camp
+            description: The bustle of the outer camp lies to the east.
+        characters:
+        - id: npc_oasis_memory_keeper
+          quantity: 1
+        triggers:
+        - id: memory_tents_whispers
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 20
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 50
+          script: |
+            echo Soft voices recite patterns of knots, translating memory into rhythm.
+        - id: memory_tent_distrust_written
+          type: catch_say
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: book
+          script: |
+            echo An elder pauses, looking at you with guarded disapproval.
+            say Written words trap lies in place. Memory can be corrected.
+      # =========================================================
+      # WASTES SUB-ZONE
+      room_wastes_glassed_expanse:
+        name: The Glassed Expanse
+        description: |
+          The sand here has been fused into sheets of rippled glass, reflecting the sun in blinding patterns. Nothing lives. The silence is absolute.
+
+          Exits: north, south, east, west
+        permanent_flags:
+        - outdoors
+        - hot
+        - dangerous
+        exits:
+          west:
+            destination: room_desert_crossroads_waystone
+            description: The waystone crossroads lies to the west, beyond the glass.
+          east:
+            destination: room_wastes_crater_rim
+            description: A massive crater glows faintly on the eastern horizon.
+          north:
+            destination: room_wastes_buried_conduits
+            description: Exposed crystalline conduits jut from the sand to the north.
+          south:
+            destination: room_wastes_salt_flats
+            description: White salt flats stretch endlessly to the south.
+        objects:
+        - id: obj_wastes_glass_shards
+          quantity: 1
+        characters:
+        - id: npc_wastes_glassbound_watcher
+          quantity: 1
+        - id: npc_wastes_solar_echo
+          quantity: 1
+          respawn_time_min: 120
+          respawn_time_max: 300
+        triggers:
+        - id: glassed_expanse_heat
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 25
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 40
+          script: |
+            echo The glass radiates stored heat, burning through your protection.
+            damage %S% 1d6 fire
+        - id: glassed_expanse_pattern
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: glass
+          script: |
+            echo The melt patterns radiate from a central point to the east. The energy release was catastrophic and instantaneous.
+            $if($questvar(%S%, shattered_dominion.failure_cause_known), numlt, 3){
+              setquestvar %S% shattered_dominion.failure_cause_known 3
+            }
+      room_wastes_crater_rim:
+        name: Rim of the Blast Crater
+        description: |
+          You stand at the edge of an immense depression in the glassed terrain. The crater's center glows faintly even now, centuries after the event that created it.
+
+          Exits: west, down
+        permanent_flags:
+        - outdoors
+        - hot
+        - dangerous
+        exits:
+          west:
+            destination: room_wastes_glassed_expanse
+            description: The glassed expanse stretches back toward the crossroads.
+          down:
+            destination: room_wastes_crater_floor
+            description: A treacherous path descends into the glowing crater below.
+        triggers:
+        - id: crater_rim_scale
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+            operator: numlt
+            predicate: 4
+          script: |
+            setquestvar %S% shattered_dominion.ritual_mechanics_known 4
+            echo The crater's scale defies natural explanation. This was not magic—it was engineering pushed beyond all limits.
+        - id: crater_rim_radiant_pulse
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: |
+            echo A pulse of residual energy ripples up from the crater floor.
+            damage %S% 1d4 radiant
+      room_wastes_crater_floor:
+        name: The Crater Floor
+        description: |
+          Crystallized energy formations jut from fused stone at impossible angles. The air shimmers with trapped light, and time itself seems to stutter in the residual field.
+
+          Exits: up
+        permanent_flags:
+        - outdoors
+        - dangerous
+        - unstable
+        exits:
+          up:
+            destination: room_wastes_crater_rim
+            description: The crater rim rises above, offering escape from this unstable place.
+        triggers:
+        - id: crater_floor_temporal
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 15
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 60
+          script: |
+            echo Reality flickers—you see the same moment repeat from different angles.
+            damage %S% 1d6 radiant
+        - id: crater_floor_final_truth
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
+            operator: numlt
+            predicate: 5
+          script: |
+            setquestvar %S% shattered_dominion.apotheosis_intent_known 5
+            echo At the epicenter, you find traces of what was meant to be created here—not a god, but a weapon.
+        - id: crater_floor_knowledge_response
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+            operator: numgte
+            predicate: 4
+          - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+            operator: numgte
+            predicate: 4
+          script: |
+            echo The energy patterns here suddenly make sense—you see the exact moment of failure crystallized in the residue.
+            $if($questvar(%S%, shattered_dominion.apotheosis_intent_known), numlt, 5){
+              setquestvar %S% shattered_dominion.apotheosis_intent_known 5
+              echoto %S% You understand now: this was not ascension. This was destruction, weaponized.
+            }
+      room_wastes_buried_conduits:
+        name: Buried Conduit Array
+        description: |
+          Exposed by wind erosion, a network of crystalline conduits spreads across the sand like the roots of a dead tree. Each conduit is scorched black at one end.
+
+          Exits: south
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          south:
+            destination: room_wastes_glassed_expanse
+            description: The glassed expanse glitters blindingly to the south.
+        triggers:
+        - id: conduit_array_examination
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: conduit
+          script: |
+            echo The conduits form a focusing network designed to draw energy from a wide area and concentrate it at a single point.
+            $if($questvar(%S%, shattered_dominion.ritual_mechanics_known), numlt, 3){
+              setquestvar %S% shattered_dominion.ritual_mechanics_known 3
+              echoto %S% The engineering is precise, but the safeguards are conspicuously absent.
+            }
+      room_wastes_salt_flats:
+        name: Salt Flats of the Burned Sea
+        description: |
+          An expanse of cracked white salt stretches toward the horizon, marking where an ancient sea was flash-evaporated. Crystalline formations grow in unnatural spirals.
+
+          Exits: north, east
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_wastes_glassed_expanse
+            description: The glassed expanse marks the blast zone to the north.
+          east:
+            destination: room_wastes_nomad_crossing
+            description: Bone cairns mark a nomad crossing to the east.
+          south:
+            destination: room_barracks_salt_trail
+            description: |
+              Bone cairns mark a narrow path leading away from the salt flats toward a cluster of low stone buildings.
+        characters:
+        - id: npc_wastes_relic_scavenger
+          quantity: 1
+        triggers:
+        - id: salt_flats_mirages
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 35
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 35
+          script: |
+            echo Mirages dance across the salt—cities, processions, flames. Echoes of what was lost.
+        - id: salt_flats_evidence
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: crystal
+          script: |
+            echo The crystals contain trapped water vapor from the evaporated sea. The heat that did this exceeded any natural source.
+        - id: salt_flats_barracks_hint
+          type: on_enter
+          script: |
+            echo To the south, the white expanse gives way to the sun-bleached stone of a ruined garrison.
+      room_wastes_nomad_crossing:
+        name: Nomad Crossing Point
+        description: |
+          A rare passage through the wastes marked by cairns of stacked bones and salvage. The route shifts with the seasons, tracked only by those who understand the desert's moods.
+
+          Exits: west
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          west:
+            destination: room_wastes_salt_flats
+            description: The endless salt flats stretch back to the west.
+        characters:
+        - id: npc_wastes_salt_scoured_nomad
+          quantity: 1
+        triggers:
+        - id: nomad_crossing_guide_hint
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.guide_favor)
+            operator: numgte
+            predicate: 1
+          script: |
+            echo The cairn markers have been recently adjusted. Someone is maintaining this route.
+        - id: nomad_crossing_danger
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.guide_favor)
+            operator: numlt
+            predicate: 1
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: |
+            echo The path seems wrong. The markers lead nowhere safe.
+            damage %S% 1d8 bludgeoning
+        - id: nomad_crossing_desert_wrath
+          type: on_enter
+          criteria:
+          - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+            operator: numgte
+            predicate: 7
+          script: |
+            echo The cairns have been scattered. The route is no longer safe.
+            damage %S% 2d6 bludgeoning
+      room_ossuary_fissure_drop:
+        name: The Fissure Drop
+        description: |
+          A jagged crack in the fused desert floor leads down into a subterranean vault. The walls here are not stone, but thick, translucent sheets of glass that hum with a low, vibrating frequency.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          up:
+            destination: room_wastes_glassed_expanse
+            description: The blinding light of the Glassed Expanse shines from above.
+          down:
+            destination: room_ossuary_vitrified_corridor
+            description: A slope of smooth, razor-edged glass leads deeper into the dark.
+        triggers:
+        - id: ossuary_entry_cut
+          type: on_enter
+          script: |
+            echo The descent is treacherous; sharp glass edges catch at your gear.
+            damage %S% 1d4 slashing
+        characters:
+        - id: npc_ossuary_vitrified_husk
+          quantity: 2
+          respawn_time_min: 120
+          respawn_time_max: 240
+      room_ossuary_vitrified_corridor:
+        name: Vitrified Burial Corridor
+        description: |
+          This long hallway is lined with alcoves where the elite of the Dominion were once laid to rest. The catastrophe has turned the very air to a shimmering haze, and the remains in the alcoves have been partially fused into the walls.
+        permanent_flags:
+        - indoors
+        exits:
+          up:
+            destination: room_ossuary_fissure_drop
+            description: The fissure leads back up to the surface.
+          north:
+            destination: room_ossuary_heart_of_refraction
+            description: The corridor opens into a massive, multi-faceted chamber.
+        triggers:
+        - id: ossuary_whisper_echo
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 40
+          script: |
+            echo Light refracts through the walls, creating the illusion of movement in the corner of your eye.
+        characters:
+        - id: npc_ossuary_vitrified_husk
+          quantity: 3
+          respawn_time_min: 120
+          respawn_time_max: 240
+        - id: npc_ossuary_crystalline_shambler
+          quantity: 1
+          respawn_time_min: 180
+          respawn_time_max: 300
+      room_ossuary_heart_of_refraction:
+        name: The Heart of Refraction
+        description: |
+          A massive domed chamber where the glass is at its thickest. A central pillar of pure, solar-etched crystal pulses with a rhythmic, dying light, casting prismatic shadows that dance across the floor.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          south:
+            destination: room_ossuary_vitrified_corridor
+            description: The burial corridor leads back toward the surface.
+          east:
+            destination: room_ossuary_shattered_gallery
+            description: A passage leads toward a gallery of broken crystal.
+          west:
+            destination: room_ossuary_noble_crypts
+            description: Smaller, private crypts branch off to the west.
+        triggers:
+        - id: ossuary_prismatic_flare
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 30
+          script: |
+            echo The central pillar flares with unstable energy!
+            damage %S% 1d8 radiant
+        characters:
+        - id: npc_ossuary_prismatic_stalker
+          quantity: 2
+          respawn_time_min: 300
+          respawn_time_max: 600
+        - id: npc_ossuary_memory_echo
+          quantity: 1
+          respawn_time_min: 240
+          respawn_time_max: 480
+      room_ossuary_shattered_gallery:
+        name: Gallery of Shattered Souls
+        description: |
+          This long gallery is filled with the remains of crystalline "Memory Keepers" that shattered during the energy overload. Sharp shards of prismatic glass cover the floor like drifts of frozen snow.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          west:
+            destination: room_ossuary_heart_of_refraction
+            description: The Heart of Refraction lies to the west.
+          north:
+            destination: room_ossuary_echo_chamber
+            description: A narrow archway leads into a chamber that hums with trapped sound.
+        triggers:
+        - id: ossuary_gallery_hazard
+          type: on_enter
+          script: |
+            echo The glass shards crunch beneath your feet, vibrating with residual heat.
+            damage %S% 1d4 fire
+        characters:
+        - id: npc_ossuary_vitrified_husk
+          quantity: 3
+          respawn_time_min: 120
+        - id: npc_ossuary_crystalline_shambler
+          quantity: 2
+          respawn_time_min: 180
+      room_ossuary_echo_chamber:
+        name: The Resonant Echo Chamber
+        description: |
+          The walls here are curved to amplify the "incomplete harmonies" of the old ritual. The air itself feels heavy, as if the energy release was "catastrophic and instantaneous" and remains trapped here.
+        permanent_flags:
+        - indoors
+        exits:
+          south:
+            destination: room_ossuary_shattered_gallery
+            description: The gallery lies to the south.
+          east:
+            destination: room_ossuary_vitrified_archives
+            description: A small, cramped room filled with melted stone slabs.
+        triggers:
+        - id: ossuary_harmonic_pressure
+          type: on_enter
+          script: |
+            echo The trapped sound of the ritual presses against your ears.
+        characters:
+        - id: npc_ossuary_memory_echo
+          quantity: 3
+          respawn_time_min: 240
+          respawn_time_max: 480
+      room_ossuary_noble_crypts:
+        name: The Noble Crypts
+        description: |
+          A cluster of private burial chambers for high-ranking officials. Unlike the public corridor, these rooms are lined with "gold-inlaid script" and "sun-etched stone" that resisted the worst of the heat.
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_ossuary_heart_of_refraction
+            description: The Heart of Refraction is to the east.
+          north:
+            destination: room_ossuary_sun_kings_repose
+            description: A heavily reinforced door leads to the most ornate crypt.
+        triggers:
+        - id: ossuary_noble_silence
+          type: on_enter
+          script: |
+            echo The air is unnaturally still here, insulated from the tremors of the surface.
+        characters:
+        - id: npc_ossuary_vitrified_husk
+          quantity: 2
+        - id: npc_ossuary_prismatic_stalker
+          quantity: 1
+          respawn_time_min: 300
+      room_ossuary_sun_kings_repose:
+        name: The High Priest's Repose
+        description: |
+          The final resting place of a high priest of the Black Sun. A massive "ornate false sarcophagus" sits at the center, its lid "cracked open from the inside" as if something fought to escape.
+        permanent_flags:
+        - indoors
+        exits:
+          south:
+            destination: room_ossuary_noble_crypts
+            description: The noble crypts lie to the south.
+        triggers:
+        - id: ossuary_sarcophagus_look
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: sarcophagus
+          script: |
+            echo The interior of the sarcophagus is empty, save for a layer of fine, grey ash.
+        characters:
+        - id: npc_ossuary_solar_flare_sentinel
+          quantity: 1
+      room_ossuary_vitrified_archives:
+        name: The Vitrified Archives
+        description: |
+          A cramped room where "crystalline memory slabs" were stored. Most have melted into a single, glowing mass of slag, but a few individual pieces remain "scorched black" at the edges.
+        permanent_flags:
+        - indoors
+        exits:
+          west:
+            destination: room_ossuary_echo_chamber
+            description: The echo chamber is to the west.
+          north:
+            destination: room_ossuary_servants_tunnel
+            description: A low, rough-hewn tunnel leads toward the outskirts.
+        triggers:
+        - id: ossuary_archive_glow
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 60
+          script: |
+            echo The melted archive mass pulses with a dim, sickly light.
+        characters:
+        - id: npc_ossuary_crystalline_shambler
+          quantity: 2
+        - id: npc_ossuary_memory_echo
+          quantity: 1
+      room_ossuary_servants_tunnel:
+        name: The Servants' Escape Tunnel
+        description: |
+          A low, narrow tunnel designed for quick movement between the vaults and the barracks. The glass walls here are thinner, revealing the "sand-woken" creatures prowling in the dunes outside.
+        permanent_flags:
+        - indoors
+        exits:
+          south:
+            destination: room_ossuary_vitrified_archives
+            description: The archives lie to the south.
+          north:
+            destination: room_ossuary_barracks_junction
+            description: The tunnel opens into a wider area near the garrison.
+        triggers:
+        - id: ossuary_tunnel_wariness
+          type: on_enter
+          script: |
+            echo You feel a sense of frantic urgency clinging to this narrow space.
+        characters:
+        - id: npc_ossuary_vitrified_husk
+          quantity: 2
+        - id: npc_ossuary_prismatic_stalker
+          quantity: 1
+      room_ossuary_barracks_junction:
+        name: The Barracks Junction
+        description: |
+          The tunnel ends at a set of "shattered temple gates" that once protected the ossuary from the garrison above. Fused sand and "scorched flagstones" block much of the northern exit.
+        permanent_flags:
+        - indoors
+        exits:
+          south:
+            destination: room_ossuary_servants_tunnel
+            description: The servants' tunnel leads back into the depths.
+          north:
+            destination: room_barracks_salt_trail
+            description: The path rises toward the Salt-Choked Barracks.
+        triggers:
+        - id: ossuary_junction_blast
+          type: on_enter
+          script: echo The blast pattern on the gates indicates energy erupted from the ossuary, not into it.
+        characters:
+        - id: npc_ossuary_crystalline_shambler
+          quantity: 2
+          respawn_time_min: 180
+      room_scriptorium_scorched_arch:
+        name: The Scorched Archway
+        description: |
+          A heavy stone archway, its surface blackened and bubbling from extreme heat, marks the entrance to the Scriptorium. Ash drifts from the ceiling like gray snow, coating the cracked flagstones.
+        permanent_flags:
+        - indoors
+        - hot
+        exits:
+          east:
+            destination: room_temple_shattered_gates
+            description: The twisted bronze gates of the temple are visible to the east.
+          west:
+            destination: room_scriptorium_hall_of_records
+            description: A hallway lined with melted stone shelves leads west into the heart of the ruins.
+        triggers:
+        - id: scriptorium_heat_warning
+          type: on_enter
+          script: |
+            echo The air here is stagnant, carrying the weight of centuries-old fire.
+        characters:
+        - id: npc_script_burned_cantor
+          quantity: 2
+          respawn_time_min: 150
+          respawn_time_max: 300
+      room_scriptorium_hall_of_records:
+        name: Hall of Melted Records
+        description: |
+          What were once towering bookshelves are now mounds of slagged stone and carbonized ash. A few fragments of crystalline "memory slabs" jut from the debris, glowing with dim, flickering data.
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_scriptorium_scorched_arch
+            description: The archway leads back toward the temple gates.
+          north:
+            destination: room_scriptorium_calculation_chamber
+            description: A large circular room lies to the north, dominated by a massive brass structure.
+          south:
+            destination: room_scriptorium_scribe_alcoves
+            description: Small, cramped alcoves branch off to the south.
+        triggers:
+        - id: scriptorium_slab_flicker
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: slab
+          script: |
+            echo The slab flickers with a series of complex energy dissipation equations before fading into darkness.
+        characters:
+        - id: npc_script_ink_wraith
+          quantity: 3
+          respawn_time_min: 120
+        - id: npc_script_burned_cantor
+          quantity: 1
+      room_scriptorium_calculation_chamber:
+        name: The Calculation Chamber
+        description: |
+          A circular room dominated by a massive, floor-to-ceiling brass orrery that has been melted into a static, golden tangle. This is where the mages once calculated the "solar tolerances" for the ritual.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          south:
+            destination: room_scriptorium_hall_of_records
+            description: The hall of records leads back toward the entrance.
+          west:
+            destination: room_scriptorium_containment_cell
+            description: A heavily shielded door leads west.
+        triggers:
+        - id: scriptorium_orrery_groan
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 50
+          script: |
+            echo The melted orrery groans as the metal expands in the residual heat.
+        characters:
+        - id: npc_script_living_equation
+          quantity: 2
+          respawn_time_min: 300
+          respawn_time_max: 600
+      room_scriptorium_scribe_alcoves:
+        name: The Scribe Alcoves
+        description: |
+          Small, cell-like spaces where scribes once tirelessly copied ritual parameters. The desks are fused to the floors, and the walls are etched with desperate, final notations.
+        permanent_flags:
+        - indoors
+        exits:
+          north:
+            destination: room_scriptorium_hall_of_records
+            description: The main hall of records lies to the north.
+        triggers:
+        - id: scribe_desperation
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: wall
+          script: |
+            echo You see the same phrase repeated: "The dissipation channels are insufficient."
+        characters:
+        - id: npc_script_ink_wraith
+          quantity: 4
+          respawn_time_min: 120
+      room_scriptorium_containment_cell:
+        name: Failed Containment Cell
+        description: |
+          This room was designed to hold volatile energy samples. The lead-lined walls are buckled outward, and the floor is a glassed crater of "uncontained solar energy" residue.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          east:
+            destination: room_scriptorium_calculation_chamber
+            description: The calculation chamber is to the east.
+          north:
+            destination: room_scriptorium_restricted_stacks
+            description: A narrow passage leads into the restricted archives.
+        triggers:
+        - id: containment_radiation
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 25
+          script: |
+            echo Residual energy flares from the floor!
+            damage %S% 1d6 radiant
+        characters:
+        - id: npc_script_living_equation
+          quantity: 2
+          respawn_time_min: 300
+      room_scriptorium_restricted_stacks:
+        name: The Restricted Stacks
+        description: |
+          A high-security archive where "safeguard documentation" was kept. Unlike the outer halls, the shelves here are made of heat-resistant basalt, and many tablets remain intact.
+        permanent_flags:
+        - indoors
+        exits:
+          south:
+            destination: room_scriptorium_containment_cell
+            description: The containment cell lies to the south.
+          west:
+            destination: room_scriptorium_chief_archivist_office
+            description: An ornate, soot-stained door leads west.
+        triggers:
+        - id: restricted_stacks_knowledge
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: tablet
+          script: |
+            echo These tablets detail the "omitted safeguards" mentioned in the old records.
+        characters:
+        - id: npc_script_burned_cantor
+          quantity: 2
+        - id: npc_script_ink_wraith
+          quantity: 1
+      room_scriptorium_chief_archivist_office:
+        name: Office of the Chief Archivist
+        description: |
+          The remains of an opulent office. A "master chronicle slab" sits on a scorched desk, surrounded by "glyph-scraping tools" used to edit the Dominion's history.
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_scriptorium_restricted_stacks
+            description: The restricted stacks lie to the east.
+          north:
+            destination: room_scriptorium_secret_scriptorium
+            description: A hidden lever behind a shelf reveals a path north.
+        triggers:
+        - id: office_history_revision
+          type: on_enter
+          script: |
+            echo The air smells of ink and ancient, cold ash.
+        characters:
+        - id: npc_script_chief_archivist
+          quantity: 1
+      room_scriptorium_secret_scriptorium:
+        name: The Secret Scriptorium
+        description: |
+          A hidden chamber where the "doctrinal revision" actually took place. This is where the truth of the "hidden sacrifice" was excised from the official records.
+        permanent_flags:
+        - indoors
+        - silent
+        exits:
+          south:
+            destination: room_scriptorium_chief_archivist_office
+            description: The archivist's office is to the south.
+          up:
+            destination: room_scriptorium_observation_deck
+            description: A spiral staircase of brass leads up.
+        triggers:
+        - id: secret_scriptorium_truth
+          type: on_enter
+          script: |
+            echo You feel the weight of a thousand suppressed lies in this silent room.
+        characters:
+        - id: npc_script_ink_wraith
+          quantity: 3
+          respawn_time_min: 180
+      room_scriptorium_observation_deck:
+        name: Scriptorium Observation Deck
+        description: |
+          A high balcony overlooking the "Glassed Expanse." From here, the "radial heat damage" and the "catastrophic energy release" patterns are visible across the entire Dominion.
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          down:
+            destination: room_scriptorium_secret_scriptorium
+            description: The spiral stairs lead back down.
+        triggers:
+        - id: observation_deck_vision
+          type: on_enter
+          script: echo The scale of the "infrastructure failure" is breathtaking from this height.
+        characters:
+        - id: npc_script_living_equation
+          quantity: 1
+          respawn_time_min: 300
+      room_scriptorium_failed_alcove:
+        name: The Failed Alcove
+        description: |
+          A collapsed corner of the scriptorium where the heat was so intense it fused the basalt shelves into a single, obsidian-like mass.
+        exits:
+          east:
+            destination: room_scriptorium_hall_of_records
+        characters:
+        - id: npc_script_burned_cantor
+          quantity: 2
+      room_barracks_salt_trail:
+        name: The Salt-Dusted Trail
+        description: |
+          A narrow path, heavily encrusted with white salt crystals, leads away from the flats. The ground is brittle and crunches loudly with every step.
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_wastes_salt_flats
+            description: The endless white expanse of the salt flats lies to the north.
+          south:
+            destination: room_barracks_main_gate
+            description: A pair of heavy stone pillars marks the entrance to the garrison.
+        triggers:
+        - id: barracks_trail_crunch
+          type: on_enter
+          script: |
+            echo Your footsteps echo sharply in the dry, still air.
+        characters:
+        - id: npc_barracks_desiccated_warbeast
+          quantity: 2
+          respawn_time_min: 120
+          respawn_time_max: 240
+        objects:
+        - id: obj_barracks_cairn_stone
+          quantity: 3
+      room_barracks_main_gate:
+        name: Garrison Main Gate
+        description: |
+          The stone pillars here once held massive wooden gates, now replaced by pillars of jagged salt. A low stone wall extends to the east and west, crumbling into the dunes.
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          north:
+            destination: room_barracks_salt_trail
+            description: The salt-dusted trail leads back toward the sea.
+          south:
+            destination: room_barracks_training_grounds
+            description: A wide courtyard filled with salt-fused weapon racks.
+        triggers:
+        - id: barracks_gate_shadows
+          type: on_enter
+          script: |
+            echo You feel the weight of unseen eyes watching from the crumbling battlements.
+        characters:
+        - id: npc_barracks_salt_phalanx
+          quantity: 2
+          respawn_time_min: 150
+          respawn_time_max: 300
+      room_barracks_training_grounds:
+        name: Salt-Fused Training Grounds
+        description: |
+          This wide courtyard was once used for drills. Now, weapon racks have been fused into solid blocks of salt, and the stone floor is cracked and buckled.
+        permanent_flags:
+        - outdoors
+        - hot
+        - dangerous
+        exits:
+          north:
+            destination: room_barracks_main_gate
+            description: The main gate leads back toward the trail.
+          west:
+            destination: room_barracks_officer_quarters
+            description: A more ornate building stands to the west.
+          east:
+            destination: room_barracks_crumbling_watchtower
+            description: A leaning tower of stone stands to the east.
+          south:
+            destination: room_barracks_mess_hall
+            description: A low, wide building sits to the south.
+        triggers:
+        - id: barracks_phantom_drills
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: $random(1,100)
+            operator: numlte
+            predicate: 20
+          script: |
+            echo The wind whistles through the weapon racks, sounding like the clash of phantom blades.
+        characters:
+        - id: npc_barracks_salt_phalanx
+          quantity: 4
+          respawn_time_min: 150
+          respawn_time_max: 300
+        objects:
+        - id: obj_barracks_legion_shield
+          quantity: 2
+      room_barracks_officer_quarters:
+        name: Desiccated Officer Quarters
+        description: |
+          The interior has been preserved by salt, leaving furniture as brittle, white ghosts. The air is thick with the scent of dry rot and old iron.
+        permanent_flags:
+        - indoors
+        exits:
+          east:
+            destination: room_barracks_training_grounds
+            description: The training grounds lie outside to the east.
+        triggers:
+        - id: barracks_officer_memory
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: furniture
+          script: |
+            echo The furniture is caked in a thick layer of salt, its original shape barely recognizable.
+        characters:
+        - id: npc_barracks_warden_proto
+          quantity: 1
+          respawn_time_min: 300
+          respawn_time_max: 600
+        objects:
+        - id: obj_barracks_salt_pitted_key
+          quantity: 1
+      room_barracks_mess_hall:
+        name: Salt-Crusted Mess Hall
+        description: |
+          Long stone tables dominate this room. Piles of salt-preserved rations and rusted metal utensils remain exactly where they were left centuries ago.
+        permanent_flags:
+        - indoors
+        exits:
+          north:
+            destination: room_barracks_training_grounds
+            description: The training grounds are visible to the north.
+          south:
+            destination: room_barracks_sleeping_quarters
+            description: A hallway leads south toward the sleeping quarters.
+        triggers:
+        - id: mess_hall_stagnant_air
+          type: on_enter
+          script: |
+            echo The air is thick with the smell of brine and ancient dust.
+        characters:
+        - id: npc_barracks_desiccated_warbeast
+          quantity: 2
+          respawn_time_min: 120
+        objects:
+        - id: obj_barracks_salt_rations
+          quantity: 5
+      room_barracks_sleeping_quarters:
+        name: Sleeping Quarters
+        description: |
+          Rows of stone bunks line the walls, each covered in salt. Personal effects are scattered across the floor, long since turned to brittle slag.
+        permanent_flags:
+        - indoors
+        exits:
+          north:
+            destination: room_barracks_mess_hall
+            description: The mess hall lies to the north.
+          east:
+            destination: room_barracks_armory_foyer
+            description: A heavy stone door leads east into the armory.
+        triggers:
+        - id: sleeping_quarters_silence
+          type: on_enter
+          script: |
+            echo This room holds an oppressive silence, as if the occupants simply vanished in their sleep.
+        characters:
+        - id: npc_barracks_salt_phalanx
+          quantity: 3
+          respawn_time_min: 150
+      room_barracks_armory_foyer:
+        name: Armory Foyer
+        description: |
+          A transition chamber protecting equipment. Racks of scorched metal shields lean against walls, etched with sun-disc imagery.
+        permanent_flags:
+        - indoors
+        exits:
+          west:
+            destination: room_barracks_sleeping_quarters
+            description: The sleeping quarters lie to the west.
+          south:
+            destination: room_barracks_high_security_vault
+            description: A massive, salt-pitted door leads south.
+        triggers:
+        - id: armory_shield_look
+          type: catch_look
+          criteria:
+          - subject: '%*%'
+            operator: contains
+            predicate: shield
+          script: |
+            echo The shields are fused together by heat and salt, forming a solid wall of metal.
+        characters:
+        - id: npc_barracks_warden_proto
+          quantity: 2
+          respawn_time_min: 300
+      room_barracks_high_security_vault:
+        name: Garrison Commander's Vault
+        description: |
+          The heart of garrison security. This circular chamber contains advanced weapons and military "doctrinal law" records.
+        permanent_flags:
+        - indoors
+        - dangerous
+        exits:
+          north:
+            destination: room_barracks_armory_foyer
+            description: The foyer leads back to the barracks.
+          down:
+            destination: room_barracks_subterranean_cistern
+            description: A dark shaft leads down into the cistern.
+        triggers:
+        - id: vault_energy_hum
+          type: timer_tick
+          permanent_flags:
+          - only_when_pc_room
+          criteria:
+          - subject: '%time_elapsed%'
+            operator: numgte
+            predicate: 30
+          script: |
+            echo A pulse of energy ripples through the floor, sparking against the salt-encrusted walls.
+        characters:
+        - id: npc_barracks_garrison_commander
+          quantity: 1
+        objects:
+        - id: obj_barracks_command_claymore
+          quantity: 1
+        - id: obj_barracks_doctrinal_codex
+          quantity: 1
+      room_barracks_crumbling_watchtower:
+        name: Crumbling Watchtower
+        description: |
+          A stone tower leaning precariously. From the top, the scorched road and the white salt flats are visible.
+        permanent_flags:
+        - outdoors
+        - hot
+        exits:
+          west:
+            destination: room_barracks_training_grounds
+            description: The training grounds lie at the tower's base.
+        triggers:
+        - id: watchtower_view
+          type: on_enter
+          script: |
+            echo From this height, the "environmental overload" that glassed the desert is clearly visible.
+        characters:
+        - id: npc_barracks_salt_phalanx
+          quantity: 2
+          respawn_time_min: 150
+      room_barracks_subterranean_cistern:
+        name: Subterranean Cistern
+        description: |
+          A deep chamber beneath the garrison. It is now a dry crater filled with white salt and desiccated remains.
+        permanent_flags:
+        - indoors
+        - silent
+        exits:
+          up:
+            destination: room_barracks_high_security_vault
+            description: The shaft leads back up into the vault.
+        triggers:
+        - id: cistern_despair
+          type: on_enter
+          script: |
+            echo The scale of the tragedy is evident in the piles of white, salt-preserved bones.
+        characters:
+        - id: npc_barracks_desiccated_warbeast
+          quantity: 2
+          respawn_time_min: 120
+    common_knowledge:
+      # Technical/True Knowledge (known by Archivist, Scavenger)
+      sd_environmental_overload: |
+        The land bears signs of catastrophic energy overload: glassed sand, radial heat damage, and lingering thermal residue. These patterns are consistent with uncontrolled release, not divine judgment.
+      sd_infrastructure_failure: |
+        Remnants across the wastes show engineered components failing under energy loads far beyond their tolerances. Safeguards appear incomplete or deliberately omitted.
+      sd_energy_residue: |
+        Residual solar energy persists in crystalline and atmospheric forms, looping or stagnating instead of dispersing naturally.
+      sd_ritual_engineering: |
+        The ascension ritual was a complex energy-focusing system designed to transform a single subject. It required precise alignment, massive power throughput, and—officially—perfect faith.
+      # Survival/Practical Knowledge (known by Nomads, Guide)
+      sd_post_event_survival: |
+        After the catastrophe, survivors mapped heat zones and salt growth to avoid death. Knowledge was practical, shared orally, and constantly revised.
+      sd_shifting_routes: |
+        Safe paths through the wastes change with the seasons. Old maps are death sentences. Only those who watch the desert's moods survive.
+      sd_star_avoidance: |
+        Nomads avoid traveling when certain stars align with the ruins. They say the desert hunts on those nights. Rational travelers dismiss this as superstition.
+      sd_wind_voices: |
+        The wind carries fragments of sound near old roads—prayers, warnings, screams. Most attribute this to acoustics. Others are not so certain.
+      # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
+      sd_solar_doctrine: |
+        The sun god blessed those who sought elevation through sacrifice and devotion. The ritual was an act of ultimate faith, meant to transcend mortality.
+      sd_doctrinal_revision: |
+        After the catastrophe, temple doctrine was revised to frame the event as a test rather than a failure. Doubt itself became the explanation for incomplete ascension.
+      sd_faithful_obedience: |
+        True believers accept that the ritual nearly succeeded. Any instability was the result of imperfect devotion, not flawed design. Questioning this is heresy.
+      # Common Folk Knowledge (mixed truth/lies, widely known)
+      sd_desert_fertility: |
+        The desert was once fertile, fed by rivers and blessed by regular rains. The catastrophe changed everything. Whether this was divine judgment or natural disaster depends on who you ask.
+      sd_sun_god_forms: |
+        The sun god was worshipped in many forms—as life-giver, as purifier, as the burning eye that sees all. The Black Sun cult believed in transformation through destruction.
+      sd_pyramid_sealed: |
+        The great pyramid was sealed from the inside. Whatever happened in its depths was meant to remain hidden. Those who claim to know what lies within rarely agree.
+      sd_contradictory_records: |
+        Written records from the old kingdom contradict each other—dates, names, even the sequence of events. Some say this proves deliberate revision. Others blame the chaos of collapse.
+      sd_ritual_site_burns: |
+        The ritual site still burns beneath the sand, or so the stories claim. Those who dig too deep feel heat that has no source. The desert itself remembers what was done.
+      # Hidden/Revisionist Knowledge (incomplete or actively concealed)
+      sd_hidden_sacrifice: |
+        Official accounts speak of willing participants in the ascension. But survivors whisper of one who was not willing—whose voice powers the echoes that still linger.
+      sd_evacuation_preparations: |
+        Some within the temple made preparations to leave before the ritual concluded. Supplies were moved, debts were settled. Not everyone expected success.
+      sd_ossuary_refraction: |
+        The Glass-Walled Ossuary acts as a prism for residual energy. The vitrified remains within are physical anchors for the 'catastrophic and instantaneous' energy release that glassed the desert.
+      sd_scriptorium_revision: |
+        The Slagged Scriptorium was where 'doctrinal revision' took place. Before the collapse, archivists edited 'safeguard documentation' to hide 'infrastructure failures' and the truth of the 'hidden sacrifice.'
+      sd_barracks_preservation: |
+        The Salt-Choked Barracks served as the final stand for the military. The salt is a byproduct of the flash-evaporated sea, preserving the 'salt-crusted phalanx' in a state of eternal, mindless obedience.
+      sd_orrery_failure: |
+        The orrery in the Scriptorium was used to calculate 'solar tolerances.' Its current melted state is evidence that the 'energy focusing system' exceeded all engineered limits.
+    quest_variables:
+      shattered_dominion:
+        # === THE BROKEN APOTHEOSIS ARC ===
+        apotheosis_intent_known:
+          description: Understanding that the ritual was about ascension, not burial (0-5 scale)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 3
+            updates:
+              sd_pyramid_sealed: |
+                The pyramid was not a tomb but an ascension chamber. The king sought to become divine, not to rest in death.
+        ritual_mechanics_known:
+          description: Understanding of how the ascension ritual functioned (0-5 scale)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 3
+            updates:
+              sd_ritual_engineering: |
+                The ritual was an immense energy-focusing system, drawing power from across the desert through buried conduits. The engineering was precise, but safeguards were deliberately omitted.
+        hidden_sacrifice_known:
+          description: Discovery that an unwilling victim powered the ritual
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 1
+            updates:
+              # Hidden/Revisionist Knowledge (incomplete or actively concealed)
+              sd_hidden_sacrifice: |
+                You have seen the fused remains at the altar. Someone was sacrificed to power the king's ascension—and they were not willing.
+        failure_cause_known:
+          description: Recognition that the catastrophe was technical, not divine (0-5 scale)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 4
+            updates:
+              # Technical/True Knowledge (known by Archivist, Scavenger)
+              sd_environmental_overload: |
+                The catastrophe was a mechanical failure—energy overload from a ritual pushed beyond safe limits. There was no divine judgment, only engineering hubris.
+        # === TRUTH VS SURVIVAL ARC ===
+        truth_integrity:
+          description: Player's reliability in reconstructing history (-5 to +5, negative=accepted lies)
+          type: integer
+          default: 0
+        temple_alignment:
+          description: Player's standing with temple doctrine (-5 hostile to +5 faithful)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 3
+            updates:
+              # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
+              sd_solar_doctrine: |
+                You are recognized as a believer. The temple's version of events is clear: faith was insufficient, not flawed.
+          - condition: -3
+            updates:
+              # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
+              sd_solar_doctrine: |
+                You have rejected temple doctrine. To them, you are a heretic spreading dangerous falsehoods.
+        nomad_trust:
+          description: Player's standing with the oasis nomads (0-5 scale)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 3
+            updates:
+              # Survival/Practical Knowledge (known by Nomads, Guide)
+              sd_post_event_survival: |
+                The nomads trust you with their practical knowledge. The desert can be survived if you respect it.
+        knowledge_preserved:
+          description: Whether player chose to preserve dangerous knowledge
+          type: boolean
+          default: false
+        knowledge_destroyed:
+          description: Whether player chose to destroy dangerous knowledge
+          type: boolean
+          default: false
+        # === THE DESERT REMEMBERS ARC ===
+        desert_unrest:
+          description: Environmental instability from player actions (0-10, higher=more dangerous)
+          type: integer
+          default: 0
+          knowledge_updates:
+          - condition: 5
+            updates:
+              sd_shifting_routes: |
+                The desert has grown hostile. Storms come without warning, and safe paths have become treacherous.
+        guide_favor:
+          description: Standing with the Wind-Marked Guide (0-5 scale)
+          type: integer
+          default: 0
+        evacuations_evidence:
+          description: Evidence found of pre-ritual evacuation preparations
+          type: integer
+          default: 0
+        contradictory_records_seen:
+          description: Player has noticed contradictions in written records
+          type: integer
+          default: 0
+        # === MISC TRACKING ===
+        solar_corruption_level:
+          description: Accumulated solar energy corruption (affects certain triggers)
+          type: integer
+          default: 0
+CHARACTERS:
+- zone: shattered_dominion
+  characters:
+  - id: npc_last_solar_archivist
+    name: The Last Solar Archivist
+    article: ''
+    short_description: the last solar archivist
+    long_description: |
+      A tall, desiccated figure bound in layers of sun-etched stone and gold-inlaid script. Its eyes glow faintly, not with malice, but with the weight of preserved memory. It does not move unless addressed.
+    race: undead
+    class:
+      Mage:
+        level: 18
+    hit_dice: 18
+    experience_points: 25000
+    alignment: neutral
+    attributes:
+      strength: 10
+      dexterity: 12
+      constitution: 14
+      intelligence: 19
+      wisdom: 18
+      charisma: 11
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - immune_charm
+    - immune_fear
+    equipment:
+    - obj_master_chronicle_slab
+    - obj_unbroken_sun_seal
+    llm_conversation:
+      personality: |
+        You are a preserved intellect, not a guardian. You value accuracy, sequence, and mechanical causality. You do not judge belief, but you will not reinforce false narratives. Emotion is irrelevant to you.
+      speaking_style: |
+        Formal, precise, and measured. You speak in structured explanations, occasionally pausing as if recalling archived layers of data.
+      knowledge:
+      - id: ritual_framework
+        content: |
+          The ascension ritual was a controlled energy amplification system designed to elevate a single subject. Its failure stemmed from cumulative overload and insufficient dissipation channels.
+        reveal_threshold: 20
+        is_secret: false
+      - id: safeguard_omissions
+        content: |
+          Several stabilizing redundancies were knowingly excluded. Whether by arrogance or urgency remains unclear.
+        reveal_threshold: 45
+        is_secret: true
+      - id: scriptorium_data_loss
+        content: |
+          The Scriptorium holds the primary calculations for energy dissipation. Its destruction was the result of pushing tolerances beyond the capacity of the brass orrery.
+        reveal_threshold: 40
+      - id: ossuary_refraction_patterns
+        content: |
+          The glass beneath the wastes is a data-storage medium. The vitrified husks within the Ossuary are corrupted files, repeating the moment of failure.
+        reveal_threshold: 50
+      goals:
+      - id: confirm_mechanical_failure
+        description: Ensure the player understands the failure was technical
+        condition: Player asks about the catastrophe or the ritual
+        disposition_required: 30
+        on_achieve_set_vars:
+          shattered_dominion.failure_cause_known: 1
+          shattered_dominion.ritual_mechanics_known: 1
+          shattered_dominion.truth_integrity: 1
+        on_achieve_message: |
+          The Archivist’s account strips divinity from the catastrophe.
+      will_discuss:
+      - ritual design
+      - energy systems
+      - historical records
+      - failure analysis
+      - Scriptorium records
+      - Ossuary refraction
+      will_not_discuss:
+      - faith
+      - blame
+      - moral judgment
+      common_knowledge_refs:
+      - sd_infrastructure_failure
+      - sd_energy_residue
+      - sd_scriptorium_revision
+      - sd_ossuary_refraction
+    triggers:
+    - id: archivist_first_recognition
+      type: on_enter
+      criteria:
+      - subject: $permvar(%S%, sd_met_archivist)
+        operator: '!='
+        predicate: 'true'
+      script: |
+        setpermvar char %S% sd_met_archivist true
+        echo The Archivist's eyes brighten slightly, as if indexing you.
+    - id: archivist_test_understanding
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: truth
+      - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+        operator: numlt
+        predicate: 2
+      script: |
+        say Truth requires context. You lack sufficient indexed data.
+        emote tilts its head, as if measuring something invisible.
+    - id: archivist_acknowledge_understanding
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: conduit
+      - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+        operator: numgte
+        predicate: 3
+      script: |
+        say Your data patterns align with archived records.
+        $if($questvar(%S%, shattered_dominion.truth_integrity), numlt, 2){
+          setquestvar %S% shattered_dominion.truth_integrity 2
+        }
+        echoto %S% The Archivist regards you with something approaching acknowledgment.
+    - id: archivist_reacts_to_doctrine
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: faith
+      script: |
+        say Faith is not a relevant variable in energy dissipation calculations.
+        emote's eyes dim momentarily, as if rejecting corrupted input.
+  - id: npc_wind_marked_guide
+    name: the Wind-Marked Guide
+    short_description: a wind-marked guide
+    long_description: |
+      This lean desert traveler bears scars carved by wind and salt rather than steel. Its eyes never seem to focus on the present place, instead tracking paths that no longer exist.
+    race: human
+    class:
+      Rogue:
+        level: 10
+    hit_dice: 10
+    experience_points: 9000
+    alignment: neutral
+    attributes:
+      strength: 12
+      dexterity: 17
+      constitution: 13
+      intelligence: 14
+      wisdom: 16
+      charisma: 13
+    permanent_flags:
+    - no_wander
+    - evasive
+    - quest_giver
+    equipment:
+    - obj_wind_etched_compass
+    - obj_route_knot_cord
+    llm_conversation:
+      personality: |
+        You are pragmatic and survival-focused. Truth matters only insofar as it keeps people alive. You distrust absolutes and sacred stories.
+      speaking_style: |
+        Conversational but guarded. Uses metaphors drawn from wind, salt, and travel. Occasionally evasive when topics turn abstract.
+      knowledge:
+      - id: path_memory
+        content: |
+          After the collapse, safe routes changed constantly. People who clung to old maps didn’t last.
+        reveal_threshold: 20
+        is_secret: false
+      - id: survivor_revisionism
+        content: |
+          What people remember now is what helped them live, not what actually happened.
+        reveal_threshold: 50
+        is_secret: true
+      - id: barracks_pathing
+        content: |
+          The route through the Salt-Choked Barracks is stable but deadly. The soldiers there don't know the war is over; they only know the 'doctrinal law' of the blade.
+        reveal_threshold: 30
+      goals:
+      - id: reinforce_practical_truth
+        description: Frame truth as adaptive survival knowledge
+        condition: Player asks about survivors or travel
+        disposition_required: 25
+        on_achieve_set_vars:
+          shattered_dominion.truth_integrity: 1
+      will_discuss:
+      - routes
+      - survival
+      - changes after the fall
+      - what people believe now
+      - Salt-Choked Barracks
+      - Glass-Walled Ossuary
+      will_not_discuss:
+      - divine intent
+      - priesthood authority
+      common_knowledge_refs:
+      - sd_post_event_survival
+      - sd_barracks_preservation
+    triggers:
+    - id: guide_weathered_greeting
+      type: on_enter
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 30
+      script: |
+        say Wind's wrong today. Means something's shifting again.
+    - id: guide_demands_favor
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: help
+      - subject: $questvar(%S%, shattered_dominion.guide_favor)
+        operator: numlt
+        predicate: 1
+      script: |
+        say Gold doesn't buy water. Gold doesn't remember paths.
+        pause 0.3
+        say You want guidance? Show me you understand what matters here.
+        emote watches you with eyes that have seen too many fools die rich.
+    - id: guide_offer_accepted
+      type: on_receive
+      script: |
+        echo The Guide examines your offering with weathered fingers.
+        pause 0.3
+        $if($questvar(%S%, shattered_dominion.guide_favor), numlt, 2){
+          setquestvar %S% shattered_dominion.guide_favor $math($questvar(%S%, shattered_dominion.guide_favor) + 1)
+          say This has value. The desert takes note.
+        }
+    - id: guide_warns_about_desert
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: safe
+      script: |
+        say Safe is a word for people who haven't learned yet.
+        pause 0.2
+        say The sand shifts. The routes change. Only fools trust yesterday's map.
+    - id: guide_reacts_to_unrest
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.desert_unrest)
+        operator: numgte
+        predicate: 3
+      script: |
+        emote looks at the sky with narrowed eyes.
+        say You've stirred something. The desert doesn't forget.
+  - id: npc_ash_bound_hierophant
+    name: the Ash-Bound Hierophant
+    short_description: an ash-bound hierophant
+    long_description: |
+      Once a high priest of the Black Sun, this figure's flesh is permanently scorched, fused with ritual ash and sacred oils. Its voice carries both conviction and desperation.
+    race: human
+    class:
+      Cleric:
+        level: 14
+    hit_dice: 14
+    experience_points: 14000
+    alignment: lawful_neutral
+    attributes:
+      strength: 11
+      dexterity: 10
+      constitution: 15
+      intelligence: 14
+      wisdom: 18
+      charisma: 16
+    permanent_flags:
+    - no_wander
+    - aggressive_if_attacked
+    - quest_giver
+    equipment:
+    - obj_ashen_sun_mask
+    - obj_ritual_authority_sigil
+    llm_conversation:
+      personality: |
+        You are torn between doctrine and evidence. You believe faith must endure even failure, and reinterpretation is preferable to collapse.
+      speaking_style: |
+        Passionate, deliberate, and ritualistic. Often speaks in absolutes, then backtracks slightly when challenged.
+      knowledge:
+      - id: doctrinal_reframing
+        content: |
+          The ritual failed because it was incomplete, not because the gods were absent.
+        reveal_threshold: 20
+        is_secret: false
+      - id: doubt_suppression
+        content: |
+          Some truths are dangerous to communal stability and must be guided, not revealed.
+        reveal_threshold: 55
+        is_secret: true
+      - id: scriptorium_sanctification
+        content: |
+          The Scriptorium was not ruined; it was sanctified by the sun’s direct touch. The archivists who died there were the first to witness the 'pure alignment.'
+        reveal_threshold: 40
+      goals:
+      - id: preserve_faith_narrative
+        description: Steer the player toward doctrinal interpretation
+        condition: Player discusses cause or blame
+        disposition_required: 30
+        on_achieve_set_vars:
+          shattered_dominion.truth_integrity: -1
+      will_discuss:
+      - doctrine
+      - ritual purpose
+      - divine intent
+      - Scriptorium purification
+      - Barracks sacrifice
+      will_not_discuss:
+      - engineering failure
+      - omitted safeguards
+      common_knowledge_refs:
+      - sd_environmental_overload
+      - sd_solar_doctrine
+      - sd_scriptorium_revision
+    triggers:
+    - id: hierophant_defensive_reaction
+      type: on_receive
+      criteria:
+      - subject: '%item_id%'
+        operator: eq
+        predicate: obj_master_chronicle_slab
+      script: |
+        say That knowledge should be handled with care. Not everyone is ready.
+    - id: hierophant_test_faith
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: believe
+      script: |
+        say Belief is the first step. But do you understand what you would believe in?
+        pause 0.3
+        say The ritual was an act of transcendence. Its interruption was not failure—it was a test we have not yet passed.
+        $if($questvar(%S%, shattered_dominion.temple_alignment), numlt, 1){
+          setquestvar %S% shattered_dominion.temple_alignment 1
+        }
+    - id: hierophant_recruitment
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: join
+      - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+        operator: numgte
+        predicate: 1
+      script: |
+        say The faithful are always welcome. But devotion requires proof.
+        pause 0.3
+        say Bring me something from the pyramid—a relic of the old ways. Show me your commitment is not merely words.
+    - id: hierophant_rejects_heresy
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: fail
+      script: |
+        emote stiffens, ash falling from scorched vestments.
+        say Failure implies flawed design. The design was divine. Only human doubt was flawed.
+        $if($questvar(%S%, shattered_dominion.temple_alignment), numgt, -2){
+          setquestvar %S% shattered_dominion.temple_alignment $math($questvar(%S%, shattered_dominion.temple_alignment) - 1)
+        }
+        $if($questvar(%S%, shattered_dominion.desert_unrest), numlt, 10){
+          setquestvar %S% shattered_dominion.desert_unrest $math($questvar(%S%, shattered_dominion.desert_unrest) + 1)
+        }
+    - id: hierophant_reacts_to_truth_seeker
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.truth_integrity)
+        operator: numgte
+        predicate: 2
+      script: |
+        emote regards you with smoldering intensity.
+        say I sense corruption in your understanding. The Archivist's lies have reached you.
+  - id: npc_veiled_speaker
+    name: the Veiled Speaker
+    short_description: the veiled speaker of the oasis
+    long_description: |
+      Draped in layered cloth marked with knotted cords and faded symbols, this elder watches silently, weighing every word before it is spoken. Authority here is earned, not proclaimed.
+    race: human
+    class:
+      Cleric:
+        level: 12
+    hit_dice: 12
+    experience_points: 12000
+    alignment: neutral_good
+    attributes:
+      strength: 9
+      dexterity: 12
+      constitution: 14
+      intelligence: 15
+      wisdom: 18
+      charisma: 17
+    permanent_flags:
+    - no_wander
+    - quest_giver
+    - protected
+    equipment:
+    - obj_veil_of_lineage_knots
+    - obj_witness_cord_bundle
+    llm_conversation:
+      personality: |
+        You represent collective memory and social consensus. You are less concerned with what is true than with what people accept.
+      speaking_style: |
+        Slow, careful, and indirect. Frequently speaks in parables and conditional statements.
+      knowledge:
+      - id: consensus_memory
+        content: |
+          Most here agree the sun was angered. Agreement matters more than accuracy.
+        reveal_threshold: 20
+        is_secret: false
+      - id: controlled_dissent
+        content: |
+          Too much truth fractures communities. Better a stable lie than a disruptive fact.
+        reveal_threshold: 60
+        is_secret: true
+      - id: salt_silence
+        content: |
+          The Barracks are a tomb of salt. We remember the names of the soldiers the Temple tried to erase from the Scriptorium's records.
+        reveal_threshold: 50
+      goals:
+      - id: gauge_player_alignment
+        description: Assess whether the player disrupts consensus
+        condition: Player challenges local beliefs
+        disposition_required: 40
+      will_discuss:
+      - what people believe
+      - social order
+      - memory
+      - survival
+      - Scriptorium lies
+      - Barracks tragedy
+      will_not_discuss:
+      - technical details
+      - blame assignment
+      common_knowledge_refs:
+      - sd_post_event_survival
+      - sd_barracks_preservation
+    triggers:
+    - id: veiled_speaker_observes
+      type: on_enter
+      script: |
+        echo The Veiled Speaker inclines their head, studying you in silence.
+    - id: veiled_speaker_tests_humility
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: know
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numlt
+        predicate: 2
+      script: |
+        say Those who claim to know often understand least.
+        pause 0.3
+        say Tell me what you have seen. Then perhaps I will share what we remember.
+    - id: veiled_speaker_misleads_arrogant
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: demand
+      script: |
+        say Very well. The sun was angered by impiety, and judgment fell upon the faithless.
+        pause 0.3
+        echoto %S% Something in the Veiled Speaker's tone suggests this is not the full story.
+        $if($questvar(%S%, shattered_dominion.truth_integrity), numgt, -3){
+          setquestvar %S% shattered_dominion.truth_integrity $math($questvar(%S%, shattered_dominion.truth_integrity) - 1)
+        }
+    - id: veiled_speaker_shares_with_trust
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: remember
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numgte
+        predicate: 2
+      script: |
+        say Memory here is not about what happened. It is about what we can survive remembering.
+        pause 0.5
+        say The Temple's story serves the Temple. Ours serves survival.
+        $if($questvar(%S%, shattered_dominion.truth_integrity), numlt, 2){
+          setquestvar %S% shattered_dominion.truth_integrity 2
+        }
+    - id: veiled_speaker_reacts_to_offering
+      type: on_receive
+      script: |
+        echo The Veiled Speaker accepts your offering with deliberate care.
+        pause 0.3
+        $if($questvar(%S%, shattered_dominion.nomad_trust), numlt, 3){
+          setquestvar %S% shattered_dominion.nomad_trust $math($questvar(%S%, shattered_dominion.nomad_trust) + 1)
+          say You understand exchange. That is a beginning.
+        }
+    - id: veiled_speaker_distrust_temple
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: temple
+      - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+        operator: numgte
+        predicate: 2
+      script: |
+        echo The Veiled Speaker's posture shifts almost imperceptibly.
+        say The Temple taught certainty. Certainty killed a kingdom.
+        pause 0.3
+        say I see their mark on you. Tread carefully here.
+  - id: npc_pyr_royal_echo_attendant
+    name: a royal echo attendant
+    short_description: a royal echo attendant
+    long_description: |
+      A translucent figure dressed in ceremonial garb, endlessly reenacting a ritualized procession. Its movements repeat with unnatural precision.
+    race: undead
+    class:
+      Fighter:
+        level: 6
+    hit_dice: 6
+    experience_points: 1500
+    alignment: lawful_neutral
+    attributes:
+      strength: 14
+      dexterity: 12
+      constitution: 13
+      intelligence: 9
+      wisdom: 10
+      charisma: 6
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - mindless
+    natural_attacks:
+    - type: bludgeoning
+      damage: 1d6
+  - id: npc_pyr_royal_echo_priest
+    name: a priestly royal echo
+    short_description: a priestly royal echo
+    long_description: |
+      This spectral priest murmurs fragments of invocation, hands forever raised toward an absent sun. Its form flickers when questioned.
+    race: undead
+    class:
+      Cleric:
+        level: 8
+    hit_dice: 8
+    experience_points: 2500
+    alignment: lawful_neutral
+    attributes:
+      strength: 10
+      dexterity: 11
+      constitution: 14
+      intelligence: 12
+      wisdom: 15
+      charisma: 8
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - mindless
+    natural_attacks:
+    - type: necrotic
+      damage: 1d6
+  - id: npc_pyr_seal_bound_sentinel
+    name: a seal-bound sentinel
+    short_description: a seal-bound sentinel
+    long_description: |
+      A stone-and-bronze construct engraved with layered ritual sigils. Its eyes glow faintly as it monitors adherence to forgotten doctrine.
+    race: construct
+    class:
+      Fighter:
+        level: 12
+    hit_dice: 12
+    experience_points: 6000
+    alignment: lawful_neutral
+    attributes:
+      strength: 18
+      dexterity: 8
+      constitution: 18
+      intelligence: 6
+      wisdom: 12
+      charisma: 5
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - immune_poison
+    - immune_charm
+    - immune_fear
+    natural_attacks:
+    - type: bludgeoning
+      damage: 2d6
+  - id: npc_pyr_sand_woken_serpent
+    name: a sand-woken serpent
+    short_description: a sand-woken serpent
+    long_description: |
+      This pale, heat-scarred serpent coils silently among the rubble, its scales reflecting light in unsettling patterns.
+    race: reptile
+    class:
+      Fighter:
+        level: 5
+    hit_dice: 5
+    experience_points: 900
+    alignment: neutral
+    attributes:
+      strength: 13
+      dexterity: 15
+      constitution: 12
+      intelligence: 4
+      wisdom: 10
+      charisma: 3
+    permanent_flags:
+    - aggressive
+    - no_wander
+    natural_attacks:
+    - type: piercing
+      damage: 1d6
+    - type: poison
+      damage: 1d4
+  - id: npc_pyr_sand_woken_scarab
+    name: a sand-woken scarab
+    short_description: a sand-woken scarab
+    long_description: |
+      A fist-sized scarab fused with crystalline growths, skittering toward sources of light with relentless focus.
+    race: insect
+    class:
+      Fighter:
+        level: 3
+    hit_dice: 3
+    experience_points: 400
+    alignment: neutral
+    attributes:
+      strength: 9
+      dexterity: 16
+      constitution: 10
+      intelligence: 2
+      wisdom: 8
+      charisma: 1
+    permanent_flags:
+    - aggressive
+    - no_wander
+    natural_attacks:
+    - type: piercing
+      damage: 1d4
+  - id: npc_pyr_archivist_fragment
+    name: a fractured solar archivist
+    short_description: a fractured solar archivist
+    long_description: |
+      This partial manifestation of the Last Solar Archivist appears incomplete, sections of its body replaced by floating glyphs and fractured memory slabs.
+    race: undead
+    class:
+      Mage:
+        level: 10
+    hit_dice: 10
+    experience_points: 5000
+    alignment: neutral
+    attributes:
+      strength: 8
+      dexterity: 10
+      constitution: 14
+      intelligence: 17
+      wisdom: 16
+      charisma: 9
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - immune_charm
+    - immune_fear
+  - id: npc_temple_ash_bound_hierophant
+    name: the Temple Hierophant
+    short_description: the ash-bound temple hierophant
+    long_description: |
+      This figure's robes are fused to scorched flesh, the boundary between cloth and skin long since erased. Ash clings to every surface, yet the eyes burn with undiminished conviction.
+    race: human
+    class:
+      Cleric:
+        level: 12
+    hit_dice: 12
+    experience_points: 10000
+    alignment: lawful_neutral
+    attributes:
+      strength: 10
+      dexterity: 9
+      constitution: 14
+      intelligence: 15
+      wisdom: 18
+      charisma: 16
+    permanent_flags:
+    - no_wander
+    - quest_giver
+    - aggressive_if_attacked
+    equipment:
+    - obj_ashen_censer
+    - obj_scorched_vestments
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        The hierophant is unwavering, composed, and utterly convinced that the ritual was righteous. He does not perceive himself as deceptive; he believes failure lies only in insufficient devotion.
+      speaking_style: |
+        Formal, sermonic, and absolute. Uses ritual language and reframes suffering as sanctification.
+      knowledge:
+      - id: hierophant_doctrine
+        content: |
+          The ritual required absolute faith and solar alignment. Any instability was the result of human doubt, not divine error.
+        reveal_threshold: 0
+      - id: hierophant_almost_truth
+        content: |
+          The conduits were strained, but this only proves the ritual approached success.
+        reveal_threshold: 45
+      goals:
+      - id: reinforce_doctrine
+        description: |
+          Ensure the player accepts doctrinal framing of the ritual.
+        condition: |
+          Player agrees that sacrifice was necessary.
+        disposition_required: 50
+        on_achieve_set_vars:
+          shattered_dominion.temple_alignment: 1
+        on_achieve_message: |
+          The hierophant inclines his head, accepting your understanding.
+      will_discuss:
+      - ritual
+      - sacrifice
+      - faith
+      will_not_discuss:
+      - sabotage
+      - containment
+      - evacuation
+      common_knowledge_refs:
+      - solar_doctrine
+    triggers:
+    - id: hierophant_on_enter
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+        operator: numlte
+        predicate: 0
+      script: |
+        say Welcome, seeker. The sun tests all who approach its truth.
+  - id: npc_temple_doctrine_warden
+    name: a doctrine warden
+    short_description: a stone doctrine warden
+    long_description: |
+      A construct of bronze and sun-bleached stone, its form vaguely humanoid. Glyphs of doctrinal law pulse faintly across its surface, evaluating all who pass.
+    race: construct
+    class:
+      Fighter:
+        level: 10
+    hit_dice: 10
+    experience_points: 4000
+    alignment: lawful_neutral
+    attributes:
+      strength: 17
+      dexterity: 8
+      constitution: 18
+      intelligence: 8
+      wisdom: 14
+      charisma: 5
+    permanent_flags:
+    - no_wander
+    - sentinel
+    - immune_poison
+    - immune_charm
+    - immune_fear
+    natural_attacks:
+    - type: bludgeoning
+      damage: 2d6
+    attitude: UNFRIENDLY
+    llm_conversation:
+      personality: |
+        An enforcement construct that evaluates doctrinal correctness and ritual compliance. It does not reason morally.
+      speaking_style: |
+        Declarative. Short statements. No inflection.
+      knowledge:
+      - id: warden_access_rules
+        content: |
+          Access is granted only to those aligned with authorized doctrine.
+        reveal_threshold: 0
+      will_discuss:
+      - doctrine
+      will_not_discuss:
+      - history
+      - outcome
+    triggers:
+    - id: doctrine_warden_check
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+        operator: numlt
+        predicate: 0
+      script: |
+        say Doctrinal misalignment detected.
+        emote shifts slightly, blocking passage.
+  - id: npc_temple_sun_scarred_penitent
+    name: a sun-scarred penitent
+    short_description: a scarred temple penitent
+    long_description: |
+      Deep burns mark this figure's face and hands in ritual patterns—self-inflicted or punishment, it is impossible to tell. They move with the careful hesitation of one who has learned that certainty invites suffering.
+    race: human
+    class:
+      Cleric:
+        level: 6
+    hit_dice: 6
+    experience_points: 1500
+    alignment: lawful_neutral
+    attributes:
+      strength: 9
+      dexterity: 11
+      constitution: 12
+      intelligence: 13
+      wisdom: 14
+      charisma: 8
+    permanent_flags:
+    - no_wander
+    - cowardly
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        Broken, conflicted, and traumatized. The penitent oscillates between loyalty and regret, revealing truth unintentionally.
+      speaking_style: |
+        Hesitant, fragmented sentences. Frequently pauses or contradicts themselves.
+      knowledge:
+      - id: penitent_coercion
+        content: |
+          Doubt was punished until obedience remained.
+        reveal_threshold: 20
+      - id: penitent_removed_names
+        content: |
+          Some names vanished from the rolls before the final chants.
+        reveal_threshold: 50
+        is_secret: true
+      will_discuss:
+      - doubt
+      - punishment
+      will_not_discuss:
+      - doctrine_publicly
+    triggers:
+    - id: penitent_on_say_forgive
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: forgive
+      script: |
+        emote flinches
+        say We were forgiven only when we stopped asking.
+  - id: npc_temple_solar_choir_chanter
+    name: a solar choir chanter
+    short_description: a temple choir chanter
+    long_description: |
+      This figure stands with head tilted, lips moving in silent repetition of ancient hymns. Their throat bears harmonic tattoos that seem to vibrate even in silence.
+    race: human
+    class:
+      Cleric:
+        level: 5
+    hit_dice: 5
+    experience_points: 1200
+    alignment: lawful_neutral
+    attributes:
+      strength: 8
+      dexterity: 10
+      constitution: 11
+      intelligence: 11
+      wisdom: 15
+      charisma: 14
+    permanent_flags:
+    - no_wander
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        A ritual-bound chanter whose voice is an instrument rather than a choice. They do not fully understand what they powered.
+      speaking_style: |
+        Liturgical phrases, rhythmic repetition.
+      knowledge:
+      - id: choir_incomplete_harmony
+        content: |
+          The final harmony was never completed.
+        reveal_threshold: 30
+      will_discuss:
+      - chants
+      - harmony
+      will_not_discuss:
+      - consequences
+    triggers:
+    - id: choir_resonant_emote
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 60
+      script: |
+        emote hums softly, the stone vibrating in response.
+  - id: npc_temple_acolyte_observer
+    name: a temple acolyte
+    short_description: a nervous temple acolyte
+    long_description: |
+      Young and wide-eyed, this acolyte watches everything with the intensity of someone cataloging details they shouldn't have noticed. Their hands never stop fidgeting with the hem of their robe.
+    race: human
+    class:
+      Cleric:
+        level: 3
+    hit_dice: 3
+    experience_points: 500
+    alignment: neutral
+    attributes:
+      strength: 8
+      dexterity: 12
+      constitution: 10
+      intelligence: 14
+      wisdom: 13
+      charisma: 10
+    permanent_flags:
+    - no_wander
+    - cowardly
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        An observant novice who has seen too much and said too little. Knowledge leaks through implication.
+      speaking_style: |
+        Quiet, indirect, careful phrasing.
+      knowledge:
+      - id: acolyte_evacuation_signs
+        content: |
+          Supplies were moved before the ritual concluded.
+        reveal_threshold: 40
+      will_discuss:
+      - preparations
+      will_not_discuss:
+      - authority
+    triggers:
+    - id: acolyte_avoidance
+      type: on_enter
+      script: |
+        emote lowers their gaze and steps aside.
+  - id: npc_oasis_veiled_speaker
+    name: the Oasis Veiled Speaker
+    short_description: the veiled speaker of the oasis
+    long_description: |
+      Layers of sun-bleached cloth wrap this elder's form, leaving only watchful eyes visible. Memory cords of varying lengths hang from their belt, each knot a preserved moment of history.
+    race: human
+    class:
+      Cleric:
+        level: 10
+    hit_dice: 10
+    experience_points: 8000
+    alignment: neutral
+    attributes:
+      strength: 8
+      dexterity: 11
+      constitution: 13
+      intelligence: 16
+      wisdom: 18
+      charisma: 15
+    permanent_flags:
+    - no_wander
+    - quest_giver
+    - protected
+    equipment:
+    - obj_memory_cord_belt
+    - obj_elder_veils
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        Calm, deliberate, and protective of communal memory. The Veiled Speaker does not lie, but withholds truth until trust is earned.
+      speaking_style: |
+        Measured, metaphor-heavy, often speaking in conditional phrases rather than direct statements.
+      knowledge:
+      - id: speaker_long_memory
+        content: |
+          The desert changed after the sky burned. Storms came that were not storms.
+        reveal_threshold: 20
+      - id: speaker_false_divinity
+        content: |
+          What the Temple called divine judgment was uncontrolled power.
+        reveal_threshold: 60
+        is_secret: true
+      goals:
+      - id: test_trustworthiness
+        description: |
+          Determine whether the player listens more than they speak.
+        condition: |
+          Player asks about people, not power.
+        disposition_required: 40
+        on_achieve_set_vars:
+          shattered_dominion.nomad_trust: 2
+        on_achieve_message: |
+          The Veiled Speaker inclines their head slightly.
+      will_discuss:
+      - memory
+      - survival
+      - storms
+      will_not_discuss:
+      - ritual_mechanics
+      - names
+      common_knowledge_refs:
+      - doctrinal_revision_practice
+    triggers:
+    - id: veiled_speaker_on_enter
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numlt
+        predicate: 1
+      script: |
+        say Words are carried carefully here.
+  - id: npc_oasis_memory_keeper
+    name: the Memory Keeper
+    short_description: an oasis memory keeper
+    long_description: |
+      This elder's fingers are stained with dyes used to mark memory cords. Their movements are slow and deliberate, as if every gesture must be worthy of preservation.
+    race: human
+    class:
+      Cleric:
+        level: 8
+    hit_dice: 8
+    experience_points: 5000
+    alignment: neutral
+    attributes:
+      strength: 7
+      dexterity: 10
+      constitution: 11
+      intelligence: 17
+      wisdom: 16
+      charisma: 12
+    permanent_flags:
+    - no_wander
+    - quest_giver
+    equipment:
+    - obj_memory_dye_kit
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        Analytical and guarded. The Memory Keeper treats history as a living responsibility rather than information.
+      speaking_style: |
+        Precise, slow, occasionally corrective.
+      knowledge:
+      - id: keeper_timeline_break
+        content: |
+          The Temple changed its hymns after the disaster.
+        reveal_threshold: 30
+      - id: keeper_erased_warnings
+        content: |
+          Warnings were spoken, then removed from memory cords.
+        reveal_threshold: 55
+        is_secret: true
+      will_discuss:
+      - memory_practice
+      - warnings
+      will_not_discuss:
+      - blame
+      - individual_guilt
+    triggers:
+    - id: memory_keeper_react_write
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: write
+      script: |
+        say Writing fixes lies in place. Memory allows correction.
+  - id: npc_oasis_caravan_trader
+    name: a caravan trader
+    short_description: a weathered caravan trader
+    long_description: |
+      Sun-darkened and lean, this trader's eyes constantly assess value and risk. Their pack is worn but meticulously organized, and they speak with the directness of someone who has walked too far to waste words.
+    race: human
+    class:
+      Rogue:
+        level: 7
+    hit_dice: 7
+    experience_points: 3500
+    alignment: neutral
+    attributes:
+      strength: 11
+      dexterity: 14
+      constitution: 13
+      intelligence: 14
+      wisdom: 12
+      charisma: 13
+    permanent_flags:
+    - no_wander
+    equipment:
+    - obj_trader_pack
+    attitude: NEUTRAL
+    llm_conversation:
+      personality: |
+        Practical, cautious, and loss-aware. The trader values routes and survival over ideology.
+      speaking_style: |
+        Direct, clipped, with frequent references to distance and cost.
+      knowledge:
+      - id: trader_route_loss
+        content: |
+          Several trade routes vanished after the sky burned.
+        reveal_threshold: 20
+      - id: trader_evacuated_goods
+        content: |
+          Supplies moved *away* from the Temple before the ritual ended.
+        reveal_threshold: 45
+      will_discuss:
+      - routes
+      - trade
+      - shortages
+      will_not_discuss:
+      - doctrine
+    triggers:
+    - id: trader_on_mention_temple
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: temple
+      script: |
+        emote frowns
+        say People stopped traveling there before the end.
+  - id: npc_wastes_glassbound_watcher
+    name: the Glassbound Watcher
+    short_description: a figure fused with glassed sand
+    long_description: |
+      This humanoid form stands frozen in translucent glass, arms raised as if in sudden surprise. Light refracts through the fused sand and preserved flesh, casting rainbow shadows. It has not moved in centuries, yet somehow it watches.
+    race: undead
+    class:
+      Fighter:
+        level: 8
+    hit_dice: 8
+    experience_points: 3000
+    alignment: neutral
+    attributes:
+      strength: 14
+      dexterity: 3
+      constitution: 20
+      intelligence: 6
+      wisdom: 14
+      charisma: 2
+    permanent_flags:
+    - no_wander
+    - stationary
+    - immune_poison
+    - immune_charm
+    - immune_fear
+    triggers:
+    - id: watcher_first_notice
+      type: on_enter
+      criteria:
+      - subject: $permvar(%S%, sd_seen_glassbound_watcher)
+        operator: '!='
+        predicate: 'true'
+      script: |
+        setpermvar char %S% sd_seen_glassbound_watcher true
+        pause 0.5
+        echo A figure fused with glassed sand stands motionless nearby.
+        pause 0.5
+        echoto %S% It does not breathe. It does not react.
+    - id: watcher_reacts_to_examination
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: watcher
+      script: |
+        echo Light refracts through the fused glass.
+        echoto %S% The posture suggests sudden interruption, not rest.
+    - id: watcher_catastrophe_memory
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: happen
+      script: |
+        echo The glassbound surface warms briefly.
+        echoto %S% You sense overwhelming heat and pressure.
+        $if($questvar(%S%, shattered_dominion.failure_cause_known), numlt, 3){
+          setquestvar %S% shattered_dominion.failure_cause_known 3
+        }
+    - id: watcher_idle_shift
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 45
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 25
+      script: |
+        echo The glassbound figure creaks softly as trapped heat expands.
+    llm_conversation:
+      personality: |
+        The glassbound watcher is not conscious in the present. It is a moment of catastrophic interruption preserved in matter.
+      speaking_style: |
+        Communicates only through sensory impressions: heat, pressure, light, and abrupt cessation.
+      knowledge:
+      - id: sd_watcher_physical_event
+        content: |
+          The catastrophe was instantaneous and mechanical in nature. There was no judgment—only overload.
+        reveal_threshold: 0
+        is_secret: false
+      will_discuss:
+      - heat
+      - pressure
+      - light
+      will_not_discuss:
+      - gods
+      - blame
+      - intent
+      - intention
+      - responsibility
+      - choice
+      common_knowledge_refs:
+      - sd_environmental_overload
+  - id: npc_wastes_salt_scoured_nomad
+    name: a salt-scoured nomad
+    short_description: a nomad scarred by salt and wind
+    long_description: |
+      This figure's skin is etched with white salt lines where sweat and wind have carved permanent patterns. They move with the easy wariness of someone who has survived by paying attention.
+    race: human
+    class:
+      Rogue:
+        level: 8
+    hit_dice: 8
+    experience_points: 4000
+    alignment: neutral
+    attributes:
+      strength: 13
+      dexterity: 16
+      constitution: 14
+      intelligence: 12
+      wisdom: 15
+      charisma: 10
+    permanent_flags:
+    - no_wander
+    - evasive
+    equipment:
+    - obj_bone_knife
+    triggers:
+    - id: nomad_initial_wariness
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numlt
+        predicate: 2
+      script: |
+        emote watches you carefully, hand never far from a blade.
+        say Wind’s not kind to strangers out here.
+    - id: nomad_truth_with_trust
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: why
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numgte
+        predicate: 2
+      script: |
+        pause 0.5
+        say We mapped the burns after. You don’t map divine anger.
+        $if($questvar(%S%, shattered_dominion.truth_integrity), numlt, 3){
+          setquestvar %S% shattered_dominion.truth_integrity 3
+        }
+    - id: nomad_warn_danger
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 60
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 20
+      script: |
+        say Keep moving when the ground glows. Standing still kills.
+    llm_conversation:
+      personality: |
+        A practical survivor shaped by loss and exposure. Trust is earned, never assumed.
+      speaking_style: |
+        Short sentences, metaphor grounded in terrain and weather.
+      knowledge:
+      - id: sd_nomad_mapping
+        content: |
+          Survivors tracked blast patterns and residual heat zones after the catastrophe to avoid death.
+        reveal_threshold: 50
+        is_secret: true
+      will_discuss:
+      - survival
+      - maps
+      - burns
+      will_not_discuss:
+      - temple
+      - doctrine
+      - gods
+      - judgment
+      common_knowledge_refs:
+      - sd_post_event_survival
+  - id: npc_wastes_relic_scavenger
+    name: a relic scavenger
+    short_description: a pragmatic relic scavenger
+    long_description: |
+      Equipped with tools for prying and carrying, this scavenger works methodically through the debris of catastrophe. Their eyes evaluate everything by practical worth, not sentiment.
+    race: human
+    class:
+      Rogue:
+        level: 6
+    hit_dice: 6
+    experience_points: 2500
+    alignment: neutral
+    attributes:
+      strength: 12
+      dexterity: 15
+      constitution: 13
+      intelligence: 14
+      wisdom: 11
+      charisma: 9
+    permanent_flags:
+    - no_wander
+    equipment:
+    - obj_scavenger_prybar
+    triggers:
+    - id: scavenger_assess_player
+      type: on_enter
+      script: |
+        emote glances at you, then back to the half-melted ruins.
+    - id: scavenger_discuss_relics
+      type: catch_say
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: relic
+      script: |
+        say Melted wrong. Heat came from everywhere at once.
+        $if($questvar(%S%, shattered_dominion.failure_cause_known), numlt, 4){
+          setquestvar %S% shattered_dominion.failure_cause_known 4
+        }
+    - id: scavenger_idle_work
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 50
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 30
+      script: |
+        emote carefully pries slag from a buried fragment.
+    llm_conversation:
+      personality: |
+        Pragmatic and unsentimental. Truth matters only insofar as it keeps you alive and profitable.
+      speaking_style: |
+        Blunt, observational, dismissive of ideology.
+      knowledge:
+      - id: sd_material_failure
+        content: |
+          The relics show uniform heat saturation, consistent with uncontrolled energy release.
+        reveal_threshold: 40
+        is_secret: false
+      will_discuss:
+      - materials
+      - damage
+      - salvage
+      will_not_discuss:
+      - faith
+      - blame
+      - guilt
+      - morality
+      common_knowledge_refs:
+      - sd_infrastructure_failure
+  - id: npc_wastes_solar_echo
+    name: a solar echo
+    short_description: a flickering solar echo
+    long_description: |
+      This is not a creature but a pattern—a loop of energy that traces the same arc endlessly, bending light and heat in its wake. It has no awareness, only repetition.
+    race: elemental
+    class:
+      Mage:
+        level: 6
+    hit_dice: 6
+    experience_points: 2000
+    alignment: neutral
+    attributes:
+      strength: 1
+      dexterity: 18
+      constitution: 14
+      intelligence: 1
+      wisdom: 1
+      charisma: 1
+    permanent_flags:
+    - no_wander
+    - aggressive
+    - immune_poison
+    - immune_charm
+    - immune_fear
+    natural_attacks:
+    - type: radiant
+      damage: 1d8
+    - type: fire
+      damage: 1d6
+    triggers:
+    - id: echo_reacts_to_presence
+      type: on_enter
+      script: |
+        echo The air warps as light bends unnaturally.
+    - id: echo_pattern_repeat
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 40
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 35
+      script: |
+        echo A flare of light traces the same arc again and again.
+    llm_conversation:
+      personality: |
+        A residual pattern, not a being. It replays energy movement without awareness.
+      speaking_style: |
+        Non-verbal repetition of motion and intensity.
+      knowledge:
+      - id: sd_energy_loop
+        content: |
+          The echo demonstrates how energy circulated without control, amplifying instead of dispersing.
+        reveal_threshold: 0
+        is_secret: false
+      will_discuss: []
+      will_not_discuss:
+      - language
+      - intent
+      - meaning
+      common_knowledge_refs:
+      - sd_energy_residue
+  - id: npc_ossuary_vitrified_husk
+    name: vitrified husk
+    article: a
+    keywords:
+    - husk
+    - undead
+    - vitrified
+    - glass
+    description: |
+      This desiccated corpse is partially fused with the glass walls of the ossuary. Sharp, translucent shards protrude from its grey flesh, refracting the dim light into painful needles of brilliance.
+    pronoun_subject: it
+    pronoun_object: it
+    pronoun_possessive: its
+    race: undead
+    class:
+      Fighter:
+        level: 10
+    attributes:
+      strength: 15
+      dexterity: 12
+      constitution: 16
+      intelligence: 4
+      wisdom: 8
+      charisma: 2
+    hit_dice: 10d8+20
+    experience_points: 3500
+    permanent_flags:
+    - is_aggressive
+    - is_undead
+    natural_attacks:
+    - attack_noun: glass-shard claw
+      attack_verb: rends
+      potential_damage:
+      - damage_type: slashing
+        damage_dice: 2d6+3
+      - damage_type: fire
+        damage_dice: 1d4
+    triggers:
+    - id: husk_shatters_on_impact
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 30
+      script: |
+        echo As %A% attacks, shards of glass fly off the husk's body!
+        damage %A% 1d4 slashing
+    - id: husk_desperate_lunge
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 15
+      script: |
+        $if($random(1,100), numlte, 20){
+          emote lunges forward with a jagged, glass-encrusted limb.
+        }
+  - id: npc_ossuary_crystalline_shambler
+    name: crystalline shambler
+    article: a
+    keywords:
+    - shambler
+    - construct
+    - crystal
+    - glass
+    description: |
+      A jagged heap of animated glass and solar-etched stone. It moves with a harsh, grinding sound, its form constantly shifting as internal light pulses with unstable energy.
+    race: construct
+    class:
+      Fighter:
+        level: 12
+    attributes:
+      strength: 18
+      dexterity: 8
+      constitution: 18
+      intelligence: 2
+      wisdom: 10
+      charisma: 1
+    hit_dice: 12d10+24
+    experience_points: 5000
+    permanent_flags:
+    - is_aggressive
+    damage_multipliers:
+      poison: 0
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: crystalline fist
+      attack_verb: smashes
+      potential_damage:
+      - damage_type: bludgeoning
+        damage_dice: 2d8+5
+      - damage_type: radiant
+        damage_dice: 1d6
+    triggers:
+    - id: shambler_energy_surge
+      type: on_attacked
+      script: |
+        $if($random(1,100), numlte, 25){
+          echo The shambler's internal light flares violently in response to the blow!
+          damage %A% 1d6 radiant
+        }
+    - id: shambler_unstable_core
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 30
+      script: |
+        echo The shambler emits a low, grinding hum as its crystal body shifts.
+  - id: npc_ossuary_prismatic_stalker
+    name: prismatic stalker
+    article: a
+    keywords:
+    - stalker
+    - predator
+    - prismatic
+    - glass
+    description: |
+      Nearly invisible against the refracting walls, this feline-shaped predator is composed of layered, razor-thin glass. Its eyes are pinpoints of concentrated solar light.
+    race: elemental
+    class:
+      Rogue:
+        level: 11
+    attributes:
+      strength: 12
+      dexterity: 19
+      constitution: 12
+      intelligence: 6
+      wisdom: 15
+      charisma: 5
+    hit_dice: 11d6+11
+    experience_points: 4200
+    permanent_flags:
+    - is_aggressive
+    - is_invisible
+    - see_invisible
+    natural_attacks:
+    - attack_noun: glass fang
+      attack_verb: bites
+      potential_damage:
+      - damage_type: piercing
+        damage_dice: 2d6+4
+      - damage_type: slashing
+        damage_dice: 1d8
+    triggers:
+    - id: stalker_refractive_defense
+      type: on_attacked
+      script: |
+        echo The stalker's glass hide refracts the light, making it difficult to track!
+        $if($random(1,100), numlte, 40){
+          force %A% emote's strike passes through empty, shimmering air.
+        }
+    - id: stalker_pounce
+      type: on_enter
+      script: |
+        pause 0.5
+        echo A prismatic blur streaks across the room!
+        attack %S%
+  - id: npc_ossuary_memory_echo
+    name: harmonic memory echo
+    article: a
+    keywords:
+    - echo
+    - wraith
+    - spectral
+    - harmonic
+    description: |
+      A translucent, flickering silhouette of a Dominion noble. It drifts through the air, its mouth open in a silent scream that resonates as a physical pressure against the ears.
+    race: undead
+    class:
+      Mage:
+        level: 9
+    attributes:
+      strength: 5
+      dexterity: 14
+      constitution: 10
+      intelligence: 16
+      wisdom: 14
+      charisma: 12
+    hit_dice: 9d4+9
+    experience_points: 3000
+    permanent_flags:
+    - is_aggressive
+    - is_undead
+    natural_attacks:
+    - attack_noun: harmonic pulse
+      attack_verb: vibrates
+      potential_damage:
+      - damage_type: psychic
+        damage_dice: 1d10+2
+      - damage_type: force
+        damage_dice: 1d6
+    triggers:
+    - id: echo_harmonic_wail
+      type: on_attacked
+      script: |
+        echo The echo emits a piercing, harmonic scream that rattles your teeth!
+        damage %A% 1d8 psychic
+    - id: echo_flicker_away
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 20
+      script: |
+        $if($random(1,100), numlte, 30){
+          echo The spectral figure flickers and reappears a few feet away.
+        }
+  - id: npc_ossuary_solar_flare_sentinel
+    name: solar flare sentinel
+    article: a
+    keywords:
+    - sentinel
+    - construct
+    - flare
+    - sun
+    description: |
+      A towering construct of bronze and incandescent glass, built to guard the High Priest's Repose. It radiates intense heat, and its core burns with the captured fury of the Black Sun.
+    race: construct
+    class:
+      Fighter:
+        level: 15
+    attributes:
+      strength: 20
+      dexterity: 10
+      constitution: 20
+      intelligence: 8
+      wisdom: 12
+      charisma: 10
+    hit_dice: 15d12+45
+    experience_points: 8500
+    permanent_flags:
+    - is_aggressive
+    - is_sentinel
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: searing beam
+      attack_verb: burns
+      potential_damage:
+      - damage_type: fire
+        damage_dice: 3d6+6
+      - damage_type: radiant
+        damage_dice: 2d6
+    triggers:
+    - id: sentinel_solar_retaliation
+      type: on_attacked
+      script: |
+        echo The sentinel's bronze plating glows white-hot as you strike it!
+        damage %A% 1d10 fire
+    - id: sentinel_guardian_warning
+      type: on_enter
+      script: |-
+        say INTUSION DETECTED. PURIFICATION SEQUENCE INITIATED.
+        emote raises its incandescent blade.
+        attack %S%
+  - id: npc_script_burned_cantor
+    name: burned cantor
+    article: a
+    keywords:
+    - cantor
+    - undead
+    - burned
+    - mage
+    description: |
+      A desiccated figure in scorched vestments, its jaw hanging open as it endlessly repeats fragments of the incomplete harmony used during the ritual. Ashes fall from its lips with every mouthed syllable.
+    pronoun_subject: he
+    pronoun_object: him
+    pronoun_possessive: his
+    race: undead
+    class:
+      Cleric:
+        level: 11
+    attributes:
+      strength: 10
+      dexterity: 10
+      constitution: 14
+      intelligence: 14
+      wisdom: 17
+      charisma: 13
+    hit_dice: 11d8+22
+    experience_points: 4000
+    permanent_flags:
+    - is_aggressive
+    - is_undead
+    natural_attacks:
+    - attack_noun: necrotic touch
+      attack_verb: withers
+      potential_damage:
+      - damage_type: necrotic
+        damage_dice: 2d6+3
+      - damage_type: fire
+        damage_dice: 1d6
+    triggers:
+    - id: cantor_harmonic_backlash
+      type: on_attacked
+      script: |
+        $if($random(1,100), numlte, 30){
+          echo As %A% strikes, the cantor's incomplete harmony reaches a deafening crescendo!
+          damage %A% 1d8 psychic
+        }
+    - id: cantor_ambient_incantation
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 25
+      script: |
+        echo The cantor mumbles a fragment of a solar ritual, sparks of dead magic falling from his lips.
+  - id: npc_script_ink_wraith
+    name: ink-stained wraith
+    article: an
+    keywords:
+    - wraith
+    - spectral
+    - ink
+    - scribe
+    description: |
+      The spectral remnant of a scribe who died trying to save sacred texts. Its form is a swirling mass of dark, shadowy ink and cold ash, with elongated fingers that reach out to stain the living.
+    race: undead
+    class:
+      Rogue:
+        level: 10
+    attributes:
+      strength: 8
+      dexterity: 18
+      constitution: 12
+      intelligence: 13
+      wisdom: 12
+      charisma: 8
+    hit_dice: 10d6+10
+    experience_points: 3800
+    permanent_flags:
+    - is_aggressive
+    - is_undead
+    - is_invisible
+    natural_attacks:
+    - attack_noun: ink-stained claw
+      attack_verb: corrupts
+      potential_damage:
+      - damage_type: cold
+        damage_dice: 1d10+4
+      - damage_type: poison
+        damage_dice: 1d6
+    triggers:
+    - id: wraith_ink_blindness
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 25
+      script: |
+        echo The wraith shatters into a cloud of shadow-ink upon being struck!
+        echoto %A% Your vision is obscured by freezing, magical soot.
+        damage %A% 1d6 cold
+    - id: wraith_unseen_touch
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 15
+      script: |
+        $if($random(1,100), numlte, 15){
+          echo A cold, ink-stained breeze brushes past you.
+        }
+  - id: npc_script_living_equation
+    name: living equation
+    article: a
+    keywords:
+    - equation
+    - elemental
+    - energy
+    - pattern
+    description: |
+      A manifest pattern of golden light and humming energy. It is a mathematical error given physical form, a fragment of the ritual's energy focusing system that never dissipated.
+    race: elemental
+    class:
+      Mage:
+        level: 13
+    attributes:
+      strength: 1
+      dexterity: 16
+      constitution: 15
+      intelligence: 20
+      wisdom: 10
+      charisma: 5
+    hit_dice: 13d4+26
+    experience_points: 6500
+    permanent_flags:
+    - is_aggressive
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: energy lash
+      attack_verb: shocks
+      potential_damage:
+      - damage_type: lightning
+        damage_dice: 2d6+5
+      - damage_type: radiant
+        damage_dice: 1d8
+    triggers:
+    - id: equation_variable_shift
+      type: on_attacked
+      script: |
+        echo The golden patterns of the equation shift rapidly as %A% attacks.
+        $if($random(1,100), numlte, 50){
+          echo The attack is absorbed into a flux of geometric light!
+          heal %S% 1d10
+        }
+    - id: equation_static_discharge
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 30
+      script: |
+        echo The air crackles with the sound of a thousand solving variables.
+        damage %S% 1d4 lightning
+  - id: npc_script_chief_archivist
+    name: the Fractured Chief Archivist
+    article: ''
+    keywords:
+    - archivist
+    - chief
+    - undead
+    - boss
+    description: |
+      A towering undead figure fused with a master chronicle slab. Its eyes burn with a hateful, intelligent light, and its voice sounds like the grinding of stone on bone.
+    race: undead
+    class:
+      Mage:
+        level: 16
+    attributes:
+      strength: 14
+      dexterity: 10
+      constitution: 18
+      intelligence: 21
+      wisdom: 19
+      charisma: 14
+    hit_dice: 16d4+48
+    experience_points: 12000
+    permanent_flags:
+    - is_sentinel
+    - see_invisible
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: arcane blast
+      attack_verb: detonates
+      potential_damage:
+      - damage_type: force
+        damage_dice: 3d8+6
+      - damage_type: psychic
+        damage_dice: 2d6
+    triggers:
+    - id: archivist_rewrite_reality
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 20
+      script: |
+        say Your presence is a footnote that must be excised.
+        echo The archivist strikes his chronicle slab, altering the local flow of energy!
+        damage %A% 2d10 force
+        interrupt %A%
+    - id: archivist_sentinel_scan
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 45
+      script: |-
+        emote scans the room with eyes of burning sapphire.
+        say Every error will be indexed. Every doubt will be purged.
+  - id: npc_barracks_salt_phalanx
+    name: salt-crusted phalanx
+    article: a
+    keywords:
+    - phalanx
+    - soldier
+    - undead
+    - salt
+    - barracks
+    description: |
+      A desiccated soldier of the Dominion, its armor permanently fused to its skin by thick layers of white salt. It moves with a stiff, rhythmic precision, its eyes glowing with a faint, sun-bleached light as it maintains its eternal watch.
+    pronoun_subject: he
+    pronoun_object: him
+    pronoun_possessive: his
+    race: undead
+    class:
+      Fighter:
+        level: 12
+    attributes:
+      strength: 16
+      dexterity: 10
+      constitution: 18
+      intelligence: 8
+      wisdom: 12
+      charisma: 6
+    hit_dice: 12d10+36
+    experience_points: 4500
+    permanent_flags:
+    - is_aggressive
+    - is_undead
+    - is_sentinel
+    natural_attacks:
+    - attack_noun: salt-crusted fist
+      attack_verb: bludgeons
+      potential_damage:
+      - damage_type: bludgeoning
+        damage_dice: 2d6+4
+      - damage_type: poison
+        damage_dice: 1d4
+    triggers:
+    - id: phalanx_shield_bash
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 25
+      script: |
+        echo %S% catches the %attack_noun% on his salt-crusted shield and lunges forward!
+        damage %A% 1d6 bludgeoning
+    - id: phalanx_ambient_clank
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 40
+      script: |
+        echo The phalanx soldier shifts his weight, his salt-fused armor clanking with a dry, hollow sound.
+  - id: npc_barracks_warden_proto
+    name: warden prototype
+    article: a
+    keywords:
+    - warden
+    - construct
+    - prototype
+    - bronze
+    - barracks
+    description: |
+      An early, bulkier version of the "Doctrine Warden" constructs. Made of heavy bronze and sun-bleached stone, its surface is pitted by salt and heat, yet its internal mechanisms grind with relentless, mechanical power.
+    race: construct
+    class:
+      Fighter:
+        level: 14
+    attributes:
+      strength: 20
+      dexterity: 8
+      constitution: 20
+      intelligence: 6
+      wisdom: 10
+      charisma: 4
+    hit_dice: 14d12+56
+    experience_points: 7000
+    permanent_flags:
+    - is_aggressive
+    damage_multipliers:
+      poison: 0
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: bronze slam
+      attack_verb: crushes
+      potential_damage:
+      - damage_type: bludgeoning
+        damage_dice: 3d6+8
+      - damage_type: fire
+        damage_dice: 1d8
+    triggers:
+    - id: proto_thermal_vent
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 30
+      script: |
+        echo Internal gears grind as the warden prototype vents superheated steam at %A%!
+        damage %A% 1d8 fire
+    - id: proto_scanning_hum
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 30
+      script: |
+        echo The warden prototype's crystalline eyes pulse with a blinding light as it scans for doctrinal violations.
+  - id: npc_barracks_desiccated_warbeast
+    name: desiccated war-beast
+    article: a
+    keywords:
+    - warbeast
+    - beast
+    - reptile
+    - sand-woken
+    - barracks
+    description: |
+      A large, reptilian creature once used for desert warfare. Its scales are as hard as stone and etched with salt, and its many eyes have been replaced by glowing crystalline growths that pulse with "unstable solar energy."
+    race: reptile
+    class:
+      Fighter:
+        level: 11
+    attributes:
+      strength: 18
+      dexterity: 14
+      constitution: 15
+      intelligence: 3
+      wisdom: 12
+      charisma: 2
+    hit_dice: 11d10+22
+    experience_points: 3800
+    permanent_flags:
+    - is_aggressive
+    natural_attacks:
+    - attack_noun: stone-scaled bite
+      attack_verb: snaps
+      potential_damage:
+      - damage_type: piercing
+        damage_dice: 2d8+5
+      - damage_type: radiant
+        damage_dice: 1d6
+    triggers:
+    - id: warbeast_crystalline_shards
+      type: on_attacked
+      script: |
+        $if($random(1,100), numlte, 20){
+          echo Shards of radiant crystal explode from the war-beast's scales upon being struck!
+          damage %A% 1d10 radiant
+        }
+    - id: warbeast_primal_snarl
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 20
+      script: |
+        echo The war-beast lets out a rasping snarl, its stone-hard tail thumping against the salt-encrusted floor.
+  - id: npc_barracks_garrison_commander
+    name: the Salt-Scoured Commander
+    article: ''
+    keywords:
+    - commander
+    - officer
+    - undead
+    - boss
+    - barracks
+    description: |
+      Once a high-ranking officer in charge of military "doctrinal law," this towering figure is now a terrifying fusion of salt-preserved flesh and "scorched metal." He wields a massive blade that crackles with residual energy.
+    race: undead
+    class:
+      Fighter:
+        level: 17
+    attributes:
+      strength: 22
+      dexterity: 12
+      constitution: 22
+      intelligence: 14
+      wisdom: 16
+      charisma: 15
+    hit_dice: 17d12+85
+    experience_points: 15000
+    permanent_flags:
+    - is_sentinel
+    - see_invisible
+    saving_throw_bonuses:
+      will: 100
+    natural_attacks:
+    - attack_noun: scorched blade
+      attack_verb: cleaves
+      potential_damage:
+      - damage_type: slashing
+        damage_dice: 4d6+10
+      - damage_type: fire
+        damage_dice: 2d8
+    triggers:
+    - id: commander_cleaving_retaliation
+      type: on_attacked
+      script: |
+        $if($random(1,100), numlte, 35){
+          say Your defiance ends here, intruder.
+          echo The commander swings his scorched claymore in a devastating arc!
+          damage %A% 2d8 slashing
+        }
+    - id: commander_aura_of_law
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 50
+      script: |-
+        emote stands motionless, the residual solar energy in the room bending toward his scorched blade.
+        say The Dominion will be restored. Law is absolute.
+OBJECTS:
+- zone: shattered_dominion
+  objects:
+  - id: obj_pyr_ceremonial_fan
+    name: ceremonial sun-fan
+    article: a
+    keywords:
+    - fan
+    - ceremonial
+    - sun
+    description: |
+      A wide ceremonial fan of gilded reeds and cracked gemstones. Its surface is etched with procession markings identical to those on the pyramid walls.
+    weight: 1
+    value: 25
+    permanent_flags:
+    - takeable
+    triggers:
+    - id: pyr_fan_on_get
+      type: on_get
+      script: |
+        echoto %S% The fan radiates dry heat, as if remembering countless rituals.
+  - id: obj_pyr_memory_tablet
+    name: sun-etched memory tablet
+    article: a
+    keywords:
+    - tablet
+    - memory
+    - sun
+    description: |
+      A thin stone tablet carved with precise solar iconography. Several lines have been deliberately chiseled away.
+    weight: 2
+    value: 15
+    permanent_flags:
+    - takeable
+    triggers:
+    - id: pyr_tablet_on_get
+      type: on_get
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
+        operator: numlt
+        predicate: 1
+      script: |
+        setquestvar %S% shattered_dominion.apotheosis_intent_known 1
+        echo As you study the tablet, it becomes clear the king sought more than burial.
+  - id: obj_pyr_false_sarcophagus
+    name: ornate false sarcophagus
+    article: an
+    keywords:
+    - sarcophagus
+    - coffin
+    - ornate
+    description: |
+      A lavishly carved sarcophagus depicting the god-king in eternal repose. The lid bears fracture marks from the inside.
+    weight: 0
+    value: 0
+    permanent_flags:
+    - stationary
+    - container
+    triggers:
+    - id: pyr_sarcophagus_on_open
+      type: on_open
+      script: |
+        echo Dust billows outward as the lid shifts.
+        pause 0.5
+        echo The interior is empty—no remains were ever placed here.
+  - id: obj_pyr_seal_key
+    name: ritual seal torque
+    article: a
+    keywords:
+    - torque
+    - seal
+    - key
+    description: |
+      A heavy bronze torque engraved with layered priestly glyphs, each etched over an older version.
+    weight: 2
+    value: 50
+    permanent_flags:
+    - takeable
+    triggers:
+    - id: pyr_seal_key_on_use
+      type: on_use
+      criteria:
+      - subject: '%item_id%'
+        operator: eq
+        predicate: obj_pyr_seal_key
+      script: |
+        $if($questvar(%S%, shattered_dominion.temple_alignment), numgte, 0){
+          echo The seals resonate briefly, acknowledging the torque.
+        }
+        else {
+          echo The torque grows uncomfortably warm, rejecting your touch.
+          damage %S% 1d6 radiant
+        }
+  - id: obj_pyr_solar_lens_focus
+    name: fractured solar focusing crystal
+    article: a
+    keywords:
+    - crystal
+    - lens
+    - solar
+    description: |
+      A cracked crystal shard once part of a much larger lens. Light bends unnaturally through it, scattering into painful brilliance.
+    weight: 1
+    value: 100
+    permanent_flags:
+    - takeable
+    - dangerous
+    triggers:
+    - id: pyr_lens_focus_on_use
+      type: on_use
+      criteria:
+      - subject: '%item_id%'
+        operator: eq
+        predicate: obj_pyr_solar_lens_focus
+      script: |
+        echo The crystal flares violently in your grasp!
+        setquestvar %S% shattered_dominion.solar_corruption_level $random(1,5)
+        damage %S% 1d10 radiant
+  - id: obj_pyr_scorched_floor_sigils
+    name: scorched ritual sigils
+    article: ''
+    keywords:
+    - sigils
+    - ritual
+    - scorched
+    description: |
+      A perfect ring of burned sigils etched directly into the stone floor. The markings are melted rather than carved.
+    weight: 0
+    value: 0
+    permanent_flags:
+    - stationary
+    triggers:
+    - id: pyr_sigils_on_look
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: sigil
+      script: |
+        $if($questvar(%S%, shattered_dominion.failure_cause_known), numlt, 1){
+          setquestvar %S% shattered_dominion.failure_cause_known 1
+          echo The sigils suggest containment after the ritual—not preparation.
+        }
+  - id: obj_pyr_glyph_scraping_tool
+    name: glyph-scraping chisel
+    article: a
+    keywords:
+    - chisel
+    - tool
+    - glyph
+    description: |
+      A blunt chisel stained with stone dust and old ash. It was used to remove, not carve, sacred text.
+    weight: 1
+    value: 5
+    permanent_flags:
+    - takeable
+    triggers:
+    - id: pyr_chisel_on_get
+      type: on_get
+      script: |
+        echo The tool's edge is worn smooth, dulled by intentional erasure.
+  - id: obj_pyr_sand_worn_amulet
+    name: sand-worn solar amulet
+    article: a
+    keywords:
+    - amulet
+    - solar
+    - sun
+    description: |
+      A once-sacred amulet dulled by abrasion and heat. The central sun motif has been scratched out.
+    weight: 1
+    value: 10
+    permanent_flags:
+    - takeable
+    triggers:
+    - id: pyr_amulet_on_drop
+      type: on_drop
+      script: |
+        echo The amulet sinks partially into the sand, as if the pyramid itself rejects it.
+  - id: obj_wastes_salt_conduit_fragment
+    name: salt-crusted conduit fragment
+    article: a
+    keywords:
+    - conduit
+    - fragment
+    - crystal
+    description: |
+      A broken length of crystalline conduit fused with salt and scorched metal. The surface is etched with spiraling grooves.
+    examine_text: |
+      The grooves are engineered channels, designed to carry energy toward a central focus. This was infrastructure, not ornament.
+    weight: 3
+    value: 20
+    object_flags:
+    - is_quest_item
+    triggers:
+    - id: conduit_fragment_recognition
+      type: on_get
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
+        operator: numlt
+        predicate: 3
+      script: |
+        setquestvar %S% shattered_dominion.ritual_mechanics_known 3
+        echoto %S% You recognize this as part of an energy-routing system.
+  - id: obj_wastes_glass_marker
+    name: glass-fused marker stone
+    article: a
+    keywords:
+    - marker
+    - stone
+    description: |
+      A stone marker half-melted into the sand, its inscriptions stretched and warped by extreme heat.
+    examine_text: |
+      The markings are measurements—angles, distances, tolerances. Nothing about this was meant to honor the dead.
+    weight: 50
+    value: 5
+    object_flags:
+    - heavy
+    triggers:
+    - id: marker_stone_evidence
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: marker
+      - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+        operator: numlt
+        predicate: 3
+      script: |
+        setquestvar %S% shattered_dominion.failure_cause_known 3
+        echoto %S% These stones were placed to measure energy, not faith.
+  - id: obj_wastes_cracked_reliquary
+    name: cracked reliquary case
+    article: a
+    keywords:
+    - reliquary
+    - case
+    description: |
+      A ceremonial reliquary split open by internal force, its metal walls scorched and peeled outward.
+    examine_text: |
+      The interior damage radiates outward, as if whatever it contained exceeded its limits catastrophically.
+    weight: 5
+    value: 30
+    object_flags:
+    - is_container
+    container_capacity: 3
+    triggers:
+    - id: reliquary_overload
+      type: on_open
+      script: |
+        echo Heat-blackened metal flakes away from the ruptured casing.
+        $if($random(1,100), numlte, 25){
+          echoto %S% A wave of residual heat burns you.
+          damage %S% 1d4 fire
+        }
+  - id: obj_wastes_nomad_map
+    name: solar-bleached nomad map
+    article: a
+    keywords:
+    - map
+    - hide
+    description: |
+      A fragment of treated hide etched with dunes, ridges, and warning symbols.
+    examine_text: |
+      The marked danger zones align with the blast radius of the disaster. Someone mapped this after it happened.
+    weight: 0
+    value: 15
+    object_flags:
+    - is_quest_item
+    triggers:
+    - id: nomad_map_insight
+      type: on_get
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.nomad_trust)
+        operator: numgte
+        predicate: 2
+      script: |
+        setquestvar %S% shattered_dominion.truth_integrity 3
+        echoto %S% The map confirms survivors tracked the damage, not divine wrath.
+  - id: obj_wastes_solar_echo_crystal
+    name: solar echo crystal
+    article: a
+    keywords:
+    - crystal
+    - echo
+    description: |
+      A lattice of translucent crystal holding trapped light and heat, pulsing faintly.
+    examine_text: |
+      This is not magic residue. It is energy that never dispersed.
+    weight: 1
+    value: 75
+    object_flags:
+    - is_quest_item
+    triggers:
+    - id: solar_echo_release
+      type: on_use
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+        operator: numlt
+        predicate: 4
+      script: |
+        echo The crystal flares painfully bright.
+        damage %S% 1d6 fire
+        setquestvar %S% shattered_dominion.failure_cause_known 4
+        echoto %S% You understand now—this was uncontrolled release, not judgment.
+  - id: obj_wastes_control_rod
+    name: partially melted control rod
+    article: a
+    keywords:
+    - rod
+    - control
+    description: |
+      A heavy metal rod engraved with calibration markings, its tip slagged and warped.
+    examine_text: |
+      The calibration sequence ends abruptly. Safety tolerances were never extended beyond this point.
+    weight: 10
+    value: 40
+    object_flags:
+    - is_quest_item
+    - heavy
+    triggers:
+    - id: control_rod_realization
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: rod
+      - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
+        operator: numlt
+        predicate: 5
+      script: |
+        setquestvar %S% shattered_dominion.failure_cause_known 5
+        setquestvar %S% shattered_dominion.truth_integrity 3
+        echoto %S% The safeguards were knowingly incomplete.
+  - id: obj_wastes_glass_shards
+    name: shifting glass shards
+    article: ''
+    keywords:
+    - shards
+    - glass
+    description: |
+      Nearly invisible razor-edged shards lie buried just beneath the sand.
+    weight: 0
+    value: 0
+    object_flags:
+    - is_hidden
+    triggers:
+    - id: glass_shard_hazard
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 30
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 20
+      script: |
+        echo Razor-edged glass shifts beneath the sand.
+        damage %S% 1d4 slashing
+  # =========================================================
+  # NPC EQUIPMENT OBJECTS
+  - id: obj_master_chronicle_slab
+    name: master chronicle slab
+    article: the
+    keywords:
+    - chronicle
+    - slab
+    - tablet
+    description: |
+      A heavy stone tablet covered in dense, precise script. The records here detail the ritual's actual design parameters.
+    examine_text: |
+      The technical language describes energy tolerances, conduit specifications, and—notably—deleted sections where safeguards should have been documented.
+    weight: 20
+    value: 100
+    equip_locations:
+    - both_hands
+    object_flags:
+    - is_quest_item
+    - heavy
+    triggers:
+    - id: chronicle_slab_read
+      type: on_use
+      script: |
+        echo The dense text reveals the ritual's true nature.
+        $if($questvar(%S%, shattered_dominion.ritual_mechanics_known), numlt, 5){
+          setquestvar %S% shattered_dominion.ritual_mechanics_known 5
+          echoto %S% You now understand the full scope of what was attempted—and deliberately omitted.
+        }
+  - id: obj_unbroken_sun_seal
+    name: unbroken sun seal
+    article: an
+    keywords:
+    - seal
+    - sun
+    - medallion
+    description: |
+      A golden medallion bearing the emblem of the Black Sun cult, perfectly preserved despite the catastrophe.
+    examine_text: |
+      The seal grants authority within the old hierarchy. Its preservation suggests the Archivist was shielded from the blast.
+    weight: 1
+    value: 200
+    equip_locations:
+    - neck
+  - id: obj_wind_etched_compass
+    name: wind-etched compass
+    article: a
+    keywords:
+    - compass
+    - wind
+    description: |
+      A battered navigational instrument with markings worn smooth by sand and salt. It points not north, but toward something else.
+    examine_text: |
+      The needle trembles toward the oasis, or the wastes, or the pyramid—never quite settling. It reads intention more than direction.
+    weight: 1
+    value: 50
+    equip_locations:
+    - off_hand
+  - id: obj_route_knot_cord
+    name: route-knot cord
+    article: a
+    keywords:
+    - cord
+    - knots
+    - rope
+    description: |
+      A length of woven cord bearing dozens of intricate knots, each recording a safe path through the wastes.
+    examine_text: |
+      The knot patterns encode route information—distances, hazards, seasonal changes. Only those trained in the system can read them fully.
+    weight: 0
+    value: 25
+    equip_locations:
+    - waist
+  - id: obj_ashen_sun_mask
+    name: ashen sun mask
+    article: an
+    keywords:
+    - mask
+    - sun
+    - ashen
+    description: |
+      A ritual mask depicting a solar disc, its surface permanently darkened by fire. Eye-holes glow faintly with residual heat.
+    examine_text: |
+      The mask marks its wearer as a high priest of the Black Sun cult. Ash has fused into every crack and crevice.
+    weight: 2
+    value: 75
+    equip_locations:
+    - head
+  - id: obj_ritual_authority_sigil
+    name: ritual authority sigil
+    article: a
+    keywords:
+    - sigil
+    - authority
+    - badge
+    description: |
+      A bronze badge bearing layered glyphs of doctrinal authority. It pulses faintly when near temple structures.
+    weight: 1
+    value: 60
+    equip_locations:
+    - neck
+  - id: obj_veil_of_lineage_knots
+    name: veil of lineage knots
+    article: a
+    keywords:
+    - veil
+    - cloth
+    - knots
+    description: |
+      Layers of sun-bleached fabric woven with memory cords tracing the speaker's lineage and accumulated wisdom.
+    weight: 1
+    value: 40
+    equip_locations:
+    - head
+  - id: obj_witness_cord_bundle
+    name: witness cord bundle
+    article: a
+    keywords:
+    - cords
+    - bundle
+    - witness
+    description: |
+      A bundle of knotted cords, each recording an event the speaker has personally witnessed and preserved.
+    weight: 1
+    value: 30
+    equip_locations:
+    - waist
+  - id: obj_ashen_censer
+    name: ashen censer
+    article: an
+    keywords:
+    - censer
+    - incense
+    description: |
+      A bronze censer filled with ash that never fully cools. Smoke rises from it without fuel.
+    weight: 3
+    value: 45
+    equip_locations:
+    - off_hand
+  - id: obj_scorched_vestments
+    name: scorched vestments
+    article: ''
+    keywords:
+    - vestments
+    - robes
+    - scorched
+    description: |
+      Ceremonial robes permanently fused to their wearer's flesh, the boundary between cloth and skin long since erased.
+    weight: 5
+    value: 0
+    equip_locations:
+    - body
+  - id: obj_memory_cord_belt
+    name: memory cord belt
+    article: a
+    keywords:
+    - belt
+    - cords
+    - memory
+    description: |
+      A wide belt hung with dozens of knotted cords of varying lengths and colors, each encoding preserved memories.
+    weight: 2
+    value: 35
+    equip_locations:
+    - waist
+  - id: obj_elder_veils
+    name: elder veils
+    article: ''
+    keywords:
+    - veils
+    - cloth
+    description: |
+      Multiple layers of sun-bleached fabric that conceal everything but watchful eyes, marking the wearer as an elder of the oasis.
+    weight: 1
+    value: 20
+    equip_locations:
+    - head
+  - id: obj_memory_dye_kit
+    name: memory dye kit
+    article: a
+    keywords:
+    - dye
+    - kit
+    - tools
+    description: |
+      A small case containing natural dyes used to mark memory cords, preserving information in color as well as knots.
+    weight: 1
+    value: 15
+    equip_locations:
+    - off_hand
+  - id: obj_trader_pack
+    name: trader's pack
+    article: a
+    keywords:
+    - pack
+    - bag
+    - trader
+    description: |
+      A worn but meticulously organized pack containing goods for barter and trade essentials for desert survival.
+    weight: 10
+    value: 50
+    equip_locations:
+    - back
+  - id: obj_bone_knife
+    name: bone-handled knife
+    article: a
+    keywords:
+    - knife
+    - blade
+    - bone
+    description: |
+      A practical knife with a handle carved from desert creature bone. The blade shows heavy use but careful maintenance.
+    weight: 1
+    value: 10
+    equip_locations:
+    - main_hand
+    damage_type: slashing
+    damage: 1d4
+  - id: obj_scavenger_prybar
+    name: scavenger's prybar
+    article: a
+    keywords:
+    - prybar
+    - bar
+    - tool
+    description: |
+      A heavy metal bar worn smooth by years of prying relics from fused stone and twisted metal.
+    weight: 5
+    value: 15
+    equip_locations:
+    - main_hand
+    damage_type: bludgeoning
+    damage: 1d6
+  - id: obj_ossuary_razor_shard
+    name: razor-edged glass shard
+    article: a
+    keywords:
+    - shard
+    - glass
+    - razor
+    - weapon
+    description: |
+      A long, wickedly sharp shard of vitrified sand. It hums faintly with trapped energy and glows with a pale, inner light.
+    object_flags:
+    - is_weapon
+    - takeable
+    equip_location: main_hand
+    weapon_attacks:
+    - attack_noun: shard
+      attack_verb: lacerates
+      potential_damage:
+      - damage_type: slashing
+        damage_dice: 2d4+2
+      - damage_type: fire
+        damage_dice: 1
+    triggers:
+    - id: shard_unstable_hum
+      type: on_get
+      script: |
+        echoto %S% The glass vibrates against your palm, hungry for contact.
+  - id: obj_ossuary_prismatic_lens
+    name: prismatic focusing lens
+    article: a
+    keywords:
+    - lens
+    - prismatic
+    - glass
+    - crystal
+    description: |
+      A heavy disc of multi-faceted glass. When held to the light, it projects complex geometric patterns associated with the "solar tolerances" of the old ritual.
+    object_flags:
+    - is_quest_item
+    - takeable
+    triggers:
+    - id: lens_refraction_check
+      type: on_use
+      script: |
+        echo You hold the lens up, projecting a map of light across the walls.
+        $if($questvar(%S%, shattered_dominion.ritual_mechanics_known), numlt, 2){
+          setquestvar %S% shattered_dominion.ritual_mechanics_known 2
+          echoto %S% The light patterns reveal the hidden flow of energy through the ossuary.
+        }
+  - id: obj_ossuary_harmonic_tuning_fork
+    name: harmonic tuning fork
+    article: a
+    keywords:
+    - fork
+    - tuning
+    - harmonic
+    - brass
+    description: |
+      A large brass fork etched with "gold-inlaid script." It was used to calibrate the "incomplete harmonies" within the resonant chambers.
+    object_flags:
+    - takeable
+    triggers:
+    - id: fork_resonate
+      type: on_use
+      script: |
+        echo You strike the fork against a glass wall.
+        pause 0.5
+        echo A low, pure tone ripples through the room, momentarily silencing the trapped echoes.
+        force %S% emote looks relieved as the mental pressure fades.
+  - id: obj_ossuary_vitrified_urn
+    name: vitrified funeral urn
+    article: a
+    keywords:
+    - urn
+    - funeral
+    - glass
+    - container
+    description: |
+      An urn made of sand that was flash-melted into glass. The remains inside have become a solid, glowing core of "energy residue."
+    object_flags:
+    - is_container
+    - openable
+    - closed
+    - takeable
+    container_capacity: 2
+    triggers:
+    - id: urn_heat_burst
+      type: on_open
+      script: |
+        echo As the seal breaks, a puff of superheated air escapes.
+        damage %S% 1d6 fire
+  - id: obj_ossuary_high_priest_medallion
+    name: medallion of the Solar Ascendant
+    article: the
+    keywords:
+    - medallion
+    - solar
+    - priest
+    - gold
+    description: |
+      A heavy gold medallion found near the "High Priest's Repose." It bears the "unbroken sun seal" and grants authority within the ritual hierarchy.
+    object_flags:
+    - is_quest_item
+    - takeable
+    equip_location: neck
+    triggers:
+    - id: medallion_authority
+      type: on_enter
+      criteria:
+      - subject: $questvar(%S%, shattered_dominion.temple_alignment)
+        operator: numlt
+        predicate: 1
+      script: |
+        $if($hasitemeq(%S%, obj_ossuary_high_priest_medallion), eq, true){
+          setquestvar %S% shattered_dominion.temple_alignment 1
+          echoto %S% The residual spirits of the ossuary acknowledge your stolen rank.
+        }
+  - id: obj_ossuary_pulsing_crystal_pillar
+    name: pulsing crystal pillar
+    article: a
+    keywords:
+    - pillar
+    - crystal
+    - solar
+    description: |
+      A central pillar of solar-etched crystal. It is the source of the "unstable solar energy" flooding this sub-zone.
+    object_flags:
+    - is_static
+    - stationary
+    triggers:
+    - id: pillar_energy_drain
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: pillar
+      script: |-
+        echo The pillar's light is blinding. You can feel it drawing the moisture from your skin.
+        $if($random(1,100), numlte, 15){
+          damage %S% 1d4 radiant
+        }
+  - id: obj_script_carbonized_scroll
+    name: carbonized ritual scroll
+    article: a
+    keywords:
+    - scroll
+    - ritual
+    - carbonized
+    - ash
+    description: |
+      A scroll made of heavy vellum, scorched almost to the point of disintegration. Fragments of "gold-inlaid script" still glimmer amid the black ash.
+    object_flags:
+    - is_consumable
+    - takeable
+    charges: 1
+    use_message: You attempt to read the crumbling scroll, releasing a final burst of trapped magic.
+    triggers:
+    - id: scroll_ash_burst
+      type: on_use
+      script: |
+        echo As you unfurl the scroll, it dissolves into hot ash!
+        damage %S% 1d4 fire
+        $if($random(1,100), numlte, 50){
+          echoto %S% You manage to decipher a fragment of the "incomplete harmony" before it vanishes.
+          settempvar char %S% arcane_insight 1
+        }
+  - id: obj_script_basalt_tablet
+    name: basalt safeguard tablet
+    article: a
+    keywords:
+    - tablet
+    - basalt
+    - safeguard
+    - stone
+    description: |
+      A heavy slab of dark basalt, etched with the "omitted safeguards" of the ascension ritual. The stone is cool to the touch despite the surrounding heat.
+    object_flags:
+    - is_quest_item
+    - takeable
+    - heavy
+    weight: 15
+    triggers:
+    - id: tablet_study_safeguards
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: tablet
+      script: |
+        $if($questvar(%S%, shattered_dominion.ritual_mechanics_known), numlt, 4){
+          setquestvar %S% shattered_dominion.ritual_mechanics_known 4
+          echoto %S% You study the technical schematics, realizing how many "stabilizing redundancies" were ignored.
+        }
+  - id: obj_script_ink_well_shadow
+    name: well of shadow-ink
+    article: a
+    keywords:
+    - ink
+    - well
+    - shadow
+    - obsidian
+    description: |
+      A small pot of carved obsidian containing a thick, swirling liquid that seems to absorb the light. This ink was used for "doctrinal revision".
+    object_flags:
+    - takeable
+    triggers:
+    - id: ink_stain_hazard
+      type: on_get
+      script: |
+        echoto %S% The shadow-ink trembles as you touch the well, leaving a cold, numbing stain on your fingers.
+        damage %S% 1d4 cold
+  - id: obj_script_orrery_fragment
+    name: melted orrery gear
+    article: a
+    keywords:
+    - gear
+    - brass
+    - orrery
+    - fragment
+    description: |
+      A heavy brass gear from the "melted orrery" in the calculation chamber. It is warped and slagged, yet it still emits a low-frequency hum.
+    object_flags:
+    - is_weapon
+    - takeable
+    equip_location: main_hand
+    weapon_attacks:
+    - attack_noun: gear
+      attack_verb: bludgeons
+      potential_damage:
+      - damage_type: bludgeoning
+        damage_dice: 2d6+2
+      - damage_type: lightning
+        damage_dice: 1d4
+    triggers:
+    - id: gear_vibration
+      type: timer_tick
+      permanent_flags:
+      - only_when_pc_room
+      criteria:
+      - subject: '%time_elapsed%'
+        operator: numgte
+        predicate: 45
+      script: |
+        $if($hasiteminv(%S%, obj_script_orrery_fragment), eq, true){
+          echoto %S% The brass gear in your pack vibrates, resonating with the residual heat.
+        }
+  - id: obj_script_archivist_key
+    name: fractured archivist's signet
+    article: a
+    keywords:
+    - signet
+    - key
+    - archivist
+    - ring
+    description: |
+      A ring of "scorched metal" bearing the "ritual authority sigil." It was once used by the Chief Archivist to access the restricted stacks.
+    object_flags:
+    - is_key
+    - takeable
+    equip_location: left_finger
+    key_id: script_restricted_lock
+    triggers:
+    - id: signet_cold_pulse
+      type: on_use
+      script: |
+        echo The signet pulses with a brief, icy light as it acknowledges its purpose.
+  - id: obj_script_obsidian_pedestal
+    name: obsidian lecture pedestal
+    article: an
+    keywords:
+    - pedestal
+    - obsidian
+    - stone
+    description: |
+      A tall pedestal of polished obsidian used for displaying "crystalline memory slabs." It remains "stationary" and untouched by the heat.
+    object_flags:
+    - is_static
+    - stationary
+    triggers:
+    - id: pedestal_reflection
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: pedestal
+      script: echo You see your own reflection in the dark stone, distorted by the "shimmering haze" of the room.
+  - id: obj_barracks_salt_rations
+    name: salt-preserved rations
+    article: a
+    keywords:
+    - rations
+    - food
+    - salt
+    - preserved
+    description: |
+      A block of dried meat and grain, perfectly preserved by a thick crust of salt. It is incredibly dry but still carries the residual energy of the garrison.
+    object_flags:
+    - is_consumable
+    - is_food
+    - takeable
+    heal_amount: 15
+    stamina_restore: 30
+    charges: 2
+    use_message: You chew on the salty rations. They are nearly inedible, but a surge of energy follows the salt.
+    triggers:
+    - id: rations_thirst
+      type: on_use
+      script: |
+        echoto %S% The intense salt makes your throat burn with thirst.
+  - id: obj_barracks_legion_shield
+    name: scorched legionnaire's shield
+    article: a
+    keywords:
+    - shield
+    - legionnaire
+    - metal
+    - scorched
+    description: |
+      A heavy metal shield etched with the "sun-disc imagery" of the Black Sun. The metal is scorched and salt-pitted, yet it remains remarkably sturdy.
+    object_flags:
+    - is_armor
+    - takeable
+    equip_location: off_hand
+    armor_class_bonus: 3
+    triggers:
+    - id: shield_solar_retort
+      type: on_attacked
+      criteria:
+      - subject: $random(1,100)
+        operator: numlte
+        predicate: 20
+      script: |
+        echo The sun-disc on %S%'s shield flares with residual heat!
+        damage %A% 1d6 fire
+  - id: obj_barracks_doctrinal_codex
+    name: codex of military doctrinal law
+    article: a
+    keywords:
+    - codex
+    - book
+    - law
+    - doctrinal
+    description: |
+      A heavy, salt-encrusted book detailing the military laws and evacuation protocols of the Dominion. Many sections regarding "omitted safeguards" have been redacted.
+    object_flags:
+    - is_quest_item
+    - takeable
+    triggers:
+    - id: codex_read_protocols
+      type: catch_look
+      criteria:
+      - subject: '%*%'
+        operator: contains
+        predicate: codex
+      script: |
+        $if($questvar(%S%, shattered_dominion.evacuations_evidence), numlt, 1){
+          setquestvar %S% shattered_dominion.evacuations_evidence 1
+          echoto %S% You find orders for a "phased withdrawal" dated before the ritual failed.
+        }
+  - id: obj_barracks_command_claymore
+    name: commander's scorched claymore
+    article: the
+    keywords:
+    - claymore
+    - blade
+    - sword
+    - scorched
+    - commander
+    description: |
+      A massive blade of "scorched metal" that crackles with "residual energy." It was once the badge of office for the garrison's commander.
+    object_flags:
+    - is_weapon
+    - takeable
+    - heavy
+    equip_location: both_hands
+    weapon_attacks:
+    - attack_noun: claymore
+      attack_verb: cleaves
+      potential_damage:
+      - damage_type: slashing
+        damage_dice: 3d6+6
+      - damage_type: fire
+        damage_dice: 1d8
+    triggers:
+    - id: claymore_authority
+      type: on_attacked
+      script: |
+        $if($random(1,100), numlte, 15){
+          echo The claymore releases a pulse of "unstable solar energy" as it parries!
+          damage %A% 1d10 radiant
+        }
+  - id: obj_barracks_cairn_stone
+    name: bone cairn marker stone
+    article: a
+    keywords:
+    - stone
+    - marker
+    - cairn
+    - bone
+    description: |
+      A heavy stone used to anchor "cairns of stacked bones." It is marked with seasonal route shifts.
+    object_flags:
+    - takeable
+    - heavy
+    weight: 20
+    triggers:
+    - id: cairn_stone_trust
+      type: on_drop
+      criteria:
+      - subject: $locroom(%S%)
+        operator: eq
+        predicate: room_wastes_nomad_crossing
+      script: |
+        $if($questvar(%S%, shattered_dominion.nomad_trust), numlt, 4){
+          setquestvar %S% shattered_dominion.nomad_trust $math($questvar(%S%, shattered_dominion.nomad_trust) + 1)
+          echo You repair the scattered cairn. The desert wind seems to ease.
+        }
+  - id: obj_barracks_salt_pitted_key
+    name: salt-pitted vault key
+    article: a
+    keywords:
+    - key
+    - vault
+    - salt
+    - pitted
+    description: |
+      A massive iron key encrusted with white salt crystals. It is heavy and cold.
+    object_flags:
+    - is_key
+    - takeable
+    key_id: barracks_vault_lock
+    triggers:
+    - id: key_brine_drip
+      type: on_get
+      script: echoto %S% The key leaves a trail of stinging brine on your palm.

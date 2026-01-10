@@ -9,10 +9,22 @@ class PermanentCharacterFlags(DescriptiveFlags):
     IS_INVISIBLE = 2**3
     SEE_INVISIBLE = 2**4
     DARKVISION = 2**5
+    IS_UNDEAD = 2**6
+    IS_SENTINEL = 2**7
+    NO_WANDER = 2**8
+    STATIONARY = 2**9
+    EVASIVE = 2**10
+    QUEST_GIVER = 2**11
+    AGGRESSIVE_IF_ATTACKED = 2**12
+    MINDLESS = 2**13
+    COWARDLY = 2**14
+    PROTECTED = 2**15
 
     @classmethod
     def field_name_unsafe(cls, idx):
-        return ["is pc", "is aggressive", "can dual wield", "is invisible", "see invisible", "darkvision"][idx]
+        return ["is pc", "is aggressive", "can dual wield", "is invisible", "see invisible", 
+                "darkvision", "is undead", "is sentinel", "no wander", "stationary",
+                "evasive", "quest giver", "aggressive if attacked", "mindless", "cowardly", "protected"][idx]
 
 
 class TemporaryCharacterFlags(DescriptiveFlags):

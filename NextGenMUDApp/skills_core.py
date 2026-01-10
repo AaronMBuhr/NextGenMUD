@@ -10,7 +10,7 @@ from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, Ch
     CharacterStateStealthed, CharacterStateStunned, CharacterStateBleeding, CharacterStateHitBonus, \
     CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus, CharacterStateBerserkerStance, CharacterStateCasting
 from .nondb_models.actors import Actor
-from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances, PotentialDamage
+from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageMultipliers, PotentialDamage
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
     PermanentCharacterFlags, TemporaryCharacterFlags
 from .utility import roll_dice, set_vars, seconds_from_ticks, ticks_from_seconds, firstcap
@@ -43,6 +43,7 @@ class SkillsRegistry(SkillsRegistryInterface):
         from .skills_cleric import Skills_Cleric
         from .skills_mage import Skills_Mage
         from .skills_rogue import Skills_Rogue
+        from .skills_universal import Skills_Universal
         
         cls._classes_registered = True
     
@@ -362,12 +363,10 @@ class ClassSkills(GenericEnumWithAttributes):
         logger = StructuredLogger(__name__, prefix="init_subclass()> ")
         logger.debug3(f"Initializing subclass: {cls.__name__}")
         
-        # Get the class role name from the class name (e.g., Skills_Fighter -> fighter)
-        class_role = cls.__name__.replace("Skills_", "").lower()
-        
-        # Collect all Skill instances from class attributes
+        # Collect all Skill instances from class attributes first
         # Since this is an enum, attributes are enum members - we need to check their values
         skills_dict = {}
+        class_role = None
         for attr_name in dir(cls):
             if attr_name.startswith('_'):
                 continue
@@ -378,16 +377,34 @@ class ClassSkills(GenericEnumWithAttributes):
                     skill = attr.value
                     skill_name = skill.name.lower()
                     skills_dict[skill_name] = skill
+                    # Extract class role from the skill's base_class if available
+                    if class_role is None and skill.base_class is not None:
+                        class_role = skill.base_class.name.lower()
                 # Also check direct Skill instances (for non-enum cases)
                 elif isinstance(attr, Skill):
                     skill_name = attr.name.lower()
                     skills_dict[skill_name] = attr
+                    # Extract class role from the skill's base_class if available
+                    if class_role is None and attr.base_class is not None:
+                        class_role = attr.base_class.name.lower()
             except Exception:
                 pass  # Skip attributes that can't be accessed
         
+        # Fallback: Get the class role name from the class name if we couldn't determine it from skills
+        # Handle patterns like: Skills_Fighter -> fighter, MageSkills -> mage, ClericSkills -> cleric
+        if class_role is None:
+            class_name = cls.__name__.lower()
+            if class_name.startswith("skills_"):
+                class_role = class_name.replace("skills_", "")
+            elif class_name.endswith("skills"):
+                class_role = class_name.replace("skills", "")
+            else:
+                class_role = class_name
+        
         # Register with the central registry
-        SkillsRegistry.register_skill_class(class_role, skills_dict)
-        logger.info(f"Registered {len(skills_dict)} skills for {class_role}")
+        if skills_dict:
+            SkillsRegistry.register_skill_class(class_role, skills_dict)
+            logger.info(f"Registered {len(skills_dict)} skills for {class_role}")
 
 
 class Skills(SkillsInterface):
@@ -419,6 +436,53 @@ class Skills(SkillsInterface):
     # Tier 7 skills (level 60) - specialization ultimate skills
     TIER7_MIN_LEVEL = 60
     
+    # Skill cap progression constants
+    SKILL_CAP_BASE = 25  # Starting cap when skill becomes available
+    SKILL_CAP_MAX = 100  # Maximum skill level
+    SKILL_CAP_LEVELS_TO_MAX = 10  # Number of levels to go from base to max
+    SKILL_CAP_PER_LEVEL = 7.5  # (100 - 25) / 10 = 7.5 points per level
+    
+    @classmethod
+    def calculate_skill_cap(cls, character_level: int, skill_requirement_level: int, 
+                           override_cap: int = None) -> int:
+        """
+        Calculate the maximum skill level a character can train a skill to.
+        
+        The formula creates a progression where:
+        - Level 1 skills (treated as level 0): max 32 at level 1, max 100 at level 10
+        - Level 10 skills: max 25 at level 10, max 100 at level 20
+        - Level 20 skills: max 25 at level 20, max 100 at level 30
+        - Level 30 skills: max 25 at level 30, max 100 at level 40
+        - etc.
+        
+        Args:
+            character_level: The character's current level
+            skill_requirement_level: The level requirement to unlock the skill
+            override_cap: Optional YAML-defined cap override (if set, returns this value)
+            
+        Returns:
+            The maximum skill level the character can train to (0-100)
+        """
+        # YAML override takes precedence
+        if override_cap is not None:
+            return min(override_cap, cls.SKILL_CAP_MAX)
+        
+        # Level 1 skills are treated as level 0 for calculation purposes
+        effective_requirement = 0 if skill_requirement_level <= 1 else skill_requirement_level
+        
+        # Character must meet the actual requirement to have the skill at all
+        if character_level < skill_requirement_level:
+            return 0
+        
+        # Calculate levels of progress beyond the requirement
+        levels_beyond = character_level - effective_requirement
+        
+        # Calculate cap: 25 base + 7.5 per level beyond requirement
+        cap = cls.SKILL_CAP_BASE + (levels_beyond * cls.SKILL_CAP_PER_LEVEL)
+        
+        # Clamp to max
+        return min(int(cap), cls.SKILL_CAP_MAX)
+    
     @classmethod
     def _get_game_state(cls):
         """Get the game state instance, lazily initializing if needed"""
@@ -446,33 +510,47 @@ class Skills(SkillsInterface):
         """
         Calculate success chance for a skill check against resistance.
         
+        Spell power from caster levels makes spells harder to resist.
+        Higher level casters overcome resistance better than lower level ones.
+        
         Parameters:
-        - initiator_level: Level of character using skill (1-60)
+        - actor: The character using the skill/spell
         - initiator_attribute: Relevant attribute score for skill user (1-20)
         - skill_level: Proficiency in the skill (1-100)
-        - target_level: Level of the target resisting (1-60)
+        - target: The character resisting
         - target_attribute: Relevant attribute score for target (1-20)
         - difficulty_modifier: Situational modifier (-20 to +20)
         
         Returns:
-        - success: Boolean indicating success or failure
+        - success: Boolean indicating if the target RESISTED (True = resisted, False = affected)
         - margin: How much the check succeeded or failed by
         """
-        # Base success value from initiator
-        initiator_base = (skill_level * 0.6) + (initiator_attribute * 3) + (actor.level * 0.5)
-        # Base resistance value from target
+        # Get spell power from caster (level-based bonus for Mage/Cleric)
+        spell_power = getattr(actor, 'spell_power', 0)
+        
+        # Base success value from initiator (higher = more likely to overcome resistance)
+        # Spell power directly adds to the caster's effectiveness
+        initiator_base = (skill_level * 0.6) + (initiator_attribute * 3) + (actor.level * 0.5) + (spell_power * 0.8)
+        
+        # Base resistance value from target (higher = harder to affect)
         target_base = (target_attribute * 4) + (target.level * 0.8) + (difficulty_modifier * 1.5)
+        
         # Random element (1-100)
         random_roll = random.randint(1, 100)
-        # Calculate success threshold (higher means harder)
+        
+        # Calculate success threshold (higher means harder to overcome resistance)
+        # If initiator_base > target_base, threshold drops (easier to affect target)
         success_threshold = 50 + (target_base - initiator_base) * 0.5
+        
         # Ensure threshold stays within reasonable bounds (5-95)
         success_threshold = max(5, min(95, success_threshold))
+        
         # Calculate margin of success/failure
         margin = random_roll - success_threshold
-        # Determine if successful
-        success = random_roll >= success_threshold
-        return success, margin    
+        
+        # Determine if target resisted (roll >= threshold means caster succeeded, target failed to resist)
+        resisted = random_roll < success_threshold
+        return resisted, margin    
     
     @classmethod
     def check_ready(cls, actor: Actor, cooldown_name: str=None, skill: Skill=None) -> Tuple[bool, str]:

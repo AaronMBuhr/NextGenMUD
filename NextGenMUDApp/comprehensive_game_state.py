@@ -22,7 +22,7 @@ from .nondb_models.objects import Object, ObjectFlags
 from .nondb_models.room_interface import RoomInterface
 from .nondb_models.rooms import Room
 from .nondb_models.world import WorldDefinition, Zone
-from .constants import Constants
+from .constants import Constants, CharacterClassRole
 from .communication import Connection, CommTypes
 from .comprehensive_game_state_interface import GameStateInterface, ScheduledEvent, EventType
 from .config import Config, default_app_config
@@ -537,7 +537,7 @@ class ComprehensiveGameState:
         # Login is now handled in consumers.py
 
 
-    async def complete_login(self, consumer: 'MyWebsocketConsumer', character_name: str, is_new: bool = False):
+    async def complete_login(self, consumer: 'MyWebsocketConsumer', character_name: str, is_new: bool = False, selected_class: str = None):
         """
         Complete the login process after successful authentication.
         
@@ -545,9 +545,10 @@ class ComprehensiveGameState:
             consumer: The websocket consumer
             character_name: Name of the character logging in
             is_new: Whether this is a newly created character
+            selected_class: The class selected by the player (for new characters)
         """
         logger = StructuredLogger(__name__, prefix="complete_login()> ")
-        logger.info(f"Completing login for {character_name} (is_new={is_new})")
+        logger.info(f"Completing login for {character_name} (is_new={is_new}, class={selected_class})")
         
         # Create connection object
         new_connection = Connection(consumer)
@@ -561,7 +562,7 @@ class ComprehensiveGameState:
         
         # Load or create the character
         if is_new:
-            await self._create_new_character(new_connection, character_name)
+            await self._create_new_character(new_connection, character_name, selected_class)
         else:
             await self._load_existing_character(new_connection, character_name)
     
@@ -589,27 +590,135 @@ class ComprehensiveGameState:
         
         logger.info(f"Player {character_name} reconnected successfully")
     
-    async def _create_new_character(self, connection: Connection, character_name: str):
-        """Create a new character from the default template."""
+    async def _create_new_character(self, connection: Connection, character_name: str, selected_class: str = None):
+        """Create a new character from class template."""
+        from .nondb_models.character_interface import CharacterAttributes
+        from .nondb_models.attacks_and_damage import AttackData, PotentialDamage, DamageType, DamageMultipliers
+        from .utility import get_dice_parts, roll_dice
+        
         logger = StructuredLogger(__name__, prefix="_create_new_character()> ")
-        logger.debug(f"Creating new character: {character_name}")
         
-        # Get the character template
-        template_id = Constants.DEFAULT_CHARACTER_TEMPLATE
-        chardef = self.world_definition.find_character_definition(template_id)
-        if not chardef:
-            # Fallback to test_player if configured template not found
-            chardef = self.world_definition.find_character_definition("test_player")
-            if not chardef:
-                raise Exception(f"Character template '{template_id}' not found and no fallback available.")
-            logger.warning(f"Template '{template_id}' not found, using test_player as fallback")
+        # Get selected class from save file if not provided
+        if not selected_class:
+            selected_class = player_save_manager.get_selected_class(character_name) or 'fighter'
         
-        # Create character from template
-        new_player = Character.create_from_definition(chardef, self)
-        new_player.name = character_name
+        logger.debug(f"Creating new character: {character_name} as {selected_class}")
+        
+        # Get class template from config
+        class_template = Constants.CHARACTER_CLASS_TEMPLATES.get(selected_class.lower())
+        if not class_template:
+            logger.warning(f"Class template for '{selected_class}' not found, using fighter")
+            class_template = Constants.CHARACTER_CLASS_TEMPLATES.get('fighter', {})
+        
+        # Create a new character directly (not from definition)
+        new_player = Character(f"player_{character_name}", "system", name=character_name)
+        new_player.article = ""
+        new_player.pronoun_subject = "they"
+        new_player.pronoun_object = "them"
+        new_player.pronoun_possessive = "their"
+        
+        # Set up class
+        role = CharacterClassRole.from_field_name(selected_class.upper())
+        new_player.class_priority = [role]
+        new_player.levels_by_role = {role: 1}
+        new_player.skill_levels_by_role = {role: {}}
+        
+        # Apply attributes - use player-allocated stats if available, otherwise use template
+        allocated_stats = player_save_manager.get_allocated_stats(character_name)
+        if allocated_stats:
+            logger.debug(f"Using player-allocated stats: {allocated_stats}")
+            new_player.attributes = {
+                CharacterAttributes.STRENGTH: allocated_stats.get('STRENGTH', 10),
+                CharacterAttributes.DEXTERITY: allocated_stats.get('DEXTERITY', 10),
+                CharacterAttributes.CONSTITUTION: allocated_stats.get('CONSTITUTION', 10),
+                CharacterAttributes.INTELLIGENCE: allocated_stats.get('INTELLIGENCE', 10),
+                CharacterAttributes.WISDOM: allocated_stats.get('WISDOM', 10),
+                CharacterAttributes.CHARISMA: allocated_stats.get('CHARISMA', 10),
+            }
+        else:
+            # Fallback to template defaults
+            attrs = class_template.get('attributes', {})
+            new_player.attributes = {
+                CharacterAttributes.STRENGTH: attrs.get('strength', 10),
+                CharacterAttributes.DEXTERITY: attrs.get('dexterity', 10),
+                CharacterAttributes.CONSTITUTION: attrs.get('constitution', 10),
+                CharacterAttributes.INTELLIGENCE: attrs.get('intelligence', 10),
+                CharacterAttributes.WISDOM: attrs.get('wisdom', 10),
+                CharacterAttributes.CHARISMA: attrs.get('charisma', 10),
+            }
+        
+        # Set HP from hit_dice in template + Constitution bonus (class-modified)
+        # Constitution bonus = (CON - 10) * class multiplier
+        # Fighter: 2.0x, Cleric: 1.5x, Rogue: 1.0x, Mage: 0.5x
+        hit_dice_str = class_template.get('hit_dice', '1d10+0')
+        dice_parts = get_dice_parts(hit_dice_str)
+        new_player.hit_dice = dice_parts[0]
+        new_player.hit_dice_size = dice_parts[1]
+        new_player.hit_point_bonus = dice_parts[2]
+        base_hp = roll_dice(new_player.hit_dice, new_player.hit_dice_size, new_player.hit_point_bonus)
+        con_value = new_player.attributes.get(CharacterAttributes.CONSTITUTION, 10)
+        con_multiplier = Constants.CON_HP_MULTIPLIER_BY_CLASS.get(role, 1.0)
+        con_bonus = int((con_value - 10) * con_multiplier)
+        new_player.max_hit_points = max(1, base_hp + con_bonus)  # Minimum 1 HP
+        new_player.current_hit_points = new_player.max_hit_points
+        logger.debug(f"HP calculation: base={base_hp}, CON={con_value}, mult={con_multiplier}, bonus={con_bonus}, total={new_player.max_hit_points}")
+        
+        # Combat stats from template
+        new_player.base_hit_modifier = class_template.get('base_hit_modifier', 50)
+        new_player.hit_modifier = new_player.base_hit_modifier
+        
+        # Dodge from template + Dexterity bonus (class-modified)
+        # Dexterity bonus = (DEX - 10) * class multiplier
+        # Rogue: 2.0x, Fighter: 1.5x, Cleric: 1.0x, Mage: 0.5x
+        dodge_str = class_template.get('dodge_dice', '1d50+0')
+        dodge_parts = get_dice_parts(dodge_str)
+        new_player.dodge_dice_number = dodge_parts[0]
+        new_player.dodge_dice_size = dodge_parts[1]
+        dex_value = new_player.attributes.get(CharacterAttributes.DEXTERITY, 10)
+        dex_multiplier = Constants.DEX_DODGE_MULTIPLIER_BY_CLASS.get(role, 1.0)
+        dex_bonus = int((dex_value - 10) * dex_multiplier)
+        new_player.base_dodge_modifier = dodge_parts[2] + dex_bonus
+        new_player.dodge_modifier = new_player.base_dodge_modifier
+        logger.debug(f"Dodge calculation: base={dodge_parts[2]}, DEX={dex_value}, mult={dex_multiplier}, bonus={dex_bonus}, total={new_player.base_dodge_modifier}")
+        
+        new_player.critical_chance = class_template.get('critical_chance', 5)
+        new_player.critical_multiplier = class_template.get('critical_multiplier', 100)
+        
+        # Natural attack from template
+        attack_def = class_template.get('natural_attack', {})
+        if attack_def:
+            attack = AttackData()
+            attack.attack_noun = attack_def.get('noun', 'punch')
+            attack.attack_verb = attack_def.get('verb', 'punches')
+            dmg_type_str = attack_def.get('damage_type', 'bludgeoning').upper()
+            dmg_dice_str = attack_def.get('damage_dice', '1d4+0')
+            dmg_parts = get_dice_parts(dmg_dice_str)
+            attack.potential_damage_.append(PotentialDamage(
+                DamageType[dmg_type_str], dmg_parts[0], dmg_parts[1], dmg_parts[2]
+            ))
+            new_player.natural_attacks = [attack]
+        
+        # Connect player
         new_player.connection = connection
         connection.character = new_player
         new_player.permanent_character_flags = new_player.permanent_character_flags.add_flags(PermanentCharacterFlags.IS_PC)
+        
+        # Calculate mana/stamina based on class
+        new_player.calculate_max_mana()
+        new_player.calculate_max_stamina()
+        new_player.current_mana = new_player.max_mana
+        new_player.current_stamina = new_player.max_stamina
+        
+        # Unlock level 1 skills for the class
+        new_player._unlock_skills_for_level(role, 1)
+        
+        # Grant starting skill points (3 levels worth)
+        starting_levels = Constants.STARTING_SKILL_POINTS_LEVELS
+        skill_points_per_level = Constants.SKILL_POINTS_PER_LEVEL_BY_CLASS.get(role, 3)
+        new_player.skill_points_available = starting_levels * skill_points_per_level
+        
+        # Calculate level bonuses
+        new_player._update_class_features()
         
         self.players.append(new_player)
         
@@ -632,7 +741,13 @@ class ComprehensiveGameState:
             if room_id:
                 logger.warning(f"Default start room '{room_id}' not found, using first room")
         
-        logger.info(f"New player {character_name} arriving in {start_room.name}")
+        logger.info(f"New player {character_name} ({selected_class}) arriving in {start_room.name}")
+        
+        # Send starting skill points message
+        await connection.send(CommTypes.DYNAMIC, f"You have {new_player.skill_points_available} skill points to distribute!")
+        await connection.send(CommTypes.DYNAMIC, "Use 'skills' to see your available skills and 'skillup <skill> <points>' to train them.")
+        await connection.send(CommTypes.DYNAMIC, "")
+        
         await CoreActionsInterface.get_instance().arrive_room(new_player, start_room)
     
     async def _load_existing_character(self, connection: Connection, character_name: str):
@@ -640,9 +755,10 @@ class ComprehensiveGameState:
         logger = StructuredLogger(__name__, prefix="_load_existing_character()> ")
         logger.debug(f"Loading existing character: {character_name}")
         
-        # Check if save file indicates a new character (only has name/password)
-        if player_save_manager.is_new_character(character_name):
-            await self._create_new_character(connection, character_name)
+        # Check if save file is a stub (only has name/password/class, not fully created yet)
+        if player_save_manager.is_stub_save(character_name):
+            selected_class = player_save_manager.get_selected_class(character_name)
+            await self._create_new_character(connection, character_name, selected_class)
             return
         
         # Get the character template to start with
@@ -1005,19 +1121,19 @@ class ComprehensiveGameState:
                     'max_hit_points': target_player.max_hit_points,
                     'max_carrying_capacity': target_player.max_carrying_capacity,
                     
-                    # Combat stats
-                    'hit_modifier': target_player.hit_modifier,
+                    # Combat stats (base values - level bonuses recalculated on load)
+                    'base_hit_modifier': target_player.base_hit_modifier,
+                    'base_dodge_modifier': target_player.base_dodge_modifier,
                     'dodge_dice_number': target_player.dodge_dice_number,
                     'dodge_dice_size': target_player.dodge_dice_size,
-                    'dodge_modifier': target_player.dodge_modifier,
                     'critical_chance': target_player.critical_chance,
                     'critical_multiplier': target_player.critical_multiplier,
                     'num_main_hand_attacks': target_player.num_main_hand_attacks,
                     'num_off_hand_attacks': target_player.num_off_hand_attacks,
                     
                     # Resistances and reductions
-                    'damage_resistances': {
-                        dt.name: value for dt, value in target_player.damage_resistances.profile.items()
+                    'damage_multipliers': {
+                        dt.name: value for dt, value in target_player.damage_multipliers.profile.items()
                     },
                     'damage_reductions': {
                         dt.name: value for dt, value in target_player.damage_reduction.items()
@@ -1032,8 +1148,8 @@ class ComprehensiveGameState:
                         'value': obj.value,
                         'object_flags': [flag.name for flag in obj.object_flags],
                         'equip_locations': [loc.name for loc in obj.equip_locations],
-                        'damage_resistances': {
-                            dt.name: value for dt, value in obj.damage_resistances.profile.items()
+                        'damage_multipliers': {
+                            dt.name: value for dt, value in obj.damage_multipliers.profile.items()
                         },
                         'damage_reductions': {
                             dt.name: value for dt, value in obj.damage_reduction.items()
@@ -1052,8 +1168,8 @@ class ComprehensiveGameState:
                             'value': content.value,
                             'object_flags': [flag.name for flag in content.object_flags],
                             'equip_locations': [loc.name for loc in content.equip_locations],
-                            'damage_resistances': {
-                                dt.name: value for dt, value in content.damage_resistances.profile.items()
+                            'damage_multipliers': {
+                                dt.name: value for dt, value in content.damage_multipliers.profile.items()
                             },
                             'damage_reductions': {
                                 dt.name: value for dt, value in content.damage_reduction.items()
@@ -1076,8 +1192,8 @@ class ComprehensiveGameState:
                             'value': obj.value,
                             'object_flags': [flag.name for flag in obj.object_flags],
                             'equip_locations': [loc.name for loc in obj.equip_locations],
-                            'damage_resistances': {
-                                dt.name: value for dt, value in obj.damage_resistances.profile.items()
+                            'damage_multipliers': {
+                                dt.name: value for dt, value in obj.damage_multipliers.profile.items()
                             },
                             'damage_reductions': {
                                 dt.name: value for dt, value in obj.damage_reduction.items()
@@ -1096,8 +1212,8 @@ class ComprehensiveGameState:
                                 'value': content.value,
                                 'object_flags': [flag.name for flag in content.object_flags],
                                 'equip_locations': [loc.name for loc in content.equip_locations],
-                                'damage_resistances': {
-                                    dt.name: value for dt, value in content.damage_resistances.profile.items()
+                                'damage_multipliers': {
+                                    dt.name: value for dt, value in content.damage_multipliers.profile.items()
                                 },
                                 'damage_reductions': {
                                     dt.name: value for dt, value in content.damage_reduction.items()
@@ -1206,20 +1322,24 @@ class ComprehensiveGameState:
                 target_player.max_hit_points = player_data['max_hit_points']
                 target_player.max_carrying_capacity = player_data['max_carrying_capacity']
                 
-                # Load combat stats
-                target_player.hit_modifier = player_data['hit_modifier']
+                # Load combat stats (base values - level bonuses calculated after)
+                # Support loading old saves that had hit_modifier instead of base_hit_modifier
+                target_player.base_hit_modifier = player_data.get('base_hit_modifier', player_data.get('hit_modifier', 50))
+                target_player.base_dodge_modifier = player_data.get('base_dodge_modifier', player_data.get('dodge_modifier', 0))
                 target_player.dodge_dice_number = player_data['dodge_dice_number']
                 target_player.dodge_dice_size = player_data['dodge_dice_size']
-                target_player.dodge_modifier = player_data['dodge_modifier']
                 target_player.critical_chance = player_data['critical_chance']
                 target_player.critical_multiplier = player_data['critical_multiplier']
                 target_player.num_main_hand_attacks = player_data['num_main_hand_attacks']
                 target_player.num_off_hand_attacks = player_data['num_off_hand_attacks']
                 
-                # Load resistances and reductions
-                target_player.damage_resistances = DamageResistances()
-                for dt_name, value in player_data['damage_resistances'].items():
-                    target_player.damage_resistances.profile[DamageType[dt_name]] = value
+                # Recalculate level-based combat bonuses
+                target_player.calculate_combat_bonuses()
+                
+                # Load multipliers and reductions
+                target_player.damage_multipliers = DamageMultipliers()
+                for dt_name, value in player_data['damage_multipliers'].items():
+                    target_player.damage_multipliers.profile[DamageType[dt_name]] = value
                     
                 target_player.damage_reduction = {DamageType[dt_name]: value for dt_name, value in player_data['damage_reductions'].items()}
                 
@@ -1237,9 +1357,9 @@ class ComprehensiveGameState:
                     for flag in obj_data['object_flags']:
                         obj.object_flags = obj.object_flags.add_flag_name(flag)
                     obj.equip_locations = [EquipLocation[loc] for loc in obj_data['equip_locations']]
-                    obj.damage_resistances = DamageResistances()
-                    for dt_name, value in obj_data['damage_resistances'].items():
-                        obj.damage_resistances.profile[DamageType[dt_name]] = value
+                    obj.damage_multipliers = DamageMultipliers()
+                    for dt_name, value in obj_data['damage_multipliers'].items():
+                        obj.damage_multipliers.profile[DamageType[dt_name]] = value
                     obj.damage_reduction = {DamageType[dt_name]: value for dt_name, value in obj_data['damage_reductions'].items()}
                     obj.damage_type = DamageType[obj_data['damage_type']] if obj_data['damage_type'] else None
                     obj.damage_num_dice = obj_data['damage_num_dice']

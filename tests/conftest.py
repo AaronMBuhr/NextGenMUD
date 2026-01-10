@@ -43,7 +43,7 @@ from NextGenMUDApp.nondb_models.character_interface import (
     CharacterAttributes, EquipLocation, PermanentCharacterFlags, 
     TemporaryCharacterFlags, GamePermissionFlags
 )
-from NextGenMUDApp.nondb_models.attacks_and_damage import DamageType, DamageResistances
+from NextGenMUDApp.nondb_models.attacks_and_damage import DamageType, DamageMultipliers
 
 
 @pytest.fixture

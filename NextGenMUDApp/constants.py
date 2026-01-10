@@ -75,12 +75,14 @@ class CharacterClassRole(DescriptiveFlags):
     @classmethod
     def is_specialization(cls, role: int) -> bool:
         """Returns True if the role is a specialization"""
-        return role in cls.SPECIALIZATION_TO_BASE
+        # Check if role is not in base classes (specializations are everything else in the enum)
+        return role not in cls.get_base_classes() and role in [m.value for m in cls if isinstance(m.value, int)]
     
     @classmethod
     def is_base_class(cls, role: int) -> bool:
         """Returns True if the role is a base class"""
-        return role in cls.BASE_TO_SPECIALIZATIONS
+        # Use get_base_classes() for robustness
+        return role in cls.get_base_classes()
 
     @classmethod
     def field_name(cls, value: int) -> str:
@@ -104,9 +106,23 @@ class Constants:
     TICKS_PER_ROUND: ClassVar[int] = 8
     XP_PROGRESSION: ClassVar[List[int]] = []
     HP_BY_CHARACTER_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], int]] = {}
+    CON_HP_MULTIPLIER_BY_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], float]] = {}
+    DEX_DODGE_MULTIPLIER_BY_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], float]] = {}
     MAIN_HAND_ATTACK_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
     OFF_HAND_ATTACK_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
     RECOVERY_TICKS: ClassVar[int] = 4
+    
+    # Level system
+    MIN_LEVEL: ClassVar[int] = 1
+    MAX_LEVEL: ClassVar[int] = 50
+    
+    # Skill point system
+    MAX_SKILL_LEVEL: ClassVar[int] = 20
+    SKILL_POINTS_PER_LEVEL_BY_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], int]] = {}
+    STARTING_SKILL_POINTS_LEVELS: ClassVar[int] = 3  # New chars get this many levels worth of skill points
+    
+    # Character class templates for new character creation
+    CHARACTER_CLASS_TEMPLATES: ClassVar[Dict[str, Dict[str, Any]]] = {}
     
     # Player save settings
     PLAYER_SAVES_DIR: ClassVar[str] = "player_saves"
@@ -143,6 +159,17 @@ class Constants:
     HP_REGEN_WALKING: ClassVar[float] = 0.1
     HP_REGEN_RESTING: ClassVar[float] = 0.5
     HP_REGEN_SLEEPING: ClassVar[float] = 1.0
+    
+    # Combat scaling progressions (per level, by class)
+    HIT_BONUS_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
+    SPELL_POWER_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
+    DODGE_BONUS_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
+    
+    # Skill-based saving throw system constants
+    ATTRIBUTE_SAVE_MODIFIER: ClassVar[int] = 2  # Attribute × this = save contribution
+    SAVE_CHANCE_MIN: ClassVar[int] = 5   # Minimum save chance %
+    SAVE_CHANCE_MAX: ClassVar[int] = 95  # Maximum save chance %
+    ATTRIBUTE_GAIN_LEVEL_INTERVAL: ClassVar[int] = 10  # Gain +1 attribute every N levels
 
 
     @classmethod
@@ -156,11 +183,23 @@ class Constants:
             class_enum = CharacterClassRole.from_field_name(class_name)
             Constants.HP_BY_CHARACTER_CLASS[class_enum] = hp
 
+        # Load Constitution HP multiplier by class
+        if "CON_HP_MULTIPLIER_BY_CLASS" in constants_dict:
+            for class_name, mult in constants_dict["CON_HP_MULTIPLIER_BY_CLASS"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.CON_HP_MULTIPLIER_BY_CLASS[class_enum] = float(mult)
+        
+        # Load Dexterity dodge multiplier by class
+        if "DEX_DODGE_MULTIPLIER_BY_CLASS" in constants_dict:
+            for class_name, mult in constants_dict["DEX_DODGE_MULTIPLIER_BY_CLASS"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.DEX_DODGE_MULTIPLIER_BY_CLASS[class_enum] = float(mult)
+
         # Load main hand / off hand progression
         for role in CharacterClassRole:
             role_num = role.value
-            Constants.MAIN_HAND_ATTACK_PROGRESSION[role_num] = [1 for _ in range(60)]
-            Constants.OFF_HAND_ATTACK_PROGRESSION[role_num] = [1 for _ in range(60)]
+            Constants.MAIN_HAND_ATTACK_PROGRESSION[role_num] = [1 for _ in range(Constants.MAX_LEVEL)]
+            Constants.OFF_HAND_ATTACK_PROGRESSION[role_num] = [1 for _ in range(Constants.MAX_LEVEL)]
         for class_name, an in constants_dict["MAIN_HAND_ATTACK_PROGRESSION"].items():
             class_enum = CharacterClassRole.from_field_name(class_name)
             Constants.MAIN_HAND_ATTACK_PROGRESSION[class_enum] = an
@@ -189,6 +228,26 @@ class Constants:
         # Load specialization level
         if "SPECIALIZATION_LEVEL" in constants_dict:
             Constants.SPECIALIZATION_LEVEL = constants_dict["SPECIALIZATION_LEVEL"]
+        
+        # Load level system
+        if "MIN_LEVEL" in constants_dict:
+            Constants.MIN_LEVEL = constants_dict["MIN_LEVEL"]
+        if "MAX_LEVEL" in constants_dict:
+            Constants.MAX_LEVEL = constants_dict["MAX_LEVEL"]
+        
+        # Load skill point system
+        if "MAX_SKILL_LEVEL" in constants_dict:
+            Constants.MAX_SKILL_LEVEL = constants_dict["MAX_SKILL_LEVEL"]
+        if "SKILL_POINTS_PER_LEVEL_BY_CLASS" in constants_dict:
+            for class_name, points in constants_dict["SKILL_POINTS_PER_LEVEL_BY_CLASS"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.SKILL_POINTS_PER_LEVEL_BY_CLASS[class_enum] = points
+        if "STARTING_SKILL_POINTS_LEVELS" in constants_dict:
+            Constants.STARTING_SKILL_POINTS_LEVELS = constants_dict["STARTING_SKILL_POINTS_LEVELS"]
+        
+        # Load character class templates
+        if "CHARACTER_CLASS_TEMPLATES" in constants_dict:
+            Constants.CHARACTER_CLASS_TEMPLATES = constants_dict["CHARACTER_CLASS_TEMPLATES"]
         
         # Load mana by character class
         if "MANA_GAIN_BY_CLASS" in constants_dict:
@@ -233,4 +292,39 @@ class Constants:
             Constants.HP_REGEN_RESTING = constants_dict["HP_REGEN_RESTING"]
         if "HP_REGEN_SLEEPING" in constants_dict:
             Constants.HP_REGEN_SLEEPING = constants_dict["HP_REGEN_SLEEPING"]
+        
+        # Initialize combat scaling progressions with defaults (no bonus)
+        for role in CharacterClassRole:
+            role_num = role.value
+            Constants.HIT_BONUS_PROGRESSION[role_num] = [0 for _ in range(Constants.MAX_LEVEL)]
+            Constants.SPELL_POWER_PROGRESSION[role_num] = [0 for _ in range(Constants.MAX_LEVEL)]
+            Constants.DODGE_BONUS_PROGRESSION[role_num] = [0 for _ in range(Constants.MAX_LEVEL)]
+        
+        # Load hit bonus progression (Fighter/Rogue get more hit as they level)
+        if "HIT_BONUS_PROGRESSION" in constants_dict:
+            for class_name, progression in constants_dict["HIT_BONUS_PROGRESSION"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.HIT_BONUS_PROGRESSION[class_enum] = progression
+        
+        # Load spell power progression (Mage/Cleric get stronger spells as they level)
+        if "SPELL_POWER_PROGRESSION" in constants_dict:
+            for class_name, progression in constants_dict["SPELL_POWER_PROGRESSION"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.SPELL_POWER_PROGRESSION[class_enum] = progression
+        
+        # Load dodge bonus progression (Rogue gets most dodge improvement)
+        if "DODGE_BONUS_PROGRESSION" in constants_dict:
+            for class_name, progression in constants_dict["DODGE_BONUS_PROGRESSION"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.DODGE_BONUS_PROGRESSION[class_enum] = progression
+        
+        # Load skill-based saving throw system constants
+        if "ATTRIBUTE_SAVE_MODIFIER" in constants_dict:
+            Constants.ATTRIBUTE_SAVE_MODIFIER = constants_dict["ATTRIBUTE_SAVE_MODIFIER"]
+        if "SAVE_CHANCE_MIN" in constants_dict:
+            Constants.SAVE_CHANCE_MIN = constants_dict["SAVE_CHANCE_MIN"]
+        if "SAVE_CHANCE_MAX" in constants_dict:
+            Constants.SAVE_CHANCE_MAX = constants_dict["SAVE_CHANCE_MAX"]
+        if "ATTRIBUTE_GAIN_LEVEL_INTERVAL" in constants_dict:
+            Constants.ATTRIBUTE_GAIN_LEVEL_INTERVAL = constants_dict["ATTRIBUTE_GAIN_LEVEL_INTERVAL"]
 

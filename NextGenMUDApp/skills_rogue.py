@@ -7,7 +7,7 @@ from .nondb_models.actor_states import (
     CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus,
     CharacterStateBleeding, CharacterStateHitBonus, CharacterStateStealthed, Cooldown
 )
-from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageResistances
+from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageMultipliers
 # CharacterSkill import removed - not used in this file
 from .constants import CharacterClassRole
 from .communication import CommTypes

@@ -3,12 +3,16 @@
 ## Base Mage (All Specializations)
 
 ### Tier 1 (Levels 1-9)
-* magic missile - single target, low damage
-* create food and water - single target, create magic food item and magic water item
+* magic missile - single target, arcane damage (10s cooldown, 8 mana)
+* blur - self or target, dodge bonus (+10 base, +0.5 per level), 2 minute duration
+* ignite - single target, fire DoT (3 + 0.5/level damage every 3s for 12s)
+* shield - self or target, damage resistance to all types (+10% base, +0.5% per level), 2 minute duration, 20 mana
 
 ### Tier 2 (Levels 10-19)
 * arcane barrier - low resist all, moderate duration
 * burning hands - all targets, low fire damage
+* mana burn - single target, drains mana and deals damage based on mana drained (10 + 2/level mana, 50% as arcane damage)
+* animate dead - requires NPC corpse, raises as "a <name> zombie" at half strength (half levels, half HP, half damage). Zombie is charmed and can be commanded with "command <zombie> <action>"
 
 ## Evoker Specialization
 

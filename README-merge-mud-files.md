@@ -15,6 +15,7 @@ A tool for managing incremental updates to MUD zone files using revision files. 
   - [Updating Existing Content](#updating-existing-content)
   - [Removing Content](#removing-content)
   - [Special Markers](#special-markers)
+- [Multi-Section Revisions](#multi-section-revisions)
 - [Section-by-Section Guide](#section-by-section-guide)
   - [ZONES Section](#zones-section)
   - [CHARACTERS Section](#characters-section)
@@ -286,6 +287,83 @@ ZONES:
           - id: only_trigger
             type: timer_tick
             # This will be the ONLY trigger, not added to existing
+```
+
+---
+
+## Multi-Section Revisions
+
+When working with LLMs to generate zone content, you may receive multiple responses that each contain partial revisions. Rather than saving each response to a separate file and running the merge tool multiple times, you can concatenate all responses into a single revisions file using the `# ===` break indicator.
+
+### How It Works
+
+Any line starting with `# ===` acts as a section separator. The merge tool will:
+
+1. Split the revisions file at each `# ===` line
+2. Parse each section as a separate YAML document
+3. Apply each section sequentially to the base file
+
+### Usage
+
+When you receive multiple LLM responses, simply paste them into a single file with `# ===` between each response:
+
+```yaml
+# First LLM response
+ZONES:
+  my_zone:
+    rooms:
+      room1:
+        name: Updated Room 1
+        description: "First update from LLM."
+
+# === Second LLM response ===
+
+ZONES:
+  my_zone:
+    rooms:
+      room2:
+        name: Updated Room 2
+        description: "Second update from LLM."
+
+# ===
+
+CHARACTERS:
+  - zone: my_zone
+    characters:
+      - id: new_npc
+        name: New NPC
+        description: "Third response added this NPC."
+
+# === You can add any text after the === for notes ===
+
+OBJECTS:
+  - zone: my_zone
+    objects:
+      - id: magic_sword
+        name: Magic Sword
+```
+
+### Notes
+
+- The `# ===` line itself is discarded and not parsed as YAML
+- You can add any text after `# ===` (e.g., `# === Response 2 from Claude ===`)
+- Empty sections are ignored
+- Each section is applied in order, so later sections can override earlier ones
+- This is purely a human convenience feature for concatenating LLM outputs
+- **Decorative comment lines are NOT break indicators** - lines like `# =========` or `# ==== SECTION ====` are preserved as normal comments
+
+### Example Output
+
+When running the merge with multiple sections, you'll see progress output:
+
+```
+[INFO] Found 4 revision sections (split by '# ===' indicators)
+[INFO] Applying revision section 1/4...
+[INFO] Applying revision section 2/4...
+[INFO] Applying revision section 3/4...
+[INFO] Applying revision section 4/4...
+[OK] Successfully merged: output.yaml
+     Comments preserved.
 ```
 
 ---

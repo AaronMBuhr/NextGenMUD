@@ -23,4 +23,4 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Start the application with uvicorn
-uvicorn NextGenMUD.asgi:application --host 0.0.0.0 --port 8000 "${UVICORN_ARGS[@]}"
+uvicorn NextGenMUD.asgi:application --host 0.0.0.0 --port 8000 --timeout-graceful-shutdown 3 "${UVICORN_ARGS[@]}"
