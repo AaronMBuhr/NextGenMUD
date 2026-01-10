@@ -37,8 +37,8 @@ experience_points: 0
 hit_dice: 1
 hit_dice_size: 10
 hit_point_bonus: 4
-max_hit_points: 19
-current_hit_points: 19
+max_hit_points: 20
+current_hit_points: 20
 max_mana: 0
 current_mana: 0
 max_stamina: 23
