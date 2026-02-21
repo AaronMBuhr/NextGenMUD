@@ -79,9 +79,11 @@ class Cooldown:
     def ticks_remaining(self, current_tick: int) -> int:
         return max(self.cooldown_end_tick - current_tick, 0)
 
-    def end_cooldown(self, actor: ActorInterface, tick: int, game_state: "GameStateInterface", vars: Dict[str, Any]) -> bool:
+    async def end_cooldown(self, actor: ActorInterface, tick: int, game_state: "GameStateInterface", vars: Dict[str, Any]) -> bool:
         if self.cooldown_end_fn:
-            self.cooldown_end_fn(self)
+            result = self.cooldown_end_fn(self)
+            if asyncio.iscoroutine(result):
+                await result
         self.actor.cooldowns.remove(self)
         return True
 

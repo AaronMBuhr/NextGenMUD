@@ -1,207 +1,145 @@
 
-# Saving Throws & Character Growth
+# Saving Throws
 
-**Functional Specification (v1.0)**
+**Class-Based Percentage System (v2.0)**
 
 ## Design Goals
 
-* Support **multiclass characters** cleanly
-* Prevent saving throws from becoming trivial at high level
-* Ensure **same-level parity**:
-
-  * L10 vs L10 ≈ L50 vs L50
-* Avoid NPC-specific tuning or hidden penalties
-* Give players **meaningful agency** and visible progression
-* Keep calculations simple and inspectable
+* Saves determined by **class, ability scores, and level difference**
+* No progression with character level (no trainable save skills)
+* Same-level parity: class base save is the baseline
+* Per-skill tuning via `save_difficulty` on each Skill definition
+* Simple, inspectable formula
 
 ---
 
-## Core Concepts
-
-### 1. Saving Throws Are Opposed Checks
-
-Saving throws are **not static DCs**.
-They are resolved as **opposed values** between attacker and defender.
-
-Only **relative power** matters.
-
----
-
-## Saving Throw Resolution
-
-### Final Save Chance
+## Formula
 
 ```
-SaveChance =
-  clamp(
-    50
-    + (Defender_Save - Attacker_Penetration)
-    + situational_modifiers,
+SaveChance = clamp(
+    ClassBaseSave
+    + (DefenderAttribute - AttackerAttribute) × ATTRIBUTE_SAVE_MULTIPLIER
+    + (DefenderBestLevel - AttackerClassLevel) × LEVEL_DIFF_MULTIPLIER
+    - SkillSaveDifficulty
+    + SavingThrowBonus,
     5,
     95
-  )
+)
 ```
 
-* `50` = baseline parity
-* Result is a **percentage roll**
+* Roll 1-100; if roll <= SaveChance, the target **saves** (resists the effect)
 * Absolute bounds: **5% min, 95% max**
 
 ---
 
-## Defender Save Calculation
+## Term Definitions
 
-```
-Defender_Save =
-  Save_Skill
-+ (Relevant_Attribute × Attribute_Modifier)
-+ gear_bonuses
-+ buffs/debuffs
-```
+### ClassBaseSave
 
-### Notes
+Looked up from `Constants.SAVING_THROW_BASES` by the defender's best class for that save type.
 
-* `Save_Skill` is a 0–100 value
-* Attributes contribute modestly and slowly
-* Gear and buffs are additive
+| Class | Fortitude | Reflex | Will |
+|-------|-----------|--------|------|
+| Fighter | 50 | 35 | 30 |
+| Rogue | 30 | 50 | 35 |
+| Mage | 30 | 35 | 50 |
+| Cleric | 40 | 30 | 50 |
 
----
-
-## Attacker Penetration Calculation
-
-```
-Attacker_Penetration =
-  Spell_or_Ability_Skill
-+ (Relevant_Attribute × Attribute_Modifier)
-+ spell_mastery
-+ penetration_bonuses
-```
-
-### Notes
-
-* Penetration mirrors saves numerically
-* Keeps same-level difficulty consistent
-* Prevents save trivialization at high levels
-
----
-
-## Attribute Contribution
+For multiclass characters, the best base save across all classes is used.
 
 ### Attribute Modifier
 
-* **Default:** `Attribute × 2`
-* Tunable later if needed
+`(DefenderAttribute - AttackerAttribute) × ATTRIBUTE_SAVE_MULTIPLIER`
 
-### Attribute → Save Mapping (Initial)
+* `ATTRIBUTE_SAVE_MULTIPLIER = 2` (default, configurable)
+* Attribute mapping: Fortitude → CON, Reflex → DEX, Will → WIS
+* Attacker attribute depends on the skill's class: STR for Fighter, DEX for Rogue, INT for Mage, WIS for Cleric
+* Example: Defender CON 16 vs Attacker STR 12 = +8 to save chance
 
-| Save Type                        | Attribute              |
-| -------------------------------- | ---------------------- |
-| Fortitude                        | Constitution           |
-| Reflex                           | Dexterity              |
-| Will                             | Wisdom                 |
-| Reason                           | Intelligence           |
+### Level Difference
 
-*(Exact mappings may be adjusted later without breaking the system.)*
+`(DefenderBestLevel - AttackerClassLevel) × LEVEL_DIFF_MULTIPLIER`
 
----
+* `LEVEL_DIFF_MULTIPLIER = 3` (default, configurable)
+* Defender uses their highest single-class level
+* Attacker uses their level in the skill's base class
+* Example: Defender level 15 vs Attacker Fighter level 10 = +15 to save chance
 
-## Character Growth Model
+### SkillSaveDifficulty
 
-### Level Progression
+Per-skill tuning on the `Skill` data object. Positive values make the save harder (subtracted from save chance).
 
-* **Max Level:** 50
-* Leveling grants:
+* Charm: `save_difficulty: -10` (easy to resist)
+* Fireball: `save_difficulty: 0` (standard)
+* Power Word Stun: `save_difficulty: 15` (hard to resist)
 
-  * Skill points (primary growth axis)
-  * Occasional attribute choice (secondary axis)
+### SavingThrowBonus
 
----
-
-### Attribute Advancement
-
-* Characters gain **+1 attribute point every 10 levels**
-
-  * Base attribute points to be selected by player at creation range from 1 to 20
-  * Increase one point of player choice at Levels: 10, 20, 30, 40, 50
-  * **Maximum: +5 total attributes**
-* Player chooses where to assign each point
-* Attributes are **not** automatically increased on level-up
-
-#### Optional Constraints (Not Required for v1.0)
-
-* This is for future reference only, left here for future reference and discussion.
-* Soft cap (e.g., 22–24)
-* Racial maximums
-* Narrative or feat gating after a threshold
+From the character's `saving_throw_bonuses` dict. A value of 100 means immune (automatic save). Used for special resistances (e.g., undead immune to charm = `will: 100`).
 
 ---
 
-### Skills
+## Save Types
 
-* Save skills and offensive skills:
-
-  * Scale from **0–100**
-  * Increase through level-up allocation, training, or use
-* Skills are the **primary determinant** of save effectiveness
-
----
-
-## Multiclass Behavior
-
-* No class-based save tables
-* All classes contribute via:
-
-  * Skill access
-  * Attribute synergies
-  * Passive modifiers (optional later)
-
-Multiclass characters:
-
-* Gain flexibility
-* Sacrifice ceilings
-* Require no special-case logic
+| Save Type | Attribute | Resists |
+|-----------|-----------|---------|
+| Fortitude | Constitution | Physical effects: stun, knockdown, poison, forced movement |
+| Reflex | Dexterity | Area effects: fireballs, traps, backstab, disarm |
+| Will | Wisdom | Mental effects: charm, fear, intimidation, holy damage |
 
 ---
 
-## Outcome Resolution (Future Reference)
+## Skill Save Assignments
 
-This is also for future reference only, left here for future reference and discussion.
-Saving throws should support **graded outcomes**:
+Each skill's `Skill(...)` definition includes `save_type` and `save_difficulty`:
 
-| Result               | Effect         |
-| -------------------- | -------------- |
-| Fail by large margin | Full effect    |
-| Narrow failure       | Partial effect |
-| Narrow success       | Reduced effect |
-| Clear success        | Negated        |
+**Fighter:** Mighty Kick (fort/0), Demoralizing Shout (will/0), Intimidate (will/-5), Slam (fort/0), Bash (fort/5), Disarm (ref/0), Rend (fort/0), Shield Sweep (ref/0)
 
-*(Exact thresholds may be defined per ability.)*
+**Mage:** Magic Missile (ref/-10), Fireball (ref/0), Ignite (ref/0), Mana Burn (will/5)
 
----
+**Cleric:** Smite (will/0), Judgment (will/5), Divine Reckoning (will/10)
 
-## What This System Guarantees
+**Rogue:** Backstab (ref/0)
 
-* L10 vs L10 ≈ L50 vs L50
-* High-level characters resist low-level threats naturally
-* No NPC tuning required
-* Player choices matter, but never dominate
-* Long-term balance stability
+Skills without `save_type` (buffs, heals, utility, pure damage) skip the save check entirely.
 
 ---
 
-## Future Extension Points (Out of Scope for Now)
+## Examples
 
-* Dual-attribute saves
-* Save rerolls / advantage mechanics
-* Resistance layers and immunities
-* Conditional penetration types
-* Attribute growth via world events
+**Level 10 Fighter (STR 16) uses Bash (fort, difficulty 5) on Level 10 Mage (CON 10):**
+* Base: 30 (Mage Fortitude)
+* Attr: (10 - 16) × 2 = -12
+* Level: (10 - 10) × 3 = 0
+* Difficulty: -5
+* Result: 30 - 12 - 5 = **13% save chance** (Mage gets wrecked by physical CC)
+
+**Level 10 Mage (INT 16) uses Fireball (ref, difficulty 0) on Level 10 Rogue (DEX 16):**
+* Base: 50 (Rogue Reflex)
+* Attr: (16 - 16) × 2 = 0
+* Level: (10 - 10) × 3 = 0
+* Result: **50% save chance** (Rogue's specialty)
+
+**Level 15 Mage vs Level 10 Fighter, Fireball:**
+* Base: 35 (Fighter Reflex)
+* Attr: (12 - 16) × 2 = -8
+* Level: (10 - 15) × 3 = -15
+* Result: 35 - 8 - 15 = **12% save chance** (level advantage is devastating)
 
 ---
 
-## Summary
+## Configuration
 
-> **Saving throws are opposed, skill-driven, and level-relative.
-> Attributes grow slowly, by player choice, and tilt outcomes rather than deciding them.**
+All values are configurable in `app_config.yaml` / `Constants`:
 
-This system is intentionally simple, robust, and extensible—appropriate for early testing and long-term evolution.
-
+```yaml
+ATTRIBUTE_SAVE_MULTIPLIER: 2
+LEVEL_DIFF_MULTIPLIER: 3
+SAVE_CHANCE_MIN: 5
+SAVE_CHANCE_MAX: 95
+SAVING_THROW_BASES:
+  fighter: { fortitude: 50, reflex: 35, will: 30 }
+  rogue:   { fortitude: 30, reflex: 50, will: 35 }
+  mage:    { fortitude: 30, reflex: 35, will: 50 }
+  cleric:  { fortitude: 40, reflex: 30, will: 50 }
+```

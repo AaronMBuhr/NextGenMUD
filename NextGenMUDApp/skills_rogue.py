@@ -1,5 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skills, ClassSkills, Skill
+from .skills_core import Skills, ClassSkills, Skill, SkillsRegistry
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, TemporaryCharacterFlags, PermanentCharacterFlags
 from .nondb_models.actor_states import (
@@ -16,7 +16,7 @@ from .core_actions_interface import CoreActionsInterface
 import random
 
 
-class Skills_Rogue(ClassSkills):
+class Skills_Rogue(Skills):
     
     def get_level_requirement(self, skill_name: str) -> int:
         """Return the level requirement for a skill"""
@@ -86,6 +86,8 @@ class Skills_Rogue(ClassSkills):
         message_resist_subject="%t% notices you and evades your backstab!",
         message_resist_target="You notice $cap(%a%) and evade %Q% backstab!",
         message_resist_room="%t% notices $cap(%a%) and evades %Q% backstab!",
+        save_type="reflex",
+        save_difficulty=0,
         skill_function=None  # Will be implemented later
     )
     
@@ -146,15 +148,15 @@ class Skills_Rogue(ClassSkills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
         continue_func = lambda: cls.do_rogue_backstab_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
+        actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
         if nowait:
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -162,10 +164,11 @@ class Skills_Rogue(ClassSkills):
     @classmethod
     async def do_rogue_backstab_finish(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0) -> bool:
+        THIS_SKILL_DATA = Skills_Rogue.BACKSTAB
         BACKSTAB_DAMAGE_MULT = 4
         BACKSTAB_COOLDOWN_TICKS = ticks_from_seconds(60)
         
-        cooldown = Cooldown(actor, "backstab", cls._game_state, cooldown_source=actor, cooldown_vars={"duration": BACKSTAB_COOLDOWN_TICKS})
+        cooldown = Cooldown(actor, "backstab", cls._get_game_state(), cooldown_source=actor, cooldown_vars={"duration": BACKSTAB_COOLDOWN_TICKS})
         await cooldown.start(game_tick, BACKSTAB_COOLDOWN_TICKS)
         
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
@@ -174,29 +177,37 @@ class Skills_Rogue(ClassSkills):
         
         mhw = actor.equipped_[EquipLocation.MAIN_HAND]
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.ROGUE][Skills_Rogue.BACKSTAB], difficulty_modifier):
+            if THIS_SKILL_DATA.save_type:
+                vars = set_vars(actor, actor, target, "", cls._get_game_state())
+                save_chance, saved = target.attempt_save(
+                    THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                    attacker_attribute=CharacterAttributes.DEXTERITY)
+                if saved:
+                    cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    return True
             damage = roll_dice(mhw.damage_dice_number_, mhw.damage_dice_size_, mhw.damage_dice_modifier_) * BACKSTAB_DAMAGE_MULT
             msg = f"You backstab {target.art_name} for {damage} damage!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state, {'d': damage})
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state(), {'d': damage})
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             msg = f"{actor.art_name_cap} backstabs you for {damage} damage!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state, {'d': damage})
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state(), {'d': damage})
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             msg = f"{actor.art_name_cap} backstabs {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state, {'d': damage})
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state(), {'d': damage})
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, mhw.damage_type_)
             return True
         else:
             msg = f"You try to backstab {target.art_name}, but fumble your attack!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state())
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             msg = f"{actor.art_name_cap} tries to backstab you, but fumbles {actor.pronoun_possessive} attack!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state())
+            target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             msg = f"{actor.art_name_cap} tries to backstab {target.art_name}, but fumbles {actor.pronoun_possessive} attack!"
-            vars = set_vars(actor, actor, target, msg, cls._game_state)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            vars = set_vars(actor, actor, target, msg, cls._get_game_state())
+            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
 
     @classmethod
@@ -206,15 +217,15 @@ class Skills_Rogue(ClassSkills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
         continue_func = lambda: cls.do_rogue_stealth_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
+        actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
         if nowait:
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -229,15 +240,15 @@ class Skills_Rogue(ClassSkills):
             secs_remaining = seconds_from_ticks(last_cooldown.ticks_remaining(game_tick))
             msg = f"You can't retry stealth for another {secs_remaining} seconds!"
             vars = set_vars(actor, actor, target, msg, {'d': secs_remaining})
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
         
         # cooldown before re-trying to stealth
-        new_cooldown = Cooldown(actor, "stealth", cls._game_state, cooldown_source=cls.do_rogue_stealth)
+        new_cooldown = Cooldown(actor, "stealth", cls._get_game_state(), cooldown_source=cls.do_rogue_stealth)
         actor.add_cooldown(new_cooldown)
         new_cooldown.start(game_tick, ticks_from_seconds(STEALTH_RETRY_COOLDOWN_SEC))
         # have to re-try skill check
-        new_cooldown = Cooldown(actor, "recheck stealth", cls._game_state, cooldown_source=cls.do_rogue_stealth, 
+        new_cooldown = Cooldown(actor, "recheck stealth", cls._get_game_state(), cooldown_source=cls.do_rogue_stealth, 
                                 cooldown_vars=None, cooldown_end_fn=lambda cd: cls.recheck_stealth(actor,cd))
         actor.add_cooldown(new_cooldown)
         new_cooldown.start(game_tick, ticks_from_seconds(RETRY_SKILL_CHECK_SEC))
@@ -261,27 +272,20 @@ class Skills_Rogue(ClassSkills):
         cds = [cd for cd in actor.cooldowns_ if cd.cooldown_source_ == cls.do_rogue_stealth]
 
     @classmethod
-    def recheck_stealth(cls, sneaker: Actor, cooldown: Cooldown=None):
+    async def recheck_stealth(cls, sneaker: Actor, cooldown: Cooldown=None):
         if not sneaker.has_temp_flags(TemporaryCharacterFlags.IS_STEALTHED):
-            retval = False
+            return False
         for viewer in sneaker._location_room:
             if viewer == sneaker:
                 continue
             if not cls.stealthcheck(sneaker, viewer):
                 msg = f"You notice {sneaker.art_name} trying to hide!"
-                vars = set_vars(sneaker, sneaker, viewer, msg, cls._game_state)
-                viewer.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-                if viewer.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE):
-                    msg = f"{viewer.art_name} notices you and attacks!"
-                    vars = set_vars(sneaker, viewer, sneaker, msg)
-                    sneaker.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
-                    msg = f"{viewer.art_name_cap} notices {sneaker.art_name} and attacks!"
-                    vars = set_vars(sneaker, sneaker, viewer, msg)
-                    sneaker._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[sneaker, viewer], game_state=cls._game_state)
-                    cls.remove_stealth(sneaker)
-                    CoreActionsInterface.get_instance().start_fighting(viewer,sneaker)
-                    CoreActionsInterface.get_instance().start_fighting(sneaker,viewer)
-                retval = False
+                vars = set_vars(sneaker, sneaker, viewer, msg, cls._get_game_state())
+                await viewer.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+                cls.remove_stealth(sneaker)
+                await CoreActionsInterface.get_instance().do_aggro(viewer)
+                return False
+        return True
 
     @classmethod
     async def do_rogue_evade(cls, actor: Actor, target: Actor, 
@@ -290,15 +294,15 @@ class Skills_Rogue(ClassSkills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
         continue_func = lambda: cls.do_rogue_evade_finish(actor, target, difficulty_modifier, game_tick)
-        actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
+        actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
         if nowait:
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -321,16 +325,23 @@ class Skills_Rogue(ClassSkills):
             new_state.apply_state(game_tick, duration)
             msg = f"You focus on evading blows!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return True
         else:
             msg = f"You try being evasive, but fail!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
             return False
 
     @classmethod
     async def do_rogue_pickpocket(cls, actor: Actor, target: Actor, 
                                  difficulty_modifier=0, game_tick=0) -> bool:
-        actor.send_text(CommTypes.DYNAMIC, "Pickpocketing is not yet implemented!", cls._game_state)
-        return False 
+        actor.send_text(CommTypes.DYNAMIC, "Pickpocketing is not yet implemented!", cls._get_game_state())
+        return False
+
+
+SkillsRegistry.register_skill_class("rogue", {
+    attr_name.lower(): getattr(Skills_Rogue, attr_name)
+    for attr_name in dir(Skills_Rogue)
+    if not attr_name.startswith('_') and isinstance(getattr(Skills_Rogue, attr_name), Skill)
+})

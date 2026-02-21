@@ -185,6 +185,8 @@ class CommandHandler(CommandHandlerInterface):
         "u": lambda command, char, input: CommandHandler.handle_movement(command, char, "up"),
         "out": lambda command, char, input: CommandHandler.handle_movement(command, char, "out"),
         "in": lambda command, char, input: CommandHandler.handle_movement(command, char, "in"),
+        "go": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_go(char, input),
+        "enter": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_go(char, input),
         "say": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_say(char, input),
         "sayto": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_sayto(char, input),
         "ask": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_ask(char, input),
@@ -247,6 +249,44 @@ class CommandHandler(CommandHandlerInterface):
         except KeyError as e:
             logger.warning(f"Movement failed - destination room not found: {e} when moving {direction} from {char.location_room.name}")
             await char.send_text(CommTypes.DYNAMIC, "There is a problem with going that direction.")
+
+    CARDINAL_ALIASES = {
+        'n': 'north', 'north': 'north',
+        's': 'south', 'south': 'south',
+        'e': 'east', 'east': 'east',
+        'w': 'west', 'west': 'west',
+        'u': 'up', 'up': 'up',
+        'd': 'down', 'down': 'down',
+    }
+
+    @classmethod
+    async def cmd_go(cls, actor: Actor, input: str):
+        """Handle 'go <keyword>' and 'enter <keyword>' for non-cardinal exits."""
+        if not input or not input.strip():
+            await actor.send_text(CommTypes.DYNAMIC, "Go where?")
+            return
+
+        keyword = input.strip().lower()
+
+        # If it's a cardinal direction, just delegate to normal movement
+        if keyword in cls.CARDINAL_ALIASES:
+            await cls.handle_movement("go", actor, cls.CARDINAL_ALIASES[keyword])
+            return
+
+        # Fire CATCH_GO triggers on the room -- script can intercept and handle
+        room = actor.location_room
+        if TriggerType.CATCH_GO in room.triggers_by_type:
+            go_vars = set_vars(room, actor, actor, keyword)
+            for trigger in room.triggers_by_type[TriggerType.CATCH_GO]:
+                if await trigger.run(actor, keyword, go_vars, cls._game_state):
+                    return
+
+        # Check room exits for the keyword
+        if keyword in room.exits:
+            await cls.handle_movement("go", actor, keyword)
+            return
+
+        await actor.send_text(CommTypes.DYNAMIC, "You can't go that way.")
 
     @classmethod
     async def process_command(cls, actor: Actor, input: str, vars: dict = None, from_script: bool = False) -> bool:
@@ -1223,13 +1263,7 @@ class CommandHandler(CommandHandlerInterface):
         # Search order: room characters, room objects, inventory objects
         target = cls._game_state.find_target_character(actor, keyword)
         if target is None:
-            target = cls._game_state.find_target_object(keyword, actor)  # room objects
-        if target is None:
-            # Search inventory
-            for obj in actor.contents:
-                if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                    target = obj
-                    break
+            target = cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
         
         if target is None:
             await actor.send_text(CommTypes.DYNAMIC, "Look at what?")
@@ -1399,11 +1433,7 @@ class CommandHandler(CommandHandlerInterface):
         target_name = pieces[1]
         
         # Find the item in actor's inventory
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(item_name) or obj.name.lower() == item_name.lower():
-                item = obj
-                break
+        item = cls._game_state.find_target_object(item_name, actor=actor)
         
         if not item:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{item_name}'.")
@@ -1707,11 +1737,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         
         # Find item in target's inventory
-        item = None
-        for obj in target.contents:
-            if obj.matches_keyword(item_name) or obj.name.lower() == item_name.lower() or obj.id == item_name:
-                item = obj
-                break
+        item = cls._game_state.find_target_object(item_name, search_list=target.contents)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"{target.name} doesn't have '{item_name}'.")
@@ -2143,12 +2169,7 @@ class CommandHandler(CommandHandlerInterface):
         keyword = pieces[0]
         
         # Search room objects, then inventory
-        target = cls._game_state.find_target_object(keyword, actor)
-        if target is None:
-            for obj in actor.contents:
-                if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                    target = obj
-                    break
+        target = cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
         
         # If no object found, check for exit doors
         exit_direction, exit_obj = None, None
@@ -2224,12 +2245,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = split_preserving_quotes(input)
         keyword = pieces[0]
         
-        target = cls._game_state.find_target_object(keyword, actor)
-        if target is None:
-            for obj in actor.contents:
-                if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                    target = obj
-                    break
+        target = cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
         
         # If no object found, check for exit doors
         exit_direction, exit_obj = None, None
@@ -2300,12 +2316,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = split_preserving_quotes(input)
         keyword = pieces[0]
         
-        target = cls._game_state.find_target_object(keyword, actor)
-        if target is None:
-            for obj in actor.contents:
-                if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                    target = obj
-                    break
+        target = cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
         
         # If no object found, check for exit doors
         exit_direction, exit_obj = None, None
@@ -2331,11 +2342,7 @@ class CommandHandler(CommandHandlerInterface):
             # Check for key
             key_id = exit_obj.key_id
             if key_id and not is_privileged:
-                has_key = False
-                for obj in actor.contents:
-                    if obj.id == key_id or obj.matches_keyword(key_id):
-                        has_key = True
-                        break
+                has_key = cls._game_state.find_target_object(key_id, actor=actor) is not None
                 if not has_key:
                     await actor.send_text(CommTypes.DYNAMIC, f"You don't have the key to {exit_obj.art_name}.")
                     return
@@ -2367,11 +2374,7 @@ class CommandHandler(CommandHandlerInterface):
             
             key_id = target.get_perm_var("key_id", None)
             if key_id and not is_privileged:
-                has_key = False
-                for obj in actor.contents:
-                    if obj.id == key_id or obj.matches_keyword(key_id):
-                        has_key = True
-                        break
+                has_key = cls._game_state.find_target_object(key_id, actor=actor) is not None
                 if not has_key:
                     await actor.send_text(CommTypes.DYNAMIC, f"You don't have the key to {target.art_name}.")
                     return
@@ -2407,12 +2410,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = split_preserving_quotes(input)
         keyword = pieces[0]
         
-        target = cls._game_state.find_target_object(keyword, actor)
-        if target is None:
-            for obj in actor.contents:
-                if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                    target = obj
-                    break
+        target = cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
         
         # If no object found, check for exit doors
         exit_direction, exit_obj = None, None
@@ -2434,11 +2432,7 @@ class CommandHandler(CommandHandlerInterface):
             # Check for key
             key_id = exit_obj.key_id
             if key_id and not is_privileged:
-                has_key = False
-                for obj in actor.contents:
-                    if obj.id == key_id or obj.matches_keyword(key_id):
-                        has_key = True
-                        break
+                has_key = cls._game_state.find_target_object(key_id, actor=actor) is not None
                 if not has_key:
                     await actor.send_text(CommTypes.DYNAMIC, f"You don't have the key to {exit_obj.art_name}.")
                     return
@@ -2466,11 +2460,7 @@ class CommandHandler(CommandHandlerInterface):
             
             key_id = target.get_perm_var("key_id", None)
             if key_id and not is_privileged:
-                has_key = False
-                for obj in actor.contents:
-                    if obj.id == key_id or obj.matches_keyword(key_id):
-                        has_key = True
-                        break
+                has_key = cls._game_state.find_target_object(key_id, actor=actor) is not None
                 if not has_key:
                     await actor.send_text(CommTypes.DYNAMIC, f"You don't have the key to {target.art_name}.")
                     return
@@ -2515,14 +2505,7 @@ class CommandHandler(CommandHandlerInterface):
         target_name = parts[1].strip() if len(parts) > 1 else None
         
         # Find the item (inventory first, then room)
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(item_name) or obj.name.lower() == item_name:
-                item = obj
-                break
-        
-        if item is None:
-            item = cls._game_state.find_target_object(item_name, actor)
+        item = cls._game_state.find_target_object(item_name, actor=actor, start_room=actor.location_room)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{item_name}'.")
@@ -2531,13 +2514,7 @@ class CommandHandler(CommandHandlerInterface):
         # Find target if specified
         target = None
         if target_name:
-            # Try object first
-            target = cls._game_state.find_target_object(target_name, actor)
-            if target is None:
-                for obj in actor.contents:
-                    if obj.matches_keyword(target_name) or obj.name.lower() == target_name:
-                        target = obj
-                        break
+            target = cls._game_state.find_target_object(target_name, actor=actor, start_room=actor.location_room)
             # Try character
             if target is None:
                 target = cls._game_state.find_target_character(actor, target_name)
@@ -2701,11 +2678,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         
         # Find the potion in inventory
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(input.lower()) or obj.name.lower() == input.lower():
-                item = obj
-                break
+        item = cls._game_state.find_target_object(input, actor=actor)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{input}'.")
@@ -2735,11 +2708,7 @@ class CommandHandler(CommandHandlerInterface):
         target_name = parts[1].strip() if len(parts) > 1 else None
         
         # Find the bandage in inventory
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(item_name) or obj.name.lower() == item_name:
-                item = obj
-                break
+        item = cls._game_state.find_target_object(item_name, actor=actor)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{item_name}'.")
@@ -2767,11 +2736,7 @@ class CommandHandler(CommandHandlerInterface):
             return
         
         # Find the food in inventory
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(input.lower()) or obj.name.lower() == input.lower():
-                item = obj
-                break
+        item = cls._game_state.find_target_object(input, actor=actor)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{input}'.")
@@ -3207,6 +3172,8 @@ class CommandHandler(CommandHandlerInterface):
         
         Usage:
             get <item>              - Get item from room floor
+            get all                 - Get all takeable items from room
+            get all from <container> - Get all takeable items from a container
             get <item> from <container>  - Get item from a container
             get <item> <container>       - Same as above
         """
@@ -3223,7 +3190,7 @@ class CommandHandler(CommandHandlerInterface):
         item_keyword = pieces[0]
         
         if len(pieces) >= 3 and pieces[1].lower() == "from":
-            # "get sword from chest"
+            # "get sword from chest" or "get all from chest"
             item_keyword = pieces[0]
             container_keyword = ' '.join(pieces[2:])
             container = cls._find_container(actor, container_keyword)
@@ -3236,6 +3203,55 @@ class CommandHandler(CommandHandlerInterface):
             container_keyword = ' '.join(pieces[1:])
             container = cls._find_container(actor, container_keyword)
             # If no container found, fall back to normal get (maybe they typed "get the sword")
+        
+        if item_keyword.lower() == "all":
+            # Get all takeable items (from room or container)
+            from .nondb_models.objects import Corpse
+            if container:
+                if not container.has_flags(ObjectFlags.IS_CONTAINER):
+                    await actor.send_text(CommTypes.DYNAMIC, f"{container.art_name_cap} is not a container.")
+                    return
+                if container.has_flags(ObjectFlags.IS_CLOSED):
+                    await actor.send_text(CommTypes.DYNAMIC, f"{container.art_name_cap} is closed.")
+                    return
+                if isinstance(container, Corpse) and not container.can_be_looted_by(actor):
+                    await actor.send_text(CommTypes.DYNAMIC, f"You cannot loot {container.art_name}.")
+                    return
+                source_list = list(container.contents)
+            else:
+                source_list = list(actor.location_room.contents)
+            takeable = [
+                obj for obj in source_list
+                if not (hasattr(obj, 'has_flags') and obj.has_flags(ObjectFlags.NO_TAKE))
+            ]
+            if not takeable:
+                if container:
+                    await actor.send_text(CommTypes.DYNAMIC, f"There's nothing to take in {container.art_name}.")
+                else:
+                    await actor.send_text(CommTypes.DYNAMIC, "There's nothing here to take.")
+                return
+            names = []
+            for target in takeable:
+                if TriggerType.ON_GET in target.triggers_by_type:
+                    get_vars = set_vars(target, actor, actor, target.name)
+                    for trigger in target.triggers_by_type[TriggerType.ON_GET]:
+                        await trigger.run(target, target.id, get_vars, cls._game_state)
+                if container:
+                    container.contents.remove(target)
+                else:
+                    target.location_room.remove_object(target)
+                actor.add_to_inventory(target)
+                names.append(article_plus_name(getattr(target, 'article', None), target.name))
+            name_list = ", ".join(names)
+            if container:
+                await actor.send_text(CommTypes.DYNAMIC, f"You get {name_list} from {container.art_name}.")
+                msg = f"{actor.art_name_cap} gets {name_list} from {container.art_name}."
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, f"You get {name_list}.")
+                msg = f"{actor.art_name_cap} gets {name_list}."
+            vars = set_vars(actor, actor, None, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            return
         
         if container:
             # Get from container
@@ -3253,11 +3269,7 @@ class CommandHandler(CommandHandlerInterface):
                 return
             
             # Find the item in the container
-            target = None
-            for obj in container.contents:
-                if obj.matches_keyword(item_keyword) or obj.name.lower() == item_keyword.lower():
-                    target = obj
-                    break
+            target = cls._game_state.find_target_object(item_keyword, search_list=container.contents)
             
             if target is None:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't see that in {container.art_name}.")
@@ -3310,15 +3322,7 @@ class CommandHandler(CommandHandlerInterface):
 
     def _find_container(cls, actor: Actor, keyword: str):
         """Helper to find a container in room or inventory."""
-        # Search room objects
-        for obj in actor.location_room.contents:
-            if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                return obj
-        # Search inventory
-        for obj in actor.contents:
-            if obj.matches_keyword(keyword) or obj.name.lower() == keyword.lower():
-                return obj
-        return None
+        return cls._game_state.find_target_object(keyword, actor=actor, start_room=actor.location_room)
 
 
     async def cmd_put(cls, actor: Actor, input: str):
@@ -3350,11 +3354,7 @@ class CommandHandler(CommandHandlerInterface):
             container_keyword = ' '.join(pieces[1:])
         
         # Find item in inventory
-        item = None
-        for obj in actor.contents:
-            if obj.matches_keyword(item_keyword) or obj.name.lower() == item_keyword.lower():
-                item = obj
-                break
+        item = cls._game_state.find_target_object(item_keyword, actor=actor)
         
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have any '{item_keyword}'.")
@@ -3399,11 +3399,7 @@ class CommandHandler(CommandHandlerInterface):
         pieces = split_preserving_quotes(input)
         
         # Search in actor's inventory
-        target = None
-        for obj in actor.contents:
-            if obj.matches_keyword(pieces[0]) or obj.name.lower() == pieces[0].lower():
-                target = obj
-                break
+        target = cls._game_state.find_target_object(pieces[0], actor=actor)
         
         if target is None:
             await actor.send_text(CommTypes.DYNAMIC, "You don't have that.")
@@ -4405,15 +4401,18 @@ class CommandHandler(CommandHandlerInterface):
         if target.spell_power > 0:
             lines.append(f"  Spell Power: {target.spell_power}")
         
-        # Show saving throws (skill-based opposed check system)
+        # Show saving throws (class-based system)
         lines.append("")
-        lines.append("Saving Throws (Skill + Attribute Bonus):")
-        fort_total = target.get_save_value("fortitude")
-        ref_total = target.get_save_value("reflex")
-        will_total = target.get_save_value("will")
-        lines.append(f"  Fortitude: {fort_total} (skill: {target.get_save_skill('fortitude')}, CON: {target.get_save_attribute('fortitude')})")
-        lines.append(f"  Reflex: {ref_total} (skill: {target.get_save_skill('reflex')}, DEX: {target.get_save_attribute('reflex')})")
-        lines.append(f"  Will: {will_total} (skill: {target.get_save_skill('will')}, WIS: {target.get_save_attribute('will')})")
+        lines.append("Saving Throws (Base + Attribute):")
+        fort_base = target.get_class_base_save("fortitude")
+        ref_base = target.get_class_base_save("reflex")
+        will_base = target.get_class_base_save("will")
+        fort_attr = target.get_save_attribute("fortitude")
+        ref_attr = target.get_save_attribute("reflex")
+        will_attr = target.get_save_attribute("will")
+        lines.append(f"  Fortitude: {fort_base}% base (CON: {fort_attr})")
+        lines.append(f"  Reflex: {ref_base}% base (DEX: {ref_attr})")
+        lines.append(f"  Will: {will_base}% base (WIS: {will_attr})")
         
         lines.append("")
         lines.append(f"Skill Points Available: {target.skill_points_available}")

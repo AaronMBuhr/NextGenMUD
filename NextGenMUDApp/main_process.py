@@ -200,8 +200,7 @@ class MainProcess:
             logger.debug3(f"checking player {p.name}")
             if p.location_room != None:
                 for char in p.location_room.get_characters():
-                    if char != p and char.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE) \
-                        and char.fighting_whom == None and cls._game_state.can_see(char, p):
-                        logger.debug3(f"aggressive char {char.name} sees player {p.name}")
+                    if char != p and not char.has_perm_flags(PermanentCharacterFlags.IS_PC) \
+                        and char.fighting_whom is None:
                         await CoreActionsInterface.get_instance().do_aggro(char)
         logger.debug3("done checking aggressive near players")

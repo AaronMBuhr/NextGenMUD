@@ -59,6 +59,7 @@ class Object(Actor, ObjectInterface):
             'damage_dice_number': self.damage_num_dice,
             'damage_dice_size': self.damage_dice_size,
             'damage_bonus': self.damage_bonus,
+            'keywords': self.keywords,
             'weight': self.weight,
             'value': self.value
         }
@@ -74,6 +75,7 @@ class Object(Actor, ObjectInterface):
             self.pronoun_subject_ = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
             self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+            self.keywords = yaml_data.get('keywords', [])
             self.weight = yaml_data.get('weight', 0)
             self.value = yaml_data.get('value', 0)
             if 'equip_locations' in yaml_data:
@@ -279,7 +281,7 @@ class Corpse(Object):
         """
         for obj in self.character.contents[:]:
             # Skip items that are equipped
-            if obj.equip_location is not None:
+            if obj.equipped_location is not None:
                 continue
             self.character.remove_object(obj)
             self.add_object(obj)

@@ -81,12 +81,8 @@ class NextGenMUDAppConfig(AppConfig):
 # ****************************************
 
 # HIGH priority
-# - handle "you die"
-# - get all
-# - saving throws!
-# - aggro not working
-# - up/down not working
-                
+# (none at the moment)
+
 # MEDIUM priority
 # - handle capitalization
 # - hp regen over time

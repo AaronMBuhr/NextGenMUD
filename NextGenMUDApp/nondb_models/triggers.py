@@ -183,6 +183,9 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.ON_ATTACKED:
             logger.debug3("returning TriggerOnAttacked")
             return TriggerOnAttacked(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_GO:
+            logger.debug3("returning TriggerCatchGo")
+            return TriggerCatchGo(trigger_id, actor, disabled)
         else:
             logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
             raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
@@ -417,6 +420,36 @@ class TriggerCatchSay(Trigger):
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor
         logger = StructuredLogger(__name__, prefix="TriggerCatchSay.run()> ")
+        if self.disabled_:
+            return False
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
+        logger.debug3("evaluating")
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        logger.debug3("executing script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerCatchGo(Trigger):
+    """
+    Fires when a player uses "go <keyword>" or "enter <keyword>" in the room.
+    The keyword is available as %*% for criteria matching.
+    Variables available: %S% = player, %s% = player name, %*% = keyword
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.CATCH_GO, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerCatchGo.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 

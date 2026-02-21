@@ -157,15 +157,18 @@ class TestRespawn:
         
         assert player.current_stamina == 50
     
-    def test_death_flags_cleared_on_respawn(self):
-        """Death-related flags should be cleared on respawn."""
+    def test_negative_flags_cleared_on_respawn(self):
+        """Negative flags should be cleared on respawn."""
         player = create_mock_character()
-        player.temporary_character_flags = TemporaryCharacterFlags.IS_DEAD
+        player.temporary_character_flags = (TemporaryCharacterFlags.IS_STUNNED 
+                                            | TemporaryCharacterFlags.IS_FROZEN
+                                            | TemporaryCharacterFlags.IS_SLEEPING
+                                            | TemporaryCharacterFlags.IS_SITTING)
         
-        # After respawn, clear death flag
+        # After respawn, all negative flags are cleared
         player.temporary_character_flags = TemporaryCharacterFlags(0)
         
-        assert not player.has_temp_flags(TemporaryCharacterFlags.IS_DEAD)
+        assert player.temporary_character_flags == TemporaryCharacterFlags(0)
     
     def test_combat_cleared_on_respawn(self):
         """Combat state should be cleared on respawn."""

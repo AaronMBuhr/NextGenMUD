@@ -218,47 +218,35 @@ class TestCombatStatsMulticlass:
             assert char.spell_power == expected_spell_power
 
 
-class TestSavingThrowsSkillBased:
-    """Tests for skill-based saving throw system (opposed checks)."""
+class TestClassBasedSavingThrows:
+    """Tests for the class-based saving throw system."""
     
-    def test_fortitude_save_uses_skill_and_constitution(self, create_test_character, fighter_character_data):
-        """Verify fortitude save combines skill level and Constitution."""
+    def test_fighter_fortitude_uses_constitution(self, create_test_character, fighter_character_data):
+        """Verify fortitude save attribute is Constitution."""
         from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes
         char = create_test_character(fighter_character_data)
-        
-        # Set known values
-        char.skill_levels["fortitude"] = 50
         char.attributes[CharacterAttributes.CONSTITUTION] = 15
-        
-        # Expected: skill + (attribute × modifier)
-        expected = 50 + (15 * Constants.ATTRIBUTE_SAVE_MODIFIER)
-        assert char.get_save_value("fortitude") == expected
-    
-    def test_reflex_save_uses_skill_and_dexterity(self, create_test_character, rogue_character_data):
-        """Verify reflex save combines skill level and Dexterity."""
+
+        assert char.get_save_attribute("fortitude") == 15
+
+    def test_rogue_reflex_uses_dexterity(self, create_test_character, rogue_character_data):
+        """Verify reflex save attribute is Dexterity."""
         from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes
         char = create_test_character(rogue_character_data)
-        
-        char.skill_levels["reflex"] = 60
         char.attributes[CharacterAttributes.DEXTERITY] = 18
-        
-        expected = 60 + (18 * Constants.ATTRIBUTE_SAVE_MODIFIER)
-        assert char.get_save_value("reflex") == expected
-    
-    def test_will_save_uses_skill_and_wisdom(self, create_test_character, mage_character_data):
-        """Verify will save combines skill level and Wisdom."""
+
+        assert char.get_save_attribute("reflex") == 18
+
+    def test_mage_will_uses_wisdom(self, create_test_character, mage_character_data):
+        """Verify will save attribute is Wisdom."""
         from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes
         char = create_test_character(mage_character_data)
-        
-        char.skill_levels["will"] = 40
         char.attributes[CharacterAttributes.WISDOM] = 14
-        
-        expected = 40 + (14 * Constants.ATTRIBUTE_SAVE_MODIFIER)
-        assert char.get_save_value("will") == expected
-    
-    def test_multiclass_saves_use_same_skill_system(self, create_test_character, base_character_data):
-        """Verify multiclass characters use the same skill-based save system."""
-        from NextGenMUDApp.nondb_models.character_interface import CharacterAttributes
+
+        assert char.get_save_attribute("will") == 14
+
+    def test_multiclass_uses_best_base_save(self, create_test_character, base_character_data):
+        """Verify multiclass characters use the best base save across their classes."""
         data = base_character_data.copy()
         data['class'] = {
             'fighter': {'level': 10},
@@ -266,54 +254,154 @@ class TestSavingThrowsSkillBased:
         }
         data['class_priority'] = ['fighter', 'rogue']
         char = create_test_character(data)
-        
-        # Set skill levels (same for all characters regardless of class)
-        char.skill_levels["fortitude"] = 30
-        char.skill_levels["reflex"] = 70
-        char.attributes[CharacterAttributes.CONSTITUTION] = 16
-        char.attributes[CharacterAttributes.DEXTERITY] = 18
-        
-        # Saves are skill-based, not class-based
-        assert char.get_save_value("fortitude") == 30 + (16 * Constants.ATTRIBUTE_SAVE_MODIFIER)
-        assert char.get_save_value("reflex") == 70 + (18 * Constants.ATTRIBUTE_SAVE_MODIFIER)
+
+        fighter_fort = Constants.SAVING_THROW_BASES[CharacterClassRole.FIGHTER]['fortitude']
+        rogue_fort = Constants.SAVING_THROW_BASES[CharacterClassRole.ROGUE]['fortitude']
+        assert char.get_class_base_save("fortitude") == max(fighter_fort, rogue_fort)
+
+        fighter_reflex = Constants.SAVING_THROW_BASES[CharacterClassRole.FIGHTER]['reflex']
+        rogue_reflex = Constants.SAVING_THROW_BASES[CharacterClassRole.ROGUE]['reflex']
+        assert char.get_class_base_save("reflex") == max(fighter_reflex, rogue_reflex)
 
 
-class TestOpposedSavingThrows:
-    """Tests for the opposed saving throw resolution system."""
-    
-    def test_resolve_saving_throw_equal_values(self, create_test_character, fighter_character_data):
-        """Equal attacker and defender values should give 50% chance."""
-        from NextGenMUDApp.nondb_models.characters import Character
-        
-        save_chance, _ = Character.resolve_saving_throw(50, 50, 0)
-        assert save_chance == 50
-    
-    def test_resolve_saving_throw_defender_advantage(self, create_test_character, fighter_character_data):
-        """Higher defender save should increase save chance."""
-        from NextGenMUDApp.nondb_models.characters import Character
-        
-        save_chance, _ = Character.resolve_saving_throw(70, 50, 0)
-        assert save_chance == 70  # 50 + (70-50) = 70
-    
-    def test_resolve_saving_throw_attacker_advantage(self, create_test_character, fighter_character_data):
-        """Higher attacker penetration should decrease save chance."""
-        from NextGenMUDApp.nondb_models.characters import Character
-        
-        save_chance, _ = Character.resolve_saving_throw(50, 70, 0)
-        assert save_chance == 30  # 50 + (50-70) = 30
-    
-    def test_resolve_saving_throw_clamped_min(self, create_test_character, fighter_character_data):
-        """Save chance should not go below minimum."""
-        from NextGenMUDApp.nondb_models.characters import Character
-        
-        save_chance, _ = Character.resolve_saving_throw(10, 100, 0)
+class TestAttemptSave:
+    """Tests for the attempt_save saving throw resolution."""
+
+    def test_attempt_save_equal_combatants_returns_base(self, create_test_character, base_character_data):
+        """Equal attacker and defender should give class base save chance."""
+        from NextGenMUDApp.skills_core import Skill
+        from unittest.mock import patch
+
+        attrs = {
+            'strength': 10, 'dexterity': 10, 'constitution': 10,
+            'intelligence': 10, 'wisdom': 10, 'charisma': 10
+        }
+        data = base_character_data.copy()
+        data['class'] = {'fighter': {'level': 5}}
+        data['attributes'] = attrs.copy()
+        defender = create_test_character(data)
+
+        atk_data = base_character_data.copy()
+        atk_data['class'] = {'mage': {'level': 5}}
+        atk_data['attributes'] = attrs.copy()
+        attacker = create_test_character(atk_data)
+
+        skill = Skill(name='test_spell', base_class=CharacterClassRole.MAGE, save_difficulty=0)
+
+        with patch('random.randint', return_value=1):
+            save_chance, _ = defender.attempt_save('fortitude', attacker, skill, CharacterAttributes.INTELLIGENCE)
+        expected = Constants.SAVING_THROW_BASES[CharacterClassRole.FIGHTER]['fortitude']
+        assert save_chance == expected
+
+    def test_attempt_save_defender_attribute_advantage(self, create_test_character, base_character_data):
+        """Higher defender attribute should increase save chance."""
+        from NextGenMUDApp.skills_core import Skill
+        from unittest.mock import patch
+
+        data = base_character_data.copy()
+        data['class'] = {'fighter': {'level': 5}}
+        data['attributes'] = {
+            'strength': 10, 'dexterity': 10, 'constitution': 20,
+            'intelligence': 10, 'wisdom': 10, 'charisma': 10
+        }
+        defender = create_test_character(data)
+
+        atk_data = base_character_data.copy()
+        atk_data['class'] = {'mage': {'level': 5}}
+        atk_data['attributes'] = {
+            'strength': 10, 'dexterity': 10, 'constitution': 10,
+            'intelligence': 10, 'wisdom': 10, 'charisma': 10
+        }
+        attacker = create_test_character(atk_data)
+
+        skill = Skill(name='test_spell', base_class=CharacterClassRole.MAGE, save_difficulty=0)
+
+        with patch('random.randint', return_value=1):
+            save_chance, _ = defender.attempt_save('fortitude', attacker, skill, CharacterAttributes.INTELLIGENCE)
+        attr_bonus = (20 - 10) * Constants.ATTRIBUTE_SAVE_MULTIPLIER
+        expected = Constants.SAVING_THROW_BASES[CharacterClassRole.FIGHTER]['fortitude'] + attr_bonus
+        assert save_chance == expected
+
+    def test_attempt_save_attacker_level_advantage(self, create_test_character, base_character_data):
+        """Higher attacker level should decrease save chance."""
+        from NextGenMUDApp.skills_core import Skill
+        from unittest.mock import patch
+
+        attrs = {
+            'strength': 10, 'dexterity': 10, 'constitution': 10,
+            'intelligence': 10, 'wisdom': 10, 'charisma': 10
+        }
+        data = base_character_data.copy()
+        data['class'] = {'fighter': {'level': 5}}
+        data['attributes'] = attrs.copy()
+        defender = create_test_character(data)
+
+        atk_data = base_character_data.copy()
+        atk_data['class'] = {'mage': {'level': 15}}
+        atk_data['attributes'] = attrs.copy()
+        attacker = create_test_character(atk_data)
+
+        skill = Skill(name='test_spell', base_class=CharacterClassRole.MAGE, save_difficulty=0)
+
+        with patch('random.randint', return_value=1):
+            save_chance, _ = defender.attempt_save('fortitude', attacker, skill, CharacterAttributes.INTELLIGENCE)
+        level_penalty = (5 - 15) * Constants.LEVEL_DIFF_MULTIPLIER  # -30
+        expected = Constants.SAVING_THROW_BASES[CharacterClassRole.FIGHTER]['fortitude'] + level_penalty
+        expected = max(Constants.SAVE_CHANCE_MIN, min(Constants.SAVE_CHANCE_MAX, expected))
+        assert save_chance == expected
+
+    def test_attempt_save_clamped_min(self, create_test_character, base_character_data):
+        """Save chance should not go below SAVE_CHANCE_MIN."""
+        from NextGenMUDApp.skills_core import Skill
+        from unittest.mock import patch
+
+        data = base_character_data.copy()
+        data['class'] = {'fighter': {'level': 1}}
+        data['attributes'] = {
+            'strength': 10, 'dexterity': 10, 'constitution': 1,
+            'intelligence': 10, 'wisdom': 1, 'charisma': 10
+        }
+        defender = create_test_character(data)
+
+        atk_data = base_character_data.copy()
+        atk_data['class'] = {'mage': {'level': 50}}
+        atk_data['attributes'] = {
+            'strength': 10, 'dexterity': 10, 'constitution': 10,
+            'intelligence': 25, 'wisdom': 10, 'charisma': 10
+        }
+        attacker = create_test_character(atk_data)
+
+        skill = Skill(name='nuke', base_class=CharacterClassRole.MAGE, save_difficulty=20)
+
+        with patch('random.randint', return_value=100):
+            save_chance, _ = defender.attempt_save('fortitude', attacker, skill, CharacterAttributes.INTELLIGENCE)
         assert save_chance == Constants.SAVE_CHANCE_MIN
-    
-    def test_resolve_saving_throw_clamped_max(self, create_test_character, fighter_character_data):
-        """Save chance should not go above maximum."""
-        from NextGenMUDApp.nondb_models.characters import Character
-        
-        save_chance, _ = Character.resolve_saving_throw(100, 10, 0)
+
+    def test_attempt_save_clamped_max(self, create_test_character, base_character_data):
+        """Save chance should not exceed SAVE_CHANCE_MAX."""
+        from NextGenMUDApp.skills_core import Skill
+        from unittest.mock import patch
+
+        data = base_character_data.copy()
+        data['class'] = {'fighter': {'level': 50}}
+        data['attributes'] = {
+            'strength': 25, 'dexterity': 25, 'constitution': 25,
+            'intelligence': 25, 'wisdom': 25, 'charisma': 25
+        }
+        defender = create_test_character(data)
+
+        atk_data = base_character_data.copy()
+        atk_data['class'] = {'mage': {'level': 1}}
+        atk_data['attributes'] = {
+            'strength': 1, 'dexterity': 1, 'constitution': 1,
+            'intelligence': 1, 'wisdom': 1, 'charisma': 1
+        }
+        attacker = create_test_character(atk_data)
+
+        skill = Skill(name='cantrip', base_class=CharacterClassRole.MAGE, save_difficulty=0)
+
+        with patch('random.randint', return_value=1):
+            save_chance, _ = defender.attempt_save('fortitude', attacker, skill, CharacterAttributes.INTELLIGENCE)
         assert save_chance == Constants.SAVE_CHANCE_MAX
 
 
@@ -464,34 +552,32 @@ class TestAttributeAdvancement:
         assert char.unspent_attribute_points == 3  # 2 + 1 from level 10
 
 
-class TestUniversalSkills:
-    """Tests for universal skills (save skills) available to all characters."""
-    
-    def test_universal_skills_unlocked_on_first_class(self, create_test_character, fighter_character_data):
-        """Verify universal skills are unlocked when character gets first class."""
+class TestClassBasedSaveAccess:
+    """Tests for class-based saves accessible to all characters."""
+
+    def test_all_save_types_have_base_values(self, create_test_character, fighter_character_data):
+        """Verify all save types return a base value for any class."""
         char = create_test_character(fighter_character_data)
-        
-        # Universal skills should be in skill_levels dict
-        assert "fortitude" in char.skill_levels
-        assert "reflex" in char.skill_levels
-        assert "will" in char.skill_levels
-    
-    def test_save_skills_start_at_zero(self, create_test_character, fighter_character_data):
-        """Verify save skills start at 0 (trainable)."""
+
+        for save_type in ('fortitude', 'reflex', 'will'):
+            base = char.get_class_base_save(save_type)
+            assert base > 0, f"{save_type} base save should be positive"
+
+    def test_save_attributes_map_to_correct_stats(self, create_test_character, fighter_character_data):
+        """Verify each save type maps to the correct attribute."""
         char = create_test_character(fighter_character_data)
-        
-        assert char.skill_levels.get("fortitude", -1) == 0
-        assert char.skill_levels.get("reflex", -1) == 0
-        assert char.skill_levels.get("will", -1) == 0
-    
-    def test_get_save_skill_returns_correct_value(self, create_test_character, fighter_character_data):
-        """Verify get_save_skill returns the skill level."""
+        char.attributes[CharacterAttributes.CONSTITUTION] = 20
+        char.attributes[CharacterAttributes.DEXTERITY] = 18
+        char.attributes[CharacterAttributes.WISDOM] = 16
+
+        assert char.get_save_attribute('fortitude') == 20   # CON
+        assert char.get_save_attribute('reflex') == 18      # DEX
+        assert char.get_save_attribute('will') == 16        # WIS
+
+    def test_get_best_level_single_class(self, create_test_character, fighter_character_data):
+        """Verify get_best_level returns the level for single-class characters."""
         char = create_test_character(fighter_character_data)
-        
-        char.skill_levels["fortitude"] = 42
-        
-        assert char.get_save_skill("fortitude") == 42
-        assert char.get_save_skill("Fortitude") == 42  # Case insensitive
+        assert char.get_best_level() == 5  # Fighter level 5 from fixture
 
 
 class TestStatAllocationConstants:

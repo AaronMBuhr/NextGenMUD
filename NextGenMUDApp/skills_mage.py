@@ -1,5 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skills, ClassSkills, Skill, SkillType, SkillAICondition
+from .skills_core import Skills, ClassSkills, Skill, SkillType, SkillAICondition, SkillsRegistry
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation, PermanentCharacterFlags
 from .nondb_models.actor_states import (
@@ -138,11 +138,32 @@ from .core_actions_interface import CoreActionsInterface
 
 class Skills_Mage(Skills):
     @classmethod
+    async def _send_skill_message(cls, actor: Actor, target: Actor, message: str, game_state: 'ComprehensiveGameState'=None):
+        """Helper to send a skill message with proper variable processing."""
+        if message:
+            vars = set_vars(actor, actor, target, message)
+            await actor.echo(CommTypes.DYNAMIC, message, vars, game_state=game_state)
+    
+    @classmethod
+    async def _send_skill_message_to_target(cls, actor: Actor, target: Actor, message: str, game_state: 'ComprehensiveGameState'=None):
+        """Helper to send a skill message to target with proper variable processing."""
+        if message and target:
+            vars = set_vars(actor, actor, target, message)
+            await target.echo(CommTypes.DYNAMIC, message, vars, game_state=game_state)
+    
+    @classmethod
+    async def _send_skill_message_to_room(cls, actor: Actor, target: Actor, message: str, exceptions: list=None, game_state: 'ComprehensiveGameState'=None):
+        """Helper to send a skill message to room with proper variable processing."""
+        if message and actor._location_room:
+            vars = set_vars(actor, actor, target, message)
+            await actor._location_room.echo(CommTypes.DYNAMIC, message, vars, exceptions=exceptions or [], game_state=game_state)
+    
+    @classmethod
     async def do_spell_fizzle(actor: Actor, target: Actor, spell_name: str, vars: dict=None,
                                game_state: 'ComprehensiveGameState'=None):
         msg = f"Your {spell_name} spell fizzles!"
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, game_state)
+        actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=game_state)
         msg = f"{actor.art_name_cap}'s {spell_name} spell fizzles!"
         vars = set_vars(actor, actor, target, msg)
         actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
@@ -154,7 +175,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         continue_func = lambda: cls.do_mage_cast_fireball_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
@@ -162,7 +183,7 @@ class Skills_Mage(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -170,47 +191,59 @@ class Skills_Mage(Skills):
     @classmethod
     async def do_mage_cast_fireball_finish(cls, actor: Actor, target: Actor, 
                                           difficulty_modifier=0, game_tick=0) -> bool:
+        THIS_SKILL_DATA = MageSkills.FIREBALL
         FIREBALL_DMG_DICE_LEVEL_MULT = 1/4
         FIREBALL_DMG_DICE_NUM = actor.levels_by_role[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
         FIREBALL_DMG_DICE_SIZE = 6
-        FIREBALL_COOLDOWN_TICKS = ticks_from_seconds(30)
         
         attrib_mod = (actor.attributes[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         FIREBALL_DMG_BONUS = attrib_mod * actor.levels_by_role[CharacterClassRole.MAGE] / 8
 
-        cooldown = Cooldown(actor, "fireball", cls._game_state, cooldown_source=actor, cooldown_vars={"duration": FIREBALL_COOLDOWN_TICKS})
-        await cooldown.start(game_tick, FIREBALL_COOLDOWN_TICKS)
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
 
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.CAST_FIREBALL],
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.FIREBALL],
                               difficulty_modifier - attrib_mod):
+            if THIS_SKILL_DATA.save_type:
+                save_chance, saved = target.attempt_save(
+                    THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                    attacker_attribute=CharacterAttributes.INTELLIGENCE)
+                if saved:
+                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    return True
             damage = roll_dice(FIREBALL_DMG_DICE_NUM, FIREBALL_DMG_DICE_SIZE) + FIREBALL_DMG_BONUS
-            msg = f"You cast a fireball at {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts a fireball at you!"
-            vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts a fireball at {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls._game_state)
+            
+            # Send success messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
+            
             await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.FIRE)
+            
+            # Handle area effect - fireball hits others in room
             for c in actor.location_room:
                 if c != actor and c != target:
                     msg = f"Your fireball also hits {c.art_name}!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+                    actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
                     msg = f"{actor.art_name_cap}'s fireball also hits you!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    c.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+                    c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
                     msg = f"{actor.art_name_cap}'s fireball also hits {c.art_name}!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
                     actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls._game_state)
                     await CoreActionsInterface.get_instance().do_calculated_damage(actor, c, damage, DamageType.FIRE)
+            
+            await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return True
         else:
-            await cls.do_spell_fizzle(actor, target, "fireball", cls._game_state)
+            # Send failure messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_failure_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_failure_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_failure_room, [actor], cls._game_state)
             return False
 
     @classmethod
@@ -220,7 +253,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            await actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         continue_func = lambda: cls.do_mage_cast_magic_missile_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
@@ -228,7 +261,7 @@ class Skills_Mage(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -236,35 +269,55 @@ class Skills_Mage(Skills):
     @classmethod
     async def do_mage_cast_magic_missile_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
+        THIS_SKILL_DATA = MageSkills.MAGIC_MISSILE
         MAGIC_MISSILE_DMG_DICE_LEVEL_MULT = 1/4
         MAGIC_MISSILE_DICE_NUM = int(actor.levels_by_role[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT)
         MAGIC_MISSILE__DMG_DICE_SIZE = 6
-        MAGIC_MISSILE_COOLDOWN_TICKS = ticks_from_seconds(10)
         
         attrib_mod = (actor.attributes[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
-        MAGIC_MISSILE_DMG_BONUS = int(attrib_mod * actor.levels_by_role[CharacterClassRole.MAGE] / 4)
-
-        cooldown = Cooldown(actor, "magic_missile", cls._game_state, cooldown_source=actor, cooldown_vars={"duration": MAGIC_MISSILE_COOLDOWN_TICKS})
-        await cooldown.start(game_tick, MAGIC_MISSILE_COOLDOWN_TICKS)
-
-        if Skills.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.MAGIC_MISSILE],
+        
+        # Get skill level for both success check and damage calculation
+        magic_missile_skill = actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.MAGIC_MISSILE]
+        skill_level = magic_missile_skill.skill_level
+        
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
+        
+        # Skill determines chance of success
+        if Skills.do_skill_check(actor, magic_missile_skill,
                               difficulty_modifier - attrib_mod):
-            damage = roll_dice(MAGIC_MISSILE_DICE_NUM, MAGIC_MISSILE__DMG_DICE_SIZE) + MAGIC_MISSILE_DMG_BONUS
-            msg = f"You cast a magic missile at {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
-            msg = f"{actor.art_name_cap} casts a magic missile at you!"
-            vars = set_vars(actor, actor, target, msg)
-            await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
-            msg = f"{actor.art_name_cap} casts a magic missile at {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            await actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls._game_state)
+            if THIS_SKILL_DATA.save_type:
+                save_chance, saved = target.attempt_save(
+                    THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                    attacker_attribute=CharacterAttributes.INTELLIGENCE)
+                if saved:
+                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    return True
+            # Damage calculation: base dice + attribute bonus + skill bonus + level bonus
+            # Keep damage relatively low - skill adds small bonus (skill/20 for low scaling)
+            MAGIC_MISSILE_DMG_BONUS = int(attrib_mod * actor.levels_by_role[CharacterClassRole.MAGE] / 4)
+            MAGIC_MISSILE_SKILL_DMG_BONUS = int(skill_level / 20)  # Small skill-based damage bonus
+            MAGIC_MISSILE_LEVEL_DMG_BONUS = int(actor.levels_by_role[CharacterClassRole.MAGE] / 8)  # Level-based bonus
+            
+            damage = roll_dice(MAGIC_MISSILE_DICE_NUM, MAGIC_MISSILE__DMG_DICE_SIZE) + MAGIC_MISSILE_DMG_BONUS + MAGIC_MISSILE_SKILL_DMG_BONUS + MAGIC_MISSILE_LEVEL_DMG_BONUS
+            
+            # Send success messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
+            
             await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.ARCANE)
+            
+            await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return True
         else:
-            await cls.do_spell_fizzle(actor, target, "magic missile", cls._game_state)
+            # Send failure messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_failure_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_failure_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_failure_room, [actor], cls._game_state)
             return False
 
     @classmethod
@@ -280,7 +333,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         continue_func = lambda: cls.do_mage_cast_arcane_barrier_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
@@ -288,7 +341,7 @@ class Skills_Mage(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -296,23 +349,20 @@ class Skills_Mage(Skills):
     @classmethod
     async def do_mage_cast_arcane_barrier_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
+        THIS_SKILL_DATA = MageSkills.ARCANE_BARRIER
         DAMAGE_REDUCTION_AMOUNT = actor.levels_by_role[CharacterClassRole.MAGE]
-        ARCANE_BARRIER_COOLDOWN_TICKS = ticks_from_seconds(60)
         
-        cooldown = Cooldown(actor, "arcane_barrier", cls._game_state, cooldown_source=actor, cooldown_vars={"duration": ARCANE_BARRIER_COOLDOWN_TICKS})
-        await cooldown.start(game_tick, ARCANE_BARRIER_COOLDOWN_TICKS)
-        
-        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.CAST_ARCANE_BARRIER],
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
+
+        if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.ARCANE_BARRIER],
                               difficulty_modifier):
-            msg = f"You cast arcane barrier on yourself!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts arcane barrier on you! You feel shielded!"
-            vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts arcane barrier on {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor,target], game_state=cls._game_state)
+            # Send success messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
+            
             reductions = DamageReduction(reductions_by_type={
                 DamageType.BLUDGEONING: DAMAGE_REDUCTION_AMOUNT,
                 DamageType.PIERCING: DAMAGE_REDUCTION_AMOUNT,
@@ -320,10 +370,15 @@ class Skills_Mage(Skills):
             })
             new_state = CharacterStateShielded(target, actor, "magic barrier", multipliers=None, reductions=reductions,
                                                tick_created=game_tick)
-            new_state.apply_state(game_tick, 0)
+            new_state.apply_state(game_tick, THIS_SKILL_DATA.duration_min_ticks)
+            
+            await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return True
         else:
-            await cls.do_spell_fizzle(actor, target, "arcane barrier", cls._game_state)
+            # Send failure messages from skill definition
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_failure_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_failure_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_failure_room, [actor], cls._game_state)
             return False
 
     @classmethod
@@ -339,7 +394,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Default to self if no target
@@ -352,7 +407,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -363,37 +418,26 @@ class Skills_Mage(Skills):
         """Complete the shield spell, applying damage multipliers."""
         from .nondb_models.attacks_and_damage import DamageMultipliers
         
+        THIS_SKILL_DATA = MageSkills.SHIELD
         SHIELD_RESIST_BASE = 10  # Base multiplier value for shield (note: value may need adjustment to 0-2 range)
         SHIELD_RESIST_PER_LEVEL = 0.5
-        SHIELD_DURATION_TICKS = ticks_from_seconds(120)  # 2 minutes
-        SHIELD_COOLDOWN_TICKS = ticks_from_seconds(60)
         
         # Calculate multiplier based on caster's mage level
         mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
         multiplier_value = int(SHIELD_RESIST_BASE + (mage_level * SHIELD_RESIST_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "shield", cls._game_state, cooldown_source=actor, 
-                           cooldown_vars={"duration": SHIELD_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls._game_state.get_current_tick(), SHIELD_COOLDOWN_TICKS)
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.cooldown_ticks)
 
-        # Apply the shield effect - multipliers for all damage types
+        # Send success messages from skill definition
         if target == actor:
-            msg = "A shimmering arcane shield forms around you!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"A shimmering arcane shield forms around {actor.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor], cls._game_state)
         else:
-            msg = f"You cast shield on {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts shield on you! A shimmering barrier surrounds you!"
-            vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts shield on {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
         
         # Create multiplier profile for all damage types
         multipliers = DamageMultipliers()
@@ -402,10 +446,10 @@ class Skills_Mage(Skills):
         
         new_state = CharacterStateShielded(target, cls._game_state, actor, "arcane shield", 
                                           multipliers=multipliers, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), SHIELD_DURATION_TICKS)
+        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
         
         # Consume mana
-        await Skills.consume_resources(actor, MageSkills.SHIELD)
+        await Skills.consume_resources(actor, THIS_SKILL_DATA)
         return True
 
     @classmethod
@@ -416,7 +460,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Default to self if no target
@@ -429,7 +473,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -438,44 +482,33 @@ class Skills_Mage(Skills):
     async def do_mage_cast_blur_finish(cls, actor: Actor, target: Actor, 
                                       difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the blur spell, applying the dodge bonus."""
+        THIS_SKILL_DATA = MageSkills.BLUR
         BLUR_DODGE_BONUS_BASE = 10
         BLUR_DODGE_BONUS_PER_LEVEL = 0.5
-        BLUR_DURATION_TICKS = ticks_from_seconds(120)  # 2 minutes
-        BLUR_COOLDOWN_TICKS = ticks_from_seconds(60)
         
         # Calculate dodge bonus based on caster's mage level
         mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
         dodge_bonus = int(BLUR_DODGE_BONUS_BASE + (mage_level * BLUR_DODGE_BONUS_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "blur", cls._game_state, cooldown_source=actor, 
-                           cooldown_vars={"duration": BLUR_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls._game_state.get_current_tick(), BLUR_COOLDOWN_TICKS)
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.cooldown_ticks)
 
-        # Apply the blur effect
+        # Send success messages from skill definition
         if target == actor:
-            msg = "Your form becomes blurred and indistinct!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap}'s form becomes blurred and indistinct!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor], cls._game_state)
         else:
-            msg = f"You cast blur on {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts blur on you! Your form becomes indistinct!"
-            vars = set_vars(actor, actor, target, msg)
-            target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            msg = f"{actor.art_name_cap} casts blur on {target.art_name}!"
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+            await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
         
         new_state = CharacterStateDodgeBonus(target, cls._game_state, actor, "blurred", 
                                              affect_amount=dodge_bonus, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLUR_DURATION_TICKS)
+        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
         
         # Consume mana
-        await Skills.consume_resources(actor, MageSkills.BLUR)
+        await Skills.consume_resources(actor, THIS_SKILL_DATA)
         return True
 
     @classmethod
@@ -486,12 +519,12 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to burn the mana of?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_mana_burn_finish(actor, target, difficulty_modifier, game_tick)
@@ -500,7 +533,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -509,26 +542,34 @@ class Skills_Mage(Skills):
     async def do_mage_cast_mana_burn_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the mana burn spell, draining mana and dealing damage."""
+        THIS_SKILL_DATA = MageSkills.MANA_BURN
         MANA_BURN_BASE = 10
         MANA_BURN_PER_LEVEL = 2
         MANA_BURN_DAMAGE_MULTIPLIER = 0.5  # Damage = mana_drained * multiplier
-        MANA_BURN_COOLDOWN_TICKS = ticks_from_seconds(15)
         
         # Calculate mana to drain based on caster's mage level
         mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
         mana_drain = int(MANA_BURN_BASE + (mage_level * MANA_BURN_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "mana_burn", cls._game_state, cooldown_source=actor, 
-                           cooldown_vars={"duration": MANA_BURN_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls._game_state.get_current_tick(), MANA_BURN_COOLDOWN_TICKS)
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.cooldown_ticks)
 
         # Check if target has mana
         if not hasattr(target, 'current_mana') or target.max_mana <= 0:
             msg = f"{target.art_name_cap} has no magical energy to burn!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-            await Skills.consume_resources(actor, MageSkills.MANA_BURN)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return False
+        
+        if THIS_SKILL_DATA.save_type:
+            save_chance, saved = target.attempt_save(
+                THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                attacker_attribute=CharacterAttributes.INTELLIGENCE)
+            if saved:
+                send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                return True
         
         # Calculate actual mana drained (can't drain more than they have)
         actual_mana_drained = min(mana_drain, int(target.current_mana))
@@ -537,18 +578,10 @@ class Skills_Mage(Skills):
         # Calculate damage based on mana drained
         damage = int(actual_mana_drained * MANA_BURN_DAMAGE_MULTIPLIER)
         
-        # Send messages
-        msg = f"You burn {target.art_name}'s magical energy! ({actual_mana_drained} mana drained)"
-        vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-        
-        msg = f"{actor.art_name_cap} burns your magical energy! You lose {actual_mana_drained} mana!"
-        vars = set_vars(actor, actor, target, msg)
-        target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-        
-        msg = f"{actor.art_name_cap} burns {target.art_name}'s magical energy!"
-        vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+        # Send success messages from skill definition
+        await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+        await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+        await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
         
         # Trigger group aggro
         await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
@@ -558,7 +591,7 @@ class Skills_Mage(Skills):
             await CoreActionsInterface.get_instance().do_calculated_damage(actor, target, damage, DamageType.ARCANE)
         
         # Consume mana
-        await Skills.consume_resources(actor, MageSkills.MANA_BURN)
+        await Skills.consume_resources(actor, THIS_SKILL_DATA)
         return True
 
     @classmethod
@@ -569,12 +602,12 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to set on fire?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_ignite_finish(actor, target, difficulty_modifier, game_tick)
@@ -583,7 +616,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -592,28 +625,40 @@ class Skills_Mage(Skills):
     async def do_mage_cast_ignite_finish(cls, actor: Actor, target: Actor, 
                                         difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the ignite spell, applying burning damage over time."""
+        THIS_SKILL_DATA = MageSkills.IGNITE
         IGNITE_DAMAGE_BASE = 3
         IGNITE_DAMAGE_PER_LEVEL = 0.5
-        IGNITE_DURATION_TICKS = ticks_from_seconds(12)  # 12 seconds
         IGNITE_PULSE_TICKS = ticks_from_seconds(3)  # Damage every 3 seconds
-        IGNITE_COOLDOWN_TICKS = ticks_from_seconds(10)
         
         # Calculate damage per tick based on caster's mage level
         mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
         damage_per_tick = int(IGNITE_DAMAGE_BASE + (mage_level * IGNITE_DAMAGE_PER_LEVEL))
         
-        cooldown = Cooldown(actor, "ignite", cls._game_state, cooldown_source=actor, 
-                           cooldown_vars={"duration": IGNITE_COOLDOWN_TICKS})
-        await cooldown.start(game_tick or cls._game_state.get_current_tick(), IGNITE_COOLDOWN_TICKS)
+        cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
+                           cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
+        await cooldown.start(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.cooldown_ticks)
+
+        if THIS_SKILL_DATA.save_type:
+            save_chance, saved = target.attempt_save(
+                THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                attacker_attribute=CharacterAttributes.INTELLIGENCE)
+            if saved:
+                send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                return True
+
+        # Send success messages from skill definition
+        await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+        await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_success_target, cls._game_state)
+        await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_success_room, [actor, target], cls._game_state)
 
         # Apply the ignite effect
         new_state = CharacterStateIgnited(target, cls._game_state, actor, "ignited", 
                                          damage_amount=damage_per_tick, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), IGNITE_DURATION_TICKS,
+        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks,
                              pulse_period_ticks=IGNITE_PULSE_TICKS)
         
         # Consume mana
-        await Skills.consume_resources(actor, MageSkills.IGNITE)
+        await Skills.consume_resources(actor, THIS_SKILL_DATA)
         return True
 
     @classmethod
@@ -624,7 +669,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Find an NPC corpse in the room
@@ -636,7 +681,7 @@ class Skills_Mage(Skills):
         
         if corpse is None:
             msg = "There is no corpse here to animate!"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_animate_dead_finish(actor, corpse, difficulty_modifier, game_tick)
@@ -645,7 +690,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, None, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -662,6 +707,19 @@ class Skills_Mage(Skills):
                            cooldown_vars={"duration": ANIMATE_DEAD_COOLDOWN_TICKS})
         await cooldown.start(game_tick or cls._game_state.get_current_tick(), ANIMATE_DEAD_COOLDOWN_TICKS)
 
+        # Get skill level for both success check and duration calculation
+        animate_dead_skill = actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.ANIMATE_DEAD]
+        
+        THIS_SKILL_DATA = MageSkills.ANIMATE_DEAD
+        
+        # Skill determines chance of success
+        if not cls.do_skill_check(actor, animate_dead_skill, difficulty_modifier):
+            # Send failure messages from skill definition
+            await cls._send_skill_message(actor, None, THIS_SKILL_DATA.message_failure_subject, cls._game_state)
+            await cls._send_skill_message_to_room(actor, None, THIS_SKILL_DATA.message_failure_room, [actor], cls._game_state)
+            await Skills.consume_resources(actor, THIS_SKILL_DATA)
+            return False
+
         # Get the original character definition
         original_id = corpse.original_id
         char_def = cls._game_state.world_definition.characters.get(original_id)
@@ -669,7 +727,7 @@ class Skills_Mage(Skills):
         if not char_def:
             msg = "The dark magic fails - the spirit has fled too far!"
             vars = set_vars(actor, actor, None, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
+            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             await Skills.consume_resources(actor, MageSkills.ANIMATE_DEAD)
             return False
         
@@ -678,6 +736,11 @@ class Skills_Mage(Skills):
         
         # Store original name for the zombie name
         original_name = corpse.character.name if hasattr(corpse, 'character') and corpse.character else char_def.name
+        
+        # Store original level (before halving) for duration calculation
+        # Get the highest level from the zombie's classes (primary class level)
+        original_zombie_level = max(zombie.levels_by_role.values()) if zombie.levels_by_role else 1
+        caster_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
         
         # Modify the zombie - half strength
         # Halve all levels
@@ -728,24 +791,42 @@ class Skills_Mage(Skills):
         zombie._location_room = room
         cls._game_state.characters.append(zombie)
         
-        # Apply the charmed state - zombie is permanently controlled by caster
-        # Using a very long duration (essentially permanent until dispelled or zombie dies)
-        CHARM_DURATION_TICKS = ticks_from_seconds(3600 * 24)  # 24 hours
+        # Calculate duration based on skill level and level difference
+        # Base duration: 5 minutes
+        BASE_DURATION_SECONDS = 300
+        skill_level = animate_dead_skill.skill_level
+        
+        # Skill modifier: +1 second per skill level (max +100 seconds at skill 100)
+        skill_duration_bonus = skill_level
+        
+        # Level difference modifier: 
+        # Same level = standard (1.0x)
+        # Higher caster vs lower NPC = longer duration
+        # Lower caster vs higher NPC = shorter duration
+        level_diff = caster_level - original_zombie_level
+        if level_diff >= 0:
+            # Caster is same or higher level - bonus duration
+            level_modifier = 1.0 + (level_diff * 0.1)  # +10% per level above
+        else:
+            # Caster is lower level - reduced duration
+            level_modifier = max(0.5, 1.0 + (level_diff * 0.05))  # -5% per level below, min 50%
+        
+        # Calculate final duration
+        duration_seconds = int((BASE_DURATION_SECONDS + skill_duration_bonus) * level_modifier)
+        CHARM_DURATION_TICKS = ticks_from_seconds(duration_seconds)
+        
+        # Apply the charmed state - zombie is controlled by caster
         charmed_state = CharacterStateCharmed(zombie, cls._game_state, actor, "charmed", 
                                               tick_created=game_tick)
         charmed_state.apply_state(game_tick or cls._game_state.get_current_tick(), CHARM_DURATION_TICKS)
         
-        # Send messages
-        msg = f"Dark energy swirls around the corpse as {zombie.art_name} rises!"
-        vars = set_vars(actor, actor, zombie, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
-        
-        msg = f"{actor.art_name_cap} raises {zombie.art_name} from the dead!"
-        vars = set_vars(actor, actor, zombie, msg)
-        room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+        # Send success messages from skill definition
+        THIS_SKILL_DATA = MageSkills.ANIMATE_DEAD
+        await cls._send_skill_message(actor, zombie, THIS_SKILL_DATA.message_success_subject, cls._game_state)
+        await cls._send_skill_message_to_room(actor, zombie, THIS_SKILL_DATA.message_success_room, [actor], cls._game_state)
         
         # Consume mana
-        await Skills.consume_resources(actor, MageSkills.ANIMATE_DEAD)
+        await Skills.consume_resources(actor, THIS_SKILL_DATA)
         return True
 
 
@@ -772,13 +853,75 @@ class MageSkills(ClassSkills):
         else:
             return Skills.TIER1_MIN_LEVEL  # Default
     
+    # Fireball - area damage spell
+    FIREBALL = Skill(
+        name="fireball",
+        base_class=CharacterClassRole.MAGE,
+        cooldown_name="fireball",
+        cooldown_ticks=ticks_from_seconds(30),
+        cast_time_ticks=ticks_from_seconds(2.0),
+        duration_min_ticks=0,
+        duration_max_ticks=0,
+        mana_cost=25,
+        message_prepare="You begin gathering fire energy...",
+        message_success_subject="You cast a fireball at %t%!",
+        message_success_target="$cap(%a%) casts a fireball at you!",
+        message_success_room="$cap(%a%) casts a fireball at %t%!",
+        message_failure_subject="Your fireball spell fizzles!",
+        message_failure_target="$cap(%a%)'s fireball spell fizzles!",
+        message_failure_room="$cap(%a%)'s fireball spell fizzles!",
+        message_apply_subject="Your fireball strikes %t%!",
+        message_apply_target="$cap(%a%)'s fireball strikes you!",
+        message_apply_room="$cap(%a%)'s fireball strikes %t%!",
+        message_resist_subject="%t% resists your fireball!",
+        message_resist_target="You resist $cap(%a%)'s fireball!",
+        message_resist_room="%t% resists $cap(%a%)'s fireball!",
+        save_type="reflex",
+        save_difficulty=0,
+        skill_function="do_mage_cast_fireball",
+        ai_priority=60,
+        ai_condition=SkillAICondition.IN_COMBAT,
+        skill_type=SkillType.DAMAGE,
+        requires_target=True
+    )
+    
+    # Arcane Barrier - defensive spell
+    ARCANE_BARRIER = Skill(
+        name="arcane barrier",
+        base_class=CharacterClassRole.MAGE,
+        cooldown_name="arcane_barrier",
+        cooldown_ticks=ticks_from_seconds(60),
+        cast_time_ticks=ticks_from_seconds(2.0),
+        duration_min_ticks=ticks_from_seconds(120),  # 2 minutes
+        duration_max_ticks=ticks_from_seconds(120),
+        mana_cost=25,
+        message_prepare="You begin weaving protective arcane energy...",
+        message_success_subject="You cast arcane barrier on yourself!",
+        message_success_target="$cap(%a%) casts arcane barrier on you! You feel shielded!",
+        message_success_room="$cap(%a%) casts arcane barrier on %t%!",
+        message_failure_subject="Your arcane barrier spell fizzles!",
+        message_failure_target="$cap(%a%)'s arcane barrier spell fizzles!",
+        message_failure_room="$cap(%a%)'s arcane barrier spell fizzles!",
+        message_apply_subject="An arcane barrier protects you from harm!",
+        message_apply_target="An arcane barrier protects you from harm!",
+        message_apply_room="An arcane barrier protects $cap(%a%) from harm!",
+        message_resist_subject=None,
+        message_resist_target=None,
+        message_resist_room=None,
+        skill_function="do_mage_cast_arcane_barrier",
+        ai_priority=60,
+        ai_condition=SkillAICondition.NOT_IN_COMBAT,
+        skill_type=SkillType.BUFF_SELF,
+        requires_target=False
+    )
+    
     # Basic attack spell
     MAGIC_MISSILE = Skill(
         name="magic missile",
         base_class=CharacterClassRole.MAGE,
         cooldown_name="magic_missile",
         cooldown_ticks=ticks_from_seconds(10),
-        cast_time_ticks=ticks_from_seconds(1.5),
+        cast_time_ticks=ticks_from_seconds(1),
         duration_min_ticks=0,
         duration_max_ticks=0,
         mana_cost=8,
@@ -795,6 +938,8 @@ class MageSkills(ClassSkills):
         message_resist_subject="%t% resists your magic missiles!",
         message_resist_target="You resist $cap(%a%)'s magic missiles!",
         message_resist_room="%t% resists $cap(%a%)'s magic missiles!",
+        save_type="reflex",
+        save_difficulty=-10,
         skill_function="do_mage_cast_magic_missile",
         ai_priority=50,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -935,6 +1080,8 @@ class MageSkills(ClassSkills):
         message_resist_subject="%t% resists your mana burn!",
         message_resist_target="You resist $cap(%a%)'s mana burn!",
         message_resist_room="%t% resists $cap(%a%)'s mana burn!",
+        save_type="will",
+        save_difficulty=5,
         skill_function="do_mage_cast_mana_burn",
         ai_priority=55,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -965,6 +1112,8 @@ class MageSkills(ClassSkills):
         message_resist_subject="%t% resists your flames!",
         message_resist_target="You resist $cap(%a%)'s flames!",
         message_resist_room="%t% resists $cap(%a%)'s flames!",
+        save_type="reflex",
+        save_difficulty=0,
         skill_function="do_mage_cast_ignite",
         ai_priority=60,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -1001,3 +1150,10 @@ class MageSkills(ClassSkills):
         skill_type=SkillType.UTILITY,
         requires_target=False
     ) 
+
+
+SkillsRegistry.register_skill_class("mage", {
+    attr_name.lower(): getattr(Skills_Mage, attr_name)
+    for attr_name in dir(Skills_Mage)
+    if not attr_name.startswith('_') and isinstance(getattr(Skills_Mage, attr_name), Skill)
+})

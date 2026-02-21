@@ -19,6 +19,7 @@ class TriggerType(Enum):
     ON_UNLOCK = 14    # Fires when an object is unlocked
     ON_USE = 15       # Fires when an object is used
     ON_ATTACKED = 16  # Fires when an actor is attacked (hit by an attack)
+    CATCH_GO = 17     # Fires when a player uses "go <keyword>" or "enter <keyword>"
     UNKNOWN = 99
 
     def __str__(self):

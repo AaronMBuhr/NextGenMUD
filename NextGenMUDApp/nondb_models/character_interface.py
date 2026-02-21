@@ -4,7 +4,7 @@ from ..basic_types import DescriptiveFlags
 
 class PermanentCharacterFlags(DescriptiveFlags):
     IS_PC = 2**0
-    IS_AGGRESSIVE = 2**1
+    _RESERVED_1 = 2**1  # formerly IS_AGGRESSIVE, now use attitude=HOSTILE
     CAN_DUAL_WIELD = 2**2
     IS_INVISIBLE = 2**3
     SEE_INVISIBLE = 2**4
@@ -22,13 +22,12 @@ class PermanentCharacterFlags(DescriptiveFlags):
 
     @classmethod
     def field_name_unsafe(cls, idx):
-        return ["is pc", "is aggressive", "can dual wield", "is invisible", "see invisible", 
+        return ["is pc", "(reserved)", "can dual wield", "is invisible", "see invisible", 
                 "darkvision", "is undead", "is sentinel", "no wander", "stationary",
                 "evasive", "quest giver", "aggressive if attacked", "mindless", "cowardly", "protected"][idx]
 
 
 class TemporaryCharacterFlags(DescriptiveFlags):
-    IS_DEAD = 2**0
     IS_SITTING = 2**1
     IS_SLEEPING = 2**2
     IS_STUNNED = 2**3

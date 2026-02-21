@@ -236,6 +236,7 @@ class Character(Actor, CharacterInterface):
             self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
             self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
+            self.keywords = yaml_data.get('keywords', [])
             self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
             
             # Set attitude from YAML if provided, defaulting to NEUTRAL
@@ -328,12 +329,12 @@ class Character(Actor, CharacterInterface):
             if 'permanent_flags' in yaml_data:
                 for flag in yaml_data['permanent_flags']:
                     flag_lower = flag.lower()
-                    # Convert legacy immunity flags to proper system
-                    if flag_lower == 'immune_poison':
-                        # Poison immunity is a damage multiplier of 0 (100% reduction)
+                    # Convert legacy flags to proper systems
+                    if flag_lower in ('is_aggressive', 'aggressive'):
+                        self.attitude = ActorAttitude.HOSTILE
+                    elif flag_lower == 'immune_poison':
                         self.damage_multipliers.profile[DamageType.POISON] = 0
                     elif flag_lower in ('immune_charm', 'immune_fear'):
-                        # Charm/fear immunity is a 100% will save bonus
                         self.saving_throw_bonuses['will'] = 100
                     else:
                         # Handle as a regular permanent flag
@@ -459,12 +460,7 @@ class Character(Actor, CharacterInterface):
                 for skill in yaml_data['skills']:
                     self.skill_levels[skill['skill']] = skill['level']
             
-            # Unlock universal skills (save skills) for all characters
-            if self.class_priority:  # Only if character has a class
-                try:
-                    self._unlock_universal_skills()
-                except (ImportError, NameError):
-                    pass  # May fail during initial import
+            # Note: saving throws are now class-based, not skill-based
             
             # Load guard rooms (rooms this NPC blocks access to)
             if 'guards_rooms' in yaml_data:
@@ -729,6 +725,12 @@ class Character(Actor, CharacterInterface):
         obj.set_in_actor(None)
         self.current_carrying_weight -= obj.weight
 
+    def add_to_inventory(self, obj: ObjectInterface):
+        self.add_object(obj)
+
+    def remove_from_inventory(self, obj: ObjectInterface):
+        self.remove_object(obj)
+
     def is_dead(self):
         return self.current_hit_points <= 0
     
@@ -836,8 +838,6 @@ class Character(Actor, CharacterInterface):
                     
     # def get_character_states_flags(self, flags: TemporaryCharacterFlags) -> List[ActorState]:
     #     states = []
-    #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_DEAD):
-    #         states.append("dead")
     #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_SITTING):
     #         states.append("sitting")
     #     if self.temporary_character_flags_.is_set(TemporaryCharacterFlags.IS_SLEEPING):
@@ -871,27 +871,6 @@ class Character(Actor, CharacterInterface):
 
     def total_levels(self):
         return sum(self.levels_by_role.values())
-    
-    def _unlock_universal_skills(self) -> List[str]:
-        """
-        Unlock universal skills (save skills) for all characters.
-        These are stored in the main skill_levels dict, not by class.
-        
-        Returns:
-            List of newly unlocked skill names
-        """
-        from ..skills_core import SkillsRegistry
-        
-        universal_skills = SkillsRegistry.get_class_skills("universal")
-        newly_unlocked = []
-        
-        for skill_name, skill in universal_skills.items():
-            normalized_name = skill_name.lower().replace(' ', '_').replace('-', '_')
-            if normalized_name not in self.skill_levels:
-                self.skill_levels[normalized_name] = 0
-                newly_unlocked.append(skill_name.replace('_', ' ').title())
-        
-        return newly_unlocked
     
     def _unlock_skills_for_level(self, role: CharacterClassRole, class_level: int) -> List[str]:
         """
@@ -1129,10 +1108,6 @@ class Character(Actor, CharacterInterface):
         # Unlock skills for level 1 of the new class (at level 0 - available to train)
         self._unlock_skills_for_level(role, 1)
         
-        # Unlock universal skills (save skills) if this is the first class
-        if len(self.class_priority) == 1:
-            self._unlock_universal_skills()
-                
         return True
     
     def has_cooldown(self, cooldown_source=None, cooldown_name: str = None):
@@ -1445,134 +1420,84 @@ class Character(Actor, CharacterInterface):
         self.dodge_modifier = self.base_dodge_modifier + total_dodge_bonus
         self.spell_power = best_spell_power
     
-    # ========== Skill-Based Saving Throw System ==========
-    # See documentation/saving-throws-design.md for full details
-    
-    def get_save_skill(self, save_type: str) -> int:
-        """
-        Get the skill level for a save type (fortitude, reflex, will).
-        Save skills are stored in skill_levels dict.
-        """
+    # ========== Saving Throw System ==========
+    # SaveChance = clamp(ClassBaseSave + AttrDiff*M + LevelDiff*M + SkillDifficulty + bonus, 5, 95)
+
+    SAVE_ATTRIBUTE_MAP = {
+        "fortitude": CharacterAttributes.CONSTITUTION,
+        "reflex": CharacterAttributes.DEXTERITY,
+        "will": CharacterAttributes.WISDOM,
+    }
+
+    def get_class_base_save(self, save_type: str) -> int:
+        """Get the best base save across all classes for a save type."""
         normalized = save_type.lower()
-        return self.skill_levels.get(normalized, 0)
-    
-    def set_save_skill(self, save_type: str, value: int):
-        """Set the skill level for a save type."""
-        normalized = save_type.lower()
-        self.skill_levels[normalized] = max(0, min(Constants.MAX_SKILL_LEVEL, value))
-    
+        best = 0
+        for role in self.levels_by_role:
+            class_saves = Constants.SAVING_THROW_BASES.get(role, {})
+            best = max(best, class_saves.get(normalized, 30))
+        return best if best > 0 else 30
+
     def get_save_attribute(self, save_type: str) -> int:
-        """
-        Get the relevant attribute for a save type.
-        Fortitude -> Constitution
-        Reflex -> Dexterity
-        Will -> Wisdom
-        """
-        normalized = save_type.lower()
-        attr_map = {
-            "fortitude": CharacterAttributes.CONSTITUTION,
-            "reflex": CharacterAttributes.DEXTERITY,
-            "will": CharacterAttributes.WISDOM,
-            "reason": CharacterAttributes.INTELLIGENCE,  # Future use
-        }
-        attr = attr_map.get(normalized, CharacterAttributes.CONSTITUTION)
+        """Get the defender's relevant attribute value for a save type."""
+        attr = self.SAVE_ATTRIBUTE_MAP.get(save_type.lower(), CharacterAttributes.CONSTITUTION)
         return self.attributes.get(attr, 10)
-    
-    def get_save_value(self, save_type: str, gear_bonus: int = 0, buff_bonus: int = 0) -> int:
+
+    def get_best_level(self) -> int:
+        """Get the highest single-class level this character has."""
+        return max(self.levels_by_role.values()) if self.levels_by_role else 1
+
+    def attempt_save(self, save_type: str, attacker: 'Character', skill_data: 'Skill',
+                     attacker_attribute: CharacterAttributes = None) -> tuple[int, bool]:
         """
-        Calculate the defender's total save value for opposed checks.
-        
-        Defender_Save = Save_Skill + (Attribute × ATTRIBUTE_SAVE_MODIFIER) + gear + buffs
-        """
-        skill = self.get_save_skill(save_type)
-        attribute = self.get_save_attribute(save_type)
-        attr_bonus = attribute * Constants.ATTRIBUTE_SAVE_MODIFIER
-        return skill + attr_bonus + gear_bonus + buff_bonus
-    
-    def get_penetration_value(self, skill_name: str, relevant_attribute: CharacterAttributes = None,
-                               mastery_bonus: int = 0, penetration_bonus: int = 0) -> int:
-        """
-        Calculate the attacker's penetration value for opposed checks.
-        
-        Attacker_Penetration = Skill + (Attribute × ATTRIBUTE_SAVE_MODIFIER) + mastery + bonuses
-        """
-        # Get skill level from any class
-        skill_level = self.get_skill_level(skill_name)
-        
-        # Get attribute bonus
-        attr_value = 10
-        if relevant_attribute is not None:
-            attr_value = self.attributes.get(relevant_attribute, 10)
-        attr_bonus = attr_value * Constants.ATTRIBUTE_SAVE_MODIFIER
-        
-        return skill_level + attr_bonus + mastery_bonus + penetration_bonus
-    
-    @staticmethod
-    def resolve_saving_throw(defender_save: int, attacker_penetration: int, 
-                              situational_mod: int = 0, save_bonus_percent: int = 0) -> tuple[int, bool]:
-        """
-        Resolve an opposed saving throw check.
-        
-        SaveChance = clamp(50 + (Defender_Save - Attacker_Penetration) + situational_mods, 5, 95) + save_bonus_percent
-        
-        The save_bonus_percent is applied AFTER clamping, allowing bonuses to exceed the normal
-        5-95 limits. A bonus of 100 makes the save automatic (immune).
-        
-        Returns:
-            (save_chance, saved) - The percentage chance and whether the save succeeded
-        """
-        import random
-        
-        # Calculate base save chance
-        save_chance = 50 + (defender_save - attacker_penetration) + situational_mod
-        
-        # Clamp to min/max bounds (normal limits)
-        save_chance = max(Constants.SAVE_CHANCE_MIN, min(Constants.SAVE_CHANCE_MAX, save_chance))
-        
-        # Apply save bonus AFTER clamping - this allows exceeding normal limits
-        # A 100% bonus means automatic success (immune)
-        save_chance = save_chance + save_bonus_percent
-        
-        # Final cap at 100 (can't exceed 100% success)
-        save_chance = min(100, save_chance)
-        
-        # Roll
-        roll = random.randint(1, 100)
-        saved = roll <= save_chance
-        
-        return save_chance, saved
-    
-    def get_saving_throw_bonus(self, save_type: str) -> int:
-        """
-        Get the percentage bonus to a saving throw type.
-        A bonus of 100 means immune (automatic success).
-        """
-        normalized = save_type.lower()
-        return self.saving_throw_bonuses.get(normalized, 0)
-    
-    def attempt_save(self, save_type: str, attacker: 'Character', attack_skill: str,
-                     attacker_attribute: CharacterAttributes = None,
-                     situational_mod: int = 0, gear_bonus: int = 0, buff_bonus: int = 0) -> tuple[int, bool]:
-        """
-        Attempt a saving throw against an attacker's ability.
-        
-        Args:
-            save_type: "fortitude", "reflex", or "will"
-            attacker: The attacking character
-            attack_skill: Name of the attacker's skill
-            attacker_attribute: Relevant attribute for the attack
-            situational_mod: Bonus/penalty to save chance
-            gear_bonus: Defender's gear bonus
-            buff_bonus: Defender's buff bonus
-            
+        Attempt a saving throw against an attacker's skill.
+
+        Formula:
+            SaveChance = clamp(
+                ClassBaseSave
+                + (DefenderAttr - AttackerAttr) × ATTRIBUTE_SAVE_MULTIPLIER
+                + (DefenderBestLevel - AttackerClassLevel) × LEVEL_DIFF_MULTIPLIER
+                + SkillSaveDifficulty
+                + saving_throw_bonus,
+                5, 95
+            )
+
         Returns:
             (save_chance, saved) tuple
         """
-        defender_save = self.get_save_value(save_type, gear_bonus, buff_bonus)
-        attacker_pen = attacker.get_penetration_value(attack_skill, attacker_attribute)
-        save_bonus = self.get_saving_throw_bonus(save_type)
-        
-        return self.resolve_saving_throw(defender_save, attacker_pen, situational_mod, save_bonus)
+        import random
+
+        base = self.get_class_base_save(save_type)
+
+        # Attribute difference
+        defender_attr = self.get_save_attribute(save_type)
+        attacker_attr = 10
+        if attacker_attribute is not None:
+            attacker_attr = attacker.attributes.get(attacker_attribute, 10)
+        attr_mod = (defender_attr - attacker_attr) * Constants.ATTRIBUTE_SAVE_MULTIPLIER
+
+        # Level difference: defender's best class level vs attacker's class level for the skill
+        defender_level = self.get_best_level()
+        attacker_level = 1
+        if hasattr(skill_data, 'base_class') and skill_data.base_class is not None:
+            attacker_level = attacker.levels_by_role.get(skill_data.base_class, 1)
+        else:
+            attacker_level = attacker.get_best_level() if hasattr(attacker, 'get_best_level') else 1
+        level_mod = (defender_level - attacker_level) * Constants.LEVEL_DIFF_MULTIPLIER
+
+        # Per-skill difficulty modifier
+        skill_difficulty = getattr(skill_data, 'save_difficulty', 0)
+
+        # Immunity / bonus from saving_throw_bonuses (100 = immune)
+        save_bonus = self.saving_throw_bonuses.get(save_type.lower(), 0)
+
+        save_chance = base + attr_mod + level_mod - skill_difficulty + save_bonus
+        save_chance = max(Constants.SAVE_CHANCE_MIN, min(Constants.SAVE_CHANCE_MAX, save_chance))
+
+        roll = random.randint(1, 100)
+        saved = roll <= save_chance
+
+        return save_chance, saved
     
     def get_mana_regen_rate(self) -> float:
         """Get current mana regen rate based on state."""

@@ -430,7 +430,7 @@ ZONES:
         description: |
           Massive bronze doors lie twisted and melted across the threshold. The blast pattern radiates outward—whatever destroyed these gates came from inside.
 
-          Exits: north, south, east
+          Exits: north, south, east, west
         permanent_flags:
         - outdoors
         - hot
@@ -1092,7 +1092,7 @@ ZONES:
         description: |
           An expanse of cracked white salt stretches toward the horizon, marking where an ancient sea was flash-evaporated. Crystalline formations grow in unnatural spirals.
 
-          Exits: north, east
+          Exits: north, south, east
         permanent_flags:
         - outdoors
         - hot
@@ -1186,6 +1186,8 @@ ZONES:
         name: The Fissure Drop
         description: |
           A jagged crack in the fused desert floor leads down into a subterranean vault. The walls here are not stone, but thick, translucent sheets of glass that hum with a low, vibrating frequency.
+
+          Exits: up, down
         permanent_flags:
         - indoors
         - dangerous
@@ -1211,6 +1213,8 @@ ZONES:
         name: Vitrified Burial Corridor
         description: |
           This long hallway is lined with alcoves where the elite of the Dominion were once laid to rest. The catastrophe has turned the very air to a shimmering haze, and the remains in the alcoves have been partially fused into the walls.
+
+          Exits: north, up
         permanent_flags:
         - indoors
         exits:
@@ -1244,6 +1248,8 @@ ZONES:
         name: The Heart of Refraction
         description: |
           A massive domed chamber where the glass is at its thickest. A central pillar of pure, solar-etched crystal pulses with a rhythmic, dying light, casting prismatic shadows that dance across the floor.
+
+          Exits: south, east, west
         permanent_flags:
         - indoors
         - dangerous
@@ -1282,6 +1288,8 @@ ZONES:
         name: Gallery of Shattered Souls
         description: |
           This long gallery is filled with the remains of crystalline "Memory Keepers" that shattered during the energy overload. Sharp shards of prismatic glass cover the floor like drifts of frozen snow.
+
+          Exits: north, west
         permanent_flags:
         - indoors
         - dangerous
@@ -1309,6 +1317,8 @@ ZONES:
         name: The Resonant Echo Chamber
         description: |
           The walls here are curved to amplify the "incomplete harmonies" of the old ritual. The air itself feels heavy, as if the energy release was "catastrophic and instantaneous" and remains trapped here.
+
+          Exits: south, east
         permanent_flags:
         - indoors
         exits:
@@ -1332,6 +1342,8 @@ ZONES:
         name: The Noble Crypts
         description: |
           A cluster of private burial chambers for high-ranking officials. Unlike the public corridor, these rooms are lined with "gold-inlaid script" and "sun-etched stone" that resisted the worst of the heat.
+
+          Exits: north, east
         permanent_flags:
         - indoors
         exits:
@@ -1356,6 +1368,8 @@ ZONES:
         name: The High Priest's Repose
         description: |
           The final resting place of a high priest of the Black Sun. A massive "ornate false sarcophagus" sits at the center, its lid "cracked open from the inside" as if something fought to escape.
+
+          Exits: south
         permanent_flags:
         - indoors
         exits:
@@ -1378,6 +1392,8 @@ ZONES:
         name: The Vitrified Archives
         description: |
           A cramped room where "crystalline memory slabs" were stored. Most have melted into a single, glowing mass of slag, but a few individual pieces remain "scorched black" at the edges.
+
+          Exits: north, west
         permanent_flags:
         - indoors
         exits:
@@ -1407,6 +1423,8 @@ ZONES:
         name: The Servants' Escape Tunnel
         description: |
           A low, narrow tunnel designed for quick movement between the vaults and the barracks. The glass walls here are thinner, revealing the "sand-woken" creatures prowling in the dunes outside.
+
+          Exits: north, south
         permanent_flags:
         - indoors
         exits:
@@ -1430,6 +1448,8 @@ ZONES:
         name: The Barracks Junction
         description: |
           The tunnel ends at a set of "shattered temple gates" that once protected the ossuary from the garrison above. Fused sand and "scorched flagstones" block much of the northern exit.
+
+          Exits: north, south
         permanent_flags:
         - indoors
         exits:
@@ -1451,6 +1471,8 @@ ZONES:
         name: The Scorched Archway
         description: |
           A heavy stone archway, its surface blackened and bubbling from extreme heat, marks the entrance to the Scriptorium. Ash drifts from the ceiling like gray snow, coating the cracked flagstones.
+
+          Exits: east, west
         permanent_flags:
         - indoors
         - hot
@@ -1475,6 +1497,8 @@ ZONES:
         name: Hall of Melted Records
         description: |
           What were once towering bookshelves are now mounds of slagged stone and carbonized ash. A few fragments of crystalline "memory slabs" jut from the debris, glowing with dim, flickering data.
+
+          Exits: north, south, east
         permanent_flags:
         - indoors
         exits:
@@ -1506,6 +1530,8 @@ ZONES:
         name: The Calculation Chamber
         description: |
           A circular room dominated by a massive, floor-to-ceiling brass orrery that has been melted into a static, golden tangle. This is where the mages once calculated the "solar tolerances" for the ritual.
+
+          Exits: south, west
         permanent_flags:
         - indoors
         - dangerous
@@ -1536,6 +1562,8 @@ ZONES:
         name: The Scribe Alcoves
         description: |
           Small, cell-like spaces where scribes once tirelessly copied ritual parameters. The desks are fused to the floors, and the walls are etched with desperate, final notations.
+
+          Exits: north
         permanent_flags:
         - indoors
         exits:
@@ -1559,6 +1587,8 @@ ZONES:
         name: Failed Containment Cell
         description: |
           This room was designed to hold volatile energy samples. The lead-lined walls are buckled outward, and the floor is a glassed crater of "uncontained solar energy" residue.
+
+          Exits: north, east
         permanent_flags:
         - indoors
         - dangerous
@@ -1589,6 +1619,8 @@ ZONES:
         name: The Restricted Stacks
         description: |
           A high-security archive where "safeguard documentation" was kept. Unlike the outer halls, the shelves here are made of heat-resistant basalt, and many tablets remain intact.
+
+          Exits: south, west
         permanent_flags:
         - indoors
         exits:
@@ -1616,6 +1648,8 @@ ZONES:
         name: Office of the Chief Archivist
         description: |
           The remains of an opulent office. A "master chronicle slab" sits on a scorched desk, surrounded by "glyph-scraping tools" used to edit the Dominion's history.
+
+          Exits: north, east
         permanent_flags:
         - indoors
         exits:
@@ -1637,6 +1671,8 @@ ZONES:
         name: The Secret Scriptorium
         description: |
           A hidden chamber where the "doctrinal revision" actually took place. This is where the truth of the "hidden sacrifice" was excised from the official records.
+
+          Exits: south, up
         permanent_flags:
         - indoors
         - silent
@@ -1660,6 +1696,8 @@ ZONES:
         name: Scriptorium Observation Deck
         description: |
           A high balcony overlooking the "Glassed Expanse." From here, the "radial heat damage" and the "catastrophic energy release" patterns are visible across the entire Dominion.
+
+          Exits: down
         permanent_flags:
         - outdoors
         - hot
@@ -1679,6 +1717,8 @@ ZONES:
         name: The Failed Alcove
         description: |
           A collapsed corner of the scriptorium where the heat was so intense it fused the basalt shelves into a single, obsidian-like mass.
+
+          Exits: east
         exits:
           east:
             destination: room_scriptorium_hall_of_records
@@ -1689,6 +1729,8 @@ ZONES:
         name: The Salt-Dusted Trail
         description: |
           A narrow path, heavily encrusted with white salt crystals, leads away from the flats. The ground is brittle and crunches loudly with every step.
+
+          Exits: north, south
         permanent_flags:
         - outdoors
         - hot
@@ -1716,6 +1758,8 @@ ZONES:
         name: Garrison Main Gate
         description: |
           The stone pillars here once held massive wooden gates, now replaced by pillars of jagged salt. A low stone wall extends to the east and west, crumbling into the dunes.
+
+          Exits: north, south
         permanent_flags:
         - outdoors
         - hot
@@ -1740,6 +1784,8 @@ ZONES:
         name: Salt-Fused Training Grounds
         description: |
           This wide courtyard was once used for drills. Now, weapon racks have been fused into solid blocks of salt, and the stone floor is cracked and buckled.
+
+          Exits: north, south, east, west
         permanent_flags:
         - outdoors
         - hot
@@ -1780,6 +1826,8 @@ ZONES:
         name: Desiccated Officer Quarters
         description: |
           The interior has been preserved by salt, leaving furniture as brittle, white ghosts. The air is thick with the scent of dry rot and old iron.
+
+          Exits: east
         permanent_flags:
         - indoors
         exits:
@@ -1807,6 +1855,8 @@ ZONES:
         name: Salt-Crusted Mess Hall
         description: |
           Long stone tables dominate this room. Piles of salt-preserved rations and rusted metal utensils remain exactly where they were left centuries ago.
+
+          Exits: north, south
         permanent_flags:
         - indoors
         exits:
@@ -1832,6 +1882,8 @@ ZONES:
         name: Sleeping Quarters
         description: |
           Rows of stone bunks line the walls, each covered in salt. Personal effects are scattered across the floor, long since turned to brittle slag.
+
+          Exits: north, east
         permanent_flags:
         - indoors
         exits:
@@ -1854,6 +1906,8 @@ ZONES:
         name: Armory Foyer
         description: |
           A transition chamber protecting equipment. Racks of scorched metal shields lean against walls, etched with sun-disc imagery.
+
+          Exits: south, west
         permanent_flags:
         - indoors
         exits:
@@ -1880,6 +1934,8 @@ ZONES:
         name: Garrison Commander's Vault
         description: |
           The heart of garrison security. This circular chamber contains advanced weapons and military "doctrinal law" records.
+
+          Exits: north, down
         permanent_flags:
         - indoors
         - dangerous
@@ -1913,6 +1969,8 @@ ZONES:
         name: Crumbling Watchtower
         description: |
           A stone tower leaning precariously. From the top, the scorched road and the white salt flats are visible.
+
+          Exits: west
         permanent_flags:
         - outdoors
         - hot
@@ -1933,6 +1991,8 @@ ZONES:
         name: Subterranean Cistern
         description: |
           A deep chamber beneath the garrison. It is now a dry crater filled with white salt and desiccated remains.
+
+          Exits: up
         permanent_flags:
         - indoors
         - silent

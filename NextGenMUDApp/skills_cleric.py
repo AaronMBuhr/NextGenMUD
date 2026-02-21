@@ -1,5 +1,5 @@
 from .basic_types import GenericEnumWithAttributes
-from .skills_core import Skills, ClassSkills, Skill, SkillType, SkillAICondition
+from .skills_core import Skills, ClassSkills, Skill, SkillType, SkillAICondition, SkillsRegistry
 from .nondb_models.actors import Actor
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation
 from .nondb_models.actor_states import (
@@ -282,6 +282,16 @@ class Skills_Cleric(Skills):
         cooldown = Cooldown(actor, "smite", cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": SMITE_COOLDOWN_TICKS})
         await cooldown.start(game_tick or cls._game_state.get_current_tick(), SMITE_COOLDOWN_TICKS)
+
+        THIS_SKILL_DATA = ClericSkills.SMITE
+        if THIS_SKILL_DATA.save_type:
+            save_chance, saved = target.attempt_save(
+                THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                attacker_attribute=CharacterAttributes.WISDOM)
+            if saved:
+                vars = set_vars(actor, actor, target, "")
+                cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                return True
 
         # Send messages
         if is_undead:
@@ -574,6 +584,16 @@ class Skills_Cleric(Skills):
                            cooldown_vars={"duration": JUDGMENT_COOLDOWN_TICKS})
         await cooldown.start(game_tick or cls._game_state.get_current_tick(), JUDGMENT_COOLDOWN_TICKS)
 
+        THIS_SKILL_DATA = ClericSkills.JUDGMENT
+        if THIS_SKILL_DATA.save_type:
+            save_chance, saved = target.attempt_save(
+                THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                attacker_attribute=CharacterAttributes.WISDOM)
+            if saved:
+                vars = set_vars(actor, actor, target, "")
+                cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                return True
+
         # Send messages
         if is_undead:
             msg = f"You pass divine judgment upon {target.art_name}! The undead abomination writhes in agony!"
@@ -651,6 +671,7 @@ class Skills_Cleric(Skills):
         actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Hit all enemies in the room
+        THIS_SKILL_DATA = ClericSkills.DIVINE_RECKONING
         enemies_hit = 0
         for char in list(actor._location_room.characters):
             if char == actor:
@@ -663,6 +684,15 @@ class Skills_Cleric(Skills):
             if char.has_perm_flags(PermanentCharacterFlags.IS_PC):
                 continue
             
+            if THIS_SKILL_DATA.save_type:
+                save_chance, saved = char.attempt_save(
+                    THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
+                    attacker_attribute=CharacterAttributes.WISDOM)
+                if saved:
+                    vars = set_vars(actor, actor, char, "")
+                    cls.send_resist_message(actor, [char], THIS_SKILL_DATA, vars)
+                    continue
+
             # Roll damage for each target
             damage = roll_dice(RECKONING_DICE_NUM, RECKONING_DICE_SIZE) + damage_bonus
             
@@ -836,6 +866,8 @@ class ClericSkills(ClassSkills):
         message_resist_subject="%t% resists your smite!",
         message_resist_target="You resist $cap(%a%)'s smite!",
         message_resist_room="%t% resists $cap(%a%)'s smite!",
+        save_type="will",
+        save_difficulty=0,
         skill_function="do_cleric_smite",
         ai_priority=50,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -926,6 +958,8 @@ class ClericSkills(ClassSkills):
         message_resist_subject="%t% partially resists your judgment!",
         message_resist_target="You partially resist $cap(%a%)'s judgment!",
         message_resist_room="%t% partially resists $cap(%a%)'s judgment!",
+        save_type="will",
+        save_difficulty=5,
         skill_function="do_cleric_judgment",
         ai_priority=60,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -956,6 +990,8 @@ class ClericSkills(ClassSkills):
         message_resist_subject=None,
         message_resist_target=None,
         message_resist_room=None,
+        save_type="will",
+        save_difficulty=10,
         skill_function="do_cleric_divine_reckoning",
         ai_priority=80,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -1102,3 +1138,10 @@ class ClericSkills(ClassSkills):
         skill_type=SkillType.HEAL_SELF,
         requires_target=False
     ) 
+
+
+SkillsRegistry.register_skill_class("cleric", {
+    attr_name.lower(): getattr(Skills_Cleric, attr_name)
+    for attr_name in dir(Skills_Cleric)
+    if not attr_name.startswith('_') and isinstance(getattr(Skills_Cleric, attr_name), Skill)
+})

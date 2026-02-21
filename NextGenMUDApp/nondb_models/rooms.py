@@ -138,8 +138,7 @@ class Room(Actor, RoomInterface):
     
     def get_nearby_enemies(self, actor: Actor) -> List[Actor]:
         return set([c for c in self.characters if c.fighting_whom != actor and c.location_room == self] \
-            + [c for c in self.characters if actor.attitude == ActorAttitude.HOSTILE \
-                or actor.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)])
+            + [c for c in self.characters if actor.attitude == ActorAttitude.HOSTILE])
 
     @property
     def art_name(self):

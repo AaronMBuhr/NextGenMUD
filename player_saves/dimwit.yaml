@@ -5,9 +5,9 @@ pronoun_subject: they
 pronoun_object: them
 pronoun_possessive: their
 location:
-  zone:
-  room:
-was_in_combat: false
+  zone: debug_zone
+  room: starting_room
+was_in_combat: true
 class_priority:
 - MAGE
 levels_by_role:
@@ -17,36 +17,38 @@ skill_levels: {}
 skill_points_available: 0
 skill_levels_by_role:
   MAGE:
-    animate_dead: 32
+    animate_dead: 28
+    arcane_barrier: 0
     blur: 0
     detect_magic: 0
+    fireball: 0
     ignite: 0
     light: 0
     magic_missile: 32
     mana_burn: 0
-    shield: 11
+    shield: 0
 attributes:
   STRENGTH: 6
-  DEXTERITY: 10
-  CONSTITUTION: 10
+  DEXTERITY: 8
+  CONSTITUTION: 12
   INTELLIGENCE: 25
   WISDOM: 8
   CHARISMA: 1
 permanent_flags: 1
 game_permission_flags: 0
-experience_points: 0
+experience_points: 90
 hit_dice: 1
 hit_dice_size: 4
 hit_point_bonus: 0
-max_hit_points: 2
-current_hit_points: -1
+max_hit_points: 23
+current_hit_points: 16
 max_mana: 45
-current_mana: 42
+current_mana: 22
 max_stamina: 0
 current_stamina: 0
 max_carrying_capacity: 100
 base_hit_modifier: 40
-base_dodge_modifier: 5
+base_dodge_modifier: 4
 dodge_dice_number: 1
 dodge_dice_size: 50
 critical_chance: 5
@@ -110,10 +112,6 @@ equipment:
   EYES:
 temporary_flags: 0
 states: []
-cooldowns:
-- name: ''
-  source_type:
-  start_tick: 0
-  duration_ticks: 0
+cooldowns: []
 password_hash: 
-  646ce7c8231fa02267c098818bff2649a78a3b04e67bccd513a805237ec2041f$9cfe857f74245ff8801bb389acc7b34f40779e57a4152f99041a007afc530dca
+  593f381e47fd697487761c568eb6f9fbb4884e0cef3ab4bdbcda51d23b51c92e$b1e69874f086c18b3a4c7536a268529e430c2dbf41ee303fd42a2f1e39a3917a

@@ -43,13 +43,6 @@ class SkillsInterface(metaclass=ABCMeta):
     
     @classmethod
     @abstractmethod
-    def does_resist(cls, actor, initiator_attribute: int, skill_level: int, target, 
-                    target_attribute: int, difficulty_modifier: int) -> Tuple[bool, int]:
-        """Check if a target resists a skill, returns (resisted, roll_value)"""
-        raise NotImplementedError
-    
-    @classmethod
-    @abstractmethod
     def check_ready(cls, actor, cooldown_name: str=None) -> Tuple[bool, str]:
         """Check if an actor is ready to use a skill, returns (ready, reason)"""
         raise NotImplementedError

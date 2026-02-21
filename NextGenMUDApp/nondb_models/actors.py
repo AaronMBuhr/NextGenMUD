@@ -28,6 +28,7 @@ class Actor(ActorInterface):
         self.id = id
         self.name = name
         self.article = generate_article(name)
+        self.keywords: List[str] = []
         self.pronoun_subject = "it"
         self.pronoun_object = "it"
         self.pronoun_possessive = "its"
@@ -111,8 +112,6 @@ class Actor(ActorInterface):
             logger.warning(f"Attempted to remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from actor {self.name} ({self.id}), but state was not in states list.")
         
     def can_act(self, allow_if_hindered=False) -> tuple[bool, str]:
-        if self.has_temp_flags(TemporaryCharacterFlags.IS_DEAD):
-            return False, "You are dead!"
         if self.has_temp_flags(TemporaryCharacterFlags.IS_FROZEN):
             return False, "You are frozen!"
         if self.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
@@ -127,6 +126,20 @@ class Actor(ActorInterface):
             return False, "You are sitting!"
         return True, ""
             
+
+    def matches_keyword(self, keyword: str) -> bool:
+        """Check if this actor matches a keyword via id, name words, or keywords list.
+        All comparisons use case-insensitive startswith for consistency."""
+        keyword_lower = keyword.lower()
+        if self.id.lower().startswith(keyword_lower):
+            return True
+        for word in self.name.lower().split():
+            if word.startswith(keyword_lower):
+                return True
+        for kw in self.keywords:
+            if kw.lower().startswith(keyword_lower):
+                return True
+        return False
 
     def actor_vars(self, name: str) -> dict:
         # Using dictionary comprehension to prefix keys and combine dictionaries

@@ -539,7 +539,16 @@ class CoreActions(CoreActionsInterface):
                     will_join_fight = True
             
             if will_join_fight:
+                # Double-check that they're not already fighting (race condition protection)
+                if c.fighting_whom is not None:
+                    logger.debug3(f"{c.rid} is already fighting {c.fighting_whom.rid}, skipping")
+                    continue
+                
                 logger.debug3(f"found {c.rid} joining in against {attacker.rid}")
+                # Set fighting_whom immediately to prevent race conditions
+                c.fighting_whom = attacker
+                self.game_state.add_character_fighting(c)
+                
                 msg = f"You join the attack against {attacker.art_name}!"
                 vars = set_vars(c, c, attacker, msg)
                 await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
@@ -550,8 +559,6 @@ class CoreActions(CoreActionsInterface):
                 vars = set_vars(c, c, attacker, msg)
                 await attacker.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[c, attacker], game_state=self.game_state)
                 c.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED | TemporaryCharacterFlags.IS_HIDDEN)
-                c.fighting_whom = attacker
-                self.game_state.add_character_fighting(c)
 
     async def do_die(self, dying_actor: Actor, killer: Actor = None, other_killer: str = None):
         from .nondb_models.objects import Corpse
@@ -632,8 +639,11 @@ class CoreActions(CoreActionsInterface):
             # Apply XP penalty (5% of current level's XP, can't de-level)
             await self._apply_death_xp_penalty(dying_actor)
             
-            # Respawn player at start room with full HP
+            # Respawn player at start room with full resources
             await self._respawn_player(dying_actor)
+            
+            # Save immediately so XP penalty, inventory loss, and new location persist
+            self.game_state._save_character(dying_actor)
         else:
             # NPC DEATH: Drop all inventory
             corpse.transfer_inventory()
@@ -692,7 +702,7 @@ class CoreActions(CoreActionsInterface):
             logger.info(f"Player {player.name} lost {xp_loss} XP on death")
 
     async def _respawn_player(self, player: Actor):
-        """Respawn player at start location with full HP."""
+        """Respawn player at start location with full resources and clean state."""
         logger = StructuredLogger(__name__, prefix="_respawn_player()> ")
         
         # Get start room from config
@@ -713,14 +723,21 @@ class CoreActions(CoreActionsInterface):
             # Use first room in zone
             start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
         
-        # Restore HP to full
+        # Restore all resources to full
         player.current_hit_points = player.max_hit_points
+        player.current_mana = player.max_mana
+        player.current_stamina = player.max_stamina
         
-        # Clear any negative states
+        # Clear any negative flags
         player.remove_temp_flags(TemporaryCharacterFlags.IS_STUNNED | 
                                   TemporaryCharacterFlags.IS_FROZEN |
                                   TemporaryCharacterFlags.IS_SLEEPING |
                                   TemporaryCharacterFlags.IS_SITTING)
+        
+        # Remove all active states (DOTs, debuffs, buffs) and cooldowns
+        for state in player.current_states[:]:
+            state.remove_state(force=True)
+        player.cooldowns.clear()
         
         # Arrive at respawn location
         logger.info(f"Player {player.name} respawning at {start_room.name}")
@@ -728,6 +745,10 @@ class CoreActions(CoreActionsInterface):
         
         msg = "You awaken at a safe location."
         await player.echo(CommTypes.DYNAMIC, msg, set_vars(player, player, player, msg), game_state=self.game_state)
+        
+        # Update client status bar
+        if player.has_perm_flags(PermanentCharacterFlags.IS_PC):
+            await player.send_status_update()
 
     def _decay_corpse(self, corpse: 'Object', room: 'Room'):
         """Remove a corpse after decay time, destroying any remaining contents."""
@@ -852,7 +873,14 @@ class CoreActions(CoreActionsInterface):
         critical = random.randint(1,100) < actor.critical_chance
         logger.debug3(f"{'CRIT' if critical else 'HIT'}: hit_roll: {hit_roll}, hit_modifier: {hit_modifier}, dodge_roll: {dodge_roll}")
         # it hit, figure out damage
-        msg = f"You {"critically " if critical else ""}{attack.attack_verb} {target.art_name} with {attack.attack_noun}!"
+        # Conjugate verb for first person (remove trailing 's' or 'es')
+        first_person_verb = attack.attack_verb
+        if first_person_verb.endswith('es'):
+            first_person_verb = first_person_verb[:-2]
+        elif first_person_verb.endswith('s'):
+            first_person_verb = first_person_verb[:-1]
+        
+        msg = f"You {"critically " if critical else ""}{first_person_verb} {target.art_name} with {attack.attack_noun}!"
         await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
         msg = f"{actor.art_name_cap} {"critically " if critical else ""}{attack.attack_verb} you with {attack.attack_noun}!"
         await target.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
@@ -871,6 +899,11 @@ class CoreActions(CoreActionsInterface):
             total_damage += damage
             logger.debug3(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
         logger.debug3(f"total damage: {total_damage}")
+        
+        # Trigger group aggro - alert target's group members to join the fight
+        if total_damage > 0:
+            await self.trigger_group_aggro(actor, target)
+        
         return total_damage
             
 
@@ -987,8 +1020,7 @@ class CoreActions(CoreActionsInterface):
             logger.debug3(f"{actor.rid} is PC, skipping aggro")
             return False
         
-        # Check if the actor is hostile (either by attitude or by aggressive flag)
-        if not (actor.attitude == ActorAttitude.HOSTILE or actor.has_perm_flags(PermanentCharacterFlags.IS_AGGRESSIVE)):
+        if actor.attitude != ActorAttitude.HOSTILE:
             # logger.critical(f"{actor.rid} is not hostile or aggressive")
             # not hostile
             return False

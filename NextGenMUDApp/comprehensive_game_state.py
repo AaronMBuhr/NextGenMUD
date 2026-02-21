@@ -346,19 +346,10 @@ class ComprehensiveGameState:
         # Helper function to add candidates from a room
         def add_candidates_from_room(actor, room):
             for char in room.get_characters():
-                # Skip the initiating actor if exclude_initiator is True
                 if exclude_initiator and char == actor:
                     continue
-                
-                # Case-insensitive matching on id and name
-                if char.id.lower().startswith(target_lower) and self.can_see(char, actor):
+                if char.matches_keyword(target_lower) and self.can_see(char, actor):
                     candidates.append(char)
-                else:
-                    namepieces = char.name.lower().split(' ')
-                    for piece in namepieces:
-                        if piece.startswith(target_lower) and self.can_see(char, actor):
-                            candidates.append(char)
-                            break
 
         # Search in the current room
         add_candidates_from_room(actor, start_room)
@@ -404,15 +395,8 @@ class ComprehensiveGameState:
         # Helper function to add matching characters from a room
         def add_matching_characters_from_room(room):
             for char in room.characters_:
-                # Case-insensitive matching
-                if char.id.lower().startswith(target_lower):
+                if char.matches_keyword(target_lower):
                     matching_characters.append(f"{article_plus_name(char.article_, char.name, cap=True)} in {room.name}")
-                else:
-                    namepieces = char.name.lower().split(' ')
-                    for piece in namepieces:
-                        if piece.startswith(target_lower):
-                            matching_characters.append(f"{article_plus_name(char.article_, char.name, cap=True)} in {room.name}")
-                            break
 
         # Search in the current room
         add_matching_characters_from_room(start_room)
@@ -470,23 +454,14 @@ class ComprehensiveGameState:
     
 
     def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
-                           start_room: 'Room' = None, start_zone: Zone = None, search_world=False) -> Object:
+                           start_room: 'Room' = None, start_zone: Zone = None, search_world=False,
+                           search_list: list = None) -> Object:
         logger = StructuredLogger(__name__, prefix="find_target_object()> ")
 
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             return Actor.get_reference(target_name[1:])
         if target_name.lower() == 'me' or target_name.lower() == "self":
             return actor
-
-        def check_object(obj) -> bool:
-            logger = StructuredLogger(__name__, prefix="find_target_object.check_object()> ")
-            if obj.id.startswith(target_name):
-                return True
-            for pieces in obj.name.split(' '):
-                logger.debug3(f"pieces: {pieces} ? {target_name}")
-                if pieces.startswith(target_name):
-                    return True
-            return False
 
         target_number = 1
         if '#' in target_name:
@@ -497,30 +472,35 @@ class ComprehensiveGameState:
             except:
                 return None
 
+        target_lower = target_name.lower()
         candidates: List[Object] = []
 
+        if search_list is not None:
+            for obj in search_list:
+                if obj.matches_keyword(target_lower):
+                    candidates.append(obj)
         if equipped:
             for obj in equipped.values():
-                if obj and check_object(obj):
+                if obj and obj.matches_keyword(target_lower):
                     candidates.append(obj)
         if actor:
             for obj in actor.contents:
-                if check_object(obj):
+                if obj.matches_keyword(target_lower):
                     candidates.append(obj)
         if start_room:
             for obj in start_room.contents:
-                if check_object(obj):
+                if obj.matches_keyword(target_lower):
                     candidates.append(obj)
         if start_zone:
             for room in start_zone.rooms.values():
                 for obj in room.contents:
-                    if check_object(obj):
+                    if obj.matches_keyword(target_lower):
                         candidates.append(obj)
         if search_world:
             for zone in self.zones.values():
                 for room in zone.rooms.values():
                     for obj in room.contents:
-                        if check_object(obj):
+                        if obj.matches_keyword(target_lower):
                             candidates.append(obj)
         
         # Return the target object
@@ -578,6 +558,12 @@ class ComprehensiveGameState:
         # Reconnect the character
         character.connection = connection
         connection.character = character
+        
+        # Check if character is dead - if so, respawn them at start room
+        if character.is_dead():
+            logger.info(f"Character {character_name} is dead on reconnect - respawning at start room")
+            await CoreActionsInterface.get_instance()._respawn_player(character)
+            return
         
         await connection.send(CommTypes.DYNAMIC, "You reconnect to your character.")
         
@@ -691,7 +677,7 @@ class ComprehensiveGameState:
         if attack_def:
             attack = AttackData()
             attack.attack_noun = attack_def.get('noun', 'punch')
-            attack.attack_verb = attack_def.get('verb', 'punches')
+            attack.attack_verb = attack_def.get('verb', 'punch')
             dmg_type_str = attack_def.get('damage_type', 'bludgeoning').upper()
             dmg_dice_str = attack_def.get('damage_dice', '1d4+0')
             dmg_parts = get_dice_parts(dmg_dice_str)
@@ -787,6 +773,12 @@ class ComprehensiveGameState:
             new_player.name = character_name
         
         self.players.append(new_player)
+        
+        # Check if character is dead - if so, respawn them at start room
+        if new_player.is_dead():
+            logger.info(f"Character {character_name} is dead on login - respawning at start room")
+            await CoreActionsInterface.get_instance()._respawn_player(new_player)
+            return
         
         # Determine starting room
         # Check for combat reconnection scenario

@@ -412,7 +412,7 @@ ZONES:
         description: |
           A maintenance hangar lined with docking alcoves. Several inactive  Spire Wardens remain suspended from the ceiling by rusted chains.
 
-          Exits: east, west
+          Exits: north, west
         exits:
           west: barracks_training_grounds
           north: bazaar_entrance

@@ -165,11 +165,21 @@ class Constants:
     SPELL_POWER_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
     DODGE_BONUS_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}
     
-    # Skill-based saving throw system constants
-    ATTRIBUTE_SAVE_MODIFIER: ClassVar[int] = 2  # Attribute × this = save contribution
-    SAVE_CHANCE_MIN: ClassVar[int] = 5   # Minimum save chance %
-    SAVE_CHANCE_MAX: ClassVar[int] = 95  # Maximum save chance %
+    # Saving throw system constants
+    ATTRIBUTE_SAVE_MULTIPLIER: ClassVar[int] = 2   # Per point of attribute difference
+    LEVEL_DIFF_MULTIPLIER: ClassVar[int] = 3       # Per level of level difference
+    SAVE_CHANCE_MIN: ClassVar[int] = 5             # Minimum save chance %
+    SAVE_CHANCE_MAX: ClassVar[int] = 95            # Maximum save chance %
     ATTRIBUTE_GAIN_LEVEL_INTERVAL: ClassVar[int] = 10  # Gain +1 attribute every N levels
+    
+    # Class base save percentages: {class: {save_type: base_%}}
+    # At same level/attributes, this is the % chance to save
+    SAVING_THROW_BASES: ClassVar[Dict] = {
+        CharacterClassRole.FIGHTER: {"fortitude": 50, "reflex": 35, "will": 30},
+        CharacterClassRole.ROGUE:   {"fortitude": 30, "reflex": 50, "will": 35},
+        CharacterClassRole.MAGE:    {"fortitude": 30, "reflex": 35, "will": 50},
+        CharacterClassRole.CLERIC:  {"fortitude": 40, "reflex": 30, "will": 50},
+    }
 
 
     @classmethod
@@ -318,13 +328,19 @@ class Constants:
                 class_enum = CharacterClassRole.from_field_name(class_name)
                 Constants.DODGE_BONUS_PROGRESSION[class_enum] = progression
         
-        # Load skill-based saving throw system constants
-        if "ATTRIBUTE_SAVE_MODIFIER" in constants_dict:
-            Constants.ATTRIBUTE_SAVE_MODIFIER = constants_dict["ATTRIBUTE_SAVE_MODIFIER"]
+        # Load saving throw system constants
+        if "ATTRIBUTE_SAVE_MULTIPLIER" in constants_dict:
+            Constants.ATTRIBUTE_SAVE_MULTIPLIER = constants_dict["ATTRIBUTE_SAVE_MULTIPLIER"]
+        if "LEVEL_DIFF_MULTIPLIER" in constants_dict:
+            Constants.LEVEL_DIFF_MULTIPLIER = constants_dict["LEVEL_DIFF_MULTIPLIER"]
         if "SAVE_CHANCE_MIN" in constants_dict:
             Constants.SAVE_CHANCE_MIN = constants_dict["SAVE_CHANCE_MIN"]
         if "SAVE_CHANCE_MAX" in constants_dict:
             Constants.SAVE_CHANCE_MAX = constants_dict["SAVE_CHANCE_MAX"]
         if "ATTRIBUTE_GAIN_LEVEL_INTERVAL" in constants_dict:
             Constants.ATTRIBUTE_GAIN_LEVEL_INTERVAL = constants_dict["ATTRIBUTE_GAIN_LEVEL_INTERVAL"]
+        if "SAVING_THROW_BASES" in constants_dict:
+            for class_name, saves in constants_dict["SAVING_THROW_BASES"].items():
+                class_enum = CharacterClassRole.from_field_name(class_name)
+                Constants.SAVING_THROW_BASES[class_enum] = saves
 

@@ -312,6 +312,9 @@ class Skill:
                  message_resist_target: Optional[str] = None,
                  message_resist_room: Optional[str] = None,
                  skill_function: Optional[callable] = None,
+                 # Saving throw properties
+                 save_type: Optional[str] = None,       # "fortitude", "reflex", "will", or None
+                 save_difficulty: int = 0,              # positive = harder to save, negative = easier
                  # AI properties for NPC skill usage
                  ai_priority: int = 50,
                  ai_condition: str = SkillAICondition.ALWAYS,
@@ -340,6 +343,9 @@ class Skill:
         self.message_resist_target = message_resist_target
         self.message_resist_room = message_resist_room
         self.skill_function = skill_function
+        # Saving throw properties
+        self.save_type = save_type
+        self.save_difficulty = save_difficulty
         # AI properties
         self.ai_priority = ai_priority          # Higher = more likely to use (0-100)
         self.ai_condition = ai_condition        # When to consider using
@@ -513,54 +519,6 @@ class Skills(SkillsInterface):
         skill_roll = random.randint(1, 100)
         result = cls.check_skill_roll(skill_roll, actor, skill, difficulty_mod)
         return result >= 0 
-    
-    @classmethod
-    def does_resist(cls, actor: Actor, initiator_attribute: int, skill_level: int, target: Actor, 
-                    target_attribute: int, difficulty_modifier: int) -> Tuple[bool, int]:
-        """
-        Calculate success chance for a skill check against resistance.
-        
-        Spell power from caster levels makes spells harder to resist.
-        Higher level casters overcome resistance better than lower level ones.
-        
-        Parameters:
-        - actor: The character using the skill/spell
-        - initiator_attribute: Relevant attribute score for skill user (1-20)
-        - skill_level: Proficiency in the skill (1-100)
-        - target: The character resisting
-        - target_attribute: Relevant attribute score for target (1-20)
-        - difficulty_modifier: Situational modifier (-20 to +20)
-        
-        Returns:
-        - success: Boolean indicating if the target RESISTED (True = resisted, False = affected)
-        - margin: How much the check succeeded or failed by
-        """
-        # Get spell power from caster (level-based bonus for Mage/Cleric)
-        spell_power = getattr(actor, 'spell_power', 0)
-        
-        # Base success value from initiator (higher = more likely to overcome resistance)
-        # Spell power directly adds to the caster's effectiveness
-        initiator_base = (skill_level * 0.6) + (initiator_attribute * 3) + (actor.level * 0.5) + (spell_power * 0.8)
-        
-        # Base resistance value from target (higher = harder to affect)
-        target_base = (target_attribute * 4) + (target.level * 0.8) + (difficulty_modifier * 1.5)
-        
-        # Random element (1-100)
-        random_roll = random.randint(1, 100)
-        
-        # Calculate success threshold (higher means harder to overcome resistance)
-        # If initiator_base > target_base, threshold drops (easier to affect target)
-        success_threshold = 50 + (target_base - initiator_base) * 0.5
-        
-        # Ensure threshold stays within reasonable bounds (5-95)
-        success_threshold = max(5, min(95, success_threshold))
-        
-        # Calculate margin of success/failure
-        margin = random_roll - success_threshold
-        
-        # Determine if target resisted (roll >= threshold means caster succeeded, target failed to resist)
-        resisted = random_roll < success_threshold
-        return resisted, margin    
     
     @classmethod
     def check_ready(cls, actor: Actor, cooldown_name: str=None, skill: Skill=None) -> Tuple[bool, str]:
