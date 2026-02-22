@@ -5,9 +5,9 @@ pronoun_subject: they
 pronoun_object: them
 pronoun_possessive: their
 location:
-  zone: debug_zone
-  room: starting_room
-was_in_combat: true
+  zone: enchanted_forest
+  room: ancient_oak
+was_in_combat: false
 class_priority:
 - MAGE
 levels_by_role:

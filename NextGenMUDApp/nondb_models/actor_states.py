@@ -57,10 +57,11 @@ class Cooldown:
             self.cooldown_duration_ = cooldown_end_tick - current_tick
             
         self.actor.cooldowns.append(self)
-        self.game_state.add_scheduled_event(EventType.COOLDOWN_OVER, self, self.cooldown_name, 
-                                            scheduled_tick=self.cooldown_end_tick, 
-                                            vars=self.cooldown_vars, 
-                                            func=self.end_cooldown)
+        self.game_state.add_scheduled_event(EventType.COOLDOWN_OVER, self, self.cooldown_name,
+                                            scheduled_tick=self.cooldown_end_tick,
+                                            vars=self.cooldown_vars,
+                                            func=self.end_cooldown,
+                                            attach_to_actor=self.actor)
         return True
 
     def to_dict(self):
@@ -144,11 +145,14 @@ class ActorState:
         self.last_tick_acted = start_tick
         self.duration_remaining = self.tick_ending - self.tick_started
         self.actor.apply_state(self)
-        self.game_state.add_scheduled_event(EventType.STATE_END, self, "state_end", self.tick_ending, 
-                                            None, None, lambda a, t, s, v: self.remove_state())
+        self.game_state.add_scheduled_event(EventType.STATE_END, self, "state_end", scheduled_tick=self.tick_ending,
+                                            vars=None, func=lambda a, t, s, v: self.remove_state(),
+                                            attach_to_actor=self.actor)
         if pulse_period_ticks:
             self.game_state.add_scheduled_event(EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
-                                                self.next_tick, self.tick_period, None, lambda a, t, s, v: self.perform_pulse(t, s, v))
+                                                scheduled_tick=self.next_tick, in_ticks=self.tick_period,
+                                                vars=None, func=lambda a, t, s, v: self.perform_pulse(t, s, v),
+                                                attach_to_actor=self.actor)
         return self.next_tick
 
     @abstractmethod
@@ -169,8 +173,10 @@ class ActorState:
         self.last_tick_acted = tick_num
         if self.duration_remaining > 0:
             self.next_tick = tick_num + self.tick_period
-            self.game_state.add_scheduled_event(self, EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
-                                                self.next_tick, self.tick_period, None, lambda a, t, s, v: self.perform_pulse(t, s, v))
+            self.game_state.add_scheduled_event(EventType.STATE_PULSE, self, f"state_pulse:{self.state_type_name}",
+                                                scheduled_tick=self.next_tick, in_ticks=self.tick_period,
+                                                vars=None, func=lambda a, t, s, v: self.perform_pulse(t, s, v),
+                                                attach_to_actor=self.actor)
         return True
     
     @abstractmethod
@@ -853,10 +859,7 @@ class CharacterStateRegenerating(ActorState):
     
     def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
         if retval := super().perform_pulse(tick_num, game_state, vars):
-            old_hp = self.actor.current_hit_points
-            self.actor.current_hit_points = min(self.actor.max_hit_points, 
-                                                self.actor.current_hit_points + self.heal_amount)
-            actual_heal = int(self.actor.current_hit_points - old_hp)
+            actual_heal = self.actor.increase_hp(self.heal_amount)
             self.total_healed += actual_heal
             
             if actual_heal > 0:

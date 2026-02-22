@@ -633,7 +633,8 @@ class CoreActions(CoreActionsInterface):
             self.game_state.add_scheduled_event(
                 EventType.CORPSE_DECAY, corpse, "corpse_decay", in_ticks=decay_ticks,
                 vars={'corpse': corpse, 'room': room},
-                func=lambda subject, current_tick, game_state, vars: self._decay_corpse(vars['corpse'], vars['room'])
+                func=lambda subject, current_tick, game_state, vars: self._decay_corpse(vars['corpse'], vars['room']),
+                attach_to_actor=corpse
             )
             
             # Apply XP penalty (5% of current level's XP, can't de-level)
@@ -647,7 +648,7 @@ class CoreActions(CoreActionsInterface):
         else:
             # NPC DEATH: Drop all inventory
             corpse.transfer_inventory()
-            dying_actor.current_hit_points = 0
+            dying_actor.set_hp_to(0)
             dying_actor.is_deleted = True
             
             # Handle NPC respawn scheduling
@@ -661,7 +662,8 @@ class CoreActions(CoreActionsInterface):
                                                                         - dying_actor.spawned_from.respawn_time_min))
                         event_vars = { 'spawn_data': dying_actor.spawned_from }
                         self.game_state.add_scheduled_event(EventType.RESPAWN, dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
-                                                            vars=event_vars, func=lambda subject, current_tick, game_state, vars: self.game_state.respawn_character(subject, vars))
+                                                            vars=event_vars, func=lambda subject, current_tick, game_state, vars: self.game_state.respawn_character(subject, vars),
+                                                            attach_to_actor=dying_actor.spawned_from.owner)
             self.game_state.remove_character(dying_actor)
         
         # Add corpse to room
@@ -724,9 +726,9 @@ class CoreActions(CoreActionsInterface):
             start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
         
         # Restore all resources to full
-        player.current_hit_points = player.max_hit_points
-        player.current_mana = player.max_mana
-        player.current_stamina = player.max_stamina
+        player.set_hp_to_max()
+        player.set_mana_to_max()
+        player.set_stamina_to_max()
         
         # Clear any negative flags
         player.remove_temp_flags(TemporaryCharacterFlags.IS_STUNNED | 
@@ -782,7 +784,7 @@ class CoreActions(CoreActionsInterface):
             damage = 0
         else:
             damage = int(damage)
-        target.current_hit_points -= damage
+        target.decrease_hp(damage)
         if do_msg:
             msg = f"You do {damage} {damage_type.word()} damage to {target.art_name}!"
             await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)

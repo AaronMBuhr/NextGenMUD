@@ -199,9 +199,7 @@ class Skills_Cleric(Skills):
         await cooldown.start(game_tick or cls._game_state.get_current_tick(), HEAL_COOLDOWN_TICKS)
 
         # Apply healing
-        old_hp = target.current_hit_points
-        target.current_hit_points = min(target.max_hit_points, target.current_hit_points + heal_amount)
-        actual_heal = int(target.current_hit_points - old_hp)
+        actual_heal = target.increase_hp(heal_amount)
         
         # Send messages
         if target == actor:

@@ -45,6 +45,7 @@ class Actor(ActorInterface):
         self.recovery_ticks = CONSTANTS.RECOVERY_TICKS
         self.command_queue: List[str] = []
         self.trigger_context: TriggerContext = None  # Active trigger context for LLM integration
+        self._scheduled_events: List = []  # ScheduledEvent refs, chronological by on_tick; use scheduled_events property for read-only view
         if create_reference:
             self.create_reference()
 
@@ -66,6 +67,11 @@ class Actor(ActorInterface):
         if not self.reference_number:
             raise Exception("self.reference_number_ is None for actor: " + self.name + " (" + self.id + ")")
         return self.reference_number + "{" + self.id + "}"
+
+    @property
+    def scheduled_events(self):
+        """Read-only view of this actor's scheduled events (chronological by on_tick). Do not mutate the returned value."""
+        return tuple(self._scheduled_events)
 
     @property
     def is_unkillable(self) -> bool:

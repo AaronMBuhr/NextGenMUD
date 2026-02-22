@@ -572,8 +572,7 @@ class Skills_Mage(Skills):
                 return True
         
         # Calculate actual mana drained (can't drain more than they have)
-        actual_mana_drained = min(mana_drain, int(target.current_mana))
-        target.current_mana -= actual_mana_drained
+        actual_mana_drained = target.decrease_mana(mana_drain)
         
         # Calculate damage based on mana drained
         damage = int(actual_mana_drained * MANA_BURN_DAMAGE_MULTIPLIER)
@@ -752,7 +751,7 @@ class Skills_Mage(Skills):
         
         # Halve HP
         zombie.max_hit_points = max(1, zombie.max_hit_points // 2)
-        zombie.current_hit_points = zombie.max_hit_points
+        zombie.set_hp_to_max()
         
         # Halve damage on natural attacks
         for attack in zombie.natural_attacks:

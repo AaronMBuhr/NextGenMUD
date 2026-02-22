@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable, Optional
 import asyncio
 import inspect
 
@@ -11,16 +11,20 @@ class EventType:
     STATE_END = "state_end"
     CORPSE_DECAY = "corpse_decay"
     RESPAWN = "respawn"
+    HP_REGEN = "hp_regen"
+    STAMINA_REGEN = "stamina_regen"
 
 class ScheduledEvent:
     def __init__(self, on_tick: int, event_type: EventType, subject: Any, name: str, vars: Dict[str, Any], 
-                 func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None):
+                 func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None,
+                 attach_to_actor: Optional[Any] = None):
         self.event_type: EventType = event_type
         self.subject: Any = subject
         self.vars: Dict[str, Any] = vars
         self.name = name
         self.func = func
         self.on_tick: int = on_tick
+        self.attach_to_actor: Optional[Any] = attach_to_actor
 
     async def run(self, current_tick: int, game_state: 'GameStateInterface'):
         if self.func:
@@ -64,15 +68,17 @@ class GameStateInterface:
     @abstractmethod
     def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, 
                             in_ticks: int = None, vars: Dict[str, Any] = None, 
-                            func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None) -> 'ScheduledEvent':
-        raise NotImplementedError
-
-    @abstractmethod
-    def remove_scheduled_event(self, event_type: EventType, subject: Any, tick: int) -> None:
+                            func: Callable[[Any, int, 'GameStateInterface', Dict[str, Any]], Any] = None,
+                            attach_to_actor: Optional[Any] = None) -> 'ScheduledEvent':
         raise NotImplementedError
 
     @abstractmethod
     def remove_scheduled_event(self, scheduled_event: 'ScheduledEvent') -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_scheduled_events_for_actor(self, actor: Any):
+        """Return read-only view of scheduled events for this actor (e.g. tuple)."""
         raise NotImplementedError
 
     @abstractmethod

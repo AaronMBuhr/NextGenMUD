@@ -126,7 +126,7 @@ class Constants:
     
     # Player save settings
     PLAYER_SAVES_DIR: ClassVar[str] = "player_saves"
-    DEFAULT_START_LOCATION: ClassVar[str] = "debug_zone.starting_room"  # Format: zone.room
+    DEFAULT_START_LOCATION: ClassVar[str] = "central_city.city_gates"  # Format: zone.room
     DEFAULT_CHARACTER_TEMPLATE: ClassVar[str] = "debug_zone.test_player"
     
     # Disconnect/linkdead settings

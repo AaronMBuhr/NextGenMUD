@@ -10,7 +10,7 @@ LLM:
 
 # Player save settings
 PLAYER_SAVES_DIR: player_saves
-DEFAULT_START_LOCATION: debug_zone.starting_room
+DEFAULT_START_LOCATION: central_city.city_gates
 
 # Starting skill points multiplier - new characters get this many levels worth of skill points
 # e.g., 3 means a new fighter gets 3 * 5 = 15 starting skill points

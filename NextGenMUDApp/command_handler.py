@@ -79,6 +79,11 @@ class CommandHandler(CommandHandlerInterface):
         "setquestvar", "getquestvar"
     }
 
+    # Commands whose argument text should keep user capitalization (say, whisper, echo, emotes, etc.)
+    PRESERVE_CAPITALIZATION_COMMANDS = frozenset({
+        "say", "whisper", "sayto", "ask", "echo", "echoto", "echoexcept", "emote"
+    })
+
     @classmethod
     def is_instant_command(cls, command_str: str) -> bool:
         """
@@ -318,6 +323,7 @@ class CommandHandler(CommandHandlerInterface):
             cls.executing_actors[actor.rid] = input
         msg = None
         succeeded = True  # Assume success unless we hit an error
+        command_lower = ""  # used for routing and error logging
         for ch in cls.executing_actors:
             logger.debug3(f"executing_actors 1: {ch}")
         
@@ -373,21 +379,29 @@ class CommandHandler(CommandHandlerInterface):
                         msg = "Did you want to do something?"
                         succeeded = False
                     else:
-                        command = parts[0]
-                        if command in cls.command_handlers:
-                            await cls.command_handlers[command](command, actor, ' '.join(parts[1:]))
+                        # Route by lowercase command so "Get", "GET", "get" all work
+                        command_lower = parts[0].lower()
+                        rest = ' '.join(parts[1:])
+                        # Lowercase argument text for all commands except say/whisper/echo/emote etc.
+                        preserve_cap = (command_lower in cls.PRESERVE_CAPITALIZATION_COMMANDS
+                                       or command_lower in cls.EMOTE_MESSAGES)
+                        if not preserve_cap:
+                            rest = (rest or "").lower()
+                        if command_lower in cls.command_handlers:
+                            await cls.command_handlers[command_lower](command_lower, actor, rest)
                         else:
-                            if command in cls.EMOTE_MESSAGES:
-                                await cls.cmd_specific_emote(command, actor, ' '.join(parts[1:]))
+                            if command_lower in cls.EMOTE_MESSAGES:
+                                await cls.cmd_specific_emote(command_lower, actor, rest)
                             else:
-                                logger.debug3(f"checking skills registry for: {first_command}")
-                                skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(first_command)
-                                if skill_name:  
+                                input_for_skill = (command_lower + ' ' + rest) if rest else command_lower
+                                logger.debug3(f"checking skills registry for: {input_for_skill}")
+                                skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(input_for_skill)
+                                if skill_name:
                                     logger.debug3(f"found skill: {skill_name}")
                                     await SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
                                 else:
                                     logger.debug3(f"no skill found")
-                                    logger.debug3(f"Unknown command: {command}")
+                                    logger.debug3(f"Unknown command: {command_lower}")
                                     msg = "Unknown command"
                                     succeeded = False
 
@@ -397,7 +411,7 @@ class CommandHandler(CommandHandlerInterface):
                     if not msg:  # Only add queue message if there wasn't an error message
                         msg = f"Queued {len(commands)-1} additional command(s)."
         except KeyError:
-            logger.error(f"KeyError processing command {command}")
+            logger.error(f"KeyError processing command {command_lower}")
             msg = "Command failure."
             succeeded = False
             raise
@@ -833,9 +847,7 @@ class CommandHandler(CommandHandlerInterface):
             heal_amount = dice_parts[2]  # Just use the constant
         
         # Apply healing
-        old_hp = target.current_hit_points
-        target.current_hit_points = min(target.max_hit_points, target.current_hit_points + heal_amount)
-        actual_heal = target.current_hit_points - old_hp
+        actual_heal = target.increase_hp(heal_amount)
         
         # Send messages
         if actual_heal > 0:
@@ -1066,28 +1078,28 @@ class CommandHandler(CommandHandlerInterface):
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
         pieces = split_preserving_quotes(input)
         if len(pieces) < 1:
-            logger.warn(f"({pieces}) Set {target_name} var on what kind of target?")
+            logger.warning(f"({pieces}) Set {target_name} var on what kind of target?")
             await actor.send_text(CommTypes.DYNAMIC, "Set temp var on what kind of target?")
             return
         if pieces[0].lower() != "char":
-            logger.warn(f"({pieces}) Only character targets allowed at the moment.")
+            logger.warning(f"({pieces}) Only character targets allowed at the moment.")
             await actor.send_text(CommTypes.DYNAMIC, "Only character targets allowed at the moment.")
             return
         if len(pieces) < 2:
-            logger.warn(f"({pieces}) Set {target_name} var on whom?")
+            logger.warning(f"({pieces}) Set {target_name} var on whom?")
             await actor.send_text(CommTypes.DYNAMIC, "Set temp var on whom?")
             return
         if len(pieces) < 3:
-            logger.warn(f"({pieces}) Set which {target_name} var?")
+            logger.warning(f"({pieces}) Set which {target_name} var?")
             await actor.send_text(CommTypes.DYNAMIC, "Set which temp var?")
             return
         if len(pieces) < 4:
-            logger.warn(f"({pieces}) Set {target_name} var to what?")
+            logger.warning(f"({pieces}) Set {target_name} var to what?")
             await actor.send_text(CommTypes.DYNAMIC, "Set temp var to what?")
             return
         target = cls._game_state.find_target_character(actor, pieces[1], search_world=True)
         if target == None:
-            logger.warn(f"({pieces}) Could not find target.")
+            logger.warning(f"({pieces}) Could not find target.")
             await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
             return
         var_value = ' '.join(pieces[3:])
@@ -2585,28 +2597,19 @@ class CommandHandler(CommandHandlerInterface):
         
         # HP healing
         if heal_amount > 0:
-            old_hp = heal_target.current_hit_points
-            heal_target.current_hit_points = min(heal_target.max_hit_points, 
-                                                  heal_target.current_hit_points + heal_amount)
-            actual_heal = heal_target.current_hit_points - old_hp
+            actual_heal = heal_target.increase_hp(heal_amount)
             if actual_heal > 0:
                 effects_applied.append(f"healed {actual_heal} HP")
         
         # Mana restoration
         if item.mana_restore > 0 and heal_target.max_mana > 0:
-            old_mana = heal_target.current_mana
-            heal_target.current_mana = min(heal_target.max_mana, 
-                                           heal_target.current_mana + item.mana_restore)
-            actual_restore = int(heal_target.current_mana - old_mana)
+            actual_restore = heal_target.increase_mana(item.mana_restore)
             if actual_restore > 0:
                 effects_applied.append(f"restored {actual_restore} mana")
         
         # Stamina restoration
         if item.stamina_restore > 0 and heal_target.max_stamina > 0:
-            old_stamina = heal_target.current_stamina
-            heal_target.current_stamina = min(heal_target.max_stamina, 
-                                              heal_target.current_stamina + item.stamina_restore)
-            actual_restore = int(heal_target.current_stamina - old_stamina)
+            actual_restore = heal_target.increase_stamina(item.stamina_restore)
             if actual_restore > 0:
                 effects_applied.append(f"restored {actual_restore} stamina")
         
@@ -3621,24 +3624,24 @@ class CommandHandler(CommandHandlerInterface):
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}, target_name: {target_name}")
         pieces = split_preserving_quotes(input)
         if len(pieces) < 1:
-            logger.warn(f"({pieces}) Delete {target_name} var on what kind of target?")
+            logger.warning(f"({pieces}) Delete {target_name} var on what kind of target?")
             await actor.send_text(CommTypes.DYNAMIC, f"Delete {target_name} var on what kind of target?")
             return
         if pieces[0].lower() != "char":
-            logger.warn(f"({pieces}) Only character targets allowed at the moment.")
+            logger.warning(f"({pieces}) Only character targets allowed at the moment.")
             await actor.send_text(CommTypes.DYNAMIC, "Only character targets allowed at the moment.")
             return
         if len(pieces) < 2:
-            logger.warn(f"({pieces}) Delete {target_name} var on whom?")
+            logger.warning(f"({pieces}) Delete {target_name} var on whom?")
             await actor.send_text(CommTypes.DYNAMIC, f"Delete {target_name} var on whom?")
             return
         if len(pieces) < 3:
-            logger.warn(f"({pieces}) Delete which {target_name} var?")
+            logger.warning(f"({pieces}) Delete which {target_name} var?")
             await actor.send_text(CommTypes.DYNAMIC, "Delete which temp var?")
             return
         target = cls._game_state.find_target_character(actor, pieces[1], search_world=True)
         if target == None:
-            logger.warn(f"({pieces}) Could not find target.")
+            logger.warning(f"({pieces}) Could not find target.")
             await actor.send_text(CommTypes.DYNAMIC, f"Could not find target.")
             return
         logger.debug3(f"target.name: {target.name}, {target_name} delete var: {pieces[2]}")

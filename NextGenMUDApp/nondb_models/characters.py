@@ -390,7 +390,7 @@ class Character(Actor, CharacterInterface):
                 hit_point_parts = get_dice_parts(yaml_data['hit_dice'])
                 self.hit_dice, self.hit_dice_size, self.hit_point_bonus = hit_point_parts[0], hit_point_parts[1], hit_point_parts[2]
                 self.max_hit_points = roll_dice(self.hit_dice, self.hit_dice_size, self.hit_point_bonus)
-                self.current_hit_points = self.max_hit_points
+                self.set_hp_to_max()
             
             # Natural attacks are optional for non-combat NPCs
             # Supports both simple format (type/damage) and complex format (attack_noun/attack_verb/potential_damage)
@@ -634,7 +634,7 @@ class Character(Actor, CharacterInterface):
         new_char.reference_number = None
         new_char.create_reference()
         new_char.max_hit_points = roll_dice(new_char.hit_dice, new_char.hit_dice_size, new_char.hit_point_bonus)
-        new_char.current_hit_points = new_char.max_hit_points
+        new_char.set_hp_to_max()
         new_char.contents = []
         
         # Explicitly set connection to None to avoid issues with connection persistence
@@ -1090,20 +1090,17 @@ class Character(Actor, CharacterInterface):
         # Grant HP for the new class
         hp_gain = Constants.HP_BY_CHARACTER_CLASS.get(role, 0)
         if hp_gain > 0:
-            self.max_hit_points += hp_gain
-            self.current_hit_points += hp_gain
+            self.increase_hp(hp_gain, increase_max=True)
         
         # Grant mana for the new class
         mana_gain = Constants.MANA_BY_CHARACTER_CLASS.get(role, 0)
         if mana_gain > 0:
-            self.max_mana += mana_gain
-            self.current_mana += mana_gain
+            self.increase_mana(mana_gain, increase_max=True)
         
         # Grant stamina for the new class
         stamina_gain = Constants.STAMINA_BY_CHARACTER_CLASS.get(role, 0)
         if stamina_gain > 0:
-            self.max_stamina += stamina_gain
-            self.current_stamina += stamina_gain
+            self.increase_stamina(stamina_gain, increase_max=True)
         
         # Unlock skills for level 1 of the new class (at level 0 - available to train)
         self._unlock_skills_for_level(role, 1)
@@ -1225,22 +1222,19 @@ class Character(Actor, CharacterInterface):
         
         # Increase hit points based on class
         hp_gain = Constants.HP_BY_CHARACTER_CLASS.get(role, 0)
-        self.max_hit_points += hp_gain
-        self.current_hit_points += hp_gain
+        self.increase_hp(hp_gain, increase_max=True)
         stats_gained['hp'] = hp_gain
         
         # Increase mana based on class
         mana_gain = Constants.MANA_BY_CHARACTER_CLASS.get(role, 0)
         if mana_gain > 0:
-            self.max_mana += mana_gain
-            self.current_mana += mana_gain
+            self.increase_mana(mana_gain, increase_max=True)
             stats_gained['mana'] = mana_gain
         
         # Increase stamina based on class
         stamina_gain = Constants.STAMINA_BY_CHARACTER_CLASS.get(role, 0)
         if stamina_gain > 0:
-            self.max_stamina += stamina_gain
-            self.current_stamina += stamina_gain
+            self.increase_stamina(stamina_gain, increase_max=True)
             stats_gained['stamina'] = stamina_gain
         
         # Grant skill points based on class
@@ -1342,9 +1336,9 @@ class Character(Actor, CharacterInterface):
         
         # If max increased, add the difference to current (don't overfill)
         if self.max_mana > old_max:
-            self.current_mana += (self.max_mana - old_max)
-        # Cap current at max
-        self.current_mana = min(self.current_mana, self.max_mana)
+            self.increase_mana(self.max_mana - old_max)
+        else:
+            self.current_mana = min(self.current_mana, self.max_mana)
     
     def calculate_max_stamina(self):
         """
@@ -1370,9 +1364,9 @@ class Character(Actor, CharacterInterface):
         
         # If max increased, add the difference to current (don't overfill)
         if self.max_stamina > old_max:
-            self.current_stamina += (self.max_stamina - old_max)
-        # Cap current at max
-        self.current_stamina = min(self.current_stamina, self.max_stamina)
+            self.increase_stamina(self.max_stamina - old_max)
+        else:
+            self.current_stamina = min(self.current_stamina, self.max_stamina)
     
     def calculate_combat_bonuses(self):
         """
@@ -1539,40 +1533,131 @@ class Character(Actor, CharacterInterface):
         
         # HP regen (off in combat)
         if self.current_hit_points < self.max_hit_points:
-            old_hp = self.current_hit_points
-            hp_regen = self.get_hp_regen_rate()
-            if hp_regen > 0:
-                self.current_hit_points = min(self.max_hit_points, self.current_hit_points + hp_regen)
-                if int(self.current_hit_points) != int(old_hp):
-                    changed = True
+            hp_regen = int(self.get_hp_regen_rate())
+            if hp_regen > 0 and self.increase_hp(hp_regen):
+                changed = True
         
         # Mana regen
         if self.current_mana < self.max_mana:
-            old_mana = self.current_mana
-            self.current_mana = min(self.max_mana, self.current_mana + self.get_mana_regen_rate())
-            if int(self.current_mana) != int(old_mana):
+            if self.increase_mana(int(self.get_mana_regen_rate())):
                 changed = True
         
         # Stamina regen
         if self.current_stamina < self.max_stamina:
-            old_stamina = self.current_stamina
-            self.current_stamina = min(self.max_stamina, self.current_stamina + self.get_stamina_regen_rate())
-            if int(self.current_stamina) != int(old_stamina):
+            if self.increase_stamina(int(self.get_stamina_regen_rate())):
                 changed = True
         
         return changed
     
+    # --- Central HP / mana / stamina change methods (all changes route through these) ---
+    
+    def increase_hp(self, amount: int, increase_max: bool = False) -> int:
+        """Increase current HP (and optionally max). Returns the actual amount added to current."""
+        if amount <= 0:
+            return 0
+        if increase_max:
+            self.max_hit_points += amount
+            old_current = self.current_hit_points
+            self.current_hit_points += amount
+            return int(self.current_hit_points - old_current)
+        old_current = self.current_hit_points
+        self.current_hit_points = min(self.max_hit_points, self.current_hit_points + amount)
+        return int(self.current_hit_points - old_current)
+    
+    def decrease_hp(self, amount: int) -> int:
+        """Decrease current HP (floor at 0). Returns the actual amount removed."""
+        if amount <= 0:
+            return 0
+        actual = min(amount, self.current_hit_points)
+        self.current_hit_points = max(0, self.current_hit_points - amount)
+        return actual
+    
+    def set_hp_to(self, value: int) -> int:
+        """Set current HP to value (clamped to [0, max_hit_points]). Returns the change in current HP."""
+        value = max(0, min(self.max_hit_points, value))
+        delta = int(value - self.current_hit_points)
+        self.current_hit_points = value
+        return delta
+    
+    def set_hp_to_max(self) -> int:
+        """Set current HP to max. Returns the amount restored."""
+        return self.set_hp_to(self.max_hit_points)
+    
+    def increase_mana(self, amount: int, increase_max: bool = False) -> int:
+        """Increase current mana (and optionally max). Returns the actual amount added to current."""
+        if amount <= 0:
+            return 0
+        if increase_max:
+            self.max_mana += amount
+            old_current = self.current_mana
+            self.current_mana += amount
+            return int(self.current_mana - old_current)
+        old_current = self.current_mana
+        self.current_mana = min(self.max_mana, self.current_mana + amount)
+        return int(self.current_mana - old_current)
+    
+    def decrease_mana(self, amount: int) -> int:
+        """Decrease current mana (floor at 0). Returns the actual amount removed."""
+        if amount <= 0:
+            return 0
+        actual = min(amount, int(self.current_mana))
+        self.current_mana = max(0, self.current_mana - amount)
+        return actual
+    
+    def set_mana_to(self, value: int) -> int:
+        """Set current mana to value (clamped to [0, max_mana]). Returns the change in current mana."""
+        value = max(0, min(self.max_mana, value))
+        delta = int(value - self.current_mana)
+        self.current_mana = value
+        return delta
+    
+    def set_mana_to_max(self) -> int:
+        """Set current mana to max. Returns the amount restored."""
+        return self.set_mana_to(self.max_mana)
+    
+    def increase_stamina(self, amount: int, increase_max: bool = False) -> int:
+        """Increase current stamina (and optionally max). Returns the actual amount added to current."""
+        if amount <= 0:
+            return 0
+        if increase_max:
+            self.max_stamina += amount
+            old_current = self.current_stamina
+            self.current_stamina += amount
+            return int(self.current_stamina - old_current)
+        old_current = self.current_stamina
+        self.current_stamina = min(self.max_stamina, self.current_stamina + amount)
+        return int(self.current_stamina - old_current)
+    
+    def decrease_stamina(self, amount: int) -> int:
+        """Decrease current stamina (floor at 0). Returns the actual amount removed."""
+        if amount <= 0:
+            return 0
+        actual = min(amount, int(self.current_stamina))
+        self.current_stamina = max(0, self.current_stamina - amount)
+        return actual
+    
+    def set_stamina_to(self, value: int) -> int:
+        """Set current stamina to value (clamped to [0, max_stamina]). Returns the change in current stamina."""
+        value = max(0, min(self.max_stamina, value))
+        delta = int(value - self.current_stamina)
+        self.current_stamina = value
+        return delta
+    
+    def set_stamina_to_max(self) -> int:
+        """Set current stamina to max. Returns the amount restored."""
+        return self.set_stamina_to(self.max_stamina)
+    
     def use_mana(self, amount: int) -> bool:
         """Attempt to use mana. Returns True if successful, False if not enough."""
         if self.current_mana >= amount:
-            self.current_mana -= amount
+            self.decrease_mana(amount)
             return True
         return False
     
     def use_stamina(self, amount: int) -> bool:
         """Attempt to use stamina. Returns True if successful, False if not enough."""
         if self.current_stamina >= amount:
-            self.current_stamina -= amount
+            self.decrease_stamina(amount)
             return True
         return False
         

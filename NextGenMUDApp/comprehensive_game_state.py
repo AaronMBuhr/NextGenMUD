@@ -1,4 +1,5 @@
 from collections import defaultdict
+import bisect
 import copy
 import fnmatch
 import time
@@ -7,7 +8,7 @@ from django.conf import settings
 import json
 import os
 import sys
-from typing import List, Dict, Optional, Callable, Any
+from typing import List, Dict, Optional, Callable, Any, TYPE_CHECKING
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 from .game_save_utils import save_game, load_game, list_saves, delete_save, create_player
@@ -195,7 +196,6 @@ class ComprehensiveGameState:
                                 logger.debug2(f"Loading character definition: {char_id}")
                                 ch = Character(char_id, zone_id, create_reference=False)
                                 ch.from_yaml(chardef, zone_id)
-                                ch.game_permission_flags = ch.game_permission_flags.add_flags(GamePermissionFlags.IS_ADMIN) # TODO: Remove admin default
                                 logger.debug3(f"Loaded character definition: {char_id} for zone {zone_id}")
                                 self.world_definition.characters[f"{zone_id}.{ch.id}"] = ch
                     logger.debug("Characters processing complete for this file")
@@ -648,7 +648,7 @@ class ComprehensiveGameState:
         con_bonus = int((con_value - 10) * con_multiplier)
         BASE_STARTING_HP = 20  # All new characters start with 20 base HP
         new_player.max_hit_points = max(1, BASE_STARTING_HP + base_hp + con_bonus)  # 20 base + class HP + constitution bonus
-        new_player.current_hit_points = new_player.max_hit_points
+        new_player.set_hp_to_max()
         logger.debug(f"HP calculation: base_starting=20, class_hp={base_hp}, CON={con_value}, mult={con_multiplier}, bonus={con_bonus}, total={new_player.max_hit_points}")
         
         # Combat stats from template
@@ -694,8 +694,8 @@ class ComprehensiveGameState:
         # Calculate mana/stamina based on class
         new_player.calculate_max_mana()
         new_player.calculate_max_stamina()
-        new_player.current_mana = new_player.max_mana
-        new_player.current_stamina = new_player.max_stamina
+        new_player.set_mana_to_max()
+        new_player.set_stamina_to_max()
         
         # Unlock level 1 skills for the class
         new_player._unlock_skills_for_level(role, 1)
@@ -988,8 +988,9 @@ class ComprehensiveGameState:
             logger = StructuredLogger(__name__, prefix="remove_character()> ")
             logger.warning(f"Removing character, but character not found in characters list: {character}.")
 
-    def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, in_ticks: int = None, 
-                             vars: Dict[str, Any]=None, func: Callable[[Any, int, 'ComprehensiveGameState', Dict[str, Any]], None] = None):
+    def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, in_ticks: int = None,
+                             vars: Dict[str, Any] = None, func: Callable[[Any, int, 'ComprehensiveGameState', Dict[str, Any]], None] = None,
+                             attach_to_actor: Optional[Any] = None):
         logger = StructuredLogger(__name__, prefix="add_scheduled_event()> ")
         if not scheduled_tick and not in_ticks:
             raise Exception("Must specify either scheduled_tick or in_ticks.")
@@ -998,20 +999,44 @@ class ComprehensiveGameState:
                 raise Exception("If both scheduled_tick and in_ticks provided, scheduled_tick must be the current tick plus in_ticks.")
         if in_ticks:
             scheduled_tick = self.world_clock_tick + in_ticks
-        event = ScheduledEvent(scheduled_tick, type, subject, name, vars, func)
+        event = ScheduledEvent(scheduled_tick, type, subject, name, vars or {}, func, attach_to_actor=attach_to_actor)
         self.scheduled_events[scheduled_tick].append(event)
+        if attach_to_actor is not None:
+            # Keep actor's list chronological by on_tick
+            ticks = [e.on_tick for e in attach_to_actor._scheduled_events]
+            idx = bisect.bisect_right(ticks, scheduled_tick)
+            attach_to_actor._scheduled_events.insert(idx, event)
 
     async def perform_scheduled_events(self, tick: int):
         logger = StructuredLogger(__name__, prefix="perform_scheduled_events()> ")
         if tick in self.scheduled_events:
             for event in self.scheduled_events[tick]:
-                # we'll pass through dead ppl in case the event needs it
-                # if event.actor_ and Actor.is_deleted(event.actor_):
-                #     event.actor_ = None
-                #     continue
                 logger.debug(f"performing scheduled action {event.name}")
                 await event.run(tick, self)
+                if event.attach_to_actor is not None:
+                    try:
+                        event.attach_to_actor._scheduled_events.remove(event)
+                    except ValueError:
+                        pass
             del self.scheduled_events[tick]
+
+    def remove_scheduled_event(self, scheduled_event: ScheduledEvent) -> None:
+        """Remove a scheduled event from the global list and from its attach_to_actor's list if set."""
+        tick = scheduled_event.on_tick
+        if tick in self.scheduled_events:
+            try:
+                self.scheduled_events[tick].remove(scheduled_event)
+            except ValueError:
+                pass
+        if scheduled_event.attach_to_actor is not None:
+            try:
+                scheduled_event.attach_to_actor._scheduled_events.remove(scheduled_event)
+            except ValueError:
+                pass
+
+    def get_scheduled_events_for_actor(self, actor: Any):
+        """Return read-only view of scheduled events for this actor (tuple)."""
+        return actor.scheduled_events
 
     def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
         logger = StructuredLogger(__name__, prefix="spawn_character()> ")
