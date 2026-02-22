@@ -23,6 +23,7 @@ Checklist before letting players in.
 | **Group / party commands** | `group_id` exists in model but no commands to form/leave groups. |
 | **Quest log** | Quest variables exist but no command for players to see their quest state. |
 | **OOC / global chat** | No cross-zone channel; only say/tell in room. |
+| **HP/mana/stamina regen: all-character vs scheduled** | Regen currently runs for all characters each tick (`main_process.py`). `EventType.HP_REGEN` / `STAMINA_REGEN` exist but are unused. Decide: keep global tick regen, or switch to per-character scheduled events (and document/remove unused event types). |
 
 ### Production cleanup
 
