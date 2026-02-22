@@ -32,6 +32,7 @@ from .utility import article_plus_name
 from .player_save_manager import player_save_manager
 # from .consumers import MyWebsocketConsumerStateHandlerInterface
 from .nondb_models.world import Zone
+from .nondb_models.triggers import TriggerTimerTick, TriggerType
 
 
 class LinkdeadCharacter:
@@ -87,228 +88,393 @@ class ComprehensiveGameState:
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
 
 
-    def Initialize(self):
-        logger = StructuredLogger(__name__, prefix="Initialize()> ")
-
-        self.world_definition.zones = {}
-
-        self.xp_progression = Constants.XP_PROGRESSION
-
+    def _load_world_from_yaml(self, target_wd: WorldDefinition, load_quest_variables: bool = True) -> bool:
+        """Load all YAML world files into target_wd. Returns True if at least one file was loaded and zones exist."""
+        logger = StructuredLogger(__name__, prefix="_load_world_from_yaml()> ")
         file_found = False
-        logger.info(f"Loading world files (*.yaml) from [{self.app_config.WORLD_DATA_DIR}]...")
-        yaml_loader = YAML(typ='safe')  # Use safe loader
-
+        yaml_loader = YAML(typ='safe')
         for yaml_file in find_yaml_files(self.app_config.WORLD_DATA_DIR):
             logger.info(f"Loading world file {yaml_file}")
             try:
                 with open(yaml_file, "r", encoding='utf-8') as yf:
-                    # yaml_data = yaml.safe_load(yf)
                     yaml_data = yaml_loader.load(yf)
                     file_found = True
-                
-                if yaml_data is None:
-                    logger.warning(f"YAML file {yaml_file} is empty or contains only comments.")
+                if yaml_data is None or not isinstance(yaml_data, dict):
+                    if yaml_data is None:
+                        logger.warning(f"YAML file {yaml_file} is empty or contains only comments.")
+                    else:
+                        logger.error(f"YAML file {yaml_file} does not contain a valid dictionary structure.")
                     continue
-                
-                if not isinstance(yaml_data, dict):
-                    logger.error(f"YAML file {yaml_file} does not contain a valid dictionary structure.")
-                    continue # Skip this file
-
                 # Process ZONES
-                if 'ZONES' in yaml_data:
-                    logger.debug("Loading zones...")
-                    if not isinstance(yaml_data['ZONES'], dict):
-                        logger.error(f"'ZONES' section in {yaml_file} is not a dictionary.")
-                    else:
-                        for zone_id, zone_info in yaml_data['ZONES'].items():
-                            if not isinstance(zone_info, dict):
-                                logger.error(f"Zone definition '{zone_id}' in {yaml_file} is not a dictionary.")
-                                continue
-                            logger.info(f"Loading zone_id: {zone_id}")
-                            new_zone = Zone(zone_id)
-                            new_zone.name = zone_info.get('name', f"Unnamed Zone {zone_id}") # Use .get for safety
-                            new_zone.description = zone_info.get('description', "")
-                            
-                            # Load common knowledge for LLM NPC conversations
-                            if 'common_knowledge' in zone_info:
-                                common_k = zone_info['common_knowledge']
-                                if isinstance(common_k, dict):
-                                    new_zone.common_knowledge = common_k
-                                    logger.debug(f"Loaded {len(common_k)} common knowledge entries for zone {zone_id}")
-                                else:
-                                    logger.warning(f"common_knowledge in zone {zone_id} is not a dictionary, ignoring")
-                            
-                            # Load quest variable schema
-                            if 'quest_variables' in zone_info:
-                                from .quest_schema import QuestSchemaRegistry
-                                registry = QuestSchemaRegistry.get_instance()
-                                quest_vars = zone_info['quest_variables']
-                                if isinstance(quest_vars, dict):
-                                    count = registry.load_from_dict(quest_vars, zone_id=zone_id)
-                                    logger.debug(f"Loaded {count} quest variables for zone {zone_id}")
-                                else:
-                                    logger.warning(f"quest_variables in zone {zone_id} is not a dictionary, ignoring")
-                            
-                            self.world_definition.zones[zone_id] = new_zone
-                            logger.debug(f"Loading rooms for zone {zone_id}...")
-                            if 'rooms' in zone_info:  # Check if rooms key exists
-                                if not isinstance(zone_info['rooms'], dict):
-                                     logger.error(f"'rooms' section in zone '{zone_id}' ({yaml_file}) is not a dictionary.")
-                                else:
-                                    for room_id, room_info in zone_info['rooms'].items():
-                                        if not isinstance(room_info, dict):
-                                            logger.error(f"Room definition '{room_id}' in zone '{zone_id}' ({yaml_file}) is not a dictionary.")
-                                            continue
-                                        logger.debug2(f"Loading room_id: {room_id}")
-                                        new_room = Room(room_id, new_zone, create_reference=True)
-                                        new_room.from_yaml(new_zone, room_info)
-                                        new_zone.rooms[room_id] = new_room
-                                    logger.debug(f"Rooms loaded for zone {zone_id}")
-                            else:
-                                logger.warning(f"Zone {zone_id} in {yaml_file} has no rooms defined")
-                    logger.debug("Zones processing complete for this file")
-
+                if 'ZONES' in yaml_data and isinstance(yaml_data['ZONES'], dict):
+                    for zone_id, zone_info in yaml_data['ZONES'].items():
+                        if not isinstance(zone_info, dict):
+                            continue
+                        new_zone = Zone(zone_id)
+                        new_zone.name = zone_info.get('name', f"Unnamed Zone {zone_id}")
+                        new_zone.description = zone_info.get('description', "")
+                        if 'common_knowledge' in zone_info and isinstance(zone_info['common_knowledge'], dict):
+                            new_zone.common_knowledge = zone_info['common_knowledge']
+                        if load_quest_variables and 'quest_variables' in zone_info:
+                            from .quest_schema import QuestSchemaRegistry
+                            registry = QuestSchemaRegistry.get_instance()
+                            quest_vars = zone_info['quest_variables']
+                            if isinstance(quest_vars, dict):
+                                registry.load_from_dict(quest_vars, zone_id=zone_id)
+                        target_wd.zones[zone_id] = new_zone
+                        if 'rooms' in zone_info and isinstance(zone_info['rooms'], dict):
+                            for room_id, room_info in zone_info['rooms'].items():
+                                if not isinstance(room_info, dict):
+                                    continue
+                                new_room = Room(room_id, new_zone, create_reference=True)
+                                new_room.from_yaml(new_zone, room_info)
+                                new_zone.rooms[room_id] = new_room
                 # Process CHARACTERS
-                if "CHARACTERS" in yaml_data:
-                    logger.debug("Loading characters...")
-                    if not isinstance(yaml_data["CHARACTERS"], list):
-                        logger.error(f"'CHARACTERS' section in {yaml_file} is not a list.")
-                    else:
-                        for zonedef in yaml_data["CHARACTERS"]:
-                            if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'characters' not in zonedef:
-                                logger.error(f"Invalid character zone definition in {yaml_file}: {zonedef}")
+                if "CHARACTERS" in yaml_data and isinstance(yaml_data["CHARACTERS"], list):
+                    for zonedef in yaml_data["CHARACTERS"]:
+                        if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'characters' not in zonedef:
+                            continue
+                        zone_id = zonedef['zone']
+                        if zone_id not in target_wd.zones or not isinstance(zonedef["characters"], list):
+                            continue
+                        for chardef in zonedef["characters"]:
+                            if not isinstance(chardef, dict) or 'id' not in chardef:
                                 continue
-                            zone_id = zonedef['zone']
-                            if not isinstance(zonedef["characters"], list):
-                                logger.error(f"'characters' key in zone '{zone_id}' ({yaml_file}) is not a list.")
-                                continue
-                                
-                            logger.debug(f"Loading characters for zone: {zone_id}")
-                            if zone_id not in self.world_definition.zones:
-                                logger.error(f"Character zone '{zone_id}' defined in {yaml_file} does not exist. Skipping characters.")
-                                continue
-                                
-                            for chardef in zonedef["characters"]:
-                                if not isinstance(chardef, dict) or 'id' not in chardef:
-                                    logger.error(f"Invalid character definition in zone '{zone_id}' ({yaml_file}): {chardef}")
-                                    continue
-                                char_id = chardef['id']
-                                logger.debug2(f"Loading character definition: {char_id}")
-                                ch = Character(char_id, zone_id, create_reference=False)
-                                ch.from_yaml(chardef, zone_id)
-                                logger.debug3(f"Loaded character definition: {char_id} for zone {zone_id}")
-                                self.world_definition.characters[f"{zone_id}.{ch.id}"] = ch
-                    logger.debug("Characters processing complete for this file")
-
+                            char_id = chardef['id']
+                            ch = Character(char_id, zone_id, create_reference=False)
+                            ch.from_yaml(chardef, zone_id)
+                            target_wd.characters[f"{zone_id}.{ch.id}"] = ch
                 # Process OBJECTS
-                if "OBJECTS" in yaml_data:
-                    logger.debug("Loading objects...")
-                    if not isinstance(yaml_data["OBJECTS"], list):
-                        logger.error(f"'OBJECTS' section in {yaml_file} is not a list.")
-                    else:
-                        for zonedef in yaml_data["OBJECTS"]:
-                            if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'objects' not in zonedef:
-                                logger.error(f"Invalid object zone definition in {yaml_file}: {zonedef}")
+                if "OBJECTS" in yaml_data and isinstance(yaml_data["OBJECTS"], list):
+                    for zonedef in yaml_data["OBJECTS"]:
+                        if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'objects' not in zonedef:
+                            continue
+                        zone_id = zonedef['zone']
+                        if zone_id not in target_wd.zones or not isinstance(zonedef["objects"], list):
+                            continue
+                        for objdef in zonedef["objects"]:
+                            if not isinstance(objdef, dict) or 'id' not in objdef:
                                 continue
-                            zone_id = zonedef['zone']
-                            if not isinstance(zonedef["objects"], list):
-                                logger.error(f"'objects' key in zone '{zone_id}' ({yaml_file}) is not a list.")
-                                continue
-                                
-                            logger.debug(f"Loading objects for zone: {zone_id}")
-                            if zone_id not in self.world_definition.zones:
-                                logger.error(f"Object zone '{zone_id}' defined in {yaml_file} does not exist. Skipping objects.")
-                                continue
-
-                            for objdef in zonedef["objects"]:
-                                if not isinstance(objdef, dict) or 'id' not in objdef:
-                                    logger.error(f"Invalid object definition in zone '{zone_id}' ({yaml_file}): {objdef}")
-                                    continue
-                                obj_id = objdef['id']
-                                logger.debug2(f"Loading object definition: {obj_id}")
-                                obj = Object(obj_id, zone_id, create_reference=False)
-                                obj.from_yaml(objdef, zone_id,self)
-                                self.world_definition.objects[f"{zone_id}.{obj.id}"] = obj
-                    logger.debug("Objects processing complete for this file")
-
+                            obj_id = objdef['id']
+                            obj = Object(obj_id, zone_id, create_reference=False)
+                            obj.from_yaml(objdef, zone_id, self)
+                            target_wd.objects[f"{zone_id}.{obj.id}"] = obj
             except FileNotFoundError:
-                 logger.error(f"World file not found: {yaml_file}")
+                logger.error(f"World file not found: {yaml_file}")
             except YAMLError as e:
-                logger.error(f"Error parsing world YAML file: {yaml_file}")
-                if hasattr(e, 'problem_mark'):
-                    mark = e.problem_mark
-                    logger.error(f"  Error occurred at line {mark.line + 1}, column {mark.column + 1}")
-                if hasattr(e, 'problem'):
-                    logger.error(f"  Problem: {e.problem}")
-                if hasattr(e, 'context') and e.context:
-                     logger.error(f"  Context: {e.context}")
-                # Continue loading other files, but maybe add a flag to indicate errors?
+                logger.error(f"Error parsing world YAML file: {yaml_file}: {e}")
             except Exception as e:
-                 logger.exception(f"An unexpected error occurred loading world file {yaml_file}: {e}")
+                logger.exception(f"Error loading world file {yaml_file}: {e}")
+        return file_found and bool(target_wd.zones)
 
-        if not file_found:
-            raise Exception(f"No world files (*.yaml) found in {self.app_config.WORLD_DATA_DIR}.")
-        if not self.world_definition.zones:
-            raise Exception("No zones were successfully loaded. Check YAML files and logs.")
-
+    def Initialize(self):
+        logger = StructuredLogger(__name__, prefix="Initialize()> ")
+        self.world_definition.zones = {}
+        self.world_definition.characters = {}
+        self.world_definition.objects = {}
+        self.xp_progression = Constants.XP_PROGRESSION
+        logger.info(f"Loading world files (*.yaml) from [{self.app_config.WORLD_DATA_DIR}]...")
+        if not self._load_world_from_yaml(self.world_definition, load_quest_variables=True):
+            raise Exception(f"No world files (*.yaml) found or no zones loaded in [{self.app_config.WORLD_DATA_DIR}].")
         logger.info(f"World files finished loading, from [{self.app_config.WORLD_DATA_DIR}].")
 
         logger.info("Preparing world...")
-        # copy to operating data
-        self.zones = copy.deepcopy(self.world_definition.zones)
-        # print("init zones")
+        self.zones = {}
         logger.info("Initializing zones...")
-        for zone, zone_data in self.zones.items():
-            logger.debug(f"init rooms for zone: {zone}")
-            for room, room_data in zone_data.rooms.items():
-                room_data.create_reference()
-                # print(f"room_data: {room_data}")
-                logger.debug3("init spawndata")
-                for spawndata in room_data.spawn_data:
-                    logger.debug3(f"spawndata: {spawndata}")
-                    spawndata.owner = room_data
-                    logger.debug3(f"spawndata.actor_type: {spawndata.actor_type}")
-                    if spawndata.actor_type == ActorType.CHARACTER:
-                        logger.debug3("spawndata is character")
-                        character_def = self.world_definition.find_character_definition(spawndata.id)
-                        if not character_def:
-                            logger.warning(f"Character definition for {spawndata.id} not found.")
-                            raise Exception(f"Character definition for {spawndata.id} not found.")
-                        # DEBUGGING:
-                        for i in range(spawndata.desired_quantity):
-                            new_character = Character.create_from_definition(character_def, self)
-                            new_character.spawned_by = spawndata
-                            self.characters.append(new_character)
-                            spawndata.owner.add_character(new_character)
-                            spawndata.spawned.append(new_character)
-                            logger.debug3(f"new_character: {new_character} added to room {new_character._location_room.rid}")
-                for trig_type in room_data.triggers_by_type:
-                    for trig in room_data.triggers_by_type[trig_type]:
-                        logger.debug3("enabling trigger")
-                        trig.enable()
+        for zone_id in list(self.world_definition.zones.keys()):
+            self._build_zone_runtime(zone_id, spawn_npcs=True)
 
         logger.info("World prepared")
-        
         # Print zone statistics
         print("\n=== WORLD LOADING STATISTICS ===")
-        for zone_id, zone_data in self.world_definition.zones.items():
-            room_count = len(zone_data.rooms)
-            
-            # Count character definitions for this zone
-            char_count = 0
-            for char_id, char_def in self.world_definition.characters.items():
-                if char_def.definition_zone_id == zone_id:
-                    char_count += 1
-            
-            # Count object definitions for this zone
-            obj_count = 0
-            for obj_key, obj_def in self.world_definition.objects.items():
-                if obj_key.startswith(f"{zone_id}."):
-                    obj_count += 1
-            
-            print(f"Zone '{zone_id}': {room_count} room definitions, {char_count} character definitions, {obj_count} object definitions")
+        for zid, zdata in self.world_definition.zones.items():
+            room_count = len(zdata.rooms)
+            char_count = sum(1 for cid, cdef in self.world_definition.characters.items() if cdef.definition_zone_id == zid)
+            obj_count = sum(1 for ok, od in self.world_definition.objects.items() if ok.startswith(f"{zid}."))
+            print(f"Zone '{zid}': {room_count} room definitions, {char_count} character definitions, {obj_count} object definitions")
         print("===============================\n")
-    
+
+    def _build_zone_runtime(self, zone_id: str, spawn_npcs: bool = True):
+        """Build or rebuild runtime state for one zone from world_definition. Creates room refs, wires spawn_data, enables triggers; optionally spawns NPCs."""
+        logger = StructuredLogger(__name__, prefix="_build_zone_runtime()> ")
+        if zone_id not in self.world_definition.zones:
+            raise Exception(f"Zone '{zone_id}' not in world_definition.")
+        self.zones[zone_id] = copy.deepcopy(self.world_definition.zones[zone_id])
+        zone_data = self.zones[zone_id]
+        npc_count = 0
+        for room_id, room_data in zone_data.rooms.items():
+            room_data.create_reference()
+            logger.debug3("init spawndata")
+            for spawndata in room_data.spawn_data:
+                spawndata.owner = room_data
+                if spawndata.actor_type == ActorType.CHARACTER and spawn_npcs:
+                    character_def = self.world_definition.find_character_definition(spawndata.id)
+                    if not character_def:
+                        logger.warning(f"Character definition for {spawndata.id} not found.")
+                        raise Exception(f"Character definition for {spawndata.id} not found.")
+                    for i in range(spawndata.desired_quantity):
+                        new_character = Character.create_from_definition(character_def, self)
+                        new_character.spawned_by = spawndata
+                        self.characters.append(new_character)
+                        spawndata.owner.add_character(new_character)
+                        spawndata.spawned.append(new_character)
+                        npc_count += 1
+                        logger.debug3(f"new_character: {new_character} added to room {new_character._location_room.rid}")
+            for trig_type in room_data.triggers_by_type:
+                for trig in room_data.triggers_by_type[trig_type]:
+                    logger.debug3("enabling trigger")
+                    trig.enable()
+        logger.info(f"Zone '{zone_id}' built: {len(zone_data.rooms)} rooms" + (f", {npc_count} NPCs spawned" if spawn_npcs else " (no NPC spawn)") + ".")
+
+    def _teardown_zone_runtime(self, zone_id: str, full: bool = True):
+        """Stop combat, purge scheduled events (and optionally dereference NPCs/objects), dereference rooms. full=True: purge all zone actor events and remove NPCs/objects; full=False: purge only room-level events."""
+        logger = StructuredLogger(__name__, prefix="_teardown_zone_runtime()> ")
+        zone = self.zones[zone_id]
+        zone_rooms = set(zone.rooms.values())
+        zone_actors = set(zone_rooms)
+        if full:
+            for room in zone_rooms:
+                zone_actors.update(room.characters)
+                zone_actors.update(room.contents)
+        # Stop combat for anyone in zone rooms
+        combat_stopped = 0
+        for room in zone_rooms:
+            for char in room.characters[:]:
+                if getattr(char, 'fighting_whom', None):
+                    char.fighting_whom = None
+                    if char in self.characters_fighting:
+                        self.characters_fighting.remove(char)
+                    combat_stopped += 1
+        if combat_stopped:
+            logger.info(f"Stopped combat for {combat_stopped} character(s) in zone '{zone_id}'.")
+        # Purge scheduled events
+        actors_to_purge = zone_actors if full else zone_rooms
+        events_removed = 0
+        for tick in list(self.scheduled_events.keys()):
+            for event in self.scheduled_events[tick][:]:
+                if (event.subject in actors_to_purge or
+                        (event.attach_to_actor is not None and event.attach_to_actor in actors_to_purge)):
+                    self.remove_scheduled_event(event)
+                    events_removed += 1
+        # Disable timer triggers so they remove themselves from TriggerTimerTick.timer_tick_triggers_
+        for actor in (zone_actors if full else zone_rooms):
+            for trig in getattr(actor, 'triggers_by_type', {}).get(TriggerType.TIMER_TICK, []):
+                if hasattr(trig, 'disable'):
+                    trig.disable()
+        # If full: remove and dereference NPCs and objects
+        npcs_removed = 0
+        objects_derefed = 0
+        if full:
+            for room in zone_rooms:
+                for char in room.characters[:]:
+                    if char in self.players:
+                        continue
+                    room.remove_character(char)
+                    if char in self.characters:
+                        self.characters.remove(char)
+                    for obj in list(getattr(char, 'contents', [])):
+                        char.remove_object(obj)
+                        if obj.reference_number:
+                            Actor.dereference_(obj.reference_number)
+                        objects_derefed += 1
+                    for loc, obj in list(getattr(char, 'equipped', {}).items()):
+                        if obj is not None:
+                            try:
+                                char.unequip_location(loc)
+                            except Exception:
+                                pass
+                            if obj and obj.reference_number:
+                                Actor.dereference_(obj.reference_number)
+                            objects_derefed += 1
+                    if char.reference_number:
+                        Actor.dereference_(char.reference_number)
+                    npcs_removed += 1
+                for obj in room.contents[:]:
+                    room.remove_object(obj)
+                    if obj.reference_number:
+                        Actor.dereference_(obj.reference_number)
+                    objects_derefed += 1
+        # Dereference rooms
+        rooms_derefed = 0
+        for room in zone_rooms:
+            if room.reference_number:
+                Actor.dereference_(room.reference_number)
+            rooms_derefed += 1
+        logger.info(f"Teardown zone '{zone_id}': {rooms_derefed} rooms dereferenced" +
+                    (f", {npcs_removed} NPCs removed, {objects_derefed} objects dereferenced" if full else "") +
+                    f", {events_removed} scheduled events purged.")
+
+    def _purge_actor_events(self, actor: Actor):
+        """Remove all scheduled events for this actor and disable their timer triggers."""
+        for tick in list(self.scheduled_events.keys()):
+            for event in self.scheduled_events[tick][:]:
+                if event.subject is actor or event.attach_to_actor is actor:
+                    self.remove_scheduled_event(event)
+        for trig in getattr(actor, 'triggers_by_type', {}).get(TriggerType.TIMER_TICK, []):
+            if hasattr(trig, 'disable'):
+                trig.disable()
+
+    def _reload_zone_definitions(self, zone_id: str):
+        """Re-read all YAML from disk and replace one zone's definitions in world_definition. Returns (success, room_ids_set or error_message)."""
+        logger = StructuredLogger(__name__, prefix="_reload_zone_definitions()> ")
+        temp_wd = WorldDefinition()
+        temp_wd.zones = {}
+        temp_wd.characters = {}
+        temp_wd.objects = {}
+        if not self._load_world_from_yaml(temp_wd, load_quest_variables=False):
+            return (False, "No world files or zones loaded from YAML.")
+        if zone_id not in temp_wd.zones:
+            return (False, f"Zone '{zone_id}' not found in YAML.")
+        new_zone = temp_wd.zones[zone_id]
+        room_ids = set(new_zone.rooms.keys())
+        # Replace zone template
+        self.world_definition.zones[zone_id] = new_zone
+        # Replace character definitions for this zone
+        to_remove = [k for k, c in self.world_definition.characters.items() if c.definition_zone_id == zone_id]
+        for k in to_remove:
+            del self.world_definition.characters[k]
+        for k, c in temp_wd.characters.items():
+            if c.definition_zone_id == zone_id:
+                self.world_definition.characters[k] = c
+        # Replace object definitions for this zone
+        to_remove = [k for k in self.world_definition.objects if k.startswith(f"{zone_id}.")]
+        for k in to_remove:
+            del self.world_definition.objects[k]
+        for k, o in temp_wd.objects.items():
+            if k.startswith(f"{zone_id}."):
+                self.world_definition.objects[k] = o
+        logger.info(f"Zone '{zone_id}' definitions reloaded from YAML: {len(room_ids)} rooms.")
+        return (True, room_ids)
+
+    def _get_start_room(self) -> Optional[Room]:
+        """Return the room for DEFAULT_START_LOCATION, or first room in first zone if not found."""
+        start_location = Constants.DEFAULT_START_LOCATION
+        if "." in start_location:
+            zone_id, room_id = start_location.split(".", 1)
+        else:
+            zone_id = start_location
+            room_id = None
+        start_zone = self.get_zone_by_id(zone_id)
+        if not start_zone:
+            return None
+        start_room = start_zone.rooms.get(room_id) if room_id else None
+        if not start_room and start_zone.rooms:
+            start_room = start_zone.rooms[list(start_zone.rooms.keys())[0]]
+        return start_room
+
+    async def reload_zone(self, zone_id: str) -> str:
+        """Full zone reload: re-read YAML, tear down zone, rebuild, restore players to rooms or start."""
+        logger = StructuredLogger(__name__, prefix="reload_zone()> ")
+        if zone_id not in self.zones:
+            return f"Zone '{zone_id}' not found."
+        logger.info(f"Reloading zone '{zone_id}'...")
+        ok, result = self._reload_zone_definitions(zone_id)
+        if not ok:
+            logger.warning(f"Zone reload aborted: {result}")
+            return f"Reload aborted: {result}"
+        room_ids = result
+        zone = self.zones[zone_id]
+        player_locations = []
+        for room in zone.rooms.values():
+            for char in list(room.characters):
+                is_player = char in self.players
+                is_linkdead = bool(self.linkdead_characters and any(getattr(lc, 'character', None) == char for lc in self.linkdead_characters.values()))
+                if is_player or is_linkdead:
+                    player_locations.append((char, room.id))
+                    room.remove_character(char)
+        logger.info(f"Snapshotted {len(player_locations)} player(s) in zone '{zone_id}'.")
+        self._teardown_zone_runtime(zone_id, full=True)
+        del self.zones[zone_id]
+        self._build_zone_runtime(zone_id, spawn_npcs=True)
+        zone = self.zones[zone_id]
+        start_room = self._get_start_room()
+        core = CoreActionsInterface.get_instance()
+        restored = 0
+        moved_start = 0
+        for player, old_room_id in player_locations:
+            if old_room_id in zone.rooms:
+                new_room = zone.rooms[old_room_id]
+                new_room.add_character(player)
+                restored += 1
+                logger.info(f"Restored {player.name} to room {old_room_id}.")
+            else:
+                if start_room:
+                    await core.arrive_room(player, start_room)
+                    moved_start += 1
+                    logger.info(f"Moved {player.name} to start room (room {old_room_id} no longer exists).")
+            if player in self.players:
+                try:
+                    await player.echo(CommTypes.DYNAMIC, "The world around you shimmers and reforms...", game_state=self)
+                except Exception:
+                    pass
+        summary = f"Zone '{zone_id}' reloaded: {len(zone.rooms)} rooms, {len(player_locations)} player(s) processed ({restored} restored, {moved_start} to start)."
+        logger.info(summary)
+        return summary
+
+    async def reload_rooms(self, zone_id: str) -> str:
+        """Rooms-only reload: re-read YAML, rebuild room defs, keep occupants; discard NPCs/objects in vanished rooms."""
+        logger = StructuredLogger(__name__, prefix="reload_rooms()> ")
+        if zone_id not in self.zones:
+            return f"Zone '{zone_id}' not found."
+        logger.info(f"Reloading rooms for zone '{zone_id}'...")
+        ok, result = self._reload_zone_definitions(zone_id)
+        if not ok:
+            logger.warning(f"Rooms reload aborted: {result}")
+            return f"Reload aborted: {result}"
+        room_ids = result
+        zone = self.zones[zone_id]
+        occupants_by_room = {}
+        for room in zone.rooms.values():
+            occupants_by_room[room.id] = (list(room.characters), list(room.contents))
+        for room_id, (chars, objs) in occupants_by_room.items():
+            room = zone.rooms[room_id]
+            for c in chars:
+                room.remove_character(c)
+            for o in objs:
+                room.remove_object(o)
+        self._teardown_zone_runtime(zone_id, full=False)
+        del self.zones[zone_id]
+        self._build_zone_runtime(zone_id, spawn_npcs=False)
+        zone = self.zones[zone_id]
+        start_room = self._get_start_room()
+        core = CoreActionsInterface.get_instance()
+        restored_rooms = 0
+        vanished_players = 0
+        vanished_npcs = 0
+        vanished_objs = 0
+        for room_id, (chars, objs) in occupants_by_room.items():
+            if room_id not in zone.rooms:
+                for c in chars:
+                    is_player = c in self.players
+                    is_linkdead = bool(self.linkdead_characters and any(getattr(lc, 'character', None) == c for lc in self.linkdead_characters.values()))
+                    if is_player or is_linkdead:
+                        if start_room:
+                            await core.arrive_room(c, start_room)
+                        vanished_players += 1
+                        logger.info(f"Moved {c.name} to start room (room {room_id} vanished).")
+                    else:
+                        if c in self.characters:
+                            self.characters.remove(c)
+                        self._purge_actor_events(c)
+                        if c.reference_number:
+                            Actor.dereference_(c.reference_number)
+                        vanished_npcs += 1
+                for o in objs:
+                    self._purge_actor_events(o)
+                    if o.reference_number:
+                        Actor.dereference_(o.reference_number)
+                    vanished_objs += 1
+            else:
+                new_room = zone.rooms[room_id]
+                for c in chars:
+                    new_room.add_character(c)
+                for o in objs:
+                    new_room.add_object(o)
+                restored_rooms += 1
+                logger.info(f"Restored {len(chars)} character(s), {len(objs)} object(s) to room {room_id}.")
+        summary = f"Rooms for zone '{zone_id}' reloaded: {restored_rooms} rooms with occupants restored, {vanished_players} player(s) moved to start, {vanished_npcs} NPC(s) and {vanished_objs} object(s) discarded from vanished rooms."
+        logger.info(summary)
+        return summary
 
     def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Character:
         logger = StructuredLogger(__name__, prefix="find_target_character()> ")

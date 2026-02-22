@@ -68,7 +68,7 @@ class CommandHandler(CommandHandlerInterface):
         "getlogfilter", "deltempvar", "delpermvar", "save", "load", "saves", "deletesave",
         "stop", "walkto", "route", "delay", "setquestvar", "getquestvar", "spawnobj",
         "pause", "damage", "heal", "removeitem", "transfer", "force", "command",
-        "interrupt", "teleport", "_trigger_start", "_trigger_end"
+        "interrupt", "teleport", "reload", "_trigger_start", "_trigger_end"
     }
 
     # Instant commands - these don't take any time and immediately process the next queued command
@@ -171,6 +171,7 @@ class CommandHandler(CommandHandlerInterface):
         "command": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_command(char, input),
         "interrupt": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_interrupt(char, input),
         "teleport": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_teleport(char, input),
+        "reload": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_reload(char, input),
         "_trigger_start": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_trigger_start(char, input),
         "_trigger_end": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_trigger_end(char, input),
 
@@ -1956,6 +1957,45 @@ class CommandHandler(CommandHandlerInterface):
         # Only show feedback to player actors
         if is_player:
             await actor.send_text(CommTypes.DYNAMIC, f"Teleported {who.art_name} to {destination_description}.")
+
+
+    async def cmd_reload(cls, actor: Actor, input: str):
+        """
+        Reload zone or rooms from YAML (admin only).
+        reload zone [zone_name] - full zone reload; current zone if zone_name omitted.
+        reload rooms [zone_name] - reload room definitions only, keep occupants.
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_reload()> ")
+        if not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+            await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to reload.")
+            return
+        pieces = split_preserving_quotes((input or "").strip())
+        if not pieces:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: reload zone [zone_name]  or  reload rooms [zone_name]")
+            return
+        sub = pieces[0].lower()
+        zone_name = pieces[1].strip() if len(pieces) > 1 else None
+        if zone_name is None and hasattr(actor, 'location_room') and actor.location_room:
+            zone_name = getattr(actor.location_room.zone, 'id', None)
+        if zone_name is None:
+            await actor.send_text(CommTypes.DYNAMIC, "No zone specified and you are not in a room. Usage: reload zone <zone_name>  or  reload rooms <zone_name>")
+            return
+        game_state = cls._game_state
+        if zone_name not in game_state.zones:
+            await actor.send_text(CommTypes.DYNAMIC, f"Zone '{zone_name}' not found.")
+            return
+        try:
+            if sub == "zone":
+                result = await game_state.reload_zone(zone_name)
+            elif sub == "rooms":
+                result = await game_state.reload_rooms(zone_name)
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: reload zone [zone_name]  or  reload rooms [zone_name]")
+                return
+            await actor.send_text(CommTypes.DYNAMIC, result)
+        except Exception as e:
+            logger.exception("reload failed")
+            await actor.send_text(CommTypes.DYNAMIC, f"Reload failed: {e}")
 
 
     async def cmd_interrupt(cls, actor: Actor, input: str):

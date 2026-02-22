@@ -97,7 +97,7 @@ class Actor(ActorInterface):
             return None
     
     @classmethod
-    def dereference(cls, reference_number):
+    def dereference_(cls, reference_number):
         if reference_number in cls.references_:
             del cls.references_[reference_number]
 
