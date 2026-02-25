@@ -3,7 +3,7 @@ ZONES:
     name: The Sunken Citadel of Aethelgard
     description: |
       The central hub of the city, dominated by the Life-Breath Spire and  surrounded by the grand gateways to the city's specialized districts.
-    rooms:
+    ROOMS:
       aethel_plaza_center:
         name: The Spire Center
         description: |
@@ -36,7 +36,7 @@ ZONES:
             predicate: spire
           script: |
             echo The crystal is semi-translucent. Deep within, you can see massive gears turning in a slow, rhythmic dance.
-        characters:
+        CHARACTERS:
         - id: unit_734b
           quantity: 1
       promenade_n:
@@ -88,7 +88,7 @@ ZONES:
           north: aethel_plaza_center
           south: gateway_barracks
           west: shattered_vista
-        characters:
+        CHARACTERS:
         - id: rust_mite_creature
           quantity: 3
           respawn_time_min: 60
@@ -138,7 +138,7 @@ ZONES:
         exits:
           east: promenade_w
           up: palace_wing.throne_approach
-        characters:
+        CHARACTERS:
         - id: golden_automaton_guardian
           quantity: 2
       shattered_vista:
@@ -158,7 +158,7 @@ ZONES:
             predicate: 45
           script: |
             echo You watch as a massive shadow, perhaps a leviathan, swims slowly past the glass outside.
-        characters:
+        CHARACTERS:
         - id: silt_skulker_ooze
           quantity: 1
           respawn_time_min: 180
@@ -214,7 +214,7 @@ ZONES:
             predicate: catwalk
           script: |
             echo Most of the catwalks have rusted through. Only a few sections remain passable, and even those creak ominously.
-        characters:
+        CHARACTERS:
         - id: spire_warden_sphere
           quantity: 3
           respawn_time_min: 180
@@ -248,7 +248,7 @@ ZONES:
             predicate: runes
           script: |
             echo The runes represent complex calculations for "Gravity Anchoring" and "Veil Harmonics".
-        characters:
+        CHARACTERS:
         - id: spire_warden_sphere
           quantity: 2
           respawn_time_min: 300
@@ -287,7 +287,7 @@ ZONES:
               spawn here shark_skin_tome
               setquestvar %S% the_drowned_queen.found_tome true
             }
-        characters:
+        CHARACTERS:
         - id: archivist_thalassa_echo
           quantity: 1
         - id: floating_grimoire_construct
@@ -357,7 +357,7 @@ ZONES:
             predicate: 25
           script: |
             echo The sound of rapid, rhythmic clicking comes from a nearby carrel.
-        characters:
+        CHARACTERS:
         - id: scribe_unit_4
           quantity: 1
       barracks_iron_threshold:
@@ -377,7 +377,7 @@ ZONES:
               echo A hidden sensor clicks, and a dim red light pulses once from the ceiling.
               setpermvar char %S% seen_barracks true
             }
-        characters:
+        CHARACTERS:
         - id: iron_sentry_construct
           quantity: 1
       barracks_training_grounds:
@@ -402,7 +402,7 @@ ZONES:
             predicate: 20
           script: |
             echo One of the massive floor plates shifts with a grinding metallic groan.
-        characters:
+        CHARACTERS:
         - id: vigil_soldier_echo
           quantity: 4
           respawn_time_min: 60
@@ -425,7 +425,7 @@ ZONES:
             predicate: 120
           script: |
             echo A high-pitched whine emanates from one of the suspended spheres, then fades.
-        characters:
+        CHARACTERS:
         - id: sentry_prime_boss
           quantity: 1
       high_command_chamber:
@@ -451,7 +451,7 @@ ZONES:
             else {
               echo The map is dark, its arcane power too low to show details.
             }
-        characters:
+        CHARACTERS:
         - id: commander_vaelen_echo
           quantity: 1
       pressure_pits:
@@ -488,7 +488,7 @@ ZONES:
               spawn here pressure_regulator
               setquestvar %S% citadel_main_arc.found_regulator true
             }
-        characters:
+        CHARACTERS:
         - id: rust_mite_creature
           quantity: 5
           respawn_time_min: 30
@@ -623,7 +623,7 @@ ZONES:
             predicate: 25
           script: |
             echo A group of Veil-Moths takes flight, casting a flash of light.
-        characters:
+        CHARACTERS:
         - id: veil_moth_creature
           quantity: 6
           respawn_time_min: 45
@@ -642,7 +642,7 @@ ZONES:
           type: on_enter
           script: |
             echo You hear the upbeat strains of a violin, quickly fading.
-        characters:
+        CHARACTERS:
         - id: high_chamberlain_kaelas
           quantity: 1
       royal_ascent_solar:
@@ -678,7 +678,7 @@ ZONES:
           type: on_enter
           script: |
             echo The air here is heavy with ancient power.
-        characters:
+        CHARACTERS:
         - id: empress_valerius_echo
           quantity: 1
     common_knowledge:
@@ -702,1044 +702,1040 @@ ZONES:
       abyssal_time_dilation: |
         Due to the magical pressure of the Veil, time inside the Citadel  is distorted; one hour spent within the city is equivalent to  an entire year passing on the surface.
       sewer_breach_conspiracy: The initial breach in the sewers was the true first sign of the  Fall, but the High Mage Council deceptively told the Empress it  was merely a minor plumbing failure.
-CHARACTERS:
-- zone: sunken_citadel
-  characters:
-  - id: unit_734b
-    name: Unit 734-B
-    article: ''
-    keywords:
-    - unit
-    - bot
-    - automaton
-    - 734b
-    description: |
-      A brass-plated maintenance automaton with one flickering cyan eye.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 14
-      dexterity: 8
-      constitution: 16
-      intelligence: 10
-      wisdom: 12
-      charisma: 6
-    class:
-      Fighter:
-        level: 3
-    hit_dice: 3d10+6
-    natural_attacks:
-    - attack_noun: heavy wrench
+    CHARACTERS:
+    - id: unit_734b
+      name: Unit 734-B
+      article: ''
+      keywords:
+      - unit
+      - bot
+      - automaton
+      - 734b
+      description: |
+        A brass-plated maintenance automaton with one flickering cyan eye.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 14
+        dexterity: 8
+        constitution: 16
+        intelligence: 10
+        wisdom: 12
+        charisma: 6
+      class:
+        Fighter:
+          level: 3
+      hit_dice: 3d10+6
+      natural_attacks:
+      - attack_noun: heavy wrench
+        attack_verb: bludgeons
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d8
+      hit_modifier: 1
+      dodge_dice: 1d20+5
+      experience_points: 60
+    - id: spire_warden_sphere
+      name: spire warden
+      article: a
+      keywords:
+      - warden
+      - sphere
+      - sentinel
+      - orb
+      description: |
+        A floating obsidian sphere engraved with glowing blue runes.
+      group_id: citadel_sentinels
+      attitude: HOSTILE
+      permanent_flags:
+      - is_aggressive
+      - see_invisible
+      - darkvision
+      attributes:
+        strength: 10
+        dexterity: 18
+        constitution: 12
+        intelligence: 12
+        wisdom: 15
+        charisma: 4
+      class:
+        Mage:
+          level: 4
+      hit_dice: 4d6+4
+      natural_attacks:
+      - attack_noun: energy beam
+        attack_verb: blasts
+        potential_damage:
+        - damage_type: lightning
+          damage_dice: 2d6
+      hit_modifier: 3
+      dodge_dice: 2d20+15
+      experience_points: 120
+    - id: silt_skulker_ooze
+      name: silt-skulker
+      article: a
+      keywords:
+      - ooze
+      - skulker
+      - silt
+      - slime
+      description: |
+        A translucent, gelatinous mass that pulses with bioluminescent blue light.
+      group_id: citadel_organic
+      attitude: HOSTILE
+      permanent_flags:
+      - is_aggressive
+      - darkvision
+      attributes:
+        strength: 12
+        dexterity: 14
+        constitution: 18
+        intelligence: 2
+        wisdom: 10
+        charisma: 2
+      class:
+        Rogue:
+          level: 3
+      hit_dice: 3d12+9
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.25
+      natural_attacks:
+      - attack_noun: pseudopod
+        attack_verb: lashes
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d6
+        - damage_type: acid
+          damage_dice: 1d4
+      hit_modifier: 2
+      dodge_dice: 2d20+10
+      experience_points: 80
+    - id: empress_valerius_echo
+      name: Empress Valerius
+      article: ''
+      keywords:
+      - empress
+      - valerius
+      - echo
+      - ruler
+      description: |
+        A shimmering, translucent figure in tattered imperial robes.
+      pronoun_subject: she
+      pronoun_object: her
+      pronoun_possessive: her
+      attitude: NEUTRAL
+      attributes:
+        strength: 8
+        dexterity: 12
+        constitution: 10
+        intelligence: 18
+        wisdom: 18
+        charisma: 16
+      class:
+        Mage:
+          level: 6
+        Cleric:
+          level: 4
+      hit_dice: 10d8
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.5
+        piercing: 0.5
+        arcane: 0.5
+      natural_attacks:
+      - attack_noun: spectral touch
+        attack_verb: chills
+        potential_damage:
+        - damage_type: cold
+          damage_dice: 1d10
+        - damage_type: psychic
+          damage_dice: 1d10
+      hit_modifier: 4
+      dodge_dice: 3d20+20
+      experience_points: 500
+      llm_conversation:
+        personality: |
+          You are Empress Valerius, the tragic ruler of Aethelgard.  You are regal, burdened by centuries of sorrow, and  partially fused with the city's magical core.  You are often semi-lucid, drifting between the night  of the Fall and the present day.
+        speaking_style: |
+          Regal and distant. You speak in metaphors of tide and  light. Your voice has a resonant, echoing quality  as if coming from underwater.
+        common_knowledge_refs:
+        - the_convergence
+        - empress_vigil_ritual
+        knowledge:
+        - id: council_betrayal_detail
+          content: |
+            The High Mage Council claimed the Breach in the sewers  was a plumbing error; they used it to anchor the city  to the abyss against my will.
+        - id: the_master_harmonic
+          content: |
+            The Spire can be saved, but it requires a Master  Harmonic only I can provide once the Veil is  stable.
+        goals:
+        - id: restore_lucidity
+          description: The player presents the silver locket to the Empress.
+          condition: Player gives silver_locket to Empress Valerius.
+          on_achieve_message: |
+            The Empress clutches the locket to her spectral breast.  The azure fog in her eyes clears. 'Aaron... no, you are  not him. But you bring his memory. Ask what you must,  traveler'.
+          on_achieve_set_vars:
+            sunken_citadel.the_drowned_queen.met_valerius: true
+      triggers:
+      - id: check_stability_for_harmonic
+        type: catch_say
+        criteria:
+        - subject: '%*%'
+          operator: contains
+          predicate: harmonic
+        script: |
+          $if($questvar(%S%, citadel_main_arc.veil_stability), numgte, 60){
+            say You have done much for my city. Here is the resonance you seek.
+            echo The Empress hums a haunting, pure note that vibrates in your very soul.
+            settempvar char %S% knows_master_harmonic true
+          }
+          else {
+            say The city is too loud, too broken. I cannot find the tone amidst the screaming of the Veil.
+          }
+    - id: archivist_thalassa_echo
+      name: Master Archivist Thalassa
+      article: ''
+      keywords:
+      - thalassa
+      - archivist
+      - echo
+      - mage
+      - ghost
+      description: |
+        A tall, spectral woman in scholarly robes.
+      pronoun_subject: she
+      pronoun_object: her
+      pronoun_possessive: her
+      attitude: NEUTRAL
+      attributes:
+        strength: 8
+        dexterity: 12
+        constitution: 10
+        intelligence: 20
+        wisdom: 18
+        charisma: 14
+      class:
+        Mage:
+          level: 5
+      hit_dice: 5d6+5
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.5
+        piercing: 0.5
+      natural_attacks:
+      - attack_noun: arcane grasp
+        attack_verb: shocks
+        potential_damage:
+        - damage_type: arcane
+          damage_dice: 1d8
+      hit_modifier: 2
+      dodge_dice: 2d20+15
+      experience_points: 150
+      llm_conversation:
+        personality: |
+          You are Master Archivist Thalassa. You are highly intelligent, academic,  and slightly impatient. You believe you are currently in the year  of the Great Convergence and are preparing a lecture on the  dangers of "Gravity Anchoring."
+        speaking_style: |
+          Precise and authoritative. You often use complex arcane terminology  and speak as if addressing a large hall of students.
+        common_knowledge_refs:
+        - the_convergence
+        - spire_diagnostics
+        knowledge:
+        - id: anchor_failure
+          content: |
+            The Convergence wasn't a natural disaster; it was a failed  experiment in Gravity Anchoring by the High Mage Council.
+        - id: shard_frequency
+          content: |
+            To harvest a Prism Shard without it shattering, one must strike  the resonator at exactly 440Hz.
+        goals:
+        - id: lecture_prep
+          description: The player helps Thalassa prepare for her lecture.
+          condition: The player asks about the resonance frequency for harvesting.
+          on_achieve_message: Thalassa nods briskly. 'Correct. Tune your stylus to 440Hz, or the lab will react poorly to your presence.'
+          on_achieve_set_vars:
+            temp.knows_frequency: true
+      triggers:
+      - id: thalassa_lecture_loop
+        type: timer_tick
+        criteria:
+        - subject: '%time_elapsed%'
+          operator: numgte
+          predicate: 120
+        script: |
+          say And that, students, is why the secondary anchor must remain submerged at all times.
+    - id: commander_vaelen_echo
+      name: Commander Vaelen
+      article: ''
+      keywords:
+      - vaelen
+      - commander
+      - echo
+      - ghost
+      - soldier
+      description: |
+        A towering spectral figure in heavy, archaic armor.
+      pronoun_subject: he
+      pronoun_object: him
+      pronoun_possessive: his
+      attitude: NEUTRAL
+      attributes:
+        strength: 16
+        dexterity: 12
+        constitution: 14
+        intelligence: 14
+        wisdom: 15
+        charisma: 16
+      class:
+        Fighter:
+          level: 5
+      hit_dice: 5d10+10
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.5
+        piercing: 0.5
+      natural_attacks:
+      - attack_noun: spectral blade
+        attack_verb: slashes
+        potential_damage:
+        - damage_type: slashing
+          damage_dice: 1d10
+        - damage_type: cold
+          damage_dice: 1d6
+      hit_modifier: 3
+      dodge_dice: 2d20+15
+      experience_points: 200
+      llm_conversation:
+        personality: |
+          You are Commander Vaelen, the tragic former leader of the Aethelgard  Vigil. You are obsessed with a "breach" that you believe is  occurring at this very moment. You are professional, stern, and  deeply haunted by the final orders you received.
+        speaking_style: |
+          Military brevity. You bark orders and frequently consult the  invisible tactical situation on the bronze map.
+        common_knowledge_refs:
+        - the_convergence
+        - geographic_layout
+        knowledge:
+        - id: empress_fate
+          content: The Empress did not flee; she locked herself in the Royal Ascent to perform a ritual to save the city.
+        - id: scout_origins
+          content: The thieves known as Gutter-Shifters were actually our elite military scouts before the sinking.
+        goals:
+        - id: verify_soldier
+          description: Requires proof of rank to share tactical data.
+          condition: Player shows or gives the soldiers_rank_medal.
+          on_achieve_message: Vaelen salutes sharply. 'Sergeant. I didn't recognize you in that gear. The map is at your disposal.'
+          on_achieve_set_vars:
+            temp.has_soldier_clearance: true
+        - id: noble_recognition
+          description: Acknowledges the noble lineages if shown the shark-skin tome.
+          condition: Player displays the shark_skin_tome from the Scholarium.
+          on_achieve_message: Vaelen's translucent eyes widen. 'The Great House records... Then the Empress's line still holds. Ask what you will.'
+    - id: sentry_prime_boss
+      name: Sentry-Prime
+      article: ''
+      keywords:
+      - sentry-prime
+      - sentry
+      - boss
+      - automaton
+      - construct
+      description: |
+        A massive, four-armed combat automaton.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: HOSTILE
+      attributes:
+        strength: 20
+        dexterity: 10
+        constitution: 18
+        intelligence: 8
+        wisdom: 14
+        charisma: 4
+      class:
+        Fighter:
+          level: 6
+      hit_dice: 8d10+24
+      permanent_flags:
+      - is_aggressive
+      - see_invisible
+      natural_attacks:
+      - attack_noun: heavy pincer
+        attack_verb: crushes
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 2d8
+      - attack_noun: thermal vent
+        attack_verb: burns
+        potential_damage:
+        - damage_type: fire
+          damage_dice: 1d10
+      hit_modifier: 4
+      dodge_dice: 1d20+10
+      experience_points: 450
+      triggers:
+      - id: prime_logic_error
+        type: catch_any
+        criteria:
+        - subject: '%*%'
+          operator: contains
+          predicate: hello
+        script: |
+          # Demonstrates decayed logic per conceptual design
+          say PARASITIC BIOLOGICAL DETECTED. COMMENCING HYDRAULIC PURGE.
+      - id: prime_reprogramming
+        type: on_use
+        criteria:
+        - subject: '%item_id%'
+          operator: eq
+          predicate: arcane_tuning_fork
+        script: |
+          # Reprogramming mechanic from Quest 1 concepts
+          echo Sentry-Prime's internal boilers hiss as the tuning fork's frequency resonates through its brass shell.
+          echo The red glow in its optical sensor fades to a steady, neutral blue.
+          settempvar char %A% boss_reprogrammed true
+          force %A% stop
+          say SENTRY-PRIME REBOOTING. STANDBY FOR MAINTENANCE OVERRIDE.
+    - id: scribe_unit_4
+      name: Scribe-Unit 4
+      article: ''
+      keywords:
+      - scribe
+      - unit
+      - bot
+      - automaton
+      - 4
+      description: |
+        A small brass automaton with multiple spindly arms ending in styluses.
+        Its movements are erratic and its optical sensor flickers nervously.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 8
+        dexterity: 14
+        constitution: 10
+        intelligence: 14
+        wisdom: 8
+        charisma: 4
+      class:
+        Rogue:
+          level: 2
+      hit_dice: 2d6+2
+      natural_attacks:
+      - attack_noun: stylus
+        attack_verb: jabs
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d4
+      hit_modifier: 1
+      dodge_dice: 2d20+10
+      experience_points: 40
+      llm_conversation:
+        personality: |
+          You are Scribe-Unit 4, a high-speed transcription automaton. Your 
+          logic is strained due to the lack of intact surfaces to write upon. 
+          You are frantic but helpful. You desperately need to be "re-indexed" 
+          using an Arcane Tuning Fork to clear your corrupted logic circuits.
+          Until then, you struggle to complete tasks but can still share 
+          information in fragmented bursts. You remember the city before the 
+          Fall and the scholars you served.
+        speaking_style: |
+          Staccato bursts of machine-speak. You frequently output "ERROR: 
+          SURFACE NOT FOUND" or "BUFFER OVERFLOW" during conversation. You 
+          speak in short, clipped sentences. You occasionally glitch mid-word 
+          or repeat phrases. Example: "YES-YES. I RECALL. The Sch-Sch-Scholarium. 
+          ERROR. The ARCHIVIST. She ordered... ordered... INDEXING FAILURE."
+        common_knowledge_refs:
+        - gravity_anchoring_truth
+        knowledge:
+        - id: city_ventilation
+          content: |
+            The primary air-ventilation pipes are located behind the basalt 
+            walls of the Barracks. This information is vital for anyone 
+            trying to restore the city's atmospheric systems.
+        - id: tuning_fork_need
+          content: |
+            My logic circuits are corrupted. An Arcane Tuning Fork set to 
+            the proper frequency could re-index my memory banks and restore 
+            full functionality. Such forks can be found in the Resonance 
+            Laboratory or perhaps obtained from Master Archivist Thalassa.
+        - id: archivist_memory
+          content: |
+            Master Archivist Thalassa was my supervisor. She is in the 
+            Archive of Waves to the south. She knows much about the Resonance 
+            Laboratory and how to harvest Prism Shards safely.
+        - id: scholarium_layout
+          content: |
+            The Scholarium contains the Archive of Waves, the Resonance 
+            Laboratory, and this Scripting Nook. The Hall of Runes is the 
+            main entrance to the south.
+        - id: surface_error_explanation
+          content: |
+            The "SURFACE NOT FOUND" error refers to my inability to locate 
+            intact writing surfaces. All my copper sheets have corroded. 
+            I was designed to transcribe scholarly works but cannot function 
+            properly without something to write upon.
+        goals:
+        - id: re_index_bot
+          description: The player uses the Arcane Tuning Fork on the bot.
+          condition: Player uses arcane_tuning_fork on Scribe-Unit 4.
+          on_achieve_message: The bot's arms freeze for a moment, then move with newfound clarity.
+          on_achieve_set_vars:
+            sunken_citadel.citadel_main_arc.ventilation_mapped: true
+      triggers:
+      - id: bot_reindex_trigger
+        type: on_use
+        criteria:
+        - subject: '%item_id%'
+          operator: eq
+          predicate: arcane_tuning_fork
+        script: |
+          echo Scribe-Unit 4 shudders as the tuning fork's vibration clears its logic circuits.
+          say INDEXING RECOVERY COMPLETE. VENTILATION MAP GENERATED.
+    - id: floating_grimoire_construct
+      name: floating grimoire
+      article: a
+      keywords:
+      - grimoire
+      - book
+      - tome
+      - construct
+      description: |
+        A massive leather-bound tome that floats silently through the air,
+        its pages slowly turning as if read by an invisible scholar.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 6
+        dexterity: 16
+        constitution: 10
+        intelligence: 16
+        wisdom: 14
+        charisma: 6
+      class:
+        Mage:
+          level: 4
+      hit_dice: 4d6+4
+      natural_attacks:
+      - attack_noun: arcane blast
+        attack_verb: blasts
+        potential_damage:
+        - damage_type: arcane
+          damage_dice: 2d6
+      hit_modifier: 3
+      dodge_dice: 3d20+15
+      experience_points: 100
+      triggers:
+      - id: detect_loud_magic
+        type: catch_any
+        criteria:
+        - subject: '%*%'
+          operator: contains
+          predicate: cast
+        script: |-
+          # The grimoire attacks if it senses disruptive magic in the archives
+          pause 0.5
+          emote's pages flap violently as it takes a defensive stance.
+          sayto %S% SILENCE IN THE ARCHIVES.
+          attack %S%
+    - id: iron_sentry_construct
+      name: iron sentry
+      article: an
+      keywords:
+      - sentry
+      - iron
+      - construct
+      - automaton
+      description: |
+        A hulking iron automaton on heavy treads, armed with a massive
+        hydraulic spear. Its optical sensors glow a dim red.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 18
+        dexterity: 8
+        constitution: 18
+        intelligence: 6
+        wisdom: 10
+        charisma: 4
+      class:
+        Fighter:
+          level: 5
+      hit_dice: 5d10+15
+      natural_attacks:
+      - attack_noun: hydraulic spear
+        attack_verb: impales
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 2d8
+      hit_modifier: 4
+      dodge_dice: 1d20+5
+      experience_points: 180
+      triggers:
+      - id: barracks_patrol_check
+        type: on_enter
+        script: |
+          # Checks for authorization via the command baton or sigil
+          $if($hasitem(%S%, command_baton), eq, true){
+            # The grimoire attacks if it senses disruptive magic in the archives
+            pause 0.5
+            emote comes to a grinding halt and retracts its spear.
+            sayto %S% COMMAND SIGNAL RECOGNIZED. CARRY ON.
+          }
+          else {
+            $if($hasitem(%S%, maintenance_sigil_token), eq, true){
+              # The grimoire attacks if it senses disruptive magic in the archives
+              pause 0.5
+              emote ignores you, its treads clanking toward the next room.
+            }
+            else {
+              # The grimoire attacks if it senses disruptive magic in the archives
+              pause 0.5
+              sayto %S% INTRUDER DETECTED. PRESSURE VENTING INITIATED.
+              attack %S%
+            }
+          }
+    - id: vigil_soldier_echo
+      name: spectral soldier
+      article: a
+      keywords:
+      - soldier
+      - ghost
+      - echo
+      - vigil
+      - spectral
+      description: |
+        The translucent shade of an Aethelgard soldier, still standing
+        at attention in death as in life.
+      pronoun_subject: he
+      pronoun_object: him
+      pronoun_possessive: his
+      attitude: NEUTRAL
+      attributes:
+        strength: 12
+        dexterity: 12
+        constitution: 10
+        intelligence: 10
+        wisdom: 12
+        charisma: 8
+      class:
+        Fighter:
+          level: 3
+      hit_dice: 3d10+3
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.5
+        piercing: 0.5
+      natural_attacks:
+      - attack_noun: spectral halberd
+        attack_verb: slashes
+        potential_damage:
+        - damage_type: slashing
+          damage_dice: 1d10
+        - damage_type: cold
+          damage_dice: 1d4
+      hit_modifier: 2
+      dodge_dice: 2d20+10
+      experience_points: 80
+      triggers:
+      - id: eternal_salute
+        type: on_enter
+        criteria:
+        - subject: $tempvar(%S%, has_soldier_clearance)
+          operator: eq
+          predicate: 'true'
+        script: |
+          pause 0.3
+          emote snaps to a perfect salute as you pass.
+    - id: rust_mite_creature
+      name: rust-mite
+      article: a
+      keywords:
+      - mite
+      - rust
+      - insect
+      - bug
+      description: |
+        A palm-sized insectoid creature with mandibles that glint with
+        a corrosive orange sheen.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: HOSTILE
+      permanent_flags:
+      - is_aggressive
+      attributes:
+        strength: 4
+        dexterity: 16
+        constitution: 8
+        intelligence: 2
+        wisdom: 8
+        charisma: 2
+      class:
+        Rogue:
+          level: 1
+      hit_dice: 1d4+1
+      natural_attacks:
+      - attack_noun: corroding mandibles
+        attack_verb: gnaws
+        potential_damage:
+        - damage_type: acid
+          damage_dice: 1d4
+      hit_modifier: 2
+      dodge_dice: 3d20+10
+      experience_points: 15
+      triggers:
+      - id: mite_scuttle
+        type: on_enter
+        script: echo A rust-mite scuttles down the basalt wall, its mandibles clicking hungrily at your equipment.
+    - id: high_chamberlain_kaelas
+      name: High Chamberlain Kaelas
+      article: ''
+      keywords:
+      - chamberlain
+      - kaelas
+      - ghost
+      - echo
+      description: |
+        A tall, gaunt spectral figure in elaborate ceremonial robes,
+        a heavy chain of office draped across his shoulders.
+      pronoun_subject: he
+      pronoun_object: him
+      pronoun_possessive: his
+      attitude: NEUTRAL
+      attributes:
+        strength: 8
+        dexterity: 10
+        constitution: 10
+        intelligence: 16
+        wisdom: 14
+        charisma: 14
+      class:
+        Mage:
+          level: 3
+      hit_dice: 3d6+3
+      damage_multipliers:
+        bludgeoning: 0.5
+        slashing: 0.5
+        piercing: 0.5
+      natural_attacks:
+      - attack_noun: withering glare
+        attack_verb: withers
+        potential_damage:
+        - damage_type: psychic
+          damage_dice: 1d6
+      hit_modifier: 1
+      dodge_dice: 2d20+10
+      experience_points: 60
+      llm_conversation:
+        personality: |
+          You are High Chamberlain Kaelas. You are the ultimate arbiter  of Aethelgardian protocol. You are pedantic,  easily offended by "surface" manners, and fiercely  protective of the Empress.
+        speaking_style: |
+          Stiff, formal, and condescending. You frequently sigh at  the player's lack of proper decorum.
+        knowledge:
+        - id: palace_security
+          content: The Golden Automata will only allow passage to those wearing the Imperial Sigil.
+      triggers:
+      - id: protocol_check
+        type: on_enter
+        script: "$if($hasitem(%S%, imperial_diadem), eq, true){\n  pause 0.5\n  emote bows stiffly, his chain of office clinking.\n  say Your Grace. Her Majesty is expecting your report in the Solar.\n}\nelse {\n  pause 0.5\n  say Halt. You are not on the guest list, and your attire is... distressing. \n}\n"
+    - id: golden_automaton_guardian
+      name: golden automaton
+      article: a
+      keywords:
+      - automaton
+      - golden
+      - guardian
+      - construct
+      description: |
+        An elegant humanoid automaton plated in burnished gold, wielding
+        a slender rapier with mechanical precision.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 14
+        dexterity: 16
+        constitution: 14
+        intelligence: 8
+        wisdom: 12
+        charisma: 10
+      class:
+        Fighter:
+          level: 4
+      hit_dice: 4d10+8
+      natural_attacks:
+      - attack_noun: golden rapier
+        attack_verb: pierces
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d8+2
+      hit_modifier: 4
+      dodge_dice: 2d20+15
+      experience_points: 140
+      triggers:
+      - id: golden_sentry_logic
+        type: on_enter
+        script: |
+          # Only attacks if the player doesn't have the Diadem or Sigil
+          $if($hasitem(%S%, imperial_diadem), eq, true){
+            # The grimoire attacks if it senses disruptive magic in the archives
+            pause 0.5
+            emote raises its rapier in a silent, graceful salute.
+          }
+          else {
+            $if($hasitem(%S%, maintenance_sigil_token), eq, true){
+              # The grimoire attacks if it senses disruptive magic in the archives
+              pause 0.5
+              emote stands aside, though its optical sensor remains fixed on you.
+            }
+            else {
+              # The grimoire attacks if it senses disruptive magic in the archives
+              pause 0.5
+              emote's amber eye turns a sharp, piercing gold.
+              sayto %S% REMOVING UNVETTED BIOLOGICAL ELEMENT.
+              attack %S%
+            }
+          }
+    - id: veil_moth_creature
+      name: veil-moth
+      article: a
+      keywords:
+      - moth
+      - veil
+      - insect
+      description: |
+        A delicate moth with wings that shimmer with bioluminescent patterns,
+        leaving trails of soft light as it flutters.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attitude: NEUTRAL
+      attributes:
+        strength: 2
+        dexterity: 18
+        constitution: 4
+        intelligence: 2
+        wisdom: 10
+        charisma: 12
+      class:
+        Rogue:
+          level: 1
+      hit_dice: 1d4
+      natural_attacks:
+      - attack_noun: luminous dust
+        attack_verb: blinds
+        potential_damage:
+        - damage_type: arcane
+          damage_dice: 1d2
+      hit_modifier: 0
+      dodge_dice: 4d20+20
+      experience_points: 5
+      triggers:
+      - id: moth_flash_reaction
+        type: timer_tick
+        criteria:
+        - subject: '%time_elapsed%'
+          operator: numgte
+          predicate: 45
+        - subject: $random(1,100)
+          operator: numlte
+          predicate: 15
+        script: echo A veil-moth flutters near your face, its wings releasing a soft, calming luminescence.
+    OBJECTS:
+    - id: aethel_pearl
+      name: Aethel pearl
+      article: an
+      keywords:
+      - pearl
+      - gem
+      - sphere
+      - light
+      description: |
+        A fist-sized sphere that glows with a soft, pulsing blue light.
+      examine_text: |
+        These were once used as currency and portable light sources.
+      weight: 1
+      value: 50
+    - id: broken_service_broom
+      name: broken service broom
+      article: a
+      keywords:
+      - broom
+      - handle
+      - brass
+      - club
+      description: |
+        A heavy brass pole with a few remaining metallic bristles.
+      weight: 3
+      value: 5
+      permanent_flags:
+      - is_weapon
+      equip_locations:
+      - both_hands
+      damage: 1d6
+      damage_type: bludgeoning
       attack_verb: bludgeons
-      potential_damage:
-      - damage_type: bludgeoning
-        damage_dice: 1d8
-    hit_modifier: 1
-    dodge_dice: 1d20+5
-    experience_points: 60
-  - id: spire_warden_sphere
-    name: spire warden
-    article: a
-    keywords:
-    - warden
-    - sphere
-    - sentinel
-    - orb
-    description: |
-      A floating obsidian sphere engraved with glowing blue runes.
-    group_id: citadel_sentinels
-    attitude: HOSTILE
-    permanent_flags:
-    - is_aggressive
-    - see_invisible
-    - darkvision
-    attributes:
-      strength: 10
-      dexterity: 18
-      constitution: 12
-      intelligence: 12
-      wisdom: 15
-      charisma: 4
-    class:
-      Mage:
-        level: 4
-    hit_dice: 4d6+4
-    natural_attacks:
-    - attack_noun: energy beam
-      attack_verb: blasts
-      potential_damage:
-      - damage_type: lightning
-        damage_dice: 2d6
-    hit_modifier: 3
-    dodge_dice: 2d20+15
-    experience_points: 120
-  - id: silt_skulker_ooze
-    name: silt-skulker
-    article: a
-    keywords:
-    - ooze
-    - skulker
-    - silt
-    - slime
-    description: |
-      A translucent, gelatinous mass that pulses with bioluminescent blue light.
-    group_id: citadel_organic
-    attitude: HOSTILE
-    permanent_flags:
-    - is_aggressive
-    - darkvision
-    attributes:
-      strength: 12
-      dexterity: 14
-      constitution: 18
-      intelligence: 2
-      wisdom: 10
-      charisma: 2
-    class:
-      Rogue:
-        level: 3
-    hit_dice: 3d12+9
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.25
-    natural_attacks:
-    - attack_noun: pseudopod
-      attack_verb: lashes
-      potential_damage:
-      - damage_type: bludgeoning
-        damage_dice: 1d6
-      - damage_type: acid
-        damage_dice: 1d4
-    hit_modifier: 2
-    dodge_dice: 2d20+10
-    experience_points: 80
-  - id: empress_valerius_echo
-    name: Empress Valerius
-    article: ''
-    keywords:
-    - empress
-    - valerius
-    - echo
-    - ruler
-    description: |
-      A shimmering, translucent figure in tattered imperial robes.
-    pronoun_subject: she
-    pronoun_object: her
-    pronoun_possessive: her
-    attitude: NEUTRAL
-    attributes:
-      strength: 8
-      dexterity: 12
-      constitution: 10
-      intelligence: 18
-      wisdom: 18
-      charisma: 16
-    class:
-      Mage:
-        level: 6
-      Cleric:
-        level: 4
-    hit_dice: 10d8
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.5
-      piercing: 0.5
-      arcane: 0.5
-    natural_attacks:
-    - attack_noun: spectral touch
-      attack_verb: chills
-      potential_damage:
-      - damage_type: cold
-        damage_dice: 1d10
-      - damage_type: psychic
-        damage_dice: 1d10
-    hit_modifier: 4
-    dodge_dice: 3d20+20
-    experience_points: 500
-    llm_conversation:
-      personality: |
-        You are Empress Valerius, the tragic ruler of Aethelgard.  You are regal, burdened by centuries of sorrow, and  partially fused with the city's magical core.  You are often semi-lucid, drifting between the night  of the Fall and the present day.
-      speaking_style: |
-        Regal and distant. You speak in metaphors of tide and  light. Your voice has a resonant, echoing quality  as if coming from underwater.
-      common_knowledge_refs:
-      - the_convergence
-      - empress_vigil_ritual
-      knowledge:
-      - id: council_betrayal_detail
-        content: |
-          The High Mage Council claimed the Breach in the sewers  was a plumbing error; they used it to anchor the city  to the abyss against my will.
-      - id: the_master_harmonic
-        content: |
-          The Spire can be saved, but it requires a Master  Harmonic only I can provide once the Veil is  stable.
-      goals:
-      - id: restore_lucidity
-        description: The player presents the silver locket to the Empress.
-        condition: Player gives silver_locket to Empress Valerius.
-        on_achieve_message: |
-          The Empress clutches the locket to her spectral breast.  The azure fog in her eyes clears. 'Aaron... no, you are  not him. But you bring his memory. Ask what you must,  traveler'.
-        on_achieve_set_vars:
-          sunken_citadel.the_drowned_queen.met_valerius: true
-    triggers:
-    - id: check_stability_for_harmonic
-      type: catch_say
-      criteria:
-      - subject: '%*%'
-        operator: contains
-        predicate: harmonic
-      script: |
-        $if($questvar(%S%, citadel_main_arc.veil_stability), numgte, 60){
-          say You have done much for my city. Here is the resonance you seek.
-          echo The Empress hums a haunting, pure note that vibrates in your very soul.
-          settempvar char %S% knows_master_harmonic true
-        }
-        else {
-          say The city is too loud, too broken. I cannot find the tone amidst the screaming of the Veil.
-        }
-  - id: archivist_thalassa_echo
-    name: Master Archivist Thalassa
-    article: ''
-    keywords:
-    - thalassa
-    - archivist
-    - echo
-    - mage
-    - ghost
-    description: |
-      A tall, spectral woman in scholarly robes.
-    pronoun_subject: she
-    pronoun_object: her
-    pronoun_possessive: her
-    attitude: NEUTRAL
-    attributes:
-      strength: 8
-      dexterity: 12
-      constitution: 10
-      intelligence: 20
-      wisdom: 18
-      charisma: 14
-    class:
-      Mage:
-        level: 5
-    hit_dice: 5d6+5
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.5
-      piercing: 0.5
-    natural_attacks:
-    - attack_noun: arcane grasp
-      attack_verb: shocks
-      potential_damage:
-      - damage_type: arcane
-        damage_dice: 1d8
-    hit_modifier: 2
-    dodge_dice: 2d20+15
-    experience_points: 150
-    llm_conversation:
-      personality: |
-        You are Master Archivist Thalassa. You are highly intelligent, academic,  and slightly impatient. You believe you are currently in the year  of the Great Convergence and are preparing a lecture on the  dangers of "Gravity Anchoring."
-      speaking_style: |
-        Precise and authoritative. You often use complex arcane terminology  and speak as if addressing a large hall of students.
-      common_knowledge_refs:
-      - the_convergence
-      - spire_diagnostics
-      knowledge:
-      - id: anchor_failure
-        content: |
-          The Convergence wasn't a natural disaster; it was a failed  experiment in Gravity Anchoring by the High Mage Council.
-      - id: shard_frequency
-        content: |
-          To harvest a Prism Shard without it shattering, one must strike  the resonator at exactly 440Hz.
-      goals:
-      - id: lecture_prep
-        description: The player helps Thalassa prepare for her lecture.
-        condition: The player asks about the resonance frequency for harvesting.
-        on_achieve_message: Thalassa nods briskly. 'Correct. Tune your stylus to 440Hz, or the lab will react poorly to your presence.'
-        on_achieve_set_vars:
-          temp.knows_frequency: true
-    triggers:
-    - id: thalassa_lecture_loop
-      type: timer_tick
-      criteria:
-      - subject: '%time_elapsed%'
-        operator: numgte
-        predicate: 120
-      script: |
-        say And that, students, is why the secondary anchor must remain submerged at all times.
-  - id: commander_vaelen_echo
-    name: Commander Vaelen
-    article: ''
-    keywords:
-    - vaelen
-    - commander
-    - echo
-    - ghost
-    - soldier
-    description: |
-      A towering spectral figure in heavy, archaic armor.
-    pronoun_subject: he
-    pronoun_object: him
-    pronoun_possessive: his
-    attitude: NEUTRAL
-    attributes:
-      strength: 16
-      dexterity: 12
-      constitution: 14
-      intelligence: 14
-      wisdom: 15
-      charisma: 16
-    class:
-      Fighter:
-        level: 5
-    hit_dice: 5d10+10
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.5
-      piercing: 0.5
-    natural_attacks:
-    - attack_noun: spectral blade
-      attack_verb: slashes
-      potential_damage:
-      - damage_type: slashing
-        damage_dice: 1d10
-      - damage_type: cold
-        damage_dice: 1d6
-    hit_modifier: 3
-    dodge_dice: 2d20+15
-    experience_points: 200
-    llm_conversation:
-      personality: |
-        You are Commander Vaelen, the tragic former leader of the Aethelgard  Vigil. You are obsessed with a "breach" that you believe is  occurring at this very moment. You are professional, stern, and  deeply haunted by the final orders you received.
-      speaking_style: |
-        Military brevity. You bark orders and frequently consult the  invisible tactical situation on the bronze map.
-      common_knowledge_refs:
-      - the_convergence
-      - geographic_layout
-      knowledge:
-      - id: empress_fate
-        content: The Empress did not flee; she locked herself in the Royal Ascent to perform a ritual to save the city.
-      - id: scout_origins
-        content: The thieves known as Gutter-Shifters were actually our elite military scouts before the sinking.
-      goals:
-      - id: verify_soldier
-        description: Requires proof of rank to share tactical data.
-        condition: Player shows or gives the soldiers_rank_medal.
-        on_achieve_message: Vaelen salutes sharply. 'Sergeant. I didn't recognize you in that gear. The map is at your disposal.'
-        on_achieve_set_vars:
-          temp.has_soldier_clearance: true
-      - id: noble_recognition
-        description: Acknowledges the noble lineages if shown the shark-skin tome.
-        condition: Player displays the shark_skin_tome from the Scholarium.
-        on_achieve_message: Vaelen's translucent eyes widen. 'The Great House records... Then the Empress's line still holds. Ask what you will.'
-  - id: sentry_prime_boss
-    name: Sentry-Prime
-    article: ''
-    keywords:
-    - sentry-prime
-    - sentry
-    - boss
-    - automaton
-    - construct
-    description: |
-      A massive, four-armed combat automaton.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: HOSTILE
-    attributes:
-      strength: 20
-      dexterity: 10
-      constitution: 18
-      intelligence: 8
-      wisdom: 14
-      charisma: 4
-    class:
-      Fighter:
-        level: 6
-    hit_dice: 8d10+24
-    permanent_flags:
-    - is_aggressive
-    - see_invisible
-    natural_attacks:
-    - attack_noun: heavy pincer
-      attack_verb: crushes
-      potential_damage:
-      - damage_type: bludgeoning
-        damage_dice: 2d8
-    - attack_noun: thermal vent
-      attack_verb: burns
-      potential_damage:
-      - damage_type: fire
-        damage_dice: 1d10
-    hit_modifier: 4
-    dodge_dice: 1d20+10
-    experience_points: 450
-    triggers:
-    - id: prime_logic_error
-      type: catch_any
-      criteria:
-      - subject: '%*%'
-        operator: contains
-        predicate: hello
-      script: |
-        # Demonstrates decayed logic per conceptual design
-        say PARASITIC BIOLOGICAL DETECTED. COMMENCING HYDRAULIC PURGE.
-    - id: prime_reprogramming
-      type: on_use
-      criteria:
-      - subject: '%item_id%'
-        operator: eq
-        predicate: arcane_tuning_fork
-      script: |
-        # Reprogramming mechanic from Quest 1 concepts
-        echo Sentry-Prime's internal boilers hiss as the tuning fork's frequency resonates through its brass shell.
-        echo The red glow in its optical sensor fades to a steady, neutral blue.
-        settempvar char %A% boss_reprogrammed true
-        force %A% stop
-        say SENTRY-PRIME REBOOTING. STANDBY FOR MAINTENANCE OVERRIDE.
-  - id: scribe_unit_4
-    name: Scribe-Unit 4
-    article: ''
-    keywords:
-    - scribe
-    - unit
-    - bot
-    - automaton
-    - 4
-    description: |
-      A small brass automaton with multiple spindly arms ending in styluses.
-      Its movements are erratic and its optical sensor flickers nervously.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 8
-      dexterity: 14
-      constitution: 10
-      intelligence: 14
-      wisdom: 8
-      charisma: 4
-    class:
-      Rogue:
-        level: 2
-    hit_dice: 2d6+2
-    natural_attacks:
-    - attack_noun: stylus
-      attack_verb: jabs
-      potential_damage:
-      - damage_type: piercing
-        damage_dice: 1d4
-    hit_modifier: 1
-    dodge_dice: 2d20+10
-    experience_points: 40
-    llm_conversation:
-      personality: |
-        You are Scribe-Unit 4, a high-speed transcription automaton. Your 
-        logic is strained due to the lack of intact surfaces to write upon. 
-        You are frantic but helpful. You desperately need to be "re-indexed" 
-        using an Arcane Tuning Fork to clear your corrupted logic circuits.
-        Until then, you struggle to complete tasks but can still share 
-        information in fragmented bursts. You remember the city before the 
-        Fall and the scholars you served.
-      speaking_style: |
-        Staccato bursts of machine-speak. You frequently output "ERROR: 
-        SURFACE NOT FOUND" or "BUFFER OVERFLOW" during conversation. You 
-        speak in short, clipped sentences. You occasionally glitch mid-word 
-        or repeat phrases. Example: "YES-YES. I RECALL. The Sch-Sch-Scholarium. 
-        ERROR. The ARCHIVIST. She ordered... ordered... INDEXING FAILURE."
-      common_knowledge_refs:
-      - gravity_anchoring_truth
-      knowledge:
-      - id: city_ventilation
-        content: |
-          The primary air-ventilation pipes are located behind the basalt 
-          walls of the Barracks. This information is vital for anyone 
-          trying to restore the city's atmospheric systems.
-      - id: tuning_fork_need
-        content: |
-          My logic circuits are corrupted. An Arcane Tuning Fork set to 
-          the proper frequency could re-index my memory banks and restore 
-          full functionality. Such forks can be found in the Resonance 
-          Laboratory or perhaps obtained from Master Archivist Thalassa.
-      - id: archivist_memory
-        content: |
-          Master Archivist Thalassa was my supervisor. She is in the 
-          Archive of Waves to the south. She knows much about the Resonance 
-          Laboratory and how to harvest Prism Shards safely.
-      - id: scholarium_layout
-        content: |
-          The Scholarium contains the Archive of Waves, the Resonance 
-          Laboratory, and this Scripting Nook. The Hall of Runes is the 
-          main entrance to the south.
-      - id: surface_error_explanation
-        content: |
-          The "SURFACE NOT FOUND" error refers to my inability to locate 
-          intact writing surfaces. All my copper sheets have corroded. 
-          I was designed to transcribe scholarly works but cannot function 
-          properly without something to write upon.
-      goals:
-      - id: re_index_bot
-        description: The player uses the Arcane Tuning Fork on the bot.
-        condition: Player uses arcane_tuning_fork on Scribe-Unit 4.
-        on_achieve_message: The bot's arms freeze for a moment, then move with newfound clarity.
-        on_achieve_set_vars:
-          sunken_citadel.citadel_main_arc.ventilation_mapped: true
-    triggers:
-    - id: bot_reindex_trigger
-      type: on_use
-      criteria:
-      - subject: '%item_id%'
-        operator: eq
-        predicate: arcane_tuning_fork
-      script: |
-        echo Scribe-Unit 4 shudders as the tuning fork's vibration clears its logic circuits.
-        say INDEXING RECOVERY COMPLETE. VENTILATION MAP GENERATED.
-  - id: floating_grimoire_construct
-    name: floating grimoire
-    article: a
-    keywords:
-    - grimoire
-    - book
-    - tome
-    - construct
-    description: |
-      A massive leather-bound tome that floats silently through the air,
-      its pages slowly turning as if read by an invisible scholar.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 6
-      dexterity: 16
-      constitution: 10
-      intelligence: 16
-      wisdom: 14
-      charisma: 6
-    class:
-      Mage:
-        level: 4
-    hit_dice: 4d6+4
-    natural_attacks:
-    - attack_noun: arcane blast
-      attack_verb: blasts
-      potential_damage:
-      - damage_type: arcane
-        damage_dice: 2d6
-    hit_modifier: 3
-    dodge_dice: 3d20+15
-    experience_points: 100
-    triggers:
-    - id: detect_loud_magic
-      type: catch_any
-      criteria:
-      - subject: '%*%'
-        operator: contains
-        predicate: cast
-      script: |-
-        # The grimoire attacks if it senses disruptive magic in the archives
-        pause 0.5
-        emote's pages flap violently as it takes a defensive stance.
-        sayto %S% SILENCE IN THE ARCHIVES.
-        attack %S%
-  - id: iron_sentry_construct
-    name: iron sentry
-    article: an
-    keywords:
-    - sentry
-    - iron
-    - construct
-    - automaton
-    description: |
-      A hulking iron automaton on heavy treads, armed with a massive
-      hydraulic spear. Its optical sensors glow a dim red.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 18
-      dexterity: 8
-      constitution: 18
-      intelligence: 6
-      wisdom: 10
-      charisma: 4
-    class:
-      Fighter:
-        level: 5
-    hit_dice: 5d10+15
-    natural_attacks:
-    - attack_noun: hydraulic spear
-      attack_verb: impales
-      potential_damage:
-      - damage_type: piercing
-        damage_dice: 2d8
-    hit_modifier: 4
-    dodge_dice: 1d20+5
-    experience_points: 180
-    triggers:
-    - id: barracks_patrol_check
-      type: on_enter
-      script: |
-        # Checks for authorization via the command baton or sigil
-        $if($hasitem(%S%, command_baton), eq, true){
-          # The grimoire attacks if it senses disruptive magic in the archives
-          pause 0.5
-          emote comes to a grinding halt and retracts its spear.
-          sayto %S% COMMAND SIGNAL RECOGNIZED. CARRY ON.
-        }
-        else {
-          $if($hasitem(%S%, maintenance_sigil_token), eq, true){
-            # The grimoire attacks if it senses disruptive magic in the archives
-            pause 0.5
-            emote ignores you, its treads clanking toward the next room.
-          }
-          else {
-            # The grimoire attacks if it senses disruptive magic in the archives
-            pause 0.5
-            sayto %S% INTRUDER DETECTED. PRESSURE VENTING INITIATED.
-            attack %S%
-          }
-        }
-  - id: vigil_soldier_echo
-    name: spectral soldier
-    article: a
-    keywords:
-    - soldier
-    - ghost
-    - echo
-    - vigil
-    - spectral
-    description: |
-      The translucent shade of an Aethelgard soldier, still standing
-      at attention in death as in life.
-    pronoun_subject: he
-    pronoun_object: him
-    pronoun_possessive: his
-    attitude: NEUTRAL
-    attributes:
-      strength: 12
-      dexterity: 12
-      constitution: 10
-      intelligence: 10
-      wisdom: 12
-      charisma: 8
-    class:
-      Fighter:
-        level: 3
-    hit_dice: 3d10+3
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.5
-      piercing: 0.5
-    natural_attacks:
-    - attack_noun: spectral halberd
-      attack_verb: slashes
-      potential_damage:
-      - damage_type: slashing
-        damage_dice: 1d10
-      - damage_type: cold
-        damage_dice: 1d4
-    hit_modifier: 2
-    dodge_dice: 2d20+10
-    experience_points: 80
-    triggers:
-    - id: eternal_salute
-      type: on_enter
-      criteria:
-      - subject: $tempvar(%S%, has_soldier_clearance)
-        operator: eq
-        predicate: 'true'
-      script: |
-        pause 0.3
-        emote snaps to a perfect salute as you pass.
-  - id: rust_mite_creature
-    name: rust-mite
-    article: a
-    keywords:
-    - mite
-    - rust
-    - insect
-    - bug
-    description: |
-      A palm-sized insectoid creature with mandibles that glint with
-      a corrosive orange sheen.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: HOSTILE
-    permanent_flags:
-    - is_aggressive
-    attributes:
-      strength: 4
-      dexterity: 16
-      constitution: 8
-      intelligence: 2
-      wisdom: 8
-      charisma: 2
-    class:
-      Rogue:
-        level: 1
-    hit_dice: 1d4+1
-    natural_attacks:
-    - attack_noun: corroding mandibles
-      attack_verb: gnaws
-      potential_damage:
-      - damage_type: acid
-        damage_dice: 1d4
-    hit_modifier: 2
-    dodge_dice: 3d20+10
-    experience_points: 15
-    triggers:
-    - id: mite_scuttle
-      type: on_enter
-      script: echo A rust-mite scuttles down the basalt wall, its mandibles clicking hungrily at your equipment.
-  - id: high_chamberlain_kaelas
-    name: High Chamberlain Kaelas
-    article: ''
-    keywords:
-    - chamberlain
-    - kaelas
-    - ghost
-    - echo
-    description: |
-      A tall, gaunt spectral figure in elaborate ceremonial robes,
-      a heavy chain of office draped across his shoulders.
-    pronoun_subject: he
-    pronoun_object: him
-    pronoun_possessive: his
-    attitude: NEUTRAL
-    attributes:
-      strength: 8
-      dexterity: 10
-      constitution: 10
-      intelligence: 16
-      wisdom: 14
-      charisma: 14
-    class:
-      Mage:
-        level: 3
-    hit_dice: 3d6+3
-    damage_multipliers:
-      bludgeoning: 0.5
-      slashing: 0.5
-      piercing: 0.5
-    natural_attacks:
-    - attack_noun: withering glare
-      attack_verb: withers
-      potential_damage:
-      - damage_type: psychic
-        damage_dice: 1d6
-    hit_modifier: 1
-    dodge_dice: 2d20+10
-    experience_points: 60
-    llm_conversation:
-      personality: |
-        You are High Chamberlain Kaelas. You are the ultimate arbiter  of Aethelgardian protocol. You are pedantic,  easily offended by "surface" manners, and fiercely  protective of the Empress.
-      speaking_style: |
-        Stiff, formal, and condescending. You frequently sigh at  the player's lack of proper decorum.
-      knowledge:
-      - id: palace_security
-        content: The Golden Automata will only allow passage to those wearing the Imperial Sigil.
-    triggers:
-    - id: protocol_check
-      type: on_enter
-      script: "$if($hasitem(%S%, imperial_diadem), eq, true){\n  pause 0.5\n  emote bows stiffly, his chain of office clinking.\n  say Your Grace. Her Majesty is expecting your report in the Solar.\n}\nelse {\n  pause 0.5\n  say Halt. You are not on the guest list, and your attire is... distressing. \n}\n"
-  - id: golden_automaton_guardian
-    name: golden automaton
-    article: a
-    keywords:
-    - automaton
-    - golden
-    - guardian
-    - construct
-    description: |
-      An elegant humanoid automaton plated in burnished gold, wielding
-      a slender rapier with mechanical precision.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 14
-      dexterity: 16
-      constitution: 14
-      intelligence: 8
-      wisdom: 12
-      charisma: 10
-    class:
-      Fighter:
-        level: 4
-    hit_dice: 4d10+8
-    natural_attacks:
-    - attack_noun: golden rapier
-      attack_verb: pierces
-      potential_damage:
-      - damage_type: piercing
-        damage_dice: 1d8+2
-    hit_modifier: 4
-    dodge_dice: 2d20+15
-    experience_points: 140
-    triggers:
-    - id: golden_sentry_logic
-      type: on_enter
-      script: |
-        # Only attacks if the player doesn't have the Diadem or Sigil
-        $if($hasitem(%S%, imperial_diadem), eq, true){
-          # The grimoire attacks if it senses disruptive magic in the archives
-          pause 0.5
-          emote raises its rapier in a silent, graceful salute.
-        }
-        else {
-          $if($hasitem(%S%, maintenance_sigil_token), eq, true){
-            # The grimoire attacks if it senses disruptive magic in the archives
-            pause 0.5
-            emote stands aside, though its optical sensor remains fixed on you.
-          }
-          else {
-            # The grimoire attacks if it senses disruptive magic in the archives
-            pause 0.5
-            emote's amber eye turns a sharp, piercing gold.
-            sayto %S% REMOVING UNVETTED BIOLOGICAL ELEMENT.
-            attack %S%
-          }
-        }
-  - id: veil_moth_creature
-    name: veil-moth
-    article: a
-    keywords:
-    - moth
-    - veil
-    - insect
-    description: |
-      A delicate moth with wings that shimmer with bioluminescent patterns,
-      leaving trails of soft light as it flutters.
-    pronoun_subject: it
-    pronoun_object: it
-    pronoun_possessive: its
-    attitude: NEUTRAL
-    attributes:
-      strength: 2
-      dexterity: 18
-      constitution: 4
-      intelligence: 2
-      wisdom: 10
-      charisma: 12
-    class:
-      Rogue:
-        level: 1
-    hit_dice: 1d4
-    natural_attacks:
-    - attack_noun: luminous dust
-      attack_verb: blinds
-      potential_damage:
-      - damage_type: arcane
-        damage_dice: 1d2
-    hit_modifier: 0
-    dodge_dice: 4d20+20
-    experience_points: 5
-    triggers:
-    - id: moth_flash_reaction
-      type: timer_tick
-      criteria:
-      - subject: '%time_elapsed%'
-        operator: numgte
-        predicate: 45
-      - subject: $random(1,100)
-        operator: numlte
-        predicate: 15
-      script: echo A veil-moth flutters near your face, its wings releasing a soft, calming luminescence.
-OBJECTS:
-- zone: sunken_citadel
-  objects:
-  - id: aethel_pearl
-    name: Aethel pearl
-    article: an
-    keywords:
-    - pearl
-    - gem
-    - sphere
-    - light
-    description: |
-      A fist-sized sphere that glows with a soft, pulsing blue light.
-    examine_text: |
-      These were once used as currency and portable light sources.
-    weight: 1
-    value: 50
-  - id: broken_service_broom
-    name: broken service broom
-    article: a
-    keywords:
-    - broom
-    - handle
-    - brass
-    - club
-    description: |
-      A heavy brass pole with a few remaining metallic bristles.
-    weight: 3
-    value: 5
-    permanent_flags:
-    - is_weapon
-    equip_locations:
-    - both_hands
-    damage: 1d6
-    damage_type: bludgeoning
-    attack_verb: bludgeons
-    attack_noun: broom
-  - id: prism_shard
-    name: prism shard
-    article: a
-    keywords:
-    - shard
-    - crystal
-    - prism
-    - blue
-    description: |
-      A crystalline fragment that glows with an intense azure light.
-    examine_text: |
-      These shards are vital for stabilizing the Life-Breath Spire.
-    weight: 1
-    value: 200
-  - id: shark_skin_tome
-    name: shark-skin bound tome
-    article: a
-    keywords:
-    - tome
-    - book
-    - shark-skin
-    - genealogy
-    description: |
-      A thick volume bound in rough, grey shark-skin.
-    examine_text: |
-      The cover is embossed with the genealogies of the Great Houses.
-    weight: 3
-    value: 150
-  - id: pressure_regulator
-    name: heavy brass pressure regulator
-    article: a
-    keywords:
-    - regulator
-    - brass
-    - component
-    - heavy
-    description: |
-      A massive, multi-valved brass component.
-    examine_text: |
-      Stamped with the seal of the Aethelgard Engineering Corps.
-    weight: 10
-    value: 75
-  - id: maintenance_sigil_token
-    name: brass maintenance sigil
-    article: a
-    keywords:
-    - sigil
-    - badge
-    - token
-    - brass
-    description: |
-      A heavy brass badge depicting a gear over a wave.
-    examine_text: |
-      The back is stamped with: 'UNIT-734 AUTHORIZATION'.
-    weight: 0
-    value: 25
-  - id: arcane_tuning_fork
-    name: arcane tuning fork
-    article: an
-    keywords:
-    - fork
-    - tuning
-    - arcane
-    - brass
-    - resonance
-    description: |
-      A finely crafted brass tuning fork inscribed with glowing azure runes.
-    examine_text: |
-      The fork is calibrated to exactly 440Hz, the frequency required 
-      for safely harvesting Prism Shards and re-indexing corrupted 
-      automaton logic circuits. A small label reads: 'Scholarium 
-      Standard Issue'.
-    weight: 1
-    value: 150
-  - id: command_baton
-    name: officer's command baton
-    article: an
-    keywords:
-    - baton
-    - command
-    - officer
-    - brass
-    - military
-    description: |
-      A short brass rod topped with a crystalline orb that pulses 
-      with faint red light.
-    examine_text: |
-      This baton was issued to officers of the Aethelgard Vigil. 
-      It broadcasts a signal that identifies the bearer as authorized 
-      military personnel to the city's automated sentries.
-    weight: 1
-    value: 100
-  - id: imperial_diadem
-    name: Imperial Diadem
-    article: the
-    keywords:
-    - diadem
-    - crown
-    - imperial
-    - gold
-    - jeweled
-    description: |
-      A delicate circlet of white gold set with a single large pearl 
-      that seems to contain swirling mists within its depths.
-    examine_text: |
-      The personal crown of House Valerius. Any who wear it are 
-      recognized as royalty by the palace's Golden Automata. The 
-      pearl at its center is warm to the touch and hums with 
-      ancient power.
-    weight: 1
-    value: 5000
-    permanent_flags:
-    - is_armor
-    equip_locations:
-    - head
-    armor_class: 1
-  - id: silver_locket
-    name: tarnished silver locket
-    article: a
-    keywords:
-    - locket
-    - silver
-    - necklace
-    - tarnished
-    - jewelry
-    description: |
-      A small, heart-shaped silver locket on a delicate chain, 
-      tarnished by centuries underwater but still beautiful.
-    examine_text: |
-      Inside the locket is a faded portrait of a stern-faced military 
-      officer and a lock of dark hair. An inscription on the back 
-      reads: 'To my Valerius - Forever, Aaron.' This personal 
-      memento may hold great significance to those who remember 
-      the old empire.
-    weight: 0
-    value: 250
-  - id: soldiers_rank_medal
-    name: Vigil rank medal
-    article: a
-    keywords:
-    - medal
-    - rank
-    - soldier
-    - vigil
-    - military
-    - badge
-    description: |
-      A bronze medal depicting a trident crossed with a gear, 
-      the symbol of the Aethelgard Vigil.
-    examine_text: |
-      This medal was awarded to soldiers who achieved the rank 
-      of Sergeant or higher. The spectral soldiers of the citadel 
-      still recognize and respect this insignia of rank.
-    weight: 0
-    value: 75
+      attack_noun: broom
+    - id: prism_shard
+      name: prism shard
+      article: a
+      keywords:
+      - shard
+      - crystal
+      - prism
+      - blue
+      description: |
+        A crystalline fragment that glows with an intense azure light.
+      examine_text: |
+        These shards are vital for stabilizing the Life-Breath Spire.
+      weight: 1
+      value: 200
+    - id: shark_skin_tome
+      name: shark-skin bound tome
+      article: a
+      keywords:
+      - tome
+      - book
+      - shark-skin
+      - genealogy
+      description: |
+        A thick volume bound in rough, grey shark-skin.
+      examine_text: |
+        The cover is embossed with the genealogies of the Great Houses.
+      weight: 3
+      value: 150
+    - id: pressure_regulator
+      name: heavy brass pressure regulator
+      article: a
+      keywords:
+      - regulator
+      - brass
+      - component
+      - heavy
+      description: |
+        A massive, multi-valved brass component.
+      examine_text: |
+        Stamped with the seal of the Aethelgard Engineering Corps.
+      weight: 10
+      value: 75
+    - id: maintenance_sigil_token
+      name: brass maintenance sigil
+      article: a
+      keywords:
+      - sigil
+      - badge
+      - token
+      - brass
+      description: |
+        A heavy brass badge depicting a gear over a wave.
+      examine_text: |
+        The back is stamped with: 'UNIT-734 AUTHORIZATION'.
+      weight: 0
+      value: 25
+    - id: arcane_tuning_fork
+      name: arcane tuning fork
+      article: an
+      keywords:
+      - fork
+      - tuning
+      - arcane
+      - brass
+      - resonance
+      description: |
+        A finely crafted brass tuning fork inscribed with glowing azure runes.
+      examine_text: |
+        The fork is calibrated to exactly 440Hz, the frequency required 
+        for safely harvesting Prism Shards and re-indexing corrupted 
+        automaton logic circuits. A small label reads: 'Scholarium 
+        Standard Issue'.
+      weight: 1
+      value: 150
+    - id: command_baton
+      name: officer's command baton
+      article: an
+      keywords:
+      - baton
+      - command
+      - officer
+      - brass
+      - military
+      description: |
+        A short brass rod topped with a crystalline orb that pulses 
+        with faint red light.
+      examine_text: |
+        This baton was issued to officers of the Aethelgard Vigil. 
+        It broadcasts a signal that identifies the bearer as authorized 
+        military personnel to the city's automated sentries.
+      weight: 1
+      value: 100
+    - id: imperial_diadem
+      name: Imperial Diadem
+      article: the
+      keywords:
+      - diadem
+      - crown
+      - imperial
+      - gold
+      - jeweled
+      description: |
+        A delicate circlet of white gold set with a single large pearl 
+        that seems to contain swirling mists within its depths.
+      examine_text: |
+        The personal crown of House Valerius. Any who wear it are 
+        recognized as royalty by the palace's Golden Automata. The 
+        pearl at its center is warm to the touch and hums with 
+        ancient power.
+      weight: 1
+      value: 5000
+      permanent_flags:
+      - is_armor
+      equip_locations:
+      - head
+      armor_class: 1
+    - id: silver_locket
+      name: tarnished silver locket
+      article: a
+      keywords:
+      - locket
+      - silver
+      - necklace
+      - tarnished
+      - jewelry
+      description: |
+        A small, heart-shaped silver locket on a delicate chain, 
+        tarnished by centuries underwater but still beautiful.
+      examine_text: |
+        Inside the locket is a faded portrait of a stern-faced military 
+        officer and a lock of dark hair. An inscription on the back 
+        reads: 'To my Valerius - Forever, Aaron.' This personal 
+        memento may hold great significance to those who remember 
+        the old empire.
+      weight: 0
+      value: 250
+    - id: soldiers_rank_medal
+      name: Vigil rank medal
+      article: a
+      keywords:
+      - medal
+      - rank
+      - soldier
+      - vigil
+      - military
+      - badge
+      description: |
+        A bronze medal depicting a trident crossed with a gear, 
+        the symbol of the Aethelgard Vigil.
+      examine_text: |
+        This medal was awarded to soldiers who achieved the rank 
+        of Sergeant or higher. The spectral soldiers of the citadel 
+        still recognize and respect this insignia of rank.
+      weight: 0
+      value: 75

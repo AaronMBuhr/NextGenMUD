@@ -2,7 +2,7 @@ ZONES:
   enchanted_forest:
     name: Enchanted Forest
     description: A mystical forest filled with ancient magic and wonder.
-    rooms:
+    ROOMS:
       mystical_glade:
         name: Mystical Glade
         description: >
@@ -18,58 +18,58 @@ ZONES:
           east:
             destination: moonlit_clearing
         triggers:
-          - id: timer_tick_a_gentle_breeze
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria: 
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 12
-            script: |
-              echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
-          - id: timer_tick_you_notice_a
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 12
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 30
-            script: |
-              echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
-          - id: catch_look_tree
-            type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "tree"
-            script: |
-              echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
-          - id: catch_any_sing
-            type: catch_any
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "sing"
-            script: |
-              echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
-          - id: catch_any_dance
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "dance"
-            script: |
-              echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
-        characters:
-          - id: rabbit
-            quantity: 3
-            respawn time min: 30
-            respawn time max: 90
+        - id: timer_tick_a_gentle_breeze
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 12
+          script: |
+            echo A gentle breeze whispers through the leaves, carrying a hint of magic in the air.
+        - id: timer_tick_you_notice_a
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 12
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 30
+          script: |
+            echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
+        - id: catch_look_tree
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "tree"
+          script: |
+            echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
+        - id: catch_any_sing
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sing"
+          script: |
+            echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
+        - id: catch_any_dance
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "dance"
+          script: |
+            echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
+        CHARACTERS:
+        - id: rabbit
+          quantity: 3
+          respawn time min: 30
+          respawn time max: 90
       crystal_cave:
         name: Crystal Cave
         description: >
@@ -88,53 +88,53 @@ ZONES:
           # west:
           #   destination: fairy_meadow
         triggers:
-          - id: timer_tick_softly_glowing_crystals
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 12
-            script: |
-              echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
-          - id: catch_look_crystal
-            type: catch_look
-            criteria: 
-              - subject: "%{*}"
-                operator: contains
-                predicate: "crystal"
-            script: |
-              echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
-          - id: catch_any_touch
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "touch"
-            script: |
-              echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
-          - id: catch_any_sing_2
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "sing"
-            script: |
-              echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
-          - id: timer_tick_a_faint_breeze
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 12
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 20
-            script: |
-              echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
+        - id: timer_tick_softly_glowing_crystals
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 12
+          script: |
+            echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
+        - id: catch_look_crystal
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "crystal"
+          script: |
+            echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
+        - id: catch_any_touch
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "touch"
+          script: |
+            echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
+        - id: catch_any_sing_2
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sing"
+          script: |
+            echo Your voice echoes in the cave, harmonizing with the subtle symphony of the crystals, creating an enchanting melody.
+        - id: timer_tick_a_faint_breeze
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 12
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 20
+          script: |
+            echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
       whispering_waterfall:
         name: Whispering Waterfall
         description: >
@@ -151,36 +151,36 @@ ZONES:
           west:
             destination: echo_pond
         triggers:
-          - id: timer_tick_the_waterfall_s_whispers
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 10
-            script: |
-              echo The waterfall's whispers intensify, recounting ancient tales lost to time.
-          - id: catch_look_rainbow
-            type: catch_look
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "rainbow"
-            script: |
-              echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
-          - id: catch_any_water
-            type: catch_any
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "water"
-            script: |
-              echo Drawn to the water's edge, you sense the pure, revitalizing energy of the cascading falls.
+        - id: timer_tick_the_waterfall_s_whispers
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 10
+          script: |
+            echo The waterfall's whispers intensify, recounting ancient tales lost to time.
+        - id: catch_look_rainbow
+          type: catch_look
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "rainbow"
+          script: |
+            echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
+        - id: catch_any_water
+          type: catch_any
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "water"
+          script: |
+            echo Drawn to the water's edge, you sense the pure, revitalizing energy of the cascading falls.
 
       fairy_meadow:
         name: Fairy Meadow
@@ -197,37 +197,37 @@ ZONES:
           west:
             destination: enchanted_glade
         triggers:
-          - id: timer_tick_the_air_shimmers
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 15
-            script: |
-              echo The air shimmers as mischievous fairies play hide and seek among the flowers, their laughter ringing like tiny bells.
-          - id: catch_look_flower
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "flower"
-            script: |
-              echo Gazing at a particularly bright flower, you catch a fleeting glimpse of a fairy darting behind its petals.
-          - id: catch_any_fairy
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "fairy"
-            script: |
-              echo A curious fairy pauses in its flight to regard you, its wings a blur of iridescent color, before flitting away.
-        characters:
-          - id: fairy
-            quantity: 3
-            respawn time min: 30
-            respawn time max: 90
+        - id: timer_tick_the_air_shimmers
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 15
+          script: |
+            echo The air shimmers as mischievous fairies play hide and seek among the flowers, their laughter ringing like tiny bells.
+        - id: catch_look_flower
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "flower"
+          script: |
+            echo Gazing at a particularly bright flower, you catch a fleeting glimpse of a fairy darting behind its petals.
+        - id: catch_any_fairy
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fairy"
+          script: |
+            echo A curious fairy pauses in its flight to regard you, its wings a blur of iridescent color, before flitting away.
+        CHARACTERS:
+        - id: fairy
+          quantity: 3
+          respawn time min: 30
+          respawn time max: 90
 
       twilight_thicket:
         name: Twilight Thicket
@@ -243,32 +243,32 @@ ZONES:
           west:
             destination: ancient_oak
         triggers:
-          - id: timer_tick_as_the_twilight
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 20
-            script: |
-              echo As the twilight deepens, the shadows dance and play, creating a mesmerizing, ever-changing pattern on the forest floor.
-          - id: catch_look_shadow
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "shadow"
-            script: |
-              echo Focusing on the shadows, you feel a sense of ancient mysteries surrounding you, as if the thicket guards old secrets.
-          - id: catch_any_twilight
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "twilight"
-            script: |
-              echo The essence of twilight here is palpable, its magic weaving through the air, casting a spell of serene calmness.
+        - id: timer_tick_as_the_twilight
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 20
+          script: |
+            echo As the twilight deepens, the shadows dance and play, creating a mesmerizing, ever-changing pattern on the forest floor.
+        - id: catch_look_shadow
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "shadow"
+          script: |
+            echo Focusing on the shadows, you feel a sense of ancient mysteries surrounding you, as if the thicket guards old secrets.
+        - id: catch_any_twilight
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "twilight"
+          script: |
+            echo The essence of twilight here is palpable, its magic weaving through the air, casting a spell of serene calmness.
 
       moonlit_clearing:
         name: Moonlit Clearing
@@ -282,37 +282,37 @@ ZONES:
           west:
             destination: mystical_glade
         triggers:
-          - id: timer_tick_a_gentle_breeze_2
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 30
-            script: |
-              echo A gentle breeze rustles the leaves, making the moonlight dance and play across the clearing in a mesmerizing pattern.
-          - id: catch_look_moon
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "moon"
-            script: |
-              echo Looking up at the moon, you feel a profound sense of peace and connection to the wider universe.
-          - id: catch_any_star
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "star"
-            script: |
-              echo The stars above twinkle brightly, each one telling its own ancient story in the tapestry of the night sky.
-        characters:
-          - id: deer
-            quantity: 3
-            respawn time min: 30
-            respawn time max: 90
+        - id: timer_tick_a_gentle_breeze_2
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 30
+          script: |
+            echo A gentle breeze rustles the leaves, making the moonlight dance and play across the clearing in a mesmerizing pattern.
+        - id: catch_look_moon
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "moon"
+          script: |
+            echo Looking up at the moon, you feel a profound sense of peace and connection to the wider universe.
+        - id: catch_any_star
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "star"
+          script: |
+            echo The stars above twinkle brightly, each one telling its own ancient story in the tapestry of the night sky.
+        CHARACTERS:
+        - id: deer
+          quantity: 3
+          respawn time min: 30
+          respawn time max: 90
 
       echo_pond:
         name: Echo Pond
@@ -326,32 +326,32 @@ ZONES:
           west:
             destination: silver_stream
         triggers:
-          - id: timer_tick_the_soft_of
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 5
-            script: |
-              echo The soft echo of a distant bird's song creates a harmonious melody that resonates around the pond.
-          - id: catch_look_water
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "water"
-            script: |
-              echo Peering into the water, you see not only your reflection but a glimpse into a world as tranquil and mysterious as the pond itself.
-          - id: catch_any_echo
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "echo"
-            script: |
-              echo Your words are softly echoed back to you, as if the pond itself is listening and responding to your presence.
+        - id: timer_tick_the_soft_of
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 5
+          script: |
+            echo The soft echo of a distant bird's song creates a harmonious melody that resonates around the pond.
+        - id: catch_look_water
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "water"
+          script: |
+            echo Peering into the water, you see not only your reflection but a glimpse into a world as tranquil and mysterious as the pond itself.
+        - id: catch_any_echo
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "echo"
+          script: |
+            echo Your words are softly echoed back to you, as if the pond itself is listening and responding to your presence.
 
       ancient_oak:
         name: Ancient Oak
@@ -365,36 +365,36 @@ ZONES:
           west:
             destination: whispering_pines
         triggers:
-          - id: timer_tick_a_sense_of
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 10
-            script: |
-              echo A sense of ancient wisdom seems to emanate from the oak, its presence grounding and profound.
-          - id: catch_look_door
-            type: catch_look
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "door"
-            script: |
-              echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
-          - id: catch_any_tree
-            type: catch_any
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "tree"
-            script: |
-              echo The tree seems to hum with a quiet energy, its life force palpable in the peaceful surroundings.
+        - id: timer_tick_a_sense_of
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 10
+          script: |
+            echo A sense of ancient wisdom seems to emanate from the oak, its presence grounding and profound.
+        - id: catch_look_door
+          type: catch_look
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "door"
+          script: |
+            echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
+        - id: catch_any_tree
+          type: catch_any
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "tree"
+          script: |
+            echo The tree seems to hum with a quiet energy, its life force palpable in the peaceful surroundings.
 
       whispering_pines:
         name: Whispering Pines
@@ -406,32 +406,32 @@ ZONES:
           east:
             destination: ancient_oak
         triggers:
-          - id: timer_tick_the_gentle_whispering
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 15
-            script: |
-              echo The gentle whispering of the pines intensifies, as if they are sharing age-old secrets of the forest.
-          - id: catch_look_pine
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "pine"
-            script: |
-              echo Observing the pines closely, you feel enveloped by their ancient presence, standing as silent witnesses to time.
-          - id: catch_any_wind
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "wind"
-            script: |
-              echo The wind's caress through the pines brings a sense of calm and clarity, as if it's sweeping away all worries.
+        - id: timer_tick_the_gentle_whispering
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 15
+          script: |
+            echo The gentle whispering of the pines intensifies, as if they are sharing age-old secrets of the forest.
+        - id: catch_look_pine
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "pine"
+          script: |
+            echo Observing the pines closely, you feel enveloped by their ancient presence, standing as silent witnesses to time.
+        - id: catch_any_wind
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "wind"
+          script: |
+            echo The wind's caress through the pines brings a sense of calm and clarity, as if it's sweeping away all worries.
 
       silver_stream:
         name: Silver Stream
@@ -447,32 +447,32 @@ ZONES:
           east:
             destination: echo_pond
         triggers:
-          - id: timer_tick_the_gentle_murmur
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 20
-            script: |
-              echo The gentle murmur of the stream creates a harmonious backdrop, its sounds soothing your mind and spirit.
-          - id: catch_look_water_2
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "water"
-            script: |
-              echo Gazing into the water, you are captivated by the stream's serene flow, its rhythm like a meditative chant.
-          - id: catch_any_fish
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "fish"
-            script: |
-              echo A flash of silver catches your eye as a fish leaps, creating ripples that spread across the stream's surface.
+        - id: timer_tick_the_gentle_murmur
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 20
+          script: |
+            echo The gentle murmur of the stream creates a harmonious backdrop, its sounds soothing your mind and spirit.
+        - id: catch_look_water_2
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "water"
+          script: |
+            echo Gazing into the water, you are captivated by the stream's serene flow, its rhythm like a meditative chant.
+        - id: catch_any_fish
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "fish"
+          script: |
+            echo A flash of silver catches your eye as a fish leaps, creating ripples that spread across the stream's surface.
 
       enchanted_glade:
         name: Enchanted Glade
@@ -488,32 +488,32 @@ ZONES:
           west:
             destination: crystal_cave
         triggers:
-          - id: timer_tick_the_ethereal_light
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 5
-            script: |
-              echo The ethereal light in the glade pulses gently, as if breathing with the life of the forest.
-          - id: catch_look_flower_2
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "flower"
-            script: |
-              echo As you gaze at the flowers, their colors seem to brighten, responding to your attention with a vibrant display.
-          - id: catch_any_light
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "light"
-            script: |
-              echo The light around you dances in mesmerizing patterns, creating a feeling of deep connection with the enchanted surroundings.
+        - id: timer_tick_the_ethereal_light
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 5
+          script: |
+            echo The ethereal light in the glade pulses gently, as if breathing with the life of the forest.
+        - id: catch_look_flower_2
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "flower"
+          script: |
+            echo As you gaze at the flowers, their colors seem to brighten, responding to your attention with a vibrant display.
+        - id: catch_any_light
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "light"
+          script: |
+            echo The light around you dances in mesmerizing patterns, creating a feeling of deep connection with the enchanted surroundings.
 
       golden_grove:
         name: Golden Grove
@@ -527,44 +527,42 @@ ZONES:
           south:
             destination: enchanted_glade
         triggers:
-          - id: timer_tick_the_golden_leaves
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 10
-            script: |
-              echo The golden leaves rustle softly in the breeze, their shimmering surfaces reflecting the light in a dazzling display.
-          - id: catch_look_leaf
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "leaf"
-            script: |
-              echo As you pick up a golden leaf, its texture and the intricate patterns etched upon it captivate your senses.
-          - id: catch_any_sunbeam
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "sunbeam"
-            script: |
-              echo A sunbeam pierces the canopy, bathing you in a warm, golden light that uplifts your spirit.
+        - id: timer_tick_the_golden_leaves
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 10
+          script: |
+            echo The golden leaves rustle softly in the breeze, their shimmering surfaces reflecting the light in a dazzling display.
+        - id: catch_look_leaf
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "leaf"
+          script: |
+            echo As you pick up a golden leaf, its texture and the intricate patterns etched upon it captivate your senses.
+        - id: catch_any_sunbeam
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "sunbeam"
+          script: |
+            echo A sunbeam pierces the canopy, bathing you in a warm, golden light that uplifts your spirit.
 
       misty_copse:
         name: Misty Copse
         description: >
           The Misty Copse is a small, secluded area within the Enchanted
           Forest, perpetually shrouded in a gentle, mystical mist. This
-          mist softens the sounds and sights, creating a sense of seclusion 
-          and introspection. The trees here are old and wise, their trunks
+          mist softens the sounds and sights, creating a sense of seclusion  and introspection. The trees here are old and wise, their trunks
           covered in moss and their branches heavy with the weight of time.
           Small beams of light occasionally break through the mist,
-          illuminating the copse in a soft, ethereal glow. The air is cool 
-          and fresh, carrying with it the scent of damp earth and ancient
+          illuminating the copse in a soft, ethereal glow. The air is cool  and fresh, carrying with it the scent of damp earth and ancient
           wood.
 
           Exits: north, south, west
@@ -576,190 +574,187 @@ ZONES:
           west:
             destination: moonlit_clearing
         triggers:
-          - id: timer_tick_the_mist_swirls
-            type: timer_tick
-            flags:
-              - only_when_pc_room
-            criteria:
-              - subject: "%{time_elapsed}"
-                operator: "numgte"
-                predicate: 15
-            script: |
-              echo The mist swirls around you, its tendrils caressing the
-              landscape and adding an air of mystery to the copse.
-          - id: catch_look_mist
-            type: catch_look
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "mist"
-            script: |
-              echo Peering into the mist, you feel a sense of timelessness,
-              as if the copse exists in a world apart from the rest.
-          - id: catch_any_tree_2
-            type: catch_any
-            criteria:
-              - subject: "%{*}"
-                operator: contains
-                predicate: "tree"
-            script: |
-              echo The trees loom out of the mist, their ancient forms
-              whispering stories of the forest's past.
+        - id: timer_tick_the_mist_swirls
+          type: timer_tick
+          flags:
+          - only_when_pc_room
+          criteria:
+          - subject: "%{time_elapsed}"
+            operator: "numgte"
+            predicate: 15
+          script: |
+            echo The mist swirls around you, its tendrils caressing the
+            landscape and adding an air of mystery to the copse.
+        - id: catch_look_mist
+          type: catch_look
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "mist"
+          script: |
+            echo Peering into the mist, you feel a sense of timelessness,
+            as if the copse exists in a world apart from the rest.
+        - id: catch_any_tree_2
+          type: catch_any
+          criteria:
+          - subject: "%{*}"
+            operator: contains
+            predicate: "tree"
+          script: |
+            echo The trees loom out of the mist, their ancient forms
+            whispering stories of the forest's past.
 
-CHARACTERS:
-  - zone: enchanted_forest
-    characters:
+    CHARACTERS:
+    - id: rabbit
+      name: rabbit
+      article: a
+      description: >
+        A small, furry rabbit.
+      group_id: small_creatures
+      attributes:
+        strength: 2
+        dexterity: 14
+        constitution: 3
+        intelligence: 2
+        wisdom: 2
+        charisma: 10
+      class:
+        Fighter:
+          level: 1
+      hit_dice: 1d4+1
+      triggers:
+      - id: timer_tick_trigger_590
+        type: timer_tick
+        criteria:
+        - subject: "%time_elapsed%"
+          operator: "numgte"
+          predicate: 10
+        - subject: "$random(1,100)"
+          operator: "numlte"
+          predicate: 20
+        script: |
+          leaverandom stayinzone
+      - id: catch_any_kicks_you
+        type: catch_any
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "kicks you"
+        script: |
+          emote dodges your kick!
+          lick %S%
+      - id: catch_any_starts_fighting_you
+        type: catch_any
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "starts fighting you"
+        script: |
+          emote gets angry!
+          kick %S%
+      - id: catch_say_hello
+        type: catch_say
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "hello"
+        script: |
+          emote squeaks a greeting.
+      damage_multipliers:
+        bludgeoning: 0.5
+        unholy: 0
+        psychic: 2
+      natural_attacks:
+      - attack_noun: bite
+        attack_verb: bites
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d4+1
+      hit_modifier: 0
+      dodge_dice: 5d10+30
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 20
 
-      - id: rabbit
-        name: rabbit
-        article: a
-        description: >
-          A small, furry rabbit.
-        group_id: small_creatures
-        attributes:
-          strength: 2
-          dexterity: 14
-          constitution: 3
-          intelligence: 2
-          wisdom: 2
-          charisma: 10
-        class:
-          Fighter:
-            level: 1
-        hit_dice: 1d4+1
-        triggers:
-          - id: timer_tick_trigger_590
-            type: timer_tick
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 10
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 20
-            script: |
-              leaverandom stayinzone
-          - id: catch_any_kicks_you
-            type: catch_any
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "kicks you"
-            script: |
-              emote dodges your kick!
-              lick %S%
-          - id: catch_any_starts_fighting_you
-            type: catch_any
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "starts fighting you"
-            script: |
-              emote gets angry!
-              kick %S%
-          - id: catch_say_hello
-            type: catch_say
-            criteria:
-              - subject: "%*%"
-                operator: contains
-                predicate: "hello"
-            script: |
-              emote squeaks a greeting.
-        damage_multipliers:
-          bludgeoning: 0.5
-          unholy: 0
-          psychic: 2
-        natural_attacks:
-          - attack_noun: bite
-            attack_verb: bites
-            potential_damage:
-            - damage_type: piercing
-              damage_dice: 1d4+1
-        hit_modifier: 0
-        dodge_dice: 5d10+30
-        critical_chance: 0.05
-        critical_multiplier: 2
-        experience_points: 20
+    - id: deer
+      name: deer
+      group_id: small_creatures
+      article: a
+      description: >
+        A peaceful brown deer.
+      attributes:
+        strength: 6
+        dexterity: 12
+        constitution: 6
+        intelligence: 2
+        wisdom: 2
+        charisma: 10
+      class:
+        Fighter:
+          level: 1
+      hit_dice: 1d6+2
+      damage_multipliers:
+        unholy: 0
+        psychic: 0.5
+      natural_attacks:
+      - attack_noun: bite
+        attack_verb: bites
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d4+2
+      hit_modifier: 0
+      dodge_dice: 2d10+30
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 20
+      triggers:
+      - id: timer_tick_trigger_671
+        type: timer_tick
+        criteria:
+        - subject: "%time_elapsed%"
+          operator: "numgte"
+          predicate: 10
+        script: |
+          leaverandom stayinzone
 
-      - id: deer
-        name: deer
-        group_id: small_creatures
-        article: a
-        description: >
-          A peaceful brown deer.
-        attributes:
-          strength: 6
-          dexterity: 12
-          constitution: 6
-          intelligence: 2
-          wisdom: 2
-          charisma: 10
-        class:
-          Fighter:
-            level: 1
-        hit_dice: 1d6+2
-        damage_multipliers:
-          unholy: 0
-          psychic: 0.5
-        natural_attacks:
-          - attack_noun: bite
-            attack_verb: bites
-            potential_damage:
-            - damage_type: piercing
-              damage_dice: 1d4+2
-        hit_modifier: 0
-        dodge_dice: 2d10+30
-        critical_chance: 0.05
-        critical_multiplier: 2
-        experience_points: 20
-        triggers:
-          - id: timer_tick_trigger_671
-            type: timer_tick
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 10
-            script: |
-              leaverandom stayinzone
-
-      - id: fairy
-        name: fairy
-        article: a
-        group_id: small_creatures
-        description: >
-          A small, twinkling fairy.
-        attributes:
-          strength: 6
-          dexterity: 12
-          constitution: 6
-          intelligence: 2
-          wisdom: 2
-          charisma: 10
-        class:
-          Fighter:
-            level: 1
-        hit_dice: 1d8+2
-        damage_multipliers:
-          unholy: 0
-          psychic: 0.5
-        natural_attacks:
-          - attack_noun: her wand
-            attack_verb: zaps
-            potential_damage:
-            - damage_type: arcane
-              damage_dice: 1d4+2
-        hit_modifier: 0
-        dodge_dice: 4d10+30
-        critical_chance: 0.05
-        critical_multiplier: 2
-        experience_points: 30
-        triggers:
-          - id: timer_tick_trigger_711
-            type: timer_tick
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 10
-            script: |
-              leaverandom stayinzone
+    - id: fairy
+      name: fairy
+      article: a
+      group_id: small_creatures
+      description: >
+        A small, twinkling fairy.
+      attributes:
+        strength: 6
+        dexterity: 12
+        constitution: 6
+        intelligence: 2
+        wisdom: 2
+        charisma: 10
+      class:
+        Fighter:
+          level: 1
+      hit_dice: 1d8+2
+      damage_multipliers:
+        unholy: 0
+        psychic: 0.5
+      natural_attacks:
+      - attack_noun: her wand
+        attack_verb: zaps
+        potential_damage:
+        - damage_type: arcane
+          damage_dice: 1d4+2
+      hit_modifier: 0
+      dodge_dice: 4d10+30
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 30
+      triggers:
+      - id: timer_tick_trigger_711
+        type: timer_tick
+        criteria:
+        - subject: "%time_elapsed%"
+          operator: "numgte"
+          predicate: 10
+        script: |
+          leaverandom stayinzone
 

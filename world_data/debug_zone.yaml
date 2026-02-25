@@ -2,37 +2,34 @@ ZONES:
   debug_zone:
     name: Debug Zone
     description: The fundamental system zone.
-    rooms:
+    ROOMS:
       starting_room:
         name: Starting Room
         description: >
-          You find yourself in a small, peaceful clearing. Soft grass cushions your feet, 
-          and the air carries the fresh scent of pine. Tall trees surround you on all sides, 
-          their whispering branches swaying gently in the breeze. A well-worn path leads 
-          northward into a grove of towering pines.
-          
+          You find yourself in a small, peaceful clearing. Soft grass cushions your feet,  and the air carries the fresh scent of pine. Tall trees surround you on all sides,  their whispering branches swaying gently in the breeze. A well-worn path leads  northward into a grove of towering pines.
+
           Exits: north
         exits:
           north:
             destination: enchanted_forest.whispering_pines
             description: A path leads north into the whispering pines.
         triggers:
-          - id: catch_say_random
-            type: catch_say
-            criteria: 
-              - subject: "%*%"
-                operator: contains
-                predicate: "random"
-            script: |
-              settempvar char %S% starting_room_random $random(1,100)
-              echo The random number is $tempvar(%S%,starting_room_random).
-              $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
-                echo Less than or equal to 50.
-              }
-              else {
-                echo Greater than 50.
-              }
-              deltempvar char %S% starting_room_random
+        - id: catch_say_random
+          type: catch_say
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "random"
+          script: |
+            settempvar char %S% starting_room_random $random(1,100)
+            echo The random number is $tempvar(%S%,starting_room_random).
+            $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
+              echo Less than or equal to 50.
+            }
+            else {
+              echo Greater than 50.
+            }
+            deltempvar char %S% starting_room_random
           # - type: timer_tick
           #   criteria:
           #     - subject: "%time_elapsed%"
@@ -44,7 +41,7 @@ ZONES:
         name: Starting Room 2
         description: >
           The second room where all new characters begin their adventures.
-          
+
           Exits: south, east
         exits:
           south:
@@ -52,194 +49,191 @@ ZONES:
           east:
             destination: enchanted_forest.whispering_pines
         triggers:
-          - id: catch_any_arrives
-            type: catch_any
-            criteria: 
-              - subject: "%*%"
-                operator: contains
-                predicate: "arrives."
-            script: |
-              echoto %S% You trip as you enter.
-              echoexcept %S% $cap(%s%) trips as %q% enters.
-          - id: catch_say_random
-            type: catch_say
-            criteria: 
-              - subject: "%*%"
-                operator: contains
-                predicate: "random"
-            script: |
-              settempvar char %S% starting_room_random $random(1,100)
-              echo The random number is $tempvar(%S%,starting_room_random).
-              $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
-                echo Less than or equal to 50.
-              }
-              else {
-                echo Greater than 50.
-              }
-              deltempvar char %S% starting_room_random
-          - id: timer_tick_wildlife_rustles
-            type: timer_tick
-            criteria:
-              - subject: "%time_elapsed%"
-                operator: "numgte"
-                predicate: 10
-              - subject: "$random(1,100)"
-                operator: "numlte"
-                predicate: 25
-            script: |
-              echo Wildlife rustles in the underbrush.
-          - id: catch_look_squirrel
-            type: catch_look
-            criteria: 
-              - subject: "%*%"
-                operator: contains
-                predicate: "squirrel"
-            script: |
-              echoto %S% You see a squirrel.
-              echoexcept %S% %s% sees a squirrel.
-          - id: catch_say_anything
-            type: catch_say
-            criteria: 
-              - subject: "%*%"
-                operator: true
-                predicate: ""
-            script: |
-              echoto %S% Your voice sounds strangely muffled.
-              echoexcept %S% %s% says something, but it sounds muffled.
+        - id: catch_any_arrives
+          type: catch_any
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "arrives."
+          script: |
+            echoto %S% You trip as you enter.
+            echoexcept %S% $cap(%s%) trips as %q% enters.
+        - id: catch_say_random
+          type: catch_say
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "random"
+          script: |
+            settempvar char %S% starting_room_random $random(1,100)
+            echo The random number is $tempvar(%S%,starting_room_random).
+            $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
+              echo Less than or equal to 50.
+            }
+            else {
+              echo Greater than 50.
+            }
+            deltempvar char %S% starting_room_random
+        - id: timer_tick_wildlife_rustles
+          type: timer_tick
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 10
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+          script: |
+            echo Wildlife rustles in the underbrush.
+        - id: catch_look_squirrel
+          type: catch_look
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "squirrel"
+          script: |
+            echoto %S% You see a squirrel.
+            echoexcept %S% %s% sees a squirrel.
+        - id: catch_say_anything
+          type: catch_say
+          criteria:
+          - subject: "%*%"
+            operator: true
+            predicate: ""
+          script: |
+            echoto %S% Your voice sounds strangely muffled.
+            echoexcept %S% %s% says something, but it sounds muffled.
 
-CHARACTERS:
-  - zone: debug_zone
-    characters:
+    CHARACTERS:
+    - id: test_player
+      name: Test Player
+      article: ""
+      description: >
+        A test player
+      pronoun_subject: he
+      pronoun_object_: him
+      pronoun_possessive: his
+      attributes:
+        strength: 10
+        dexterity: 10
+        constitution: 10
+        intelligence: 10
+        wisdom: 10
+        charisma: 10
+      class:
+        fighter:
+          level: 1
+      hit_dice: 100
+      permanent_flags:
+      - is_pc
+      natural_attacks:
+      - attack_noun: punch
+        attack_verb: punches
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d4+1
+      hit_modifier: 0
+      dodge_dice: 1d50
+      critical_chance: 0.05
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 80
+      - skill: demoralizing shout
+        level: 80
+      inventory:
+      - healing_potion
+      - healing_potion
+      - bandage
+      - bandage
+      - bread
 
-      - id: test_player
-        name: Test Player
-        article: ""
-        description: >
-          A test player
-        pronoun_subject: he
-        pronoun_object_: him
-        pronoun_possessive: his
-        attributes:
-          strength: 10
-          dexterity: 10
-          constitution: 10
-          intelligence: 10
-          wisdom: 10
-          charisma: 10
-        class:
-          fighter:
-            level: 1
-        hit_dice: 100
-        permanent_flags:
-          - is_pc
-        natural_attacks:
-          - attack_noun: punch
-            attack_verb: punches
-            potential_damage:
-            - damage_type: bludgeoning
-              damage_dice: 1d4+1
-        hit_modifier: 0
-        dodge_dice: 1d50
-        critical_chance: 0.05
-        critical_multiplier: 2
-        skills:
-          - skill: mighty kick
-            level: 80
-          - skill: demoralizing shout
-            level: 80
-        inventory:
-          - healing_potion
-          - healing_potion
-          - bandage
-          - bandage
-          - bread
-          
-      - id: training_dummy_fighter
-        name: training dummy
-        article: a
-        description: >
-          A wooden training dummy that looks surprisingly animated.
-          It seems eager to spar with anyone nearby.
-        pronoun_subject: it
-        pronoun_object: it
-        pronoun_possessive: its
-        attributes:
-          strength: 12
-          dexterity: 10
-          constitution: 14
-          intelligence: 6
-          wisdom: 6
-          charisma: 4
-        class:
-          fighter:
-            level: 5
-        hit_dice: 50
-        max_hit_points: 50
-        permanent_flags:
-          - is_aggressive
-        natural_attacks:
-          - attack_noun: wooden arm
-            attack_verb: swings
-            potential_damage:
-            - damage_type: bludgeoning
-              damage_dice: 1d6+2
-        hit_modifier: 10
-        dodge_dice: 1d30+10
-        critical_chance: 0.05
-        critical_multiplier: 2
-        skills:
-          - skill: mighty kick
-            level: 50
-          - skill: demoralizing shout
-            level: 40
-        spawn:
-          room: debug_zone.starting_room_2
-          max_count: 1
-          respawn_ticks: 60
-          
-      - id: goblin_warrior
-        name: goblin warrior
-        article: a
-        description: >
-          A nasty-looking goblin wielding a rusty blade.
-          It eyes you menacingly.
-        pronoun_subject: it
-        pronoun_object: it
-        pronoun_possessive: its
-        attributes:
-          strength: 10
-          dexterity: 14
-          constitution: 10
-          intelligence: 8
-          wisdom: 6
-          charisma: 4
-        class:
-          fighter:
-            level: 3
-          rogue:
-            level: 2
-        hit_dice: 30
-        max_hit_points: 30
-        permanent_flags:
-          - is_aggressive
-        natural_attacks:
-          - attack_noun: rusty blade
-            attack_verb: slashes
-            potential_damage:
-            - damage_type: slashing
-              damage_dice: 1d8+1
-        hit_modifier: 15
-        dodge_dice: 1d40+20
-        critical_chance: 0.10
-        critical_multiplier: 2
-        skills:
-          - skill: mighty kick
-            level: 30
-        spawn:
-          room: debug_zone.starting_room
-          max_count: 2
-          respawn_ticks: 120
-          
+    - id: training_dummy_fighter
+      name: training dummy
+      article: a
+      description: >
+        A wooden training dummy that looks surprisingly animated.
+        It seems eager to spar with anyone nearby.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attributes:
+        strength: 12
+        dexterity: 10
+        constitution: 14
+        intelligence: 6
+        wisdom: 6
+        charisma: 4
+      class:
+        fighter:
+          level: 5
+      hit_dice: 50
+      max_hit_points: 50
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: wooden arm
+        attack_verb: swings
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d6+2
+      hit_modifier: 10
+      dodge_dice: 1d30+10
+      critical_chance: 0.05
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 50
+      - skill: demoralizing shout
+        level: 40
+      spawn:
+        room: debug_zone.starting_room_2
+        max_count: 1
+        respawn_ticks: 60
+
+    - id: goblin_warrior
+      name: goblin warrior
+      article: a
+      description: >
+        A nasty-looking goblin wielding a rusty blade.
+        It eyes you menacingly.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attributes:
+        strength: 10
+        dexterity: 14
+        constitution: 10
+        intelligence: 8
+        wisdom: 6
+        charisma: 4
+      class:
+        fighter:
+          level: 3
+        rogue:
+          level: 2
+      hit_dice: 30
+      max_hit_points: 30
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: rusty blade
+        attack_verb: slashes
+        potential_damage:
+        - damage_type: slashing
+          damage_dice: 1d8+1
+      hit_modifier: 15
+      dodge_dice: 1d40+20
+      critical_chance: 0.10
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 30
+      spawn:
+        room: debug_zone.starting_room
+        max_count: 2
+        respawn_ticks: 120
+
       # - id: rabbit
       #   name: rabbit
       #   article: a
@@ -295,103 +289,101 @@ CHARACTERS:
       #   critical_chance: 0.05
       #   critical_multiplier: 2
 
-OBJECTS:
-  - zone: debug_zone
-    objects:
-      - id: rusty_sword
-        name: rusty sword
-        article: a
-        description: A rusty sword.
-        damage_type: slashing
-        damage: 1d6
-        weight: 5
-        value: 1
-        equip_locations:
-          - main_hand
-          - off_hand
-        object_flags:
-          - is_weapon
-        triggers:
-        - id: catch_any_drops_you
-          type: catch_any
-          criteria:
-            - subject: "%*%"
-              operator: contains
-              predicate: "drops you"
-          script: |
-            say "Pick me back up!"
+    OBJECTS:
+    - id: rusty_sword
+      name: rusty sword
+      article: a
+      description: A rusty sword.
+      damage_type: slashing
+      damage: 1d6
+      weight: 5
+      value: 1
+      equip_locations:
+      - main_hand
+      - off_hand
+      object_flags:
+      - is_weapon
+      triggers:
+      - id: catch_any_drops_you
+        type: catch_any
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "drops you"
+        script: |
+          say "Pick me back up!"
 
       # Consumable items for testing
-      - id: healing_potion
-        name: healing potion
-        article: a
-        description: A small vial of red liquid that glows faintly.
-        weight: 1
-        value: 25
-        flags:
-          - consumable
-          - potion
-        heal_dice: 2d8+4
-        use_message: You drink the healing potion. Warmth spreads through your body.
+    - id: healing_potion
+      name: healing potion
+      article: a
+      description: A small vial of red liquid that glows faintly.
+      weight: 1
+      value: 25
+      flags:
+      - consumable
+      - potion
+      heal_dice: 2d8+4
+      use_message: You drink the healing potion. Warmth spreads through your body.
 
-      - id: greater_healing_potion
-        name: greater healing potion
-        article: a
-        description: A large vial of deep red liquid that pulses with healing energy.
-        weight: 1
-        value: 100
-        flags:
-          - consumable
-          - potion
-        heal_dice: 4d8+8
-        use_message: You drink the greater healing potion. A surge of vitality courses through you!
+    - id: greater_healing_potion
+      name: greater healing potion
+      article: a
+      description: A large vial of deep red liquid that pulses with healing energy.
+      weight: 1
+      value: 100
+      flags:
+      - consumable
+      - potion
+      heal_dice: 4d8+8
+      use_message: You drink the greater healing potion. A surge of vitality courses through you!
 
-      - id: mana_potion
-        name: mana potion
-        article: a
-        description: A small vial of shimmering blue liquid.
-        weight: 1
-        value: 30
-        flags:
-          - consumable
-          - potion
-        mana_restore: 25
-        use_message: You drink the mana potion. Your mind clears and magical energy returns.
+    - id: mana_potion
+      name: mana potion
+      article: a
+      description: A small vial of shimmering blue liquid.
+      weight: 1
+      value: 30
+      flags:
+      - consumable
+      - potion
+      mana_restore: 25
+      use_message: You drink the mana potion. Your mind clears and magical energy returns.
 
-      - id: bandage
-        name: bandage
-        article: a
-        description: A clean linen bandage for treating wounds.
-        weight: 0
-        value: 5
-        flags:
-          - consumable
-          - bandage
-        heal_amount: 10
-        use_message: You carefully apply the bandage to your wounds.
+    - id: bandage
+      name: bandage
+      article: a
+      description: A clean linen bandage for treating wounds.
+      weight: 0
+      value: 5
+      flags:
+      - consumable
+      - bandage
+      heal_amount: 10
+      use_message: You carefully apply the bandage to your wounds.
 
-      - id: medkit
-        name: medkit
-        article: a
-        description: A well-stocked medical kit with bandages and healing salves.
-        weight: 2
-        value: 50
-        flags:
-          - consumable
-          - bandage
-        heal_dice: 3d6+5
-        use_message: You use the medkit to treat your injuries.
+    - id: medkit
+      name: medkit
+      article: a
+      description: A well-stocked medical kit with bandages and healing salves.
+      weight: 2
+      value: 50
+      flags:
+      - consumable
+      - bandage
+      heal_dice: 3d6+5
+      use_message: You use the medkit to treat your injuries.
 
-      - id: bread
-        name: loaf of bread
-        article: a
-        description: A fresh loaf of crusty bread.
-        weight: 1
-        value: 2
-        flags:
-          - consumable
-          - food
-        heal_amount: 5
-        stamina_restore: 10
-        use_message: You eat the bread. It's surprisingly filling.
-        
+    - id: bread
+      name: loaf of bread
+      article: a
+      description: A fresh loaf of crusty bread.
+      weight: 1
+      value: 2
+      flags:
+      - consumable
+      - food
+      heal_amount: 5
+      stamina_restore: 10
+      use_message: You eat the bread. It's surprisingly filling.
+

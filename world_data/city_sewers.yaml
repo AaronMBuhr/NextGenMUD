@@ -2,7 +2,7 @@ ZONES:
   city_sewers:
     name: City Sewers
     description: The dank and filthy sewers of the imperial city. The stench is unbearable.
-    rooms:
+    ROOMS:
       sewer_entrance:
         name: Sewer Entrance
         description: >
