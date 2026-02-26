@@ -41,21 +41,34 @@ class Connection:
         self.character_ = value
 
     async def send(self, text_type, text_data: str):
-        # raise Exception("Connection.send() #1")
+        import asyncio
         logger = StructuredLogger(__name__, prefix="Connection.send()> ")
         if isinstance(text_type, CommTypes):
             text_type = text_type.text
+        # Coerce to string so client never receives non-string text (avoids display corruption)
+        text_data = str(text_data) if text_data is not None else ""
         logger.debug3(f"text_type: {text_type}")
         logger.debug3(f"text_data: {text_data}")
-        # Ensure writes are serialized to avoid overlapping writes on Windows Proactor loop
+
+        payload = json.dumps({'text_type': text_type, 'text': text_data})
+
+        async def _do_send():
+            await self.consumer_.send(text_data=payload)
+            await asyncio.sleep(0)
+
+        # Serialize writes per-consumer. The lock may have been created in a
+        # different event loop (game-loop thread vs Channels ASGI thread), so
+        # catch that and recreate the lock for the current loop.
         if not hasattr(self.consumer_, "_send_lock"):
-            import asyncio
             self.consumer_._send_lock = asyncio.Lock()
-        async with self.consumer_._send_lock:
-            await self.consumer_.send(text_data=json.dumps({
-                'text_type': text_type,
-                'text': text_data
-            }))
-            import asyncio
-            await asyncio.sleep(0)  # yield control to allow write completion
+        try:
+            async with self.consumer_._send_lock:
+                await _do_send()
+        except RuntimeError as exc:
+            if "different event loop" in str(exc):
+                self.consumer_._send_lock = asyncio.Lock()
+                async with self.consumer_._send_lock:
+                    await _do_send()
+            else:
+                raise
 

@@ -1,12 +1,12 @@
-name: Dimwit
+name: TestPlayer
 description: ''
 article: ''
 pronoun_subject: they
 pronoun_object: them
 pronoun_possessive: their
 location:
-  zone: gloomy_graveyard
-  room: inn_common_room
+  zone: central_city
+  room: city_gates
 was_in_combat: false
 class_priority:
 - MAGE
@@ -36,14 +36,13 @@ attributes:
   CHARISMA: 1
 permanent_flags:
 - IS_PC
-game_permission_flags:
-- IS_ADMIN
+game_permission_flags: []
 experience_points: 225
 hit_dice: 1
 hit_dice_size: 4
 hit_point_bonus: 0
-max_hit_points: 200
-current_hit_points: 200
+max_hit_points: 23
+current_hit_points: 23
 max_mana: 45
 current_mana: 45
 max_stamina: 0
@@ -93,61 +92,7 @@ damage_reduction:
   FORCE: 0
   NECROTIC: 0
   RADIANT: 0
-inventory:
-- id: torn_note
-  definition_zone_id: gloomy_graveyard
-  name: torn note
-  article: a
-  description: "A piece of expensive stationery, torn roughly in half. Only a fragment
-    of text remains visible in Lord Ashford's elegant hand.\n"
-  weight: 0
-  value: 0
-  object_flags: 0
-  equip_locations: []
-  equipped_location:
-  damage_multipliers:
-    RAW: 1
-    SLASHING: 1
-    PIERCING: 1
-    BLUDGEONING: 1
-    FIRE: 1
-    COLD: 1
-    LIGHTNING: 1
-    ACID: 1
-    POISON: 1
-    DISEASE: 1
-    HOLY: 1
-    UNHOLY: 1
-    ARCANE: 1
-    PSYCHIC: 1
-    FORCE: 1
-    NECROTIC: 1
-    RADIANT: 1
-  damage_reduction:
-    RAW: 0
-    SLASHING: 0
-    PIERCING: 0
-    BLUDGEONING: 0
-    FIRE: 0
-    COLD: 0
-    LIGHTNING: 0
-    ACID: 0
-    POISON: 0
-    DISEASE: 0
-    HOLY: 0
-    UNHOLY: 0
-    ARCANE: 0
-    PSYCHIC: 0
-    FORCE: 0
-    NECROTIC: 0
-    RADIANT: 0
-  damage_type:
-  damage_num_dice: 0
-  damage_dice_size: 0
-  damage_bonus: 0
-  attack_bonus: 0
-  dodge_penalty: 0
-  contents: []
+inventory: []
 equipment:
   MAIN_HAND:
   OFF_HAND:

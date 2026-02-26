@@ -329,8 +329,7 @@ class TestDoSingleAttackIntegration:
         room = MagicMock()
         room.echo = AsyncMock()
         attacker.location_room = room
-        attacker._location_room = room
-        
+
         return attacker
     
     @pytest.fixture
@@ -355,8 +354,7 @@ class TestDoSingleAttackIntegration:
         room = MagicMock()
         room.echo = AsyncMock()
         defender.location_room = room
-        defender._location_room = room
-        
+
         # Set up damage multipliers
         defender.damage_multipliers = MagicMock()
         defender.damage_multipliers.get = MagicMock(return_value=0)

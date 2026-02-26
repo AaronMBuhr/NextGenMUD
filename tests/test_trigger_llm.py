@@ -337,7 +337,6 @@ class TestTriggerContextCommands:
         npc.echo = AsyncMock()
         npc.location_room = MagicMock()
         npc.location_room.echo = AsyncMock()
-        npc._location_room = npc.location_room
         return npc
     
     @pytest.mark.asyncio

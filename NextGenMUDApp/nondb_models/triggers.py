@@ -56,7 +56,8 @@ class TriggerCriteria:
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
         logger.debug3(f"checking calculated {subject},{self.operator},{predicate}")
-        result = evaluate_if_condition(subject, self.operator, predicate)
+        condition_str = f"{subject},{self.operator},{predicate}"
+        result = evaluate_if_condition(condition_str, vars, game_state)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
         # elif self.operator_.lower() == 'matches':
@@ -556,12 +557,14 @@ class TriggerOnExit(Trigger):
 class TriggerOnReceive(Trigger):
     """
     Fires when an NPC receives an item via the give command.
-    
-    Variables available:
-    - %S% = the player who gave the item
-    - %item% = the item that was given
-    - %item_id% = the item's id
-    - %item_name% = the item's name
+
+    Variables (from give command; do not overwrite):
+    - a/A = giver (actor who gave the item)
+    - t/T = givee (target who received the item = this trigger's owner)
+    - s/S and o/O = the received object; both refer to the same item, different ways:
+      s = subject art_name (display name), S = subject ref
+      o = object id (e.g. butler_cufflink), O = object ref (same as S)
+    - item, item_id, item_name, giver, giver_id
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
         super().__init__(id, TriggerType.ON_RECEIVE, actor)
@@ -575,13 +578,10 @@ class TriggerOnReceive(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnReceive.run()> ")
         if self.disabled_:
             return False
-        
-        # vars should already contain item info from the give command
-        vars = {**(vars or {}), 
-                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
-                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
-                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
-                     'q': actor.pronoun_possessive, '*': text or '' }),
+
+        # Keep vars from give command (a/A=giver, s/S=item, t/T=givee). Only add trigger text and actor extras.
+        vars = {**(vars or {}),
+                **({ '*': text or '' }),
                 **(actor.get_vars("s"))}
         
         logger.debug3(f"evaluating on_receive for {self.actor_.name}, item: {vars.get('item_id', 'unknown')}")

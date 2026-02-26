@@ -3,11 +3,13 @@
 **Strategy:** Core-and-Plugin (Modular Assembly)
 **Goal:** Build 3,000+ line zones by generating high-density "Feature Packs" to be merged via the Python utility.
 
+**Merge file format:** The merge file must have **only `ZONES` at the top level**. All `ROOMS`, `CHARACTERS`, and `OBJECTS` (capitalized) must appear **under a specific zone** (`ZONES.zone_id.ROOMS`, `ZONES.zone_id.CHARACTERS`, `ZONES.zone_id.OBJECTS`). No other top-level keys are allowed.
+
 ### 1. The Build Workflow
 
-1. **Phase 1: The Skeleton:** Define the `ZONES` metadata, `common_knowledge`, `quest_variables`, and a central hub of 5–10 rooms.
+1. **Phase 1: The Skeleton:** Define the `ZONES` metadata, `common_knowledge`, `variables`, and a central hub of 5–10 rooms (under `ZONES.zone_id.ROOMS`).
 2. **Phase 2: Regional Blocks:** Provide 10–15 rooms per prompt to maintain descriptive quality and exit-logic integrity.
-3. **Phase 3: Populate Layers:** Generate `CHARACTERS` and `OBJECTS` lists. Use full attribute blocks, class levels, and natural attacks.
+3. **Phase 3: Populate Layers:** Generate `CHARACTERS` and `OBJECTS` under the zone. Use full attribute blocks, class levels, and natural attacks.
 4. **Phase 4: Logic Wiring:** Inject the `triggers` and `scripts` into existing entities using the ID-based merge syntax.
 
 ### 2. Revision Syntax (The "Patch" Rules)

@@ -722,7 +722,7 @@ $if($questvar(%S%, murder_mystery.found_body), eq, true){
 Quest variables can be defined with automatic knowledge updates:
 
 ```yaml
-quest_variables:
+variables:
   murder_mystery:
     found_body:
       description: "Player has discovered Lord Ashford's body"

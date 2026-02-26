@@ -59,16 +59,24 @@ class MyWebsocketConsumer(AsyncWebsocketConsumer):
         logger = StructuredLogger(__name__, prefix="MyWebsocketConsumer.connect()> ")
         logger.debug("accepting connection")
         await self.accept()
+        # Reject gameplay until world is fully loaded (prevents crashes if world loads in background)
+        if MyWebsocketConsumer.game_state is not None and not getattr(MyWebsocketConsumer.game_state, 'is_fully_loaded', False):
+            await self.send(text_data=json.dumps({
+                'text_type': 'dynamic',
+                'text': 'System is warming up... please wait a moment and try again.'
+            }))
+            await self.close(code=1012)  # Service Restart - encourages client to retry
+            return
         logger.debug("connection accepted, starting login flow")
-        await self.send(text_data=json.dumps({ 
+        await self.send(text_data=json.dumps({
             'text_type': 'dynamic',
             'text': 'Welcome to NextGenMUD!'
         }))
-        await self.send(text_data=json.dumps({ 
+        await self.send(text_data=json.dumps({
             'text_type': 'dynamic',
             'text': ''
         }))
-        await self.send(text_data=json.dumps({ 
+        await self.send(text_data=json.dumps({
             'text_type': 'dynamic',
             'text': 'Enter your character name:'
         }))

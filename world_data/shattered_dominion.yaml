@@ -2010,55 +2010,43 @@ ZONES:
           quantity: 2
           respawn_time_min: 120
     common_knowledge:
-      # Technical/True Knowledge (known by Archivist, Scavenger)
-      sd_environmental_overload: |
-        The land bears signs of catastrophic energy overload: glassed sand, radial heat damage, and lingering thermal residue. These patterns are consistent with uncontrolled release, not divine judgment.
-      sd_infrastructure_failure: |
-        Remnants across the wastes show engineered components failing under energy loads far beyond their tolerances. Safeguards appear incomplete or deliberately omitted.
-      sd_energy_residue: |
-        Residual solar energy persists in crystalline and atmospheric forms, looping or stagnating instead of dispersing naturally.
-      sd_ritual_engineering: |
-        The ascension ritual was a complex energy-focusing system designed to transform a single subject. It required precise alignment, massive power throughput, and—officially—perfect faith.
-      # Survival/Practical Knowledge (known by Nomads, Guide)
-      sd_post_event_survival: |
-        After the catastrophe, survivors mapped heat zones and salt growth to avoid death. Knowledge was practical, shared orally, and constantly revised.
-      sd_shifting_routes: |
-        Safe paths through the wastes change with the seasons. Old maps are death sentences. Only those who watch the desert's moods survive.
-      sd_star_avoidance: |
-        Nomads avoid traveling when certain stars align with the ruins. They say the desert hunts on those nights. Rational travelers dismiss this as superstition.
-      sd_wind_voices: |
-        The wind carries fragments of sound near old roads—prayers, warnings, screams. Most attribute this to acoustics. Others are not so certain.
-      # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
-      sd_solar_doctrine: |
-        The sun god blessed those who sought elevation through sacrifice and devotion. The ritual was an act of ultimate faith, meant to transcend mortality.
-      sd_doctrinal_revision: |
-        After the catastrophe, temple doctrine was revised to frame the event as a test rather than a failure. Doubt itself became the explanation for incomplete ascension.
-      sd_faithful_obedience: |
-        True believers accept that the ritual nearly succeeded. Any instability was the result of imperfect devotion, not flawed design. Questioning this is heresy.
-      # Common Folk Knowledge (mixed truth/lies, widely known)
-      sd_desert_fertility: |
-        The desert was once fertile, fed by rivers and blessed by regular rains. The catastrophe changed everything. Whether this was divine judgment or natural disaster depends on who you ask.
-      sd_sun_god_forms: |
-        The sun god was worshipped in many forms—as life-giver, as purifier, as the burning eye that sees all. The Black Sun cult believed in transformation through destruction.
-      sd_pyramid_sealed: |
-        The great pyramid was sealed from the inside. Whatever happened in its depths was meant to remain hidden. Those who claim to know what lies within rarely agree.
-      sd_contradictory_records: |
-        Written records from the old kingdom contradict each other—dates, names, even the sequence of events. Some say this proves deliberate revision. Others blame the chaos of collapse.
-      sd_ritual_site_burns: |
-        The ritual site still burns beneath the sand, or so the stories claim. Those who dig too deep feel heat that has no source. The desert itself remembers what was done.
-      # Hidden/Revisionist Knowledge (incomplete or actively concealed)
-      sd_hidden_sacrifice: |
-        Official accounts speak of willing participants in the ascension. But survivors whisper of one who was not willing—whose voice powers the echoes that still linger.
-      sd_evacuation_preparations: |
-        Some within the temple made preparations to leave before the ritual concluded. Supplies were moved, debts were settled. Not everyone expected success.
-      sd_ossuary_refraction: |
-        The Glass-Walled Ossuary acts as a prism for residual energy. The vitrified remains within are physical anchors for the 'catastrophic and instantaneous' energy release that glassed the desert.
-      sd_scriptorium_revision: |
-        The Slagged Scriptorium was where 'doctrinal revision' took place. Before the collapse, archivists edited 'safeguard documentation' to hide 'infrastructure failures' and the truth of the 'hidden sacrifice.'
-      sd_barracks_preservation: |
-        The Salt-Choked Barracks served as the final stand for the military. The salt is a byproduct of the flash-evaporated sea, preserving the 'salt-crusted phalanx' in a state of eternal, mindless obedience.
-      sd_orrery_failure: |
-        The orrery in the Scriptorium was used to calculate 'solar tolerances.' Its current melted state is evidence that the 'energy focusing system' exceeded all engineered limits.
+      # LLM-facing: concise status lines for "WHAT THE PLAYER ALREADY KNOWS"
+      # Technical/True
+      sd_environmental_overload: Land shows catastrophic energy overload—glassed sand, radial heat, thermal residue. Uncontrolled release, not divine judgment.
+      sd_infrastructure_failure: Wastes show engineered components failing under excess load; safeguards incomplete or deliberately omitted.
+      sd_energy_residue: Residual solar energy persists in crystalline and atmospheric forms, looping or stagnating.
+      sd_ritual_engineering: Ascension ritual was a complex energy-focusing system for one subject; precise alignment, massive throughput, officially required perfect faith.
+      # Survival/Practical
+      sd_post_event_survival: After the catastrophe, survivors mapped heat zones and salt growth; knowledge practical, oral, constantly revised.
+      sd_shifting_routes: Safe paths through the wastes change with the seasons; old maps are death sentences.
+      sd_star_avoidance: Nomads avoid travel when certain stars align with ruins; they say the desert hunts then. Others call it superstition.
+      sd_wind_voices: Wind carries fragments of sound near old roads—prayers, warnings, screams. Acoustics or something else.
+      # Religious/Doctrinal
+      sd_solar_doctrine: Sun god blessed those who sought elevation through sacrifice and devotion; ritual was ultimate faith, meant to transcend mortality.
+      sd_doctrinal_revision: After the catastrophe, doctrine reframed the event as a test, not failure; doubt explained incomplete ascension.
+      sd_faithful_obedience: True believers hold the ritual nearly succeeded; instability was imperfect devotion, not flawed design. Questioning is heresy.
+      # Common folk (mixed truth/lies)
+      sd_desert_fertility: Desert was once fertile, rivers and rains; catastrophe changed everything. Divine judgment or natural disaster depends on who you ask.
+      sd_sun_god_forms: Sun god worshipped in many forms—life-giver, purifier, burning eye. Black Sun cult believed in transformation through destruction.
+      sd_pyramid_sealed: Great pyramid sealed from the inside; what happened in its depths was meant to stay hidden. Claimants rarely agree.
+      sd_contradictory_records: Old kingdom records contradict—dates, names, sequence. Deliberate revision or chaos of collapse.
+      sd_ritual_site_burns: Ritual site still burns beneath the sand, stories say; those who dig deep feel heat with no source.
+      # Hidden/Revisionist
+      sd_hidden_sacrifice: Official accounts say willing participants; survivors whisper of one who was not willing—voice powers the echoes.
+      sd_evacuation_preparations: Some in the temple prepared to leave before the ritual; supplies moved, debts settled. Not everyone expected success.
+      sd_ossuary_refraction: Glass-Walled Ossuary is a prism for residual energy; vitrified remains are anchors for the catastrophic release that glassed the desert.
+      sd_scriptorium_revision: Slagged Scriptorium was where doctrinal revision happened; archivists edited safeguard docs to hide infrastructure failures and hidden sacrifice.
+      sd_barracks_preservation: Salt-Choked Barracks was the military's last stand; salt from flash-evaporated sea preserves the salt-crusted phalanx in mindless obedience.
+      sd_orrery_failure: Scriptorium orrery calculated solar tolerances; its melted state shows the energy-focusing system exceeded all limits.
+      # Quest-granted (player-state specific)
+      sd_pyramid_sealed_ascension: Pyramid was an ascension chamber; the king sought to become divine, not to rest in death.
+      sd_ritual_engineering_safeguards: Ritual drew power across the desert through buried conduits; engineering precise, safeguards deliberately omitted.
+      sd_hidden_sacrifice_fused: Player has seen fused remains at the altar; someone was sacrificed to power the king's ascension—unwilling.
+      sd_environmental_overload_mechanical: Catastrophe was mechanical failure—ritual pushed beyond safe limits. No divine judgment; engineering hubris.
+      sd_solar_doctrine_believer: "Player is recognized as a believer; temple's line: faith was insufficient, not flawed."
+      sd_solar_doctrine_heretic: Player has rejected temple doctrine; to them, a heretic spreading dangerous falsehoods.
+      sd_post_event_survival_nomads: Nomads trust the player with practical knowledge; desert can be survived if respected.
+      sd_shifting_routes_hostile: Desert has grown hostile; storms without warning, safe paths treacherous.
     variables:
       shattered_dominion:
         # === THE BROKEN APOTHEOSIS ARC ===
@@ -2069,8 +2057,7 @@ ZONES:
           knowledge_updates:
           - condition: 3
             updates:
-              sd_pyramid_sealed: |
-                The pyramid was not a tomb but an ascension chamber. The king sought to become divine, not to rest in death.
+              sd_pyramid_sealed_ascension: true
         ritual_mechanics_known:
           description: Understanding of how the ascension ritual functioned (0-5 scale)
           type: integer
@@ -2078,8 +2065,7 @@ ZONES:
           knowledge_updates:
           - condition: 3
             updates:
-              sd_ritual_engineering: |
-                The ritual was an immense energy-focusing system, drawing power from across the desert through buried conduits. The engineering was precise, but safeguards were deliberately omitted.
+              sd_ritual_engineering_safeguards: true
         hidden_sacrifice_known:
           description: Discovery that an unwilling victim powered the ritual
           type: integer
@@ -2087,9 +2073,7 @@ ZONES:
           knowledge_updates:
           - condition: 1
             updates:
-              # Hidden/Revisionist Knowledge (incomplete or actively concealed)
-              sd_hidden_sacrifice: |
-                You have seen the fused remains at the altar. Someone was sacrificed to power the king's ascension—and they were not willing.
+              sd_hidden_sacrifice_fused: true
         failure_cause_known:
           description: Recognition that the catastrophe was technical, not divine (0-5 scale)
           type: integer
@@ -2097,9 +2081,7 @@ ZONES:
           knowledge_updates:
           - condition: 4
             updates:
-              # Technical/True Knowledge (known by Archivist, Scavenger)
-              sd_environmental_overload: |
-                The catastrophe was a mechanical failure—energy overload from a ritual pushed beyond safe limits. There was no divine judgment, only engineering hubris.
+              sd_environmental_overload_mechanical: true
         # === TRUTH VS SURVIVAL ARC ===
         truth_integrity:
           description: Player's reliability in reconstructing history (-5 to +5, negative=accepted lies)
@@ -2112,14 +2094,10 @@ ZONES:
           knowledge_updates:
           - condition: 3
             updates:
-              # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
-              sd_solar_doctrine: |
-                You are recognized as a believer. The temple's version of events is clear: faith was insufficient, not flawed.
+              sd_solar_doctrine_believer: true
           - condition: -3
             updates:
-              # Religious/Doctrinal Knowledge (known by Hierophant, Temple NPCs)
-              sd_solar_doctrine: |
-                You have rejected temple doctrine. To them, you are a heretic spreading dangerous falsehoods.
+              sd_solar_doctrine_heretic: true
         nomad_trust:
           description: Player's standing with the oasis nomads (0-5 scale)
           type: integer
@@ -2127,9 +2105,7 @@ ZONES:
           knowledge_updates:
           - condition: 3
             updates:
-              # Survival/Practical Knowledge (known by Nomads, Guide)
-              sd_post_event_survival: |
-                The nomads trust you with their practical knowledge. The desert can be survived if you respect it.
+              sd_post_event_survival_nomads: true
         knowledge_preserved:
           description: Whether player chose to preserve dangerous knowledge
           type: boolean
@@ -2146,8 +2122,7 @@ ZONES:
           knowledge_updates:
           - condition: 5
             updates:
-              sd_shifting_routes: |
-                The desert has grown hostile. Storms come without warning, and safe paths have become treacherous.
+              sd_shifting_routes_hostile: true
         guide_favor:
           description: Standing with the Wind-Marked Guide (0-5 scale)
           type: integer

@@ -48,23 +48,23 @@ class SkillsInterface(metaclass=ABCMeta):
         raise NotImplementedError
     
     @classmethod
-    def send_success_message(cls, actor, targets: list, skill_data: dict, vars: dict) -> None:
-        """Send success messages for a skill to the appropriate targets"""
+    async def send_success_message(cls, actor, targets: list, skill: Any, vars: dict) -> None:
+        """Send success messages for a skill to the appropriate targets. skill must be a Skill instance."""
         pass
-    
+
     @classmethod
-    def send_failure_message(cls, actor, targets: list, skill_data: dict, vars: dict) -> None:
-        """Send failure messages for a skill to the appropriate targets"""
+    async def send_failure_message(cls, actor, targets: list, skill: Any, vars: dict) -> None:
+        """Send failure messages for a skill to the appropriate targets. skill must be a Skill instance."""
         pass
-    
+
     @classmethod
-    def send_apply_message(cls, actor, targets: list, skill_data: dict, vars: dict) -> None:
-        """Send apply effect messages for a skill to the appropriate targets"""
+    async def send_apply_message(cls, actor, targets: list, skill: Any, vars: dict) -> None:
+        """Send apply effect messages for a skill to the appropriate targets. skill must be a Skill instance."""
         pass
-    
+
     @classmethod
-    def send_resist_message(cls, actor, targets: list, skill_data: dict, vars: dict) -> None:
-        """Send resist messages for a skill to the appropriate targets"""
+    async def send_resist_message(cls, actor, targets: list, skill: Any, vars: dict) -> None:
+        """Send resist messages for a skill to the appropriate targets. skill must be a Skill instance."""
         pass
 
     @classmethod

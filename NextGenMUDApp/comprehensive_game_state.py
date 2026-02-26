@@ -80,12 +80,20 @@ class ComprehensiveGameState:
         self.connections : List[Connection] = []
         self.characters_fighting : List[Character] = []
         self.zones = {}
+        self.quest_index = {}  # Maps variable_name -> list of Quest objects
         self.world_clock_tick: int = 0
         self.scheduled_events = defaultdict(list)
         self.xp_progression: List[int] = []
         self.linkdead_characters: Dict[str, LinkdeadCharacter] = {}  # name -> LinkdeadCharacter
         self.shutting_down: bool = False  # Flag to indicate server is stopping
+        self.is_fully_loaded: bool = False  # True only after Initialize() completes; blocks gameplay until then
+        # Debug section name -> player name who toggled it (for in-game output routing)
+        self.active_debug: Dict[str, str] = {}
         # MyWebsocketConsumerStateHandlerInterface.game_state_handler = self
+
+    def is_debug_enabled(self, name: str) -> bool:
+        """Return True if the given debug section is currently turned on."""
+        return name in self.active_debug
 
 
     def _load_world_from_yaml(self, target_wd: WorldDefinition, load_quest_variables: bool = True) -> bool:
@@ -110,55 +118,65 @@ class ComprehensiveGameState:
                     for zone_id, zone_info in yaml_data['ZONES'].items():
                         if not isinstance(zone_info, dict):
                             continue
+
                         new_zone = Zone(zone_id)
                         new_zone.name = zone_info.get('name', f"Unnamed Zone {zone_id}")
                         new_zone.description = zone_info.get('description', "")
+
                         if 'common_knowledge' in zone_info and isinstance(zone_info['common_knowledge'], dict):
                             new_zone.common_knowledge = zone_info['common_knowledge']
-                        if load_quest_variables and 'quest_variables' in zone_info:
-                            from .quest_schema import QuestSchemaRegistry
+                        if load_quest_variables and 'variables' in zone_info:
+                            from .nondb_models.quests import QuestSchemaRegistry
                             registry = QuestSchemaRegistry.get_instance()
-                            quest_vars = zone_info['quest_variables']
+                            quest_vars = zone_info['variables']
                             if isinstance(quest_vars, dict):
                                 registry.load_from_dict(quest_vars, zone_id=zone_id)
-                        target_wd.zones[zone_id] = new_zone
-                        if 'rooms' in zone_info and isinstance(zone_info['rooms'], dict):
-                            for room_id, room_info in zone_info['rooms'].items():
+
+                        # 1. Load Quests & Variables
+                        if 'quests' in zone_info and isinstance(zone_info['quests'], dict):
+                            new_zone.load_quests(zone_info['quests'])
+
+                        # 2. Load Rooms (canonical key ROOMS; accept lowercase 'rooms' for backward compatibility)
+                        rooms_data = zone_info.get('ROOMS') or zone_info.get('rooms')
+                        if isinstance(rooms_data, dict):
+                            for room_id, room_info in rooms_data.items():
                                 if not isinstance(room_info, dict):
                                     continue
                                 new_room = Room(room_id, new_zone, create_reference=True)
                                 new_room.from_yaml(new_zone, room_info)
                                 new_zone.rooms[room_id] = new_room
-                # Process CHARACTERS
-                if "CHARACTERS" in yaml_data and isinstance(yaml_data["CHARACTERS"], list):
-                    for zonedef in yaml_data["CHARACTERS"]:
-                        if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'characters' not in zonedef:
-                            continue
-                        zone_id = zonedef['zone']
-                        if zone_id not in target_wd.zones or not isinstance(zonedef["characters"], list):
-                            continue
-                        for chardef in zonedef["characters"]:
-                            if not isinstance(chardef, dict) or 'id' not in chardef:
-                                continue
-                            char_id = chardef['id']
-                            ch = Character(char_id, zone_id, create_reference=False)
-                            ch.from_yaml(chardef, zone_id)
-                            target_wd.characters[f"{zone_id}.{ch.id}"] = ch
-                # Process OBJECTS
-                if "OBJECTS" in yaml_data and isinstance(yaml_data["OBJECTS"], list):
-                    for zonedef in yaml_data["OBJECTS"]:
-                        if not isinstance(zonedef, dict) or 'zone' not in zonedef or 'objects' not in zonedef:
-                            continue
-                        zone_id = zonedef['zone']
-                        if zone_id not in target_wd.zones or not isinstance(zonedef["objects"], list):
-                            continue
-                        for objdef in zonedef["objects"]:
-                            if not isinstance(objdef, dict) or 'id' not in objdef:
-                                continue
-                            obj_id = objdef['id']
-                            obj = Object(obj_id, zone_id, create_reference=False)
-                            obj.from_yaml(objdef, zone_id, self)
-                            target_wd.objects[f"{zone_id}.{obj.id}"] = obj
+
+                        # 3. Load Characters belonging to this zone (canonical CHARACTERS; accept 'characters')
+                        characters_data = zone_info.get('CHARACTERS') or zone_info.get('characters')
+                        if isinstance(characters_data, list):
+                            for chardef in characters_data:
+                                if not isinstance(chardef, dict) or 'id' not in chardef:
+                                    continue
+                                char_id = chardef['id']
+                                ch = Character(char_id, zone_id, create_reference=False)
+                                ch.from_yaml(chardef, zone_id)
+                                target_wd.characters[f"{zone_id}.{ch.id}"] = ch
+
+                        # 4. Load Objects belonging to this zone (canonical OBJECTS; accept 'objects')
+                        objects_data = zone_info.get('OBJECTS') or zone_info.get('objects')
+                        if isinstance(objects_data, list):
+                            for objdef in objects_data:
+                                if not isinstance(objdef, dict) or 'id' not in objdef:
+                                    continue
+                                obj_id = objdef['id']
+                                obj = Object(obj_id, zone_id, create_reference=False)
+                                obj.from_yaml(objdef, zone_id, self)
+                                target_wd.objects[f"{zone_id}.{obj.id}"] = obj
+
+                        target_wd.zones[zone_id] = new_zone
+
+                # Reject top-level zone content: everything must be under ZONES.<zone_id>
+                for bad_key in ("CHARACTERS", "OBJECTS", "rooms", "quests", "characters", "objects", "common_knowledge", "variables"):
+                    if bad_key in yaml_data:
+                        logger.error(
+                            f"Invalid world file {yaml_file}: top-level '{bad_key}' is not allowed. "
+                            f"All world data must be under ZONES.<zone_id>."
+                        )
             except FileNotFoundError:
                 logger.error(f"World file not found: {yaml_file}")
             except YAMLError as e:
@@ -194,6 +212,10 @@ class ComprehensiveGameState:
             print(f"Zone '{zid}': {room_count} room definitions, {char_count} character definitions, {obj_count} object definitions")
         print("===============================\n")
 
+        self.build_quest_index()
+        self.is_fully_loaded = True
+        logger.info("World fully loaded; game ready for connections.")
+
     def _build_zone_runtime(self, zone_id: str, spawn_npcs: bool = True):
         """Build or rebuild runtime state for one zone from world_definition. Creates room refs, wires spawn_data, enables triggers; optionally spawns NPCs."""
         logger = StructuredLogger(__name__, prefix="_build_zone_runtime()> ")
@@ -219,12 +241,68 @@ class ComprehensiveGameState:
                         spawndata.owner.add_character(new_character)
                         spawndata.spawned.append(new_character)
                         npc_count += 1
-                        logger.debug3(f"new_character: {new_character} added to room {new_character._location_room.rid}")
+                        logger.debug3(f"new_character: {new_character} added to room {new_character.location_room.rid}")
+                elif spawndata.actor_type == ActorType.OBJECT:
+                    object_def = self.world_definition.find_object_definition(spawndata.id)
+                    if not object_def:
+                        logger.warning(f"Object definition for {spawndata.id} not found.")
+                        continue
+                    for i in range(spawndata.desired_quantity):
+                        new_obj = Object.create_from_definition(object_def)
+                        new_obj.zone = zone_data
+                        room_data.add_object(new_obj)
+                        self._populate_container_contents(new_obj, zone_id)
+                        spawndata.spawned.append(new_obj)
             for trig_type in room_data.triggers_by_type:
                 for trig in room_data.triggers_by_type[trig_type]:
                     logger.debug3("enabling trigger")
                     trig.enable()
         logger.info(f"Zone '{zone_id}' built: {len(zone_data.rooms)} rooms" + (f", {npc_count} NPCs spawned" if spawn_npcs else " (no NPC spawn)") + ".")
+
+    def _populate_container_contents(self, container, zone_id: str):
+        """Instantiate objects from a container's initial_contents_ids (object def ids; each can have own contents)."""
+        for content_id in getattr(container, 'initial_contents_ids', []):
+            resolved_id = content_id if "." in content_id else f"{zone_id}.{content_id}"
+            obj_def = self.world_definition.find_object_definition(resolved_id)
+            if not obj_def:
+                logger = StructuredLogger(__name__, prefix="_populate_container_contents()> ")
+                logger.warning(f"Object definition for {resolved_id} not found (contents of {getattr(container, 'id', container)}).")
+                continue
+            child = Object.create_from_definition(obj_def)
+            child.zone = getattr(container, 'zone', None)
+            container.add_object(child)
+            self._populate_container_contents(child, child.definition_zone_id)
+
+    def build_quest_index(self):
+        """
+        Scans all quests in all zones and builds a hash table mapping
+        variable names to the quests that check them.
+        """
+        self.quest_index = {}
+
+        for zone in self.zones.values():
+            if not getattr(zone, 'quests', None):
+                continue
+
+            for quest in zone.quests.values():
+                vars_of_interest = set()
+                for stage in quest.stages:
+                    if not stage.conditions:
+                        continue
+                    for cond in stage.conditions:
+                        var_name = cond.variable
+                        vars_of_interest.add(var_name)
+                        # Also index zone-qualified name so player perm_variables (e.g. zone.quest.var) match
+                        qualified = f"{quest.zone_id}.{var_name}"
+                        vars_of_interest.add(qualified)
+
+                for var_name in vars_of_interest:
+                    if var_name not in self.quest_index:
+                        self.quest_index[var_name] = []
+                    if quest not in self.quest_index[var_name]:
+                        self.quest_index[var_name].append(quest)
+
+        print(f"[GameState] Quest index built. Indexed {len(self.quest_index)} variables.")
 
     def _teardown_zone_runtime(self, zone_id: str, full: bool = True):
         """Stop combat, purge scheduled events (and optionally dereference NPCs/objects), dereference rooms. full=True: purge all zone actor events and remove NPCs/objects; full=False: purge only room-level events."""
@@ -409,6 +487,7 @@ class ComprehensiveGameState:
                     pass
         summary = f"Zone '{zone_id}' reloaded: {len(zone.rooms)} rooms, {len(player_locations)} player(s) processed ({restored} restored, {moved_start} to start)."
         logger.info(summary)
+        self.build_quest_index()
         return summary
 
     async def reload_rooms(self, zone_id: str) -> str:
@@ -474,24 +553,38 @@ class ComprehensiveGameState:
                 logger.info(f"Restored {len(chars)} character(s), {len(objs)} object(s) to room {room_id}.")
         summary = f"Rooms for zone '{zone_id}' reloaded: {restored_rooms} rooms with occupants restored, {vanished_players} player(s) moved to start, {vanished_npcs} NPC(s) and {vanished_objs} object(s) discarded from vanished rooms."
         logger.info(summary)
+        self.build_quest_index()
         return summary
+
+    @staticmethod
+    def _normalize_reference_key(ref_str: str) -> str:
+        """Normalize client reference key so |c915 matches stored key C915 (ActorType.name[0] + number)."""
+        if len(ref_str) > 1 and ref_str[0].isalpha() and ref_str[1:].isdigit():
+            return ref_str[0].upper() + ref_str[1:]
+        return ref_str
 
     def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Character:
         logger = StructuredLogger(__name__, prefix="find_target_character()> ")
         # search_world automatically turns on search_zone
+        if not target_name:
+            return None
         if target_name[0] == Constants.REFERENCE_SYMBOL:
-            return Actor.get_reference(target_name[1:])
+            ref_key = self._normalize_reference_key(target_name[1:])
+            resolved = Actor.get_reference(ref_key)
+            if resolved is not None and isinstance(resolved, Character):
+                return resolved
+            return None
         if target_name.lower() == 'me' or target_name.lower() == 'self':
             return actor
                 
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor._location_room
+            start_room = actor.location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor._location_room:
-            start_room = actor._location_room
+        elif isinstance(actor, Object) and actor.location_room:
+            start_room = actor.location_room
 
         if not start_room:
             return None
@@ -546,11 +639,11 @@ class ComprehensiveGameState:
         # Determine the starting point
         start_room = None
         if isinstance(actor, Character):
-            start_room = actor._location_room
+            start_room = actor.location_room
         elif isinstance(actor, Room):
             start_room = actor
-        elif isinstance(actor, Object) and actor._location_room:
-            start_room = actor._location_room
+        elif isinstance(actor, Object) and actor.location_room:
+            start_room = actor.location_room
 
         if not start_room:
             return ""
@@ -582,8 +675,14 @@ class ComprehensiveGameState:
 
 
     def find_target_room(self, actor: Actor, target_name: str, start_zone: Zone) -> 'Room':
+        if not target_name:
+            return None
         if target_name[0] == Constants.REFERENCE_SYMBOL:
-            return Actor.get_reference(target_name[1:])
+            ref_key = self._normalize_reference_key(target_name[1:])
+            resolved = Actor.get_reference(ref_key)
+            if resolved is not None and isinstance(resolved, Room):
+                return resolved
+            return None
         if target_name.lower() == 'me' or target_name.lower() == 'self' or target_name.lower() == 'here':
             return actor
         
@@ -603,10 +702,11 @@ class ComprehensiveGameState:
             # Zone specified but not found, or room not in that zone - return None
             return None
         
-        # No zone specified - search in start_zone first
-        for room in start_zone.rooms.values():
-            if room.name.startswith(target_name) or room.id.startswith(target_name):
-                return room
+        # No zone specified - search in start_zone first (if actor is in a room)
+        if start_zone is not None:
+            for room in start_zone.rooms.values():
+                if room.name.startswith(target_name) or room.id.startswith(target_name):
+                    return room
         
         # Then search all zones
         for zone in self.zones.values():
@@ -624,10 +724,20 @@ class ComprehensiveGameState:
                            search_list: list = None) -> Object:
         logger = StructuredLogger(__name__, prefix="find_target_object()> ")
 
+        if not target_name:
+            return None
         if target_name[0] == Constants.REFERENCE_SYMBOL:
-            return Actor.get_reference(target_name[1:])
+            ref_key = self._normalize_reference_key(target_name[1:])
+            resolved = Actor.get_reference(ref_key)
+            if resolved is not None and isinstance(resolved, Object):
+                return resolved
+            return None
         if target_name.lower() == 'me' or target_name.lower() == "self":
             return actor
+
+        # Prefer current room when searching: use start_room if given, else actor's location when available
+        if start_room is None and actor is not None:
+            start_room = getattr(actor, 'location_room', None)
 
         target_number = 1
         if '#' in target_name:
@@ -931,7 +1041,10 @@ class ComprehensiveGameState:
         
         # Load save data and apply it to the character
         # For now, always start at default location (not combat reconnect scenario)
-        save_data = player_save_manager.load_character(character_name, new_player, restore_location=False)
+        save_data = player_save_manager.load_character(
+            character_name, new_player, restore_location=False,
+            world_definition=self.world_definition
+        )
         
         if not save_data:
             # Save file exists but couldn't be loaded - treat as new character
@@ -1212,7 +1325,7 @@ class ComprehensiveGameState:
         room.add_character(new_character)
         if spawned_by:
             spawned_by.spawned.append(new_character)
-        logger.debug3(f"Spawning {new_character.rid} added to room {new_character._location_room.rid}")
+        logger.debug3(f"Spawning {new_character.rid} added to room {new_character.location_room.rid}")
 
     def respawn_character(self, owner: Actor, vars: dict):
         logger = StructuredLogger(__name__, prefix="respawn_character()> ")
@@ -1226,9 +1339,8 @@ class ComprehensiveGameState:
         return self.zones[zone_id] if zone_id in self.zones else None
     
     def add_character_fighting(self, character: Character):
-        if character in self.characters_fighting:
-            raise Exception(f"Character {character.rid} already in characters_fighting.")
-        self.characters_fighting.append(character)
+        if character not in self.characters_fighting:
+            self.characters_fighting.append(character)
 
     def get_characters_fighting(self) -> List[Character]:
         return self.characters_fighting
@@ -1285,35 +1397,37 @@ class ComprehensiveGameState:
                 'players': [{
                     'id': target_player.id,
                     'name': target_player.name,
-                    'description': target_player.description_,
-                    'location': target_player._location_room.rid if target_player._location_room else None,
+                    'description': target_player.description,
+                    'location': target_player.location_room.rid if target_player.location_room else None,
                     
                     # Class and level information
                     'class_priority': [role.name for role in target_player.class_priority],
                     'levels_by_role': {role.name: level for role, level in target_player.levels_by_role.items()},
                     'specializations': {base.name: spec.name for base, spec in target_player.specializations.items()},
                     
-                    # Skills
+                    # Skills: in-game format is Dict[CharacterClassRole, Dict[str, int]] (inner keys normalized: lowercase, underscores)
                     'skill_levels_by_role': {
-                        role.name: {skill.name: level for skill, level in skills.items()}
+                        role.name: {(s.lower().replace(' ', '_').replace('-', '_') if isinstance(s, str) else str(s)): level for s, level in skills.items()}
                         for role, skills in target_player.skill_levels_by_role.items()
                     },
                     'skill_points_available': target_player.skill_points_available,
                     
                     # Permanent attributes
                     'attributes': {
-                        'strength': target_player.attributes.strength,
-                        'dexterity': target_player.attributes.dexterity,
-                        'constitution': target_player.attributes.constitution,
-                        'intelligence': target_player.attributes.intelligence,
-                        'wisdom': target_player.attributes.wisdom,
-                        'charisma': target_player.attributes.charisma
+                        'strength': target_player.attributes.get(CharacterAttributes.STRENGTH, 10),
+                        'dexterity': target_player.attributes.get(CharacterAttributes.DEXTERITY, 10),
+                        'constitution': target_player.attributes.get(CharacterAttributes.CONSTITUTION, 10),
+                        'intelligence': target_player.attributes.get(CharacterAttributes.INTELLIGENCE, 10),
+                        'wisdom': target_player.attributes.get(CharacterAttributes.WISDOM, 10),
+                        'charisma': target_player.attributes.get(CharacterAttributes.CHARISMA, 10)
                     },
                     
                     # Permanent flags
                     'permanent_flags': [flag.name for flag in target_player.permanent_character_flags],
                     'game_permission_flags': [flag.name for flag in target_player.game_permission_flags],
-                    
+
+                    'perm_variables': target_player.perm_variables,
+
                     # Base stats
                     'experience_points': target_player.experience_points,
                     'hit_dice': target_player.hit_dice,
@@ -1344,7 +1458,7 @@ class ComprehensiveGameState:
                     'inventory': [{
                         'id': obj.id,
                         'name': obj.name,
-                        'description': obj.description_,
+                        'description': obj.description,
                         'weight': obj.weight,
                         'value': obj.value,
                         'object_flags': [flag.name for flag in obj.object_flags],
@@ -1364,7 +1478,7 @@ class ComprehensiveGameState:
                         'contents': [{
                             'id': content.id,
                             'name': content.name,
-                            'description': content.description_,
+                            'description': content.description,
                             'weight': content.weight,
                             'value': content.value,
                             'object_flags': [flag.name for flag in content.object_flags],
@@ -1388,7 +1502,7 @@ class ComprehensiveGameState:
                         loc.name: {
                             'id': obj.id,
                             'name': obj.name,
-                            'description': obj.description_,
+                            'description': obj.description,
                             'weight': obj.weight,
                             'value': obj.value,
                             'object_flags': [flag.name for flag in obj.object_flags],
@@ -1408,7 +1522,7 @@ class ComprehensiveGameState:
                             'contents': [{
                                 'id': content.id,
                                 'name': content.name,
-                                'description': content.description_,
+                                'description': content.description,
                                 'weight': content.weight,
                                 'value': content.value,
                                 'object_flags': [flag.name for flag in content.object_flags],
@@ -1480,8 +1594,8 @@ class ComprehensiveGameState:
                         zone = self.get_zone_by_id(zone_id)
                         if zone and room_id in zone.rooms:
                             # Move player to the room
-                            if target_player._location_room:
-                                target_player._location_room.remove_character(target_player)
+                            if target_player.location_room:
+                                target_player.location_room.remove_character(target_player)
                             zone.rooms[room_id].add_character(target_player)
                 
                 # Load class and level information
@@ -1489,9 +1603,11 @@ class ComprehensiveGameState:
                 target_player.levels_by_role = {CharacterClassRole[role]: level for role, level in player_data['levels_by_role'].items()}
                 target_player.specializations = {CharacterClassRole[base]: CharacterClassRole[spec] for base, spec in player_data['specializations'].items()}
                 
-                # Load skills
+                # Load skills: restore to Dict[CharacterClassRole, Dict[str, int]] (inner keys normalized for skills*.py / ClassSkillsProxy)
+                def _normalize_skill_key(s: str) -> str:
+                    return s.lower().replace(' ', '_').replace('-', '_') if isinstance(s, str) else str(s).lower().replace(' ', '_').replace('-', '_')
                 target_player.skill_levels_by_role = {
-                    CharacterClassRole[role]: {skill: level for skill, level in skills.items()}
+                    CharacterClassRole[role]: {_normalize_skill_key(skill): level for skill, level in skills.items()}
                     for role, skills in player_data['skill_levels_by_role'].items()
                 }
                 target_player.skill_points_available = player_data['skill_points_available']
@@ -1499,12 +1615,12 @@ class ComprehensiveGameState:
                 # Load attributes
                 if 'attributes' in player_data:
                     attrs = player_data['attributes']
-                    target_player.attributes.strength = attrs.get('strength', target_player.attributes.strength)
-                    target_player.attributes.dexterity = attrs.get('dexterity', target_player.attributes.dexterity)
-                    target_player.attributes.constitution = attrs.get('constitution', target_player.attributes.constitution)
-                    target_player.attributes.intelligence = attrs.get('intelligence', target_player.attributes.intelligence)
-                    target_player.attributes.wisdom = attrs.get('wisdom', target_player.attributes.wisdom)
-                    target_player.attributes.charisma = attrs.get('charisma', target_player.attributes.charisma)
+                    target_player.attributes[CharacterAttributes.STRENGTH] = attrs.get('strength', target_player.attributes.get(CharacterAttributes.STRENGTH, 10))
+                    target_player.attributes[CharacterAttributes.DEXTERITY] = attrs.get('dexterity', target_player.attributes.get(CharacterAttributes.DEXTERITY, 10))
+                    target_player.attributes[CharacterAttributes.CONSTITUTION] = attrs.get('constitution', target_player.attributes.get(CharacterAttributes.CONSTITUTION, 10))
+                    target_player.attributes[CharacterAttributes.INTELLIGENCE] = attrs.get('intelligence', target_player.attributes.get(CharacterAttributes.INTELLIGENCE, 10))
+                    target_player.attributes[CharacterAttributes.WISDOM] = attrs.get('wisdom', target_player.attributes.get(CharacterAttributes.WISDOM, 10))
+                    target_player.attributes[CharacterAttributes.CHARISMA] = attrs.get('charisma', target_player.attributes.get(CharacterAttributes.CHARISMA, 10))
                 
                 # Load permanent flags
                 target_player.permanent_character_flags = PermanentCharacterFlags(0)
@@ -1514,7 +1630,12 @@ class ComprehensiveGameState:
                 target_player.game_permission_flags = GamePermissionFlags(0)
                 for flag in player_data['game_permission_flags']:
                     target_player.game_permission_flags = target_player.game_permission_flags.add_flag_name(flag)
-                
+
+                if 'perm_variables' in player_data:
+                    target_player.perm_variables = player_data['perm_variables']
+                else:
+                    target_player.perm_variables = {}
+
                 # Load base stats
                 target_player.experience_points = player_data['experience_points']
                 target_player.hit_dice = player_data['hit_dice']
@@ -1548,30 +1669,53 @@ class ComprehensiveGameState:
                 target_player.contents = []
                 target_player.equipped = {loc: None for loc in EquipLocation}
                 
-                # Helper function to create an object from saved data
+                # Helper function to create an object from saved data.
+                # When a world definition exists for this object, create from definition so triggers (e.g. catch_look) are preserved.
                 def create_object_from_save(obj_data):
+                    definition_zone_id = obj_data.get('definition_zone_id')
+                    obj_id = obj_data['id']
+                    obj_def = None
+                    if definition_zone_id:
+                        def_key = f"{definition_zone_id}.{obj_id}"
+                        obj_def = self.world_definition.find_object_definition(def_key)
+                    if obj_def is None and obj_id:
+                        # Fallback: look up by id only so triggers (e.g. catch_look) are preserved
+                        obj_def = self.world_definition.find_object_definition(obj_id)
+                    if obj_def is not None:
+                        obj = Object.create_from_definition(obj_def)
+                        if obj.has_flags(ObjectFlags.IS_CONTAINER) and obj_data.get('contents'):
+                            for content_data in obj_data['contents']:
+                                content = create_object_from_save(content_data)
+                                obj.add_object(content)
+                        return obj
+                    # Fallback: build from saved data only (no triggers)
                     obj = Object(obj_data['id'], target_player.definition_zone_id, obj_data['name'])
                     obj.description_ = obj_data['description']
                     obj.weight = obj_data['weight']
                     obj.value = obj_data['value']
-                    obj.object_flags = ObjectFlags(0)
-                    for flag in obj_data['object_flags']:
-                        obj.object_flags = obj.object_flags.add_flag_name(flag)
-                    obj.equip_locations = [EquipLocation[loc] for loc in obj_data['equip_locations']]
+                    if isinstance(obj_data.get('object_flags'), int):
+                        obj.object_flags = ObjectFlags(obj_data['object_flags'])
+                    else:
+                        obj.object_flags = ObjectFlags(0)
+                        for flag in obj_data.get('object_flags', []):
+                            obj.object_flags = obj.object_flags.add_flag_name(flag)
+                    obj.equip_locations = [EquipLocation[loc] for loc in obj_data.get('equip_locations', [])]
                     obj.damage_multipliers = DamageMultipliers()
-                    for dt_name, value in obj_data['damage_multipliers'].items():
+                    for dt_name, value in obj_data.get('damage_multipliers', {}).items():
                         obj.damage_multipliers.profile[DamageType[dt_name]] = value
-                    obj.damage_reduction = {DamageType[dt_name]: value for dt_name, value in obj_data['damage_reductions'].items()}
-                    obj.damage_type = DamageType[obj_data['damage_type']] if obj_data['damage_type'] else None
-                    obj.damage_num_dice = obj_data['damage_num_dice']
-                    obj.damage_dice_size = obj_data['damage_dice_size']
-                    obj.damage_bonus = obj_data['damage_bonus']
-                    obj.attack_bonus = obj_data['attack_bonus']
-                    obj.dodge_penalty = obj_data['dodge_penalty']
+                    obj.damage_reduction = DamageReduction()
+                    for dt_name, value in obj_data.get('damage_reduction', {}).items():
+                        obj.damage_reduction.profile[DamageType[dt_name]] = value
+                    obj.damage_type = DamageType[obj_data['damage_type']] if obj_data.get('damage_type') else None
+                    obj.damage_num_dice = obj_data.get('damage_num_dice', 0)
+                    obj.damage_dice_size = obj_data.get('damage_dice_size', 0)
+                    obj.damage_bonus = obj_data.get('damage_bonus', 0)
+                    obj.attack_bonus = obj_data.get('attack_bonus', 0)
+                    obj.dodge_penalty = obj_data.get('dodge_penalty', 0)
                     
                     # Handle container contents
                     if obj.has_flags(ObjectFlags.IS_CONTAINER):
-                        for content_data in obj_data['contents']:
+                        for content_data in obj_data.get('contents', []):
                             content = create_object_from_save(content_data)
                             obj.add_object(content)
                             

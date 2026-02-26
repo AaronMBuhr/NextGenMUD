@@ -2,7 +2,7 @@ from .structured_logger import StructuredLogger
 from enum import IntFlag
 import re
 import random
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from .constants import Constants
 
 
@@ -18,6 +18,40 @@ def to_int(v) -> int:
         return int(v)
     except:
         return -1
+
+
+def normalize_var_value(s: str) -> Any:
+    """
+    Convert a string argument for setvar/setquestvar to the appropriate type.
+    - "true" (any capitalization) -> True
+    - "false" (any capitalization) -> False
+    - int-looking strings -> int
+    - float-looking strings -> float
+    - otherwise -> string unchanged
+    """
+    if not isinstance(s, str):
+        return s
+    t = s.strip()
+    lower = t.lower()
+    if lower == "true":
+        return True
+    if lower == "false":
+        return False
+    if "." in t:
+        try:
+            return float(t)
+        except ValueError:
+            pass
+    try:
+        return int(t)
+    except ValueError:
+        pass
+    try:
+        return float(t)
+    except ValueError:
+        pass
+    return s
+
 
 # Module-level variable for the compiled regex
 # variable_replacement_regex = re.compile(r"%(?!\d)[A-Za-z*#$]+%(?<!\d)")
@@ -164,18 +198,50 @@ IF_CONDITIONS = {
 
 }
 
-def evaluate_if_condition(if_subject: str, if_operator: str, if_predicate: str) -> bool:
-    logger = StructuredLogger(__name__, prefix="evaluate_if_condition()> ")
-    logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
+def evaluate_if_condition(condition_str, vars_dict, game_state):
+    """
+    Evaluates a condition string like "val1, operator, val2"
+    """
+    # 1. Split the arguments (usually by comma)
+    # Ensure we use our parentheses-honoring splitter if nested functions exist
+    parts = split_string_honoring_parentheses(condition_str)
 
-    if if_operator in IF_CONDITIONS:
+    if len(parts) < 3:
+        return False
+
+    # --- TARGETED TRIMMING START ---
+    # We trim the values and the operator to handle "$if( x , eq , y )"
+    val1 = parts[0].strip()
+    operator = parts[1].strip().lower()
+    val2 = parts[2].strip()
+    # --- TARGETED TRIMMING END ---
+
+    # Logic for numeric operators (should always be trimmed)
+    if operator in ["numgt", "numlt", "numeq", "numgte", "numlte"]:
         try:
-            return IF_CONDITIONS[if_operator](if_subject, if_predicate, None)
-        except Exception as e:
-            logger.warning(f"Exception: {e} when evaluating condition: {if_subject} {if_operator} {if_predicate}")
+            n1 = float(val1)
+            n2 = float(val2)
+            if operator == "numgt": return n1 > n2
+            if operator == "numlt": return n1 < n2
+            if operator == "numeq": return n1 == n2
+            if operator == "numgte": return n1 >= n2
+            if operator == "numlte": return n1 <= n2
+        except ValueError:
             return False
-    else:
-        raise NotImplementedError(f"evaluate_condition() does not support operator {if_operator}")
+
+    # Logic for string operators. eq/neq compare after lowercasing so a variable value of
+    # True (boolean) or "true" (string, any case) always compares equal to the script
+    # literal "true". Script convention: use lowercase true/false in conditions.
+    if operator == "eq":
+        return val1.lower() == val2.lower()
+    if operator == "neq":
+        return val1.lower() != val2.lower()
+    if operator == "contains":
+        # Note: We do NOT trim here if we want spaces to be significant in searches
+        # but for $if, it is generally safer to use the trimmed versions.
+        return val2.lower() in val1.lower()
+
+    return False
 
 
 def find_matching_parenthesis(line, start_index):
@@ -268,8 +334,8 @@ def split_string_honoring_parentheses(s):
 
 
 def get_quest_var_wrapper(char_ref: str, var_id: str, game_state: 'GameStateInterface') -> str:
-    """Wrapper for quest_schema.get_quest_var to be used in script functions."""
-    from .quest_schema import get_quest_var
+    """Wrapper for nondb_models.quests.get_quest_var to be used in script functions."""
+    from .nondb_models.quests import get_quest_var
     from .nondb_models.actors import Actor
     if game_state is None:
         return "false"
@@ -291,7 +357,16 @@ def get_quest_var_wrapper(char_ref: str, var_id: str, game_state: 'GameStateInte
 SCRIPT_FUNCTIONS = {
     "cap" : lambda a,b,c,gs: firstcap(a),
     "name" : lambda a,b,c,gs: a.name_,
-    "equipped" : lambda a,b,c,gs: gs.find_target_character(a).equip_location_[to_int(b)],
+
+    # --- NEW MATH FUNCTIONS ---
+    "add": lambda a,b,c,gs: str(to_int(a) + to_int(b)),
+    "sub": lambda a,b,c,gs: str(to_int(a) - to_int(b)),
+    "mul": lambda a,b,c,gs: str(to_int(a) * to_int(b)),
+    "div": lambda a,b,c,gs: str(int(to_int(a) / to_int(b))) if to_int(b) != 0 else "0",
+    "mod": lambda a,b,c,gs: str(to_int(a) % to_int(b)) if to_int(b) != 0 else "0",
+    # --------------------------
+
+    "equipped" : lambda a,b,c,gs: gs.find_target_character(None, a).equip_location_[to_int(b)],
     "numeq" : lambda a,b,c,gs: "true" if to_int(a) == to_int(b) else "false",
     "numneq" : lambda a,b,c,gs: "true" if to_int(a) != to_int(b) else "false",
     "numgt" : lambda a,b,c,gs: "true" if to_int(a) > to_int(b) else "false",
@@ -306,8 +381,8 @@ SCRIPT_FUNCTIONS = {
     "hasiteminv": lambda a,b,c,gs: does_char_have_item_inv(a, b, gs),
     "hasitemeq": lambda a,b,c,gs: does_char_have_item_equipped(a, b, gs),
     "hasitem" : lambda a,b,c,gs: does_char_have_item_anywhere(a, b, gs),
-    "locroom": lambda a,b,c,gs: gs.find_target_character(a).current_room_.name_,
-    "loczone": lambda a,b,c,gs: gs.find_target_character(a).current_room_.zone_.name_,
+    "locroom": lambda a,b,c,gs: gs.find_target_character(None, a).current_room_.name_,
+    "loczone": lambda a,b,c,gs: gs.find_target_character(None, a).current_room_.zone_.name_,
     "olocroom": lambda a,b,c,gs: gs.find_target_object(a).current_room_.name_,
     "oloczone": lambda a,b,c,gs: gs.find_target_object(a).current_room_.zone_.name_,
 }
@@ -317,14 +392,14 @@ SCRIPT_FUNCTIONS = {
 def does_char_have_item_inv(char_name_or_id: str, item_name_or_id: str, game_state: 'GameStateInterface') -> bool:
     if game_state == None:
         return False
-    char = game_state.find_target_character(char_name_or_id)
+    char = game_state.find_target_character(None, char_name_or_id)
     return False if char == None else game_state.find_target_object(item_name_or_id, char) != None
 
 def does_char_have_item_equipped(char_name_or_id: str, item_name_or_id: str, game_state:  'GameStateInterface') -> bool:
     if game_state == None:
         return False
-    char = game_state.find_target_character(char_name_or_id)
-    return False if char == None else game_state.find_target_object(item_name_or_id, None, char.equipped_) != None
+    char = game_state.find_target_character(None, char_name_or_id)
+    return False if char == None else game_state.find_target_object(item_name_or_id, None, char.equipped) != None
 
 def does_char_have_item_anywhere(char_name_or_id: str, item_name_or_id: str, game_state: 'GameStateInterface') -> bool:
     if game_state == None:
@@ -378,9 +453,9 @@ def evaluate_functions_in_line(line: str, vars: dict, game_state: 'Comprehensive
             logger.debug3("Unknown function: " + func_name)
             result = 'UNKNOWN_FUNCTION'
 
-        # Replace the function call in the line with the result
+        # Replace the function call in the line with the result (ensure string for join)
         logger.debug3(f"{func_name} result: {result}")
-        result_parts.append(result)
+        result_parts.append(result if isinstance(result, str) else str(result))
         start = args_end + 1
         next = line.find('$', start) 
 
@@ -502,8 +577,8 @@ def ticks_from_rounds(rounds: int) -> int:
     return rounds * Constants.TICKS_PER_ROUND
 
 def ticks_from_seconds(seconds: int) -> int:
-    return seconds / Constants.GAME_TICK_SEC
+    return seconds // Constants.GAME_TICK_SEC
 
 def rounds_from_ticks(ticks: int) -> int:
-    return ticks / Constants.TICKS_PER_ROUND
+    return ticks // Constants.TICKS_PER_ROUND
 

@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 
 from NextGenMUDApp.comprehensive_game_state import ComprehensiveGameState
 from NextGenMUDApp.config import default_app_config
+from NextGenMUDApp.nondb_models.actor_interface import ActorType
 from NextGenMUDApp.nondb_models.character_interface import PermanentCharacterFlags, GamePermissionFlags
 from NextGenMUDApp.nondb_models.characters import Character
 
@@ -116,17 +117,35 @@ class TestCmdReload:
 
     @pytest.mark.asyncio
     async def test_cmd_reload_requires_admin(self):
+        """Non-admin PC is rejected by the command dispatcher (privileged check), not by cmd_reload."""
         from NextGenMUDApp.command_handler import CommandHandler
 
         actor = MagicMock()
-        actor.has_game_flags = MagicMock(return_value=False)
+        actor.actor_type = ActorType.CHARACTER
+        actor.rid = "test_pc"
+        actor.reference_number = "1"
+        actor.has_perm_flags = MagicMock(return_value=True)   # is a player character
+        actor.has_game_flags = MagicMock(return_value=False)  # not admin
+        actor.has_temp_flags = MagicMock(return_value=False)
+        actor.is_dead = MagicMock(return_value=False)
+        actor.is_busy = MagicMock(return_value=False)
+        actor.command_queue = []
+        actor.id = "test_pc"
         actor.send_text = AsyncMock()
+        actor.trigger_context = None
 
-        await CommandHandler.cmd_reload(CommandHandler, actor, "zone debug_zone")
+        mock_game_state = MagicMock()
+        mock_game_state.get_current_tick = MagicMock(return_value=0)
+        mock_game_state.is_debug_enabled = MagicMock(return_value=False)
 
-        actor.send_text.assert_called()
-        call_args = actor.send_text.call_args[0]
-        assert "permission" in call_args[1].lower()
+        with patch.object(CommandHandler, "_game_state", mock_game_state), \
+             patch("NextGenMUDApp.command_handler.flush_admin_log_queue", new_callable=AsyncMock), \
+             patch("NextGenMUDApp.command_handler.clear_current_actor"):
+            await CommandHandler.process_command(actor, "reload zone debug_zone")
+
+        # Dispatcher should have sent the permission message (and the echo "> reload ...")
+        messages_sent = [call_args[0][1] for call_args in actor.send_text.call_args_list if call_args[0]]
+        assert any("permission" in (msg or "").lower() for msg in messages_sent)
 
     @pytest.mark.asyncio
     async def test_cmd_reload_usage_with_no_input(self):

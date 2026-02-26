@@ -6,7 +6,7 @@ from .nondb_models.actor_states import (
     CharacterStateForcedSitting, CharacterStateHitPenalty, CharacterStateStunned,
     CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus,
     CharacterStateBerserkerStance, CharacterStateDefensiveStance, CharacterStateBleeding,
-    CharacterStateDodgePenalty, Cooldown
+    CharacterStateDodgePenalty, CharacterStateDisarmed, Cooldown
 )
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageMultipliers, AttackData
 # CharacterSkill import removed - not used in this file
@@ -510,7 +510,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_normal_stance_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -518,7 +518,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -527,6 +527,8 @@ class Skills_Fighter(Skills):
     async def do_fighter_normal_stance_finish(cls, actor: Actor, target: Actor, 
                                              difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.NORMAL_STANCE
+        if not await cls.check_valid_finish(actor, None):
+            return False
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         
@@ -539,10 +541,10 @@ class Skills_Fighter(Skills):
             changed = True
             
         if changed:
-            send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -552,7 +554,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_defensive_stance_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -560,7 +562,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -569,6 +571,8 @@ class Skills_Fighter(Skills):
     async def do_fighter_defensive_stance_finish(cls, actor: Actor, target: Actor, 
                                                 difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.DEFENSIVE_STANCE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         DEFENSIVE_STANCE_DODGE_BONUS = 10
         DEFENSIVE_STANCE_RESIST_AMOUNT = 5
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
@@ -592,13 +596,13 @@ class Skills_Fighter(Skills):
             new_state = CharacterStateDefensiveStance(actor, cls._get_game_state(), actor, "defensive stance", 
                                                        dodge_bonus=dodge_bonus, hit_penalty=0, 
                                                        damage_multipliers=multipliers, tick_created=game_tick)
-            new_state.apply_state(game_tick)
+            await new_state.apply_state(game_tick)
             vars = set_vars(actor, actor, actor, "")
-            send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
             vars = set_vars(actor, actor, actor, "")
-            send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -608,7 +612,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_shield_block_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -616,7 +620,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -625,8 +629,10 @@ class Skills_Fighter(Skills):
     async def do_fighter_shield_block_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.SHIELD_BLOCK
+        if not await cls.check_valid_finish(actor, target):
+            return False
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         multiplier_value = actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK] / 5
         multipliers = DamageMultipliers({
             DamageType.SLASHING: multiplier_value,
@@ -644,11 +650,11 @@ class Skills_Fighter(Skills):
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateShielded(actor, actor, "shielded", multipliers, tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -658,7 +664,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_shield_sweep_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -666,7 +672,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -675,10 +681,12 @@ class Skills_Fighter(Skills):
     async def do_fighter_shield_sweep_finish(cls, actor: Actor, target: Actor, 
                                             difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.SHIELD_SWEEP
+        if not await cls.check_valid_finish(actor, target):
+            return False
         SHIELD_SWEEP_DAMAGE_MIN = 5
         SHIELD_SWEEP_DAMAGE_MAX = 15
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         damage = random.randint(SHIELD_SWEEP_DAMAGE_MIN, SHIELD_SWEEP_DAMAGE_MAX) * level_mult
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -687,9 +695,9 @@ class Skills_Fighter(Skills):
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_SWEEP],
                               difficulty_modifier - attrib_mod):
             # Get all nearby enemies
-            targets = actor.room.get_nearby_enemies(actor)
+            targets = actor.location_room.get_nearby_enemies(actor)
             if not targets:
-                send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
                 return False
             for target in targets:
                 vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=damage)
@@ -698,15 +706,15 @@ class Skills_Fighter(Skills):
                         THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                         attacker_attribute=CharacterAttributes.STRENGTH)
                     if saved:
-                        send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                         continue
-                new_state = CharacterStateStunned(target, actor, "shield swept", tick_created=game_tick)
-                new_state.apply_state(game_tick, duration)
-                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
-            send_success_message(actor, targets, THIS_SKILL_DATA, vars)
+                new_state = CharacterStateStunned(target, cls._get_game_state(), source_actor=actor, state_type_name="shield swept", tick_created=game_tick)
+                await new_state.apply_state(game_tick, duration)
+                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
+            await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -716,7 +724,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_mighty_kick_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -724,7 +732,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -733,8 +741,10 @@ class Skills_Fighter(Skills):
     async def do_fighter_mighty_kick_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.MIGHTY_KICK
-        kick_duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) \
-            * actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
+        if not await cls.check_valid_finish(actor, target):
+            return False
+        kick_duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) \
+            * actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels())
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = roll_dice(target.dodge_dice_number_, target.dodge_dice_size_, target.dodge_dice_modifier_)
@@ -744,21 +754,21 @@ class Skills_Fighter(Skills):
         
         if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
-            send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
         if THIS_SKILL_DATA.save_type:
             save_chance, saved = target.attempt_save(
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.STRENGTH)
             if saved:
-                send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                 return True
-        send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
-        new_state = CharacterStateForcedSitting(target, actor, "kicked", tick_created=game_tick)
-        new_state.apply_state(game_tick, kick_duration)
-        send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+        await cls.send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
+        new_state = CharacterStateForcedSitting(target, cls._get_game_state(), source_actor=actor, state_type_name="kicked", tick_created=game_tick)
+        await new_state.apply_state(game_tick, kick_duration)
+        await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         return True
 
     @classmethod
@@ -768,13 +778,13 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
-            send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
         continue_func = lambda: cls.do_fighter_demoralizing_shout_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -782,7 +792,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -791,10 +801,12 @@ class Skills_Fighter(Skills):
     async def do_fighter_demoralizing_shout_finish(cls, actor: Actor, target: Actor, 
                                                  difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.DEMORALIZING_SHOUT
+        if not await cls.check_valid_finish(actor, target):
+            return False
         DEMORALIZING_SHOUT_HIT_PENALTY_MIN = 10
         DEMORALIZING_SHOUT_HIT_PENALTY_MAX = 40
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         hit_penalty = random.randint(DEMORALIZING_SHOUT_HIT_PENALTY_MIN, DEMORALIZING_SHOUT_HIT_PENALTY_MAX) * level_mult
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -802,13 +814,13 @@ class Skills_Fighter(Skills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        targets = actor.room.get_nearby_enemies(actor)
+        targets = actor.location_room.get_nearby_enemies(actor)
         skill_roll = random.randint(1, 100)
         if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
-            send_success_message(actor, targets, THIS_SKILL_DATA, vars)
+            await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
         else:
-            send_failure_message(actor, targets, THIS_SKILL_DATA, vars)    
+            await cls.send_failure_message(actor, targets, THIS_SKILL_DATA, vars)    
             return False
         for target in targets:
             if THIS_SKILL_DATA.save_type:
@@ -816,12 +828,12 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     continue
-            send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
             new_state = CharacterStateHitPenalty(target, actor, "demoralized", hit_penalty, tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         return True
 
     @classmethod
@@ -831,7 +843,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_intimidate_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -839,7 +851,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -848,10 +860,12 @@ class Skills_Fighter(Skills):
     async def do_fighter_intimidate_finish(cls, actor: Actor, target: Actor, 
                                            difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.INTIMIDATE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         INTIMIDATE_HIT_PENALTY_MIN = 10
         INTIMIDATE_HIT_PENALTY_MAX = 40
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         hit_penalty = random.randint(INTIMIDATE_HIT_PENALTY_MIN, INTIMIDATE_HIT_PENALTY_MAX) * level_mult
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -859,7 +873,7 @@ class Skills_Fighter(Skills):
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        targets = actor.room.get_nearby_enemies(actor)
+        targets = actor.location_room.get_nearby_enemies(actor)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.INTIMIDATE],
                               difficulty_modifier - attrib_mod + target_mod):
             for target in targets:
@@ -869,14 +883,14 @@ class Skills_Fighter(Skills):
                         THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                         attacker_attribute=CharacterAttributes.STRENGTH)
                     if saved:
-                        send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                         continue
                 new_state = CharacterStateHitPenalty(target, actor, "intimidated", hit_penalty, tick_created=game_tick)
-                new_state.apply_state(game_tick, duration)
-            send_success_message(actor, targets, THIS_SKILL_DATA, vars)
+                await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -886,7 +900,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_disarm_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -894,7 +908,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -903,8 +917,10 @@ class Skills_Fighter(Skills):
     async def do_fighter_disarm_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.DISARM
+        if not await cls.check_valid_finish(actor, target):
+            return False
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = (target.attributes[CharacterAttributes.WISDOM] - Skills.ATTRIBUTE_AVERAGE) \
@@ -919,14 +935,14 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.DEXTERITY)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
-            new_state = CharacterStateForcedSitting(target, actor, "disarmed", tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, target, THIS_SKILL_DATA, vars)
+            new_state = CharacterStateDisarmed(target, cls._get_game_state(), source_actor=actor, state_type_name="disarmed", tick_created=game_tick)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, target, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -936,7 +952,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_slam_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -944,7 +960,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -953,10 +969,12 @@ class Skills_Fighter(Skills):
     async def do_fighter_slam_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.SLAM
+        if not await cls.check_valid_finish(actor, target):
+            return False
         SLAM_DODGE_PENALTY_MIN = 10
         SLAM_DODGE_PENALTY_MAX = 40
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         dodge_penalty = random.randint(SLAM_DODGE_PENALTY_MIN, SLAM_DODGE_PENALTY_MAX) * level_mult
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
@@ -972,14 +990,14 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
-            new_state = CharacterStateDodgePenalty(target, actor, "slammed", dodge_penalty, tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, target, THIS_SKILL_DATA, vars)
+            new_state = CharacterStateDodgePenalty(target, cls._get_game_state(), source_actor=actor, state_type_name="slammed", affect_amount=dodge_penalty, tick_created=game_tick)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, target, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -989,7 +1007,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_bash_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -997,7 +1015,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1006,8 +1024,10 @@ class Skills_Fighter(Skills):
     async def do_fighter_bash_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.BASH
+        if not await cls.check_valid_finish(actor, target):
+            return False
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = (target.attributes[CharacterAttributes.DEXTERITY] - Skills.ATTRIBUTE_AVERAGE) \
@@ -1022,14 +1042,14 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
-            new_state = CharacterStateStunned(target, actor, "bashed", tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, target, THIS_SKILL_DATA, vars)
+            new_state = CharacterStateStunned(target, cls._get_game_state(), source_actor=actor, state_type_name="bashed", tick_created=game_tick)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, target, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1039,7 +1059,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_rally_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1047,7 +1067,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1056,30 +1076,32 @@ class Skills_Fighter(Skills):
     async def do_fighter_rally_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.RALLY
+        if not await cls.check_valid_finish(actor, target):
+            return False
         RALLY_HIT_BONUS_MIN = 5
         RALLY_HIT_BONUS_MAX = 20
         RALLY_DAMAGE_BONUS_MIN = 5
         RALLY_DAMAGE_BONUS_MAX = 20
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
         hit_bonus = random.randint(RALLY_HIT_BONUS_MIN, RALLY_HIT_BONUS_MAX) * level_mult
         damage_bonus = random.randint(RALLY_DAMAGE_BONUS_MIN, RALLY_DAMAGE_BONUS_MAX) * level_mult
         attrib_mod = (actor.attributes[CharacterAttributes.CHARISMA] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
-        targets = actor.room.get_nearby_allies(actor)
+        targets = actor.location_room.get_nearby_allies(actor)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.RALLY],
                               difficulty_modifier - attrib_mod):
             for target in targets:
                 new_state = CharacterStateHitBonus(target, actor, "rallied", hit_bonus, tick_created=game_tick)
-                new_state.apply_state(game_tick, duration)
+                await new_state.apply_state(game_tick, duration)
                 new_state = CharacterStateDamageBonus(target, actor, "rallied", damage_bonus, tick_created=game_tick)
-                new_state.apply_state(game_tick, duration)
-            send_success_message(actor, targets, THIS_SKILL_DATA, vars)
+                await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1089,7 +1111,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_rend_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1097,7 +1119,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1106,11 +1128,13 @@ class Skills_Fighter(Skills):
     async def do_fighter_rend_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.REND
+        if not await cls.check_valid_finish(actor, target):
+            return False
         REND_DAMAGE_MIN = 5
         REND_DAMAGE_MAX = 15
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        damage = random.randint(REND_DAMAGE_MIN, REND_DAMAGE_MAX) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
+        damage = int(random.randint(REND_DAMAGE_MIN, REND_DAMAGE_MAX) * level_mult)
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         target_mod = (target.attributes[CharacterAttributes.CONSTITUTION] - Skills.ATTRIBUTE_AVERAGE) \
@@ -1125,14 +1149,14 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
             new_state = CharacterStateBleeding(target, actor, "rended", damage, tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, target, THIS_SKILL_DATA, vars)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, target, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1142,7 +1166,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_cleave_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1150,7 +1174,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1165,10 +1189,11 @@ class Skills_Fighter(Skills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.CLEAVE],
                               difficulty_modifier - attrib_mod):
-            # Get all nearby enemies
-            targets = actor.room.get_nearby_enemies(actor)
+            if not await cls.check_valid_finish(actor, target):
+                return False
+            targets = actor.location_room.get_nearby_enemies(actor)
             if len(targets) < 2:
-                send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
                 return False
             # Hit the first two targets
             for i in range(min(2, len(targets))):
@@ -1187,17 +1212,17 @@ class Skills_Fighter(Skills):
                     base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, attack_data)
                     final_damage = base_damage * actor.num_main_hand_attacks
                     vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
+                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
                 else:
                     for natural_attack in actor.natural_attacks:
                         base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, natural_attack)
                         final_damage = base_damage * actor.num_main_hand_attacks
                         vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                        target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
-            send_success_message(actor, targets[:2], THIS_SKILL_DATA, vars)
+                        target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
+            await cls.send_success_message(actor, targets[:2], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1207,7 +1232,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_whirlwind_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1215,7 +1240,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1224,6 +1249,8 @@ class Skills_Fighter(Skills):
     async def do_fighter_whirlwind_finish(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.WHIRLWIND
+        if not await cls.check_valid_finish(actor, None):
+            return False
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
 
@@ -1245,14 +1272,14 @@ class Skills_Fighter(Skills):
         if not targets:
             msg = f"There are no enemies to strike with your whirlwind attack!"
             vars = set_vars(actor, actor, None, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
 
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.WHIRLWIND], difficulty_modifier):
             # Success message
             target_names = ", ".join([t.art_name for t in targets])
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_subject)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_subject, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_subject, vars, game_state=cls._get_game_state())
             
             # Hit each target with one attack multiplied by number of main hand attacks
             total_dmgs = defaultdict(int)
@@ -1276,7 +1303,7 @@ class Skills_Fighter(Skills):
                     total_dmgs[t] = final_damage
                     # Message to the target
                     vars = set_vars(actor, actor, t, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                    t.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
+                    t.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
             else:
                 # Natural attacks
                 for natural_attack in actor.natural_attacks:
@@ -1287,14 +1314,14 @@ class Skills_Fighter(Skills):
                         total_dmgs[t] = final_damage
                         # Message to the target
                         vars = set_vars(actor, actor, t, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                        t.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
+                        t.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
         
             # Message to others in the room
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_room)
-            actor._location_room.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_room, vars, cls._get_game_state(), exceptions=targets)
+            actor.location_room.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_room, vars, cls._get_game_state(), exceptions=targets)
             return True
         else:
-            send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, targets, THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1304,7 +1331,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_execute_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1312,7 +1339,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1321,11 +1348,13 @@ class Skills_Fighter(Skills):
     async def do_fighter_execute_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.EXECUTE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         # Check if target is below 25% health
         if target.current_hit_points > target.max_hit_points * 0.25:
             msg = f"Your target is not weak enough to execute!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
 
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
@@ -1348,17 +1377,17 @@ class Skills_Fighter(Skills):
                 base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, attack_data)
                 final_damage = base_damage * actor.num_main_hand_attacks * 2  # Double damage for execute
                 vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
+                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
             else:
                 for natural_attack in actor.natural_attacks:
                     base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, natural_attack)
                     final_damage = base_damage * actor.num_main_hand_attacks * 2  # Double damage for execute
                     vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
-            send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1368,7 +1397,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_enrage_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1376,7 +1405,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1385,11 +1414,13 @@ class Skills_Fighter(Skills):
     async def do_fighter_enrage_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.ENRAGE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         ENRAGE_DAMAGE_BONUS_MIN = 20
         ENRAGE_DAMAGE_BONUS_MAX = 50
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
-        duration = random.randint(THIS_SKILL_DATA.duration_min_ticks, THIS_SKILL_DATA.duration_max_ticks) * level_mult
-        damage_bonus = random.randint(ENRAGE_DAMAGE_BONUS_MIN, ENRAGE_DAMAGE_BONUS_MAX) * level_mult
+        duration = int(random.randint(int(THIS_SKILL_DATA.duration_min_ticks), int(THIS_SKILL_DATA.duration_max_ticks)) * level_mult)
+        damage_bonus = int(random.randint(ENRAGE_DAMAGE_BONUS_MIN, ENRAGE_DAMAGE_BONUS_MAX) * level_mult)
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
@@ -1397,11 +1428,11 @@ class Skills_Fighter(Skills):
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.ENRAGE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateDamageBonus(actor, actor, "enraged", damage_bonus, tick_created=game_tick)
-            new_state.apply_state(game_tick, duration)
-            send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await new_state.apply_state(game_tick, duration)
+            await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1411,7 +1442,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_massacre_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1419,7 +1450,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1428,6 +1459,8 @@ class Skills_Fighter(Skills):
     async def do_fighter_massacre_finish(cls, actor: Actor, target: Actor, 
                                          difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.MASSACRE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         attrib_mod = (actor.attributes[CharacterAttributes.STRENGTH] - Skills.ATTRIBUTE_AVERAGE) \
             * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._get_game_state(), cooldown_source=actor, cooldown_vars=None)
@@ -1448,17 +1481,17 @@ class Skills_Fighter(Skills):
                 base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, attack_data)
                 final_damage = base_damage * actor.num_main_hand_attacks * 3  # Triple damage for massacre
                 vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
+                target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
             else:
                 for natural_attack in actor.natural_attacks:
                     base_damage = await CoreActionsInterface.get_instance().do_single_attack(actor, target, natural_attack)
                     final_damage = base_damage * actor.num_main_hand_attacks * 3  # Triple damage for massacre
                     vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_success_target, damage=final_damage)
-                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, cls._get_game_state())
-            send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+                    target.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_success_target, vars, game_state=cls._get_game_state())
+            await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)
             return False
 
     @classmethod
@@ -1468,7 +1501,7 @@ class Skills_Fighter(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
             return False
         continue_func = lambda: cls.do_fighter_berserker_stance_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._get_game_state().get_current_tick()) + actor.recovery_ticks
@@ -1476,7 +1509,7 @@ class Skills_Fighter(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, cls._get_game_state())
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._get_game_state())
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -1485,6 +1518,8 @@ class Skills_Fighter(Skills):
     async def do_fighter_berserker_stance_finish(cls, actor: Actor, target: Actor, 
                                                  difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = Skills_Fighter.BERSERKER_STANCE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         BERSERKER_STANCE_DODGE_PENALTY = 10
         BERSERKER_STANCE_HIT_BONUS = 20
         level_mult = actor.levels_by_role[CharacterClassRole.FIGHTER] / target.total_levels()
@@ -1498,11 +1533,11 @@ class Skills_Fighter(Skills):
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BERSERKER_STANCE],
                               difficulty_modifier - attrib_mod):
             new_state = CharacterStateBerserkerStance(actor, actor, "berserker stance", dodge_mod, hit_mod, tick_created=game_tick)
-            new_state.apply_state(game_tick)
-            send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await new_state.apply_state(game_tick)
+            await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
         else:
-            send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
+            await cls.send_failure_message(actor, [actor], THIS_SKILL_DATA, vars)
             return False
 
     def __str__(self):

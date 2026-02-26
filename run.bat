@@ -16,4 +16,7 @@ if "%~1"=="--log-level" (
     shift
 )
 
-powershell -NoProfile -Command "$env:NEXTGENMUD_LOG_WIDTH=%LOG_WIDTH%; $env:NEXTGENMUD_LOG_LEVEL='%LOG_LEVEL%'; uvicorn NextGenMUD.asgi:application --host 0.0.0.0 --port 8000 --timeout-graceful-shutdown 3" 
+set PYTHONUNBUFFERED=1
+set NEXTGENMUD_LOG_WIDTH=%LOG_WIDTH%
+set NEXTGENMUD_LOG_LEVEL=%LOG_LEVEL%
+uvicorn NextGenMUD.asgi:application --host 0.0.0.0 --port 8000 --timeout-graceful-shutdown 3

@@ -681,27 +681,19 @@ ZONES:
         CHARACTERS:
         - id: empress_valerius_echo
           quantity: 1
+    # LLM-facing: concise status lines for "WHAT THE PLAYER ALREADY KNOWS" and NPC common_knowledge_refs
     common_knowledge:
-      gravity_anchoring_truth: |
-        The Great Convergence was not a natural disaster, but the catastrophic  result of a failed experiment in 'Gravity Anchoring' conducted by the  High Mage Council.
-      council_betrayal: |
-        Contrary to popular myth, it was the High Mage Council, acting in  secret, who ordered the city's descent into the abyss, not Empress  Valerius.
-      mana_flare_warning: |
-        If the violet light in the Hall of Runes turns white, it indicates  that ambient mana has reached unstable, explosive levels.
-      grimoire_etiquette: |
-        The Floating Grimoires are neutral guardians that will only become  hostile if they detect disruptive magic, typically spells above  Tier 2.
-      harvesting_harmonics: Prism Shards must be harvested at a frequency of exactly 440Hz;  any deviation causes the crystal to shatter or react violently.
-      royal_scandal: |
-        Before the Fall, it was a whispered scandal that Empress Valerius was  secretly in love with the Captain of the Barracks.
-      solstice_tragedy: |
-        The Great Convergence occurred exactly during the height of the  Winter Solstice gala, trapping the nobility in their finery for  eternity.
-      palace_security_protocol: |
-        The Golden Automata are programmed to grant passage only to those  bearing the Imperial Sigil or accompanied by a recognized member  of the Royal House.
-      garden_sabotage: |
-        The Hanging Gardens are overgrown because the city's automated  pruning systems were intentionally sabotaged on the night of  the city's descent.
-      abyssal_time_dilation: |
-        Due to the magical pressure of the Veil, time inside the Citadel  is distorted; one hour spent within the city is equivalent to  an entire year passing on the surface.
-      sewer_breach_conspiracy: The initial breach in the sewers was the true first sign of the  Fall, but the High Mage Council deceptively told the Empress it  was merely a minor plumbing failure.
+      gravity_anchoring_truth: Great Convergence was not natural disaster but a failed Gravity Anchoring experiment by the High Mage Council.
+      council_betrayal: High Mage Council, in secret, ordered the city's descent into the abyss—not Empress Valerius.
+      mana_flare_warning: If violet light in Hall of Runes turns white, ambient mana has reached unstable, explosive levels.
+      grimoire_etiquette: Floating Grimoires are neutral; they turn hostile only if they detect disruptive magic, typically spells above Tier 2.
+      harvesting_harmonics: Prism Shards must be harvested at exactly 440Hz; any deviation shatters or triggers violent reaction.
+      royal_scandal: Before the Fall, whispered scandal that Empress Valerius was secretly in love with the Captain of the Barracks.
+      solstice_tragedy: Convergence occurred at the height of the Winter Solstice gala; nobility trapped in their finery for eternity.
+      palace_security_protocol: Golden Automata grant passage only to those bearing the Imperial Sigil or accompanied by a recognized Royal House member.
+      garden_sabotage: Hanging Gardens overgrown because automated pruning systems were intentionally sabotaged the night of the city's descent.
+      abyssal_time_dilation: Veil's magical pressure distorts time; one hour in the Citadel equals a year on the surface.
+      sewer_breach_conspiracy: Initial sewer breach was the true first sign of the Fall; Council told the Empress it was merely a plumbing failure.
     CHARACTERS:
     - id: unit_734b
       name: Unit 734-B

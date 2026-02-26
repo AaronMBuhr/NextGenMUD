@@ -34,11 +34,36 @@
             border-radius: 5px;
             font-size: 0.9375; /* This is 14px if the default is 16px */
         }
+        /* Output divs: same look as text-box, scrollable, preserve newlines and spaces */
+        .output-box {
+            width: 95%;
+            margin: 0 auto;
+            text-align: left;
+            padding: 5px;
+            background-color: #3a3a3a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9375em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: scroll;
+        }
         #staticText, #dynamicText {
             height: 15em;
             overflow-y: scroll;
             transition: height 0.3s ease;
         }
+        /* MUD pipe-code colors (|W white, |G green, |n normal, etc.) */
+        .mud-default { color: #f5f5f5; }
+        .mud-w { color: #f5f5f5; }
+        .mud-g { color: #69db7c; }
+        .mud-r { color: #ff6b6b; }
+        .mud-y { color: #fcc419; }
+        .mud-b { color: #4dabf7; }
+        .mud-c { color: #22b8cf; }
+        .mud-m { color: #e64980; }
+        .mud-x { color: #495057; }
         #statusBar {
             width: 95%;
             margin: 0 auto;
@@ -176,8 +201,8 @@
                 </div>
             </div>
         </div>
-        <textarea id="staticText" class="text-box" readonly></textarea>
-        <textarea id="dynamicText" class="text-box" readonly></textarea>
+        <div id="staticText" class="text-box output-box" aria-label="Static output"></div>
+        <div id="dynamicText" class="text-box output-box" aria-label="Dynamic output"></div>
         <div class="input-area">
             <textarea id="inputText" class="text-box"></textarea>
             <button id="submitButton">Submit</button>
@@ -199,20 +224,62 @@
             console.log(message);
         }
 
+        /** Escape HTML so server text cannot inject script or markup. */
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /**
+         * Convert MUD pipe color codes to HTML spans.
+         * |n = normal, |W/|w = white, |G/|g = green, |R/|r = red, |Y/|y = yellow,
+         * |B/|b = blue, |C/|c = cyan, |M/|m = magenta, |X/|x = dim.
+         * Newlines are turned into <br> so the output is one HTML fragment.
+         */
+        function pipeCodesToHtml(str) {
+            if (str == null) return '';
+            var s = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            var out = '';
+            var i = 0;
+            var inSpan = false;
+            var re = /\|([A-Za-z])/g;
+            var match;
+            var colorMap = { n: null, w: 'mud-w', g: 'mud-g', r: 'mud-r', y: 'mud-y', b: 'mud-b', c: 'mud-c', m: 'mud-m', x: 'mud-x' };
+            while ((match = re.exec(s)) !== null) {
+                out += escapeHtml(s.slice(i, match.index)).replace(/\n/g, '<br>');
+                var code = match[1].toLowerCase();
+                if (colorMap.hasOwnProperty(code)) {
+                    if (inSpan) { out += '</span>'; inSpan = false; }
+                    if (code !== 'n') {
+                        out += '<span class="' + colorMap[code] + '">';
+                        inSpan = true;
+                    }
+                }
+                i = re.lastIndex;
+            }
+            out += escapeHtml(s.slice(i)).replace(/\n/g, '<br>');
+            if (inSpan) out += '</span>';
+            return out;
+        }
+
         function messageReceived(data) {
             logDebug('Message received: ' + JSON.stringify(data));
+            var staticEl = document.getElementById('staticText');
+            var dynamicEl = document.getElementById('dynamicText');
+            // Ensure text is a string to avoid corruption or wrong type being rendered
+            var text = (data.text != null && typeof data.text === 'string') ? data.text : '';
             if (data.text_type == "clearstatic") {
-                document.getElementById('staticText').value = "";
+                staticEl.innerHTML = "";
             } else if (data.text_type == "cleardynamic") {
-                document.getElementById('dynamicText').value = "";
+                dynamicEl.innerHTML = "";
             } else if (data.text_type === "static") {
-                var staticTextArea = document.getElementById('staticText');
-                staticTextArea.value += data.text + "\n";
-                staticTextArea.scrollTop = staticTextArea.scrollHeight;
+                staticEl.innerHTML += pipeCodesToHtml(text + "\n");
+                staticEl.scrollTop = staticEl.scrollHeight;
             } else if (data.text_type === "dynamic") {
-                var dynamicTextArea = document.getElementById('dynamicText');
-                dynamicTextArea.value += data.text + "\n";
-                dynamicTextArea.scrollTop = dynamicTextArea.scrollHeight;
+                dynamicEl.innerHTML += pipeCodesToHtml(text + "\n");
+                dynamicEl.scrollTop = dynamicEl.scrollHeight;
             } else if (data.text_type === "status") {
                 updateStatusBar(data.text);
             }
@@ -268,6 +335,18 @@
             const inputArea = document.querySelector('.input-area');
             const debugToggleDiv = document.querySelector('.debug-toggle');
             const inputText = document.getElementById('inputText');
+            
+            // Command history (last 20, newest first); -1 = not browsing
+            let commandHistory = [];
+            let commandHistoryIndex = -1;
+            let draftLine = '';
+            const MAX_HISTORY = 20;
+            
+            function placeCursorAtEnd(el) {
+                el.focus();
+                const len = el.value.length;
+                el.setSelectionRange(len, len);
+            }
             
             // Focus on the input box when the page loads
             inputText.focus();
@@ -387,6 +466,36 @@
                 sendMessage();
             };
 
+            inputText.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (commandHistory.length === 0) return;
+                    if (commandHistoryIndex === -1) {
+                        draftLine = inputText.value;
+                        commandHistoryIndex = 0;
+                    } else if (commandHistoryIndex < commandHistory.length - 1) {
+                        commandHistoryIndex += 1;
+                    }
+                    inputText.value = commandHistory[commandHistoryIndex];
+                    placeCursorAtEnd(inputText);
+                    return;
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (commandHistoryIndex === -1) return;
+                    if (commandHistoryIndex > 0) {
+                        commandHistoryIndex -= 1;
+                        inputText.value = commandHistory[commandHistoryIndex];
+                        placeCursorAtEnd(inputText);
+                    } else {
+                        commandHistoryIndex = -1;
+                        inputText.value = draftLine;
+                        placeCursorAtEnd(inputText);
+                    }
+                    return;
+                }
+            });
+
             inputText.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -399,6 +508,11 @@
                 logDebug('Sending message: ' + message);
                 if (webSocketBridge.readyState === WebSocket.OPEN) {
                     webSocketBridge.send(JSON.stringify({ message: message }));
+                    const trimmed = (message && message.trim()) ? message.trim() : '';
+                    if (trimmed) {
+                        commandHistory = [trimmed].concat(commandHistory).slice(0, MAX_HISTORY);
+                    }
+                    commandHistoryIndex = -1;
                     inputText.value = '';
                 } else {
                     logDebug('WebSocket is not open. Ready state: ' + webSocketBridge.readyState);

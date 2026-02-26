@@ -82,13 +82,13 @@ The merge system allows you to:
 
 ### 1. Create a Revision File
 
-Create a new YAML file with only the changes you want to make:
+Create a new YAML file with only the changes you want to make. **Only `ZONES` may be at the top level;** put ROOMS, CHARACTERS, and OBJECTS under the zone:
 
 ```yaml
 # revisions_my_zone.yaml
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       existing_room:
         # Add a new exit to an existing room
         exits:
@@ -99,10 +99,7 @@ ZONES:
         name: Hidden Chamber
         description: "A secret room behind the bookshelf."
         exits: { west: { destination: existing_room } }
-
-CHARACTERS:
-  - zone: my_zone
-    characters:
+    CHARACTERS:
       # Add a new NPC
       - id: mysterious_stranger
         name: Mysterious Stranger
@@ -129,6 +126,8 @@ mv ../world_data/my_zone_merged.yaml ../world_data/my_zone.yaml
 
 ## File Structure
 
+**Critical:** The merge file must have **only one top-level key: `ZONES`**. There must be no other keys at the same level as `ZONES`. All rooms, characters, and objects belong **under a specific zone** inside `ZONES`. The section names under each zone must be capitalized: **ROOMS**, **CHARACTERS**, and **OBJECTS**.
+
 ### Base Zone File Structure
 
 ```yaml
@@ -136,7 +135,7 @@ ZONES:
   zone_id:
     name: Zone Name
     description: Zone description
-    rooms:
+    ROOMS:
       room_id:
         name: Room Name
         description: Room description
@@ -145,17 +144,11 @@ ZONES:
         triggers: [...]
         characters: [...]
         objects: [...]
-
-CHARACTERS:
-  - zone: zone_id
-    characters:
+    CHARACTERS:
       - id: character_id
         name: Character Name
         # ... other fields
-
-OBJECTS:
-  - zone: zone_id
-    objects:
+    OBJECTS:
       - id: object_id
         name: Object Name
         # ... other fields
@@ -163,20 +156,19 @@ OBJECTS:
 
 ### Revision File Structure
 
-Revision files follow the **exact same structure** but only include the parts you want to add or modify:
+Revision files follow the **exact same structure** but only include the parts you want to add or modify. Only `ZONES` may appear at the top level; put ROOMS, CHARACTERS, and OBJECTS under the appropriate zone:
 
 ```yaml
 ZONES:
   zone_id:
     # Only include sections you're changing
-    rooms:
+    ROOMS:
       room_id:
         # Only include fields you're adding/updating
-
-CHARACTERS:
-  - zone: zone_id
-    characters:
+    CHARACTERS:
       # Only include characters you're adding/updating
+      - id: new_npc
+        name: New NPC
 ```
 
 ---
@@ -185,23 +177,19 @@ CHARACTERS:
 
 ### Adding New Content
 
-Simply include the new content with a unique ID:
+Simply include the new content with a unique ID. Keep everything under `ZONES.<zone_id>` using ROOMS, CHARACTERS, and OBJECTS (capitalized):
 
 ```yaml
-# Add a new room
+# Add a new room and a new character
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       new_room:
         name: New Room
         description: "A freshly added room."
         exits:
           south: { destination: existing_room }
-
-# Add a new character
-CHARACTERS:
-  - zone: my_zone
-    characters:
+    CHARACTERS:
       - id: new_npc
         name: New NPC
         description: "A brand new character."
@@ -216,9 +204,9 @@ Reference the existing ID and only specify fields to change:
 
 ```yaml
 # Update an existing character (partial update)
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: existing_character
         # Only these fields will be updated:
         class:
@@ -240,27 +228,18 @@ CHARACTERS:
 Use the `-` prefix to remove fields, or `__remove__: true` to remove entire entries:
 
 ```yaml
-# Remove a field from a character
-CHARACTERS:
-  - zone: my_zone
-    characters:
+# Remove a field from a character, remove an entire character, or remove a room
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: existing_character
         class:
           Fighter:
             skills:
               -disarm: 0      # Remove the "disarm" skill (note the - prefix)
-
-# Remove an entire character
-CHARACTERS:
-  - zone: my_zone
-    characters:
       - id: character_to_delete
         __remove__: true
-
-# Remove a room
-ZONES:
-  my_zone:
-    rooms:
+    ROOMS:
       room_to_delete:
         __remove__: true
 ```
@@ -280,7 +259,7 @@ ZONES:
 # Replace all triggers instead of adding to them
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       some_room:
         __list_strategy__: replace
         triggers:
@@ -305,13 +284,13 @@ Any line starting with `# ===` acts as a section separator. The merge tool will:
 
 ### Usage
 
-When you receive multiple LLM responses, simply paste them into a single file with `# ===` between each response:
+When you receive multiple LLM responses, simply paste them into a single file with `# ===` between each response. Each section must use only `ZONES` at the top level, with ROOMS, CHARACTERS, and OBJECTS under the zone:
 
 ```yaml
 # First LLM response
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       room1:
         name: Updated Room 1
         description: "First update from LLM."
@@ -320,25 +299,25 @@ ZONES:
 
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       room2:
         name: Updated Room 2
         description: "Second update from LLM."
 
 # ===
 
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: new_npc
         name: New NPC
         description: "Third response added this NPC."
 
 # === You can add any text after the === for notes ===
 
-OBJECTS:
-  - zone: my_zone
-    objects:
+ZONES:
+  my_zone:
+    OBJECTS:
       - id: magic_sword
         name: Magic Sword
 ```
@@ -382,7 +361,7 @@ ZONES:
       new_rumor: "Villagers speak of a hidden treasure."
     
     # Add quest variables (merged with existing)
-    quest_variables:
+    variables:
       new_quest:
         found_treasure: { type: boolean, default: false }
 ```
@@ -392,7 +371,7 @@ ZONES:
 ```yaml
 ZONES:
   gloomy_graveyard:
-    rooms:
+    ROOMS:
       # Modify existing room - add new exit
       forest_road_s:
         exits:
@@ -417,13 +396,13 @@ ZONES:
 ```yaml
 ZONES:
   gloomy_graveyard:
-    rooms:
+    ROOMS:
       existing_room:
         characters:
           - id: wandering_merchant
             quantity: 1
-            respawn time min: 60
-            respawn time max: 120
+            respawn_time_min: 60
+            respawn_time_max: 120
         objects:
           - id: treasure_chest
             quantity: 1
@@ -431,12 +410,14 @@ ZONES:
 
 ### CHARACTERS Section
 
+CHARACTERS must appear **under the zone** (under `ZONES.zone_id.CHARACTERS`), not at the top level.
+
 #### Full New Character
 
 ```yaml
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+ZONES:
+  gloomy_graveyard:
+    CHARACTERS:
       - id: grave_keeper
         name: Old Gregory
         article: ""
@@ -467,9 +448,9 @@ CHARACTERS:
 #### Partial Character Update
 
 ```yaml
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+ZONES:
+  gloomy_graveyard:
+    CHARACTERS:
       - id: werewolf
         # Update class level and add skills
         class:
@@ -489,9 +470,9 @@ CHARACTERS:
 #### Character with LLM Conversation
 
 ```yaml
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+ZONES:
+  gloomy_graveyard:
+    CHARACTERS:
       - id: lady_isabella
         name: Lady Isabella
         description: "A woman in black mourning clothes."
@@ -512,12 +493,14 @@ CHARACTERS:
 
 ### OBJECTS Section
 
+OBJECTS must appear **under the zone** (under `ZONES.zone_id.OBJECTS`), not at the top level.
+
 #### Full New Object
 
 ```yaml
-OBJECTS:
-  - zone: gloomy_graveyard
-    objects:
+ZONES:
+  gloomy_graveyard:
+    OBJECTS:
       - id: ancient_key
         name: ancient brass key
         article: an
@@ -540,9 +523,9 @@ OBJECTS:
 #### Object with Quest Integration
 
 ```yaml
-OBJECTS:
-  - zone: gloomy_graveyard
-    objects:
+ZONES:
+  gloomy_graveyard:
+    OBJECTS:
       - id: lords_diary
         name: Lord Ashford's Diary
         description: "A leather-bound journal with a broken clasp."
@@ -565,21 +548,18 @@ OBJECTS:
 # revisions_murder_mystery.yaml
 ZONES:
   gloomy_graveyard:
-    quest_variables:
+    variables:
       murder_mystery:
         talked_to_witness: { type: boolean, default: false }
         found_evidence: { type: boolean, default: false }
         accused_butler: { type: boolean, default: false }
     
-    rooms:
+    ROOMS:
       inn_common_room:
         characters:
           - id: barnaby_witness
             quantity: 1
-
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+    CHARACTERS:
       - id: barnaby_witness
         name: Barnaby
         description: "The town drunk, nursing a mug of ale."
@@ -595,9 +575,9 @@ CHARACTERS:
 
 ```yaml
 # revisions_difficulty_increase.yaml
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+ZONES:
+  gloomy_graveyard:
+    CHARACTERS:
       - id: werewolf
         class:
           Fighter:
@@ -626,7 +606,7 @@ CHARACTERS:
 # revisions_secret_areas.yaml
 ZONES:
   gloomy_graveyard:
-    rooms:
+    ROOMS:
       manor_house_library:
         triggers:
           - id: find_secret_door
@@ -655,10 +635,7 @@ ZONES:
         objects:
           - id: forbidden_tome
             quantity: 1
-
-OBJECTS:
-  - zone: gloomy_graveyard
-    objects:
+    OBJECTS:
       - id: forbidden_tome
         name: forbidden tome
         article: a
@@ -704,7 +681,7 @@ This tool uses `ruamel.yaml` to preserve all comments from your base file:
 # Zone-level comment about the graveyard theme
 ZONES:
   gloomy_graveyard:
-    rooms:
+    ROOMS:
       forest_road_s:
         name: South Dark Forest Road
         description: >
@@ -813,6 +790,10 @@ triggers:
 **Problem**: Fields not being removed
 **Cause**: Wrong syntax for removal
 **Solution**: Use `-fieldname: 0` (note the hyphen prefix)
+
+**Problem**: Merge file rejected or content in wrong place
+**Cause**: Top-level keys other than ZONES, or lowercase section names
+**Solution**: Use only `ZONES` at the top level. Put ROOMS, CHARACTERS, and OBJECTS (capitalized) under the zone: `ZONES.zone_id.ROOMS`, `ZONES.zone_id.CHARACTERS`, `ZONES.zone_id.OBJECTS`
 
 **Problem**: List being extended when you want replacement
 **Solution**: Add `__list_strategy__: replace` to the parent dict

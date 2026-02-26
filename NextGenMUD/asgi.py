@@ -1,5 +1,15 @@
 # NextGenMUD/asgi.py
 
+import asyncio
+import sys
+
+# On Windows, the default ProactorEventLoop has a known race condition in
+# _ProactorBaseWritePipeTransport._loop_writing that causes AssertionErrors
+# on overlapping writes.  Switch to SelectorEventLoop globally before Uvicorn
+# creates its loop.  SelectorEventLoop handles sockets (HTTP/WebSocket) fine.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import os
 import signal
 from django.core.asgi import get_asgi_application

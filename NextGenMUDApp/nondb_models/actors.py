@@ -135,15 +135,19 @@ class Actor(ActorInterface):
 
     def matches_keyword(self, keyword: str) -> bool:
         """Check if this actor matches a keyword via id, name words, or keywords list.
-        All comparisons use case-insensitive startswith for consistency."""
+        All comparisons use case-insensitive startswith for consistency.
+        Non-string entries in id, name, or keywords (e.g. from YAML) are skipped or coerced."""
+        if not isinstance(keyword, str):
+            return False
         keyword_lower = keyword.lower()
-        if self.id.lower().startswith(keyword_lower):
+        if isinstance(self.id, str) and self.id.lower().startswith(keyword_lower):
             return True
-        for word in self.name.lower().split():
-            if word.startswith(keyword_lower):
-                return True
+        if isinstance(self.name, str):
+            for word in self.name.lower().split():
+                if word.startswith(keyword_lower):
+                    return True
         for kw in self.keywords:
-            if kw.lower().startswith(keyword_lower):
+            if isinstance(kw, str) and kw.lower().startswith(keyword_lower):
                 return True
         return False
 

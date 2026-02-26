@@ -129,7 +129,7 @@ class ActorState:
         return self.character_flags_removed.are_flags_set(flag)
     
     @abstractmethod
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
         """
         Returns the next tick that the state should be applied.
         duration_ticks and end_tick both None means it's indefinite
@@ -190,20 +190,20 @@ class CharacterStateForcedSitting(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             self.actor.add_temp_flags(self.character_flags_added)
             if self.source_actor:
                 msg = f"You knock {self.actor.art_name} onto the ground."
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, self.game_state)
             msg = f"{self.source_actor.art_name_cap} knocks you onto the ground."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, self.game_state)
             msg = f"{self.source_actor.art_name_cap} knocks {self.actor.art_name} onto the ground."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
                                           game_state=self.game_state)
         return retval
 
@@ -243,20 +243,20 @@ class CharacterStateForcedSleeping(ActorState):
         self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SLEEPING)
         self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_SITTING)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             self.actor.add_temp_flags(self.character_flags_added)
             if self.source_actor:
                 msg = f"You put {self.actor} to sleep."
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} puts you to sleep."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} puts {self.actor.art_name} to sleep."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
                                           game_state=self.game_state)
         return retval
 
@@ -296,20 +296,20 @@ class CharacterStateStunned(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_STUNNED)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             self.actor.add_flag(TemporaryCharacterFlags.IS_STUNNED)
             if self.source_actor:
                 msg = f"You stun {self.actor.art_name}."
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} stuns you."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg, game_state=self.game_state)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} stuns {self.actor.art_name}."
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars,
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars,
                                           exceptions=[self.actor, self.source_actor], game_state=self.game_state)
         return retval
 
@@ -344,8 +344,8 @@ class CharacterStateHitPenalty(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             # not gonna say anything for a hit penalty
             # if self.source_actor:
@@ -375,24 +375,24 @@ class CharacterStateHitBonus(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             if self.source_actor:
                 msg = f"{self.actor.art_name_cap} feels {self.state_type_name}!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars)
             msg = f"You feel {self.state_type_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars)
             self.actor.hit_modifier += self.affect_amount
         return retval
 
-    def remove_state(self) -> bool:
+    async def remove_state(self) -> bool:
         if super().remove_state():
             msg = f"You no longer feel {self.state_type_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars)
             self.actor.hit_modifier -= self.affect_amount
             return True
         else:
@@ -404,22 +404,23 @@ class CharacterStateDisarmed(ActorState):
     def __init__(self, actor: ActorInterface, game_state: GameStateInterface, source_actor: ActorInterface=None,
                  state_type_name=None, tick_created=None):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
+        self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_DISARMED)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
-        if not retval is None:
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+        if retval is not None:
             self.vars = {}
-            mhw = self.vars["main hand weapon"] = self.actor.equipment_[EquipLocation.MAIN_HAND]
-            ohw = self.vars["off hand weapon"] = self.actor.equipment_[EquipLocation.OFF_HAND]
-            bhw = self.vars["both hands weapon"] = self.actor.equipment_[EquipLocation.BOTH_HANDS]
+            mhw = self.actor.equipped.get(EquipLocation.MAIN_HAND)
+            ohw = self.actor.equipped.get(EquipLocation.OFF_HAND)
+            bhw = self.actor.equipped.get(EquipLocation.BOTH_HANDS)
             self.vars["main hand weapon"] = mhw
             self.vars["off hand weapon"] = ohw
             self.vars["both hands weapon"] = bhw
-            if mhw == None and ohw == None and bhw == None:
+            if mhw is None and ohw is None and bhw is None:
                 msg = "They aren't using any weapons."
-                set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
-                return
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                return retval
             if mhw:
                 self.actor.unequip_location(EquipLocation.MAIN_HAND)
                 self.actor.add_object(mhw)
@@ -429,17 +430,17 @@ class CharacterStateDisarmed(ActorState):
             if bhw:
                 self.actor.unequip_location(EquipLocation.BOTH_HANDS)
                 self.actor.add_object(bhw)
-            
-            self.add_temp_flags(TemporaryCharacterFlags.IS_DISARMED)
+            self.actor.add_temp_flags(self.character_flags_added)
             msg = f"You disarm {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg, game_state=self.game_state)
-            self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} disarms you!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
-            msg = f"{self.source_actor.art_name_cap} disarms {actor.art_name}!"
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            msg = f"{self.source_actor.art_name_cap} disarms {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor])
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+                                          game_state=self.game_state)
         return retval
     
 
@@ -447,9 +448,9 @@ class CharacterStateDisarmed(ActorState):
         if not force and any([s for s in self.actor.current_states if s is not self \
                               and s.does_affect_flag(TemporaryCharacterFlags.IS_DISARMED)]):
             return True
-        mhw = self.vars.get("mhw")
-        ohw = self.vars.get("ohw")
-        bhw = self.vars.get("bhw")
+        mhw = self.vars.get("main hand weapon")
+        ohw = self.vars.get("off hand weapon")
+        bhw = self.vars.get("both hands weapon")
         if mhw and self.actor.equipped.get(EquipLocation.MAIN_HAND) is None:
             self.actor.remove_object(mhw)
             self.actor.equip_object(mhw)
@@ -484,8 +485,8 @@ class CharacterStateDodgePenalty(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if not retval:
             return False
             # not gonna say anything for a dodge penalty
@@ -514,8 +515,8 @@ class CharacterStateDodgeBonus(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         # not gonna say anything for a dodge penalty
         # if retval is not None:
@@ -543,8 +544,8 @@ class CharacterStateDamageBonus(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         
         self.actor.damage_modifier += self.affect_amount
@@ -552,27 +553,27 @@ class CharacterStateDamageBonus(ActorState):
         if self.source_actor:
             msg = f"{self.actor.art_name_cap} becomes {self.state_type_name}!"
             vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-            self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         
         msg = f"You become {self.state_type_name}!"
         vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         
         msg = f"{self.actor.art_name_cap} becomes {self.state_type_name}!"
         vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
                                      exceptions=[self.actor], game_state=self.game_state)
         return True
     
-    def remove_state(self) -> bool:
+    async def remove_state(self) -> bool:
         self.actor.damage_modifier -= self.affect_amount
         msg = f"You are no longer {self.state_type_name}."
         vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+        await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         
         msg = f"{self.actor.art_name_cap} is no longer {self.state_type_name}."
         vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-        self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+        await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
                                      exceptions=[self.actor], game_state=self.game_state)
         return super().remove_state()
         
@@ -584,8 +585,8 @@ class CharacterStateBerserkerStance(ActorState):
         self.dodge_penalty = dodge_penalty
         self.hit_bonus = hit_bonus
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         # not gonna say anything for a dodge penalty
         # if retval is not None:
@@ -617,8 +618,8 @@ class CharacterStateDefensiveStance(ActorState):
         self.hit_penalty = hit_penalty
         self.damage_multipliers = damage_multipliers
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         self.actor.dodge_modifier += self.dodge_bonus
         self.actor.hit_modifier -= self.hit_penalty
@@ -640,41 +641,41 @@ class CharacterStateBleeding(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             if self.source_actor:
                 msg = f"You tear open bloody wounds on {self.actor.art_name}!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} tears open bloody wounds on you!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} tears open bloody wounds on {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
                                           game_state=self.game_state)
         return retval
 
-    def remove_state(self) -> bool:
+    async def remove_state(self) -> bool:
         if retval := super().remove_state():
             msg = "Your wounds stop bleeding."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.actor.art_name_cap} stops bleeding."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                           game_state=self.game_state)
         return retval
     
-    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
-        if retval := super().perform_tick(tick_num):
+    async def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num, game_state, vars):
             msg = f"Your wounds bleed for {self.affect_amount} damage."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"%t%'s wounds bleed for {self.affect_amount} damage."
-            set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+            vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                           game_state=self.game_state)
             CoreActionsInterface.get_instance().do_damage(self.source_actor, self.actor, self.affect_amount,
                                                           DamageType.RAW, False)
@@ -687,10 +688,10 @@ class CharacterStateStealthed(ActorState):
         self.affect_amount = affect_amount
         self.character_flags_added = TemporaryCharacterFlags.IS_STEALTHED
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
         self.actor.add_temp_flags(self.character_flags_added)
         self.vars = { "seen_by": [] }
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         return retval
     
     def remove_state(self) -> bool:
@@ -707,8 +708,8 @@ class CharacterStateShielded(ActorState):
         self.extra_multipliers: DamageMultipliers = multipliers
         self.extra_reductions: DamageReduction = reductions
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if not retval:
             return False
         if self.extra_multipliers:
@@ -732,8 +733,8 @@ class CharacterStateCasting(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.casting_finish_func = casting_finish_func
     
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        return super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        return await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         
     async def remove_state(self, force=False) -> bool:
         if self.casting_finish_func:
@@ -761,8 +762,8 @@ class CharacterStateDamageMultipliers(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.damage_multipliers = damage_multipliers
         
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         self.actor.damage_multipliers.add_multipliers(self.damage_multipliers)
         return True
@@ -778,17 +779,17 @@ class CharacterStateBurning(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.damage_amount = damage_amount
 
-    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
-        if retval := super().perform_tick(tick_num):
-            damage, target_hp = CoreActionsInterface.get_instance().do_calculated_damage(self.source_actor, self.actor, self.affect_amount,
+    async def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+        if retval := super().perform_pulse(tick_num, game_state, vars):
+            damage, target_hp = CoreActionsInterface.get_instance().do_calculated_damage(self.source_actor, self.actor, self.damage_amount,
                                                           DamageType.FIRE, False, False)
             if damage > 0:
-                msg = f"You burn for {self.affect_amount} damage!"
-                set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                msg = f"You burn for {self.damage_amount} damage!"
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"%t% burns!"
-                set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
+                vars = set_vars(self.actor, self.source_actor, self.actor, msg)
+                await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.source_actor],
                                             game_state=self.game_state)
             if target_hp <= 0:
                 CoreActionsInterface.get_instance().do_die(self.actor, self.actor)
@@ -803,8 +804,8 @@ class CharacterStateArmorBonus(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.affect_amount = affect_amount
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         # Add armor bonus to physical damage types
         self.actor.current_damage_reduction[DamageType.SLASHING] += self.affect_amount
@@ -828,24 +829,24 @@ class CharacterStateRegenerating(ActorState):
         self.heal_amount = heal_amount
         self.total_healed = 0
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick, 
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick, 
                                      pulse_period_ticks=pulse_period_ticks)
         if retval is not None:
             if self.source_actor and self.source_actor != self.actor:
                 msg = f"You invoke regenerative magic upon {self.actor.art_name}!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
                 msg = f"{self.source_actor.art_name_cap} invokes regenerative magic upon you!"
                 vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             else:
                 msg = "Regenerative magic flows through you!"
                 vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"Regenerative magic surrounds {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
                                          exceptions=[self.actor, self.source_actor] if self.source_actor else [self.actor],
                                          game_state=self.game_state)
         return retval
@@ -857,7 +858,7 @@ class CharacterStateRegenerating(ActorState):
             await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         return retval
     
-    def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
+    async def perform_pulse(self, tick_num: int, game_state: GameStateInterface, vars: Dict[str, Any]) -> bool:
         if retval := super().perform_pulse(tick_num, game_state, vars):
             actual_heal = self.actor.increase_hp(self.heal_amount)
             self.total_healed += actual_heal
@@ -865,7 +866,7 @@ class CharacterStateRegenerating(ActorState):
             if actual_heal > 0:
                 msg = f"Regenerative magic heals you for {actual_heal} hit points!"
                 vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-                self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
         return retval
 
 
@@ -877,8 +878,8 @@ class CharacterStateZealotry(ActorState):
         self.damage_bonus = damage_bonus
         self.healing_penalty = healing_penalty  # Percentage reduction in healing received (e.g., 50 = 50% less healing)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        if not super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        if not await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick):
             return False
         self.actor.damage_modifier += self.damage_bonus
         # Store healing penalty on actor for healing spells to check
@@ -901,8 +902,8 @@ class CharacterStateCharmed(ActorState):
         self.charmed_by = source_actor
         self.character_flags_added = TemporaryCharacterFlags(0)  # Could add IS_CHARMED flag if needed
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             # Store reference to who charmed this character
             self.actor.charmed_by = self.charmed_by
@@ -933,20 +934,20 @@ class CharacterStateConsecrated(ActorState):
         self.damage_amount = damage_amount
         self.total_damage = 0
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
                                      pulse_period_ticks=pulse_period_ticks)
         if retval is not None:
             if self.source_actor:
                 msg = f"Holy fire engulfs {self.actor.art_name}!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"Holy fire engulfs you!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"Holy fire engulfs {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
                                          exceptions=[self.actor, self.source_actor],
                                          game_state=self.game_state)
         return retval
@@ -983,20 +984,20 @@ class CharacterStateIgnited(ActorState):
         self.damage_amount = damage_amount
         self.total_damage = 0
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None, pulse_period_ticks=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick,
                                      pulse_period_ticks=pulse_period_ticks)
         if retval is not None:
             if self.source_actor:
                 msg = f"You set {self.actor.art_name} ablaze!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} sets you ablaze!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} sets {self.actor.art_name} ablaze!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, 
                                          exceptions=[self.actor, self.source_actor],
                                          game_state=self.game_state)
         return retval
@@ -1035,20 +1036,20 @@ class CharacterStateFrozen(ActorState):
         super().__init__(actor, game_state, source_actor, state_type_name, tick_created=tick_created)
         self.character_flags_added = self.character_flags_added.add_flags(TemporaryCharacterFlags.IS_FROZEN)
 
-    def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
-        retval = super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
+    async def apply_state(self, start_tick=None, duration_ticks=None, end_tick=None) -> int:
+        retval = await super().apply_state(start_tick, duration_ticks=duration_ticks, end_tick=end_tick)
         if retval is not None:
             self.actor.add_temp_flags(self.character_flags_added)
             if self.source_actor:
                 msg = f"You freeze {self.actor}!"
                 vars = set_vars(self.source_actor, self.source_actor, self.actor, msg)
-                self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+                await self.source_actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} freezes you!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
+            await self.actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=self.game_state)
             msg = f"{self.source_actor.art_name_cap} freezes {self.actor.art_name}!"
             vars = set_vars(self.actor, self.source_actor, self.actor, msg)
-            self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
+            await self.actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[self.actor, self.source_actor],
                                           game_state=self.game_state)
         return retval
 

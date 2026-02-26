@@ -19,12 +19,13 @@ class PermanentCharacterFlags(DescriptiveFlags):
     MINDLESS = 2**13
     COWARDLY = 2**14
     PROTECTED = 2**15
+    HUMANOID = 2**16
 
     @classmethod
     def field_name_unsafe(cls, idx):
-        return ["is pc", "(reserved)", "can dual wield", "is invisible", "see invisible", 
+        return ["is pc", "(reserved)", "can dual wield", "is invisible", "see invisible",
                 "darkvision", "is undead", "is sentinel", "no wander", "stationary",
-                "evasive", "quest giver", "aggressive if attacked", "mindless", "cowardly", "protected"][idx]
+                "evasive", "quest giver", "aggressive if attacked", "mindless", "cowardly", "protected", "humanoid"][idx]
 
 
 class TemporaryCharacterFlags(DescriptiveFlags):

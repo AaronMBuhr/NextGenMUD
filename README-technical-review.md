@@ -192,13 +192,13 @@ Cleric  ──> Warpriest | Restorer | Ritualist
 
 ## World Data Format
 
-Zones are defined in YAML files under `world_data/`. Each file contains three top-level sections:
+Zones are defined in YAML files under `world_data/`. Each file has **only one top-level key: `ZONES`**. All ROOMS, CHARACTERS, and OBJECTS (capitalized) are under the zone:
 
 ```yaml
 ZONES:
   zone_id:
     name: "Zone Name"
-    rooms:
+    ROOMS:
       room_id:
         name: "Room Name"
         description: "Room description text"
@@ -217,19 +217,13 @@ ZONES:
           - id: guard_01
             spawn_time_min: 60
             spawn_time_max: 120
-
-CHARACTERS:
-  - zone: zone_id
-    characters:
+    CHARACTERS:
       - id: guard_01
         name: "City Guard"
         level: 5
         class: fighter
         # ... attributes, equipment, triggers, LLM config
-
-OBJECTS:
-  - zone: zone_id
-    objects:
+    OBJECTS:
       - id: iron_sword
         name: "Iron Sword"
         # ... properties, triggers

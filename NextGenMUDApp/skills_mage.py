@@ -154,9 +154,9 @@ class Skills_Mage(Skills):
     @classmethod
     async def _send_skill_message_to_room(cls, actor: Actor, target: Actor, message: str, exceptions: list=None, game_state: 'ComprehensiveGameState'=None):
         """Helper to send a skill message to room with proper variable processing."""
-        if message and actor._location_room:
+        if message and actor.location_room:
             vars = set_vars(actor, actor, target, message)
-            await actor._location_room.echo(CommTypes.DYNAMIC, message, vars, exceptions=exceptions or [], game_state=game_state)
+            await actor.location_room.echo(CommTypes.DYNAMIC, message, vars, exceptions=exceptions or [], game_state=game_state)
     
     @classmethod
     async def do_spell_fizzle(actor: Actor, target: Actor, spell_name: str, vars: dict=None,
@@ -166,7 +166,7 @@ class Skills_Mage(Skills):
         actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=game_state)
         msg = f"{actor.art_name_cap}'s {spell_name} spell fizzles!"
         vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
 
     @classmethod
     async def do_mage_cast_fireball(cls, actor: Actor, target: Actor, 
@@ -192,6 +192,8 @@ class Skills_Mage(Skills):
     async def do_mage_cast_fireball_finish(cls, actor: Actor, target: Actor, 
                                           difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = MageSkills.FIREBALL
+        if not await cls.check_valid_finish(actor, target):
+            return False
         FIREBALL_DMG_DICE_LEVEL_MULT = 1/4
         FIREBALL_DMG_DICE_NUM = actor.levels_by_role[CharacterClassRole.MAGE] * FIREBALL_DMG_DICE_LEVEL_MULT
         FIREBALL_DMG_DICE_SIZE = 6
@@ -211,7 +213,7 @@ class Skills_Mage(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.INTELLIGENCE)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
             damage = roll_dice(FIREBALL_DMG_DICE_NUM, FIREBALL_DMG_DICE_SIZE) + FIREBALL_DMG_BONUS
             
@@ -234,7 +236,7 @@ class Skills_Mage(Skills):
                     c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
                     msg = f"{actor.art_name_cap}'s fireball also hits {c.art_name}!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls._game_state)
+                    actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls._game_state)
                     await CoreActionsInterface.get_instance().do_calculated_damage(actor, c, damage, DamageType.FIRE)
             
             await Skills.consume_resources(actor, THIS_SKILL_DATA)
@@ -270,6 +272,8 @@ class Skills_Mage(Skills):
     async def do_mage_cast_magic_missile_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = MageSkills.MAGIC_MISSILE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         MAGIC_MISSILE_DMG_DICE_LEVEL_MULT = 1/4
         MAGIC_MISSILE_DICE_NUM = int(actor.levels_by_role[CharacterClassRole.MAGE] * MAGIC_MISSILE_DMG_DICE_LEVEL_MULT)
         MAGIC_MISSILE__DMG_DICE_SIZE = 6
@@ -293,7 +297,7 @@ class Skills_Mage(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.INTELLIGENCE)
                 if saved:
-                    send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                     return True
             # Damage calculation: base dice + attribute bonus + skill bonus + level bonus
             # Keep damage relatively low - skill adds small bonus (skill/20 for low scaling)
@@ -350,6 +354,8 @@ class Skills_Mage(Skills):
     async def do_mage_cast_arcane_barrier_finish(cls, actor: Actor, target: Actor, 
                                                difficulty_modifier=0, game_tick=0) -> bool:
         THIS_SKILL_DATA = MageSkills.ARCANE_BARRIER
+        if not await cls.check_valid_finish(actor, target):
+            return False
         DAMAGE_REDUCTION_AMOUNT = actor.levels_by_role[CharacterClassRole.MAGE]
         
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
@@ -370,7 +376,7 @@ class Skills_Mage(Skills):
             })
             new_state = CharacterStateShielded(target, actor, "magic barrier", multipliers=None, reductions=reductions,
                                                tick_created=game_tick)
-            new_state.apply_state(game_tick, THIS_SKILL_DATA.duration_min_ticks)
+            await new_state.apply_state(game_tick, THIS_SKILL_DATA.duration_min_ticks)
             
             await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return True
@@ -419,6 +425,8 @@ class Skills_Mage(Skills):
         from .nondb_models.attacks_and_damage import DamageMultipliers
         
         THIS_SKILL_DATA = MageSkills.SHIELD
+        if not await cls.check_valid_finish(actor, target):
+            return False
         SHIELD_RESIST_BASE = 10  # Base multiplier value for shield (note: value may need adjustment to 0-2 range)
         SHIELD_RESIST_PER_LEVEL = 0.5
         
@@ -446,7 +454,7 @@ class Skills_Mage(Skills):
         
         new_state = CharacterStateShielded(target, cls._game_state, actor, "arcane shield", 
                                           multipliers=multipliers, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
+        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
         
         # Consume mana
         await Skills.consume_resources(actor, THIS_SKILL_DATA)
@@ -483,6 +491,8 @@ class Skills_Mage(Skills):
                                       difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the blur spell, applying the dodge bonus."""
         THIS_SKILL_DATA = MageSkills.BLUR
+        if not await cls.check_valid_finish(actor, target):
+            return False
         BLUR_DODGE_BONUS_BASE = 10
         BLUR_DODGE_BONUS_PER_LEVEL = 0.5
         
@@ -505,7 +515,7 @@ class Skills_Mage(Skills):
         
         new_state = CharacterStateDodgeBonus(target, cls._game_state, actor, "blurred", 
                                              affect_amount=dodge_bonus, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
+        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
         
         # Consume mana
         await Skills.consume_resources(actor, THIS_SKILL_DATA)
@@ -543,6 +553,8 @@ class Skills_Mage(Skills):
                                            difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the mana burn spell, draining mana and dealing damage."""
         THIS_SKILL_DATA = MageSkills.MANA_BURN
+        if not await cls.check_valid_finish(actor, target):
+            return False
         MANA_BURN_BASE = 10
         MANA_BURN_PER_LEVEL = 2
         MANA_BURN_DAMAGE_MULTIPLIER = 0.5  # Damage = mana_drained * multiplier
@@ -568,7 +580,7 @@ class Skills_Mage(Skills):
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.INTELLIGENCE)
             if saved:
-                send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                 return True
         
         # Calculate actual mana drained (can't drain more than they have)
@@ -625,6 +637,8 @@ class Skills_Mage(Skills):
                                         difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the ignite spell, applying burning damage over time."""
         THIS_SKILL_DATA = MageSkills.IGNITE
+        if not await cls.check_valid_finish(actor, target):
+            return False
         IGNITE_DAMAGE_BASE = 3
         IGNITE_DAMAGE_PER_LEVEL = 0.5
         IGNITE_PULSE_TICKS = ticks_from_seconds(3)  # Damage every 3 seconds
@@ -642,7 +656,7 @@ class Skills_Mage(Skills):
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.INTELLIGENCE)
             if saved:
-                send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                 return True
 
         # Send success messages from skill definition
@@ -653,7 +667,7 @@ class Skills_Mage(Skills):
         # Apply the ignite effect
         new_state = CharacterStateIgnited(target, cls._game_state, actor, "ignited", 
                                          damage_amount=damage_per_tick, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks,
+        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks,
                              pulse_period_ticks=IGNITE_PULSE_TICKS)
         
         # Consume mana
@@ -673,7 +687,7 @@ class Skills_Mage(Skills):
         
         # Find an NPC corpse in the room
         corpse = None
-        for obj in actor._location_room.contents:
+        for obj in actor.location_room.contents:
             if isinstance(obj, Corpse) and obj.owner_id is None:  # NPC corpse only
                 corpse = obj
                 break
@@ -700,6 +714,8 @@ class Skills_Mage(Skills):
         """Complete the animate dead spell, raising the corpse as a zombie."""
         from .comprehensive_game_state_interface import GameStateInterface
         
+        if not await cls.check_valid_finish(actor, corpse):
+            return False
         ANIMATE_DEAD_COOLDOWN_TICKS = ticks_from_seconds(120)  # 2 minute cooldown
         
         cooldown = Cooldown(actor, "animate_dead", cls._game_state, cooldown_source=actor, 
@@ -766,7 +782,7 @@ class Skills_Mage(Skills):
         # Change the name to "a <name> zombie"
         zombie.name = f"{original_name} zombie"
         zombie.article = "a"
-        zombie.description = f"A shambling undead {original_name}, animated by dark magic. Its eyes glow with unholy light."
+        zombie.description_ = f"A shambling undead {original_name}, animated by dark magic. Its eyes glow with unholy light."
         
         # Make it friendly to the caster (so it doesn't attack them)
         # Set the zombie to follow/fight for the caster
@@ -781,13 +797,13 @@ class Skills_Mage(Skills):
             zombie.add_object(obj)
         
         # Remove the corpse from the room
-        room = actor._location_room
+        room = actor.location_room
         room.remove_object(corpse)
         corpse.is_deleted = True
         
         # Add the zombie to the room
         room.add_character(zombie)
-        zombie._location_room = room
+        zombie.location_room = room
         cls._game_state.characters.append(zombie)
         
         # Calculate duration based on skill level and level difference
@@ -817,7 +833,7 @@ class Skills_Mage(Skills):
         # Apply the charmed state - zombie is controlled by caster
         charmed_state = CharacterStateCharmed(zombie, cls._game_state, actor, "charmed", 
                                               tick_created=game_tick)
-        charmed_state.apply_state(game_tick or cls._game_state.get_current_tick(), CHARM_DURATION_TICKS)
+        await charmed_state.apply_state(game_tick or cls._game_state.get_current_tick(), CHARM_DURATION_TICKS)
         
         # Send success messages from skill definition
         THIS_SKILL_DATA = MageSkills.ANIMATE_DEAD

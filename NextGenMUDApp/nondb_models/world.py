@@ -2,32 +2,7 @@ from ..constants import Constants
 from enum import Enum
 import json
 
-class Zone:
-    def __init__(self, id):
-        self.id = id
-        self.name = ""       
-        self.rooms = {}
-        self.actors = {}
-        self.description = ""
-        self.common_knowledge = {}  # id -> knowledge content for LLM NPCs
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'rooms': {room_id: room.to_dict() for room_id, room in self.rooms.items()},
-            'actors': self.actors,  # Make sure this is also serializable
-            'description': self.description,
-            'common_knowledge': self.common_knowledge,
-        }
-
-    def __repr__(self):
-        fields_dict = self.to_dict()
-        fields_info = ', '.join([f"{key}={value}" for key, value in fields_dict.items()])
-        return f"{self.__class__.__name__}({fields_info})"
-
-    def __str__(self):
-        return self.__repr__()
+from .zone import Zone
 
 
 class WorldDefinition:

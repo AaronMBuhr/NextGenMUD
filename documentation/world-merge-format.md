@@ -82,7 +82,7 @@ pip install ruamel.yaml
 ZONES:
   my_zone:
     name: My Zone
-    rooms:
+    ROOMS:
       town_square:
         name: Town Square
         description: The center of town.
@@ -94,7 +94,7 @@ ZONES:
 ```yaml
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       town_square:
         # Add a new exit
         exits:
@@ -118,7 +118,7 @@ python merge_mud_files.py world_data/my_zone.yaml revisions.yaml output.yaml
 ZONES:
   my_zone:
     name: My Zone
-    rooms:
+    ROOMS:
       town_square:
         name: Town Square
         description: The center of town.
@@ -139,29 +139,42 @@ ZONES:
 
 **These rules are mandatory. Violating them will cause parse errors.**
 
+### Rule: Only ZONES at Top Level
+
+The merge file must have **exactly one top-level key: `ZONES`**. There must be no other keys at the same level as `ZONES`. All rooms, characters, and objects must appear **under a specific zone** inside `ZONES`. The section names under each zone must be capitalized: **ROOMS**, **CHARACTERS**, and **OBJECTS**.
+
+```yaml
+# WRONG - top-level keys parallel to ZONES
+ZONES:
+  my_zone:
+    name: My Zone
+CHARACTERS:
+  - zone: my_zone
+    characters: [...]
+
+# WRONG - lowercase section names
+ZONES:
+  my_zone:
+    rooms: [...]
+    characters: [...]
+
+# CORRECT - only ZONES at top; ROOMS, CHARACTERS, OBJECTS under the zone (capitalized)
+ZONES:
+  my_zone:
+    name: My Zone
+    ROOMS:
+      room_id: {...}
+    CHARACTERS:
+      - id: npc_id
+        name: ...
+    OBJECTS:
+      - id: obj_id
+        name: ...
+```
+
 ### Rule: Single Document Only
 
 Revision files must be a single YAML document. **NEVER use `---` document separators.**
-
-```yaml
-# WRONG - creates multiple documents, will fail to parse
-COMMON_KNOWLEDGE:
-  - id: some_knowledge
-    description: Info here.
-
----
-
-ROOMS:
-  - id: some_room
-
-# CORRECT - single document, sections follow each other
-COMMON_KNOWLEDGE:
-  - id: some_knowledge
-    description: Info here.
-
-ROOMS:
-  - id: some_room
-```
 
 ### Rule: `__list_strategy__` Placement
 
@@ -334,7 +347,7 @@ triggers:
 
 ## World File Structure
 
-A complete world file has three main sections:
+A complete world file has **only one top-level key: `ZONES`**. Under each zone, use **ROOMS**, **CHARACTERS**, and **OBJECTS** (capitalized):
 
 ```yaml
 ZONES:
@@ -343,10 +356,10 @@ ZONES:
     description: Zone description text.
     common_knowledge:
       knowledge_id: Knowledge content.
-    quest_variables:
+    variables:
       quest_name:
         var_name: { type: boolean, default: false }
-    rooms:
+    ROOMS:
       room_id:
         name: Room Name
         description: Room description.
@@ -356,17 +369,11 @@ ZONES:
         triggers: [...]
         characters: [{ id: npc_id, quantity: 1 }]
         objects: [{ id: obj_id, quantity: 1 }]
-
-CHARACTERS:
-  - zone: zone_id
-    characters:
+    CHARACTERS:
       - id: character_id
         name: Character Name
         # ... full character definition
-
-OBJECTS:
-  - zone: zone_id
-    objects:
+    OBJECTS:
       - id: object_id
         name: Object Name
         # ... full object definition
@@ -380,23 +387,19 @@ Revision files use the **exact same structure** as world files but only include 
 
 ### Adding Content
 
-Include the new content with a unique ID:
+Include the new content with a unique ID. Keep everything under `ZONES.zone_id` using ROOMS, CHARACTERS, and OBJECTS (capitalized):
 
 ```yaml
-# Add a new room
+# Add a new room and a new NPC
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       new_room_id:
         name: New Room
         description: A new room.
         exits:
           west: { destination: existing_room }
-
-# Add a new NPC
-CHARACTERS:
-  - zone: my_zone
-    characters:
+    CHARACTERS:
       - id: new_npc
         name: New NPC
         description: A new character.
@@ -407,18 +410,14 @@ CHARACTERS:
 Reference the existing ID and specify only fields to change:
 
 ```yaml
-# Update existing room - add exit
+# Update existing room and character
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       existing_room:
         exits:
           secret: { destination: hidden_room }
-
-# Update existing character - change level
-CHARACTERS:
-  - zone: my_zone
-    characters:
+    CHARACTERS:
       - id: existing_npc
         class:
           Fighter:
@@ -430,27 +429,18 @@ CHARACTERS:
 Use special syntax to remove fields or entries:
 
 ```yaml
-# Remove a field: prefix with -
-CHARACTERS:
-  - zone: my_zone
-    characters:
+# Remove a field, remove entire character, or remove a room
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: some_npc
         class:
           Fighter:
             skills:
               -power_attack: 0  # Removes power_attack skill
-
-# Remove entire entry: use __remove__
-CHARACTERS:
-  - zone: my_zone
-    characters:
       - id: npc_to_delete
         __remove__: true
-
-# Remove a room
-ZONES:
-  my_zone:
-    rooms:
+    ROOMS:
       room_to_delete:
         __remove__: true
 ```
@@ -472,7 +462,7 @@ ZONES:
       knowledge_id: >
         Information that NPCs know about.
     
-    quest_variables:                   # Quest tracking
+    variables:                   # Quest tracking
       quest_name:
         variable_name:
           description: "What this tracks"
@@ -483,14 +473,14 @@ ZONES:
               updates:
                 knowledge_id: "Updated knowledge text."
     
-    rooms:
+    ROOMS:
       # Room definitions...
 ```
 
 ### Room Fields
 
 ```yaml
-rooms:
+ROOMS:
   room_id:
     name: "Room Display Name"
     description: |
@@ -540,7 +530,7 @@ rooms:
 ```yaml
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       # Modify existing room - adds to what's there
       existing_room:
         exits:
@@ -580,7 +570,7 @@ ZONES:
 ```yaml
 ZONES:
   my_zone:
-    quest_variables:
+    variables:
       treasure_hunt:
         found_map:
           description: "Player found the treasure map"
@@ -600,14 +590,14 @@ ZONES:
 
 ## CHARACTERS Section
 
-Characters are defined separately and referenced in rooms by ID.
+Characters are defined under the zone (`ZONES.zone_id.CHARACTERS`) and referenced in rooms by ID.
 
 ### Full Character Definition
 
 ```yaml
-CHARACTERS:
-  - zone: zone_id
-    characters:
+ZONES:
+  zone_id:
+    CHARACTERS:
       - id: unique_character_id
         name: Display Name
         article: the                    # "", "a", "an", "the"
@@ -716,9 +706,9 @@ CHARACTERS:
 Only specify the fields you're changing:
 
 ```yaml
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: existing_npc
         # Update level
         class:
@@ -735,9 +725,9 @@ CHARACTERS:
 ### Adding Character Triggers
 
 ```yaml
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: shopkeeper
         triggers:
           - id: greet_first_time
@@ -765,9 +755,9 @@ CHARACTERS:
 ### Updating Character LLM Knowledge
 
 ```yaml
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: quest_npc
         llm_conversation:
           knowledge:
@@ -787,14 +777,14 @@ CHARACTERS:
 
 ## OBJECTS Section
 
-Objects are defined separately and referenced in rooms or given to NPCs.
+Objects are defined under the zone (`ZONES.zone_id.OBJECTS`) and referenced in rooms or given to NPCs.
 
 ### Full Object Definition
 
 ```yaml
-OBJECTS:
-  - zone: zone_id
-    objects:
+ZONES:
+  zone_id:
+    OBJECTS:
       - id: unique_object_id
         name: Display Name
         article: a                      # "", "a", "an", "the"
@@ -853,9 +843,9 @@ OBJECTS:
 ### Partial Object Update
 
 ```yaml
-OBJECTS:
-  - zone: my_zone
-    objects:
+ZONES:
+  my_zone:
+    OBJECTS:
       - id: existing_sword
         # Update damage
         weapon_attacks:
@@ -869,9 +859,9 @@ OBJECTS:
 ### Object with Quest Trigger
 
 ```yaml
-OBJECTS:
-  - zone: my_zone
-    objects:
+ZONES:
+  my_zone:
+    OBJECTS:
       - id: ancient_tome
         name: ancient tome
         article: an
@@ -907,9 +897,9 @@ OBJECTS:
 ### Remove Field Example
 
 ```yaml
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: npc
         class:
           Fighter:
@@ -921,24 +911,20 @@ CHARACTERS:
 ### Remove Entry Example
 
 ```yaml
-# Remove a character
-CHARACTERS:
-  - zone: my_zone
-    characters:
-      - id: obsolete_npc
-        __remove__: true
-
-# Remove a room
+# Remove a character and a room
 ZONES:
   my_zone:
-    rooms:
+    CHARACTERS:
+      - id: obsolete_npc
+        __remove__: true
+    ROOMS:
       old_room:
         __remove__: true
 
 # Remove a trigger
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       some_room:
         triggers:
           - id: old_trigger
@@ -949,9 +935,9 @@ ZONES:
 
 ```yaml
 # Replace entire natural_attacks instead of merging
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: monster
         natural_attacks:
           __replace__: true        # Clear and replace
@@ -968,7 +954,7 @@ CHARACTERS:
 # Replace all triggers instead of extending
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       some_room:
         __list_strategy__: replace
         triggers:                   # These replace existing triggers
@@ -1056,21 +1042,18 @@ ZONES:
 ```yaml
 ZONES:
   my_zone:
-    quest_variables:
+    variables:
       treasure_hunt:
         talked_to_old_man: { type: boolean, default: false }
         found_map: { type: boolean, default: false }
         found_treasure: { type: boolean, default: false }
     
-    rooms:
+    ROOMS:
       village_square:
         characters:
           - id: old_hermit
             quantity: 1
-
-CHARACTERS:
-  - zone: my_zone
-    characters:
+    CHARACTERS:
       - id: old_hermit
         name: Old Hermit
         description: A weathered old man mumbling about treasure.
@@ -1093,7 +1076,7 @@ CHARACTERS:
 ```yaml
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       library:
         triggers:
           - id: find_secret
@@ -1122,9 +1105,9 @@ ZONES:
 ### Buffing Enemies
 
 ```yaml
-CHARACTERS:
-  - zone: my_zone
-    characters:
+ZONES:
+  my_zone:
+    CHARACTERS:
       - id: boss_monster
         class:
           Fighter:
@@ -1147,7 +1130,7 @@ CHARACTERS:
 ```yaml
 ZONES:
   my_zone:
-    rooms:
+    ROOMS:
       spooky_forest:
         triggers:
           - id: ambient_1

@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 import atexit
+import threading
 
 # Add custom debug levels
 logging.DEBUG2 = 9  # Between DEBUG(10) and NOTSET(0)
@@ -48,31 +49,45 @@ class NextGenMUDAppConfig(AppConfig):
 
         # Only initialize game state if not running management commands
         if not any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'shell', 'dbshell']):
-            # Import here to avoid premature loading
-            from .main_process import MainProcess
-            from .comprehensive_game_state import live_game_state
-            
-            # Register shutdown cleanup as a safety net.
-            # Note: This atexit handler may not run if os._exit() is called in asgi.py
-            # (which is intentional to avoid hanging on non-daemon ThreadPoolExecutor threads).
-            # The primary cleanup happens in the ASGI lifespan shutdown handler.
+            loader_logger = get_logger(__name__)
+
+            # Shutdown cleanup: lazy imports so we don't trigger world load on exit if it never started
             def shutdown_cleanup():
-                cleanup_logger = get_logger(__name__)
-                cleanup_logger.debug("Atexit handler running...")
-                
-                live_game_state.shutting_down = True
-                
-                # Save any linkdead characters that weren't already saved
-                for ld_char in list(live_game_state.linkdead_characters.values()):
-                    cleanup_logger.info(f"Saving linkdead character: {ld_char.character.name}")
-                    live_game_state._save_character(ld_char.character)
-                
-                MainProcess.shutdown()
-            
+                try:
+                    from .comprehensive_game_state import live_game_state
+                    from .main_process import MainProcess
+                    cleanup_logger = get_logger(__name__)
+                    cleanup_logger.debug("Atexit handler running...")
+                    live_game_state.shutting_down = True
+                    for ld_char in list(live_game_state.linkdead_characters.values()):
+                        cleanup_logger.info(f"Saving linkdead character: {ld_char.character.name}")
+                        live_game_state._save_character(ld_char.character)
+                    MainProcess.shutdown()
+                except ImportError:
+                    pass
+
             atexit.register(shutdown_cleanup)
-            
-            live_game_state.Initialize()
-            MainProcess.start_main_process()
+
+            # Signal handler must be registered in the main thread. MainProcess is imported here
+            # but does not pull in comprehensive_game_state (lazy _get_game_state()).
+            from .main_process import MainProcess
+            MainProcess.register_signal_handler()
+
+            def loader_worker():
+                loader_logger.info("--- WORLD LOADING STARTED ---")
+                try:
+                    from .comprehensive_game_state import live_game_state
+                    from .main_process import MainProcess
+                    live_game_state.Initialize()
+                    MainProcess.start_main_process()
+                    loader_logger.info("--- WORLD LOADING COMPLETE: GAME READY ---")
+                except Exception as e:
+                    loader_logger.exception(f"World loading failed: {e}")
+                    raise
+
+            loader_thread = threading.Thread(target=loader_worker, daemon=True)
+            loader_thread.start()
+            loader_logger.info("Server boot continuing; world is loading in background.")
 
 
 

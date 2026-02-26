@@ -39,26 +39,22 @@ Each zone file contains all data for that zone: the zone definition, rooms, char
 
 ### File Organization Pattern
 
+The world/merge file has **only one top-level key: `ZONES`**. All ROOMS, CHARACTERS, and OBJECTS (capitalized) belong under a specific zone:
+
 ```yaml
 ZONES:
   zone_id:
     name: Zone Name
     description: Zone description
     common_knowledge: {...}
-    quest_variables: {...}
-    rooms:
+    variables: {...}
+    ROOMS:
       room_id: {...}
       room_id2: {...}
-
-CHARACTERS:
-  - zone: zone_id
-    characters:
+    CHARACTERS:
       - id: char_id
         {...}
-
-OBJECTS:
-  - zone: zone_id
-    objects:
+    OBJECTS:
       - id: obj_id
         {...}
 ```
@@ -109,7 +105,7 @@ NPCs reference common knowledge by ID:
 Define quest-related variables with automatic knowledge updates.
 
 ```yaml
-    quest_variables:
+    variables:
       murder_mystery:                    # Quest namespace
         found_body:                      # Variable name
           description: "Player has discovered Lord Ashford's body"
@@ -136,8 +132,10 @@ Rooms are locations within a zone where players and NPCs can exist.
 
 ### Basic Room Structure
 
+Rooms are defined under the zone in the **ROOMS** section (capitalized):
+
 ```yaml
-    rooms:
+    ROOMS:
       forest_road_s:                     # Room ID (unique within zone)
         name: South Dark Forest Road    # Display name
         description: >                   # Room description (shown on look)
@@ -263,10 +261,12 @@ Characters are NPCs (non-player characters) that populate the world.
 
 ### Basic Character Structure
 
+Characters are defined under the zone in the **CHARACTERS** section (capitalized, under `ZONES.zone_id`):
+
 ```yaml
-CHARACTERS:
-  - zone: gloomy_graveyard
-    characters:
+ZONES:
+  gloomy_graveyard:
+    CHARACTERS:
       - id: zombie                     # Unique ID within zone
         name: shambling zombie         # Display name
         article: a                     # "a", "an", or "" for named NPCs
@@ -496,10 +496,12 @@ Objects are items that can be picked up, used, or interacted with.
 
 ### Basic Object Structure
 
+Objects are defined under the zone in the **OBJECTS** section (capitalized, under `ZONES.zone_id`):
+
 ```yaml
-OBJECTS:
-  - zone: gloomy_graveyard
-    objects:
+ZONES:
+  gloomy_graveyard:
+    OBJECTS:
       - id: torn_note                  # Unique ID within zone
         name: torn note                # Display name
         article: a                     # "a", "an", or "the"
@@ -973,7 +975,7 @@ Quests are built using quest variables, triggers, and LLM goals.
 
 ### Quest Variable Flow
 
-1. Define variables in zone `quest_variables`
+1. Define variables in zone `variables`
 2. Set variables via triggers or LLM goals
 3. Variables can update common knowledge automatically
 4. Check variables in trigger criteria
@@ -981,7 +983,7 @@ Quests are built using quest variables, triggers, and LLM goals.
 ### Example Quest Setup
 
 ```yaml
-    quest_variables:
+    variables:
       murder_mystery:
         found_body:
           description: "Player discovered the body"

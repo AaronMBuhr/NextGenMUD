@@ -139,7 +139,7 @@ class Character(Actor, CharacterInterface):
     def __init__(self, id: str, definition_zone_id: str, name: str = "", create_reference=True):
         super().__init__(ActorType.CHARACTER, id, name=name, create_reference=create_reference)
         self.definition_zone_id = definition_zone_id
-        self.description = ""
+        self.description_ = ""
         self.attributes = {}
         self._location_room = None
         self.contents = []
@@ -169,6 +169,7 @@ class Character(Actor, CharacterInterface):
         self.dodge_modifier: int = 0
         self.critical_chance: int = 0
         self.critical_multiplier: int = 100
+        self.critical_damage_bonus: int = 0  # Percentage bonus to damage on crit (e.g. 50 = +50%)
         # Spell power (increases spell save DC, reduces target resistance)
         self.spell_power: int = 0
         # Save skills (trainable 0-100, used in opposed saving throw checks)
@@ -212,6 +213,11 @@ class Character(Actor, CharacterInterface):
         self.saving_throw_bonuses: Dict[str, int] = {}
 
     @property
+    def description(self) -> str:
+        """Readonly: single attribute for look/display, backed by description_."""
+        return getattr(self, "description_", "")
+
+    @property
     def skills_by_class(self) -> SkillsByClassProxy:
         """
         Provides dict-like access to skills by class, returning CharacterSkill objects.
@@ -232,7 +238,7 @@ class Character(Actor, CharacterInterface):
             self.definition_zone_id = definition_zone_id
             self.article = yaml_data['article'] if 'article' in yaml_data else generate_article(self.name)
             # Support both 'long_description' (preferred) and 'description' for compatibility
-            self.description = yaml_data.get('long_description', yaml_data.get('description', ''))
+            self.description_ = yaml_data.get('long_description', yaml_data.get('description', ''))
             self.pronoun_subject = yaml_data['pronoun_subject'] if 'pronoun_subject' in yaml_data else "it"
             self.pronoun_object = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
@@ -444,6 +450,8 @@ class Character(Actor, CharacterInterface):
                 self.critical_chance = yaml_data['critical_chance']
             if 'critical_multiplier' in yaml_data:
                 self.critical_multiplier = yaml_data['critical_multiplier']
+            if 'critical_damage_bonus' in yaml_data:
+                self.critical_damage_bonus = yaml_data['critical_damage_bonus']
             if 'equipment' in yaml_data:
                 self.starting_eq = yaml_data['equipment']
             if 'inventory' in yaml_data:
@@ -499,24 +507,23 @@ class Character(Actor, CharacterInterface):
         
         Expected YAML format:
             llm_conversation:
-              personality: "A grizzled old man..."
-              speaking_style: "Speaks slowly, trails off..."
-              knowledge:
-                - id: secret_location
-                  content: "The crypt is behind the willow"
-                  reveal_threshold: 70
-                  is_secret: true
-              goals:
-                - id: earn_trust
-                  description: "Player earns NPC's trust"
-                  condition: "Player shows respect"
-                  disposition_required: 60
-                  on_achieve_set_vars:
-                    player.npc_trusts: true
-                  on_achieve_message: "The NPC regards you warmly."
-              will_discuss: ["the cemetery", "ghosts"]
-              will_not_discuss: ["his past"]
-              special_instructions: "Never reveal X unless..."
+              personality: "..."
+              goals:                    # NPC behavior: what the LLM should strive to do
+                - description: "Your goal is to prevaricate about the murder, but be truthful when asked directly."
+                - description: "If pressed, point the player toward the manor and Edmund."
+              conversation_results:    # When/then variable setting
+                - condition: "if and when you tell the player about the murder"
+                  set:
+                    mentioned_murder: yes
+                - condition: "if and when you tell the player about the butler"
+                  set:
+                    mentioned_butler: yes
+              actions:                 # Scripted actions the LLM can trigger
+                - id: give_note
+                  description: you give the player the note you found
+                  script: |
+                    give dismissal_note %S%
+              knowledge: ...
         """
         from ..llm_npc_conversation import NPCConversationHandler
         
@@ -526,10 +533,11 @@ class Character(Actor, CharacterInterface):
             "speaking_style": llm_config.get("speaking_style", ""),
             "knowledge": [],
             "goals": [],
+            "conversation_results": [],
             "will_discuss": llm_config.get("will_discuss", []),
             "will_not_discuss": llm_config.get("will_not_discuss", []),
             "special_instructions": llm_config.get("special_instructions", ""),
-            "common_knowledge_refs": llm_config.get("common_knowledge_refs", []),  # References to zone common knowledge
+            "common_knowledge_refs": llm_config.get("common_knowledge_refs", []),
         }
         
         # Process knowledge entries
@@ -557,6 +565,30 @@ class Character(Actor, CharacterInterface):
                 })
             else:
                 logger.warning(f"Invalid goal entry for {self.name}: {g}")
+
+        # Process conversation_results: when/then variable setting (zone designer defines conditions in plain language)
+        for cr in llm_config.get("conversation_results", []):
+            if isinstance(cr, dict) and cr.get("condition") and cr.get("set"):
+                context_data["conversation_results"].append({
+                    "condition": cr["condition"].strip() if isinstance(cr["condition"], str) else str(cr["condition"]),
+                    "set": dict(cr["set"]),
+                })
+            elif isinstance(cr, dict):
+                logger.warning(f"conversation_results entry missing condition or set for {self.name}: {cr}")
+
+        # Process actions: scripted actions the LLM can trigger (id -> description + commands)
+        llm_actions = {}
+        for a in llm_config.get("actions", []):
+            if isinstance(a, dict) and a.get("id"):
+                aid = a["id"]
+                desc = a.get("description", "")
+                script = a.get("script", "")
+                commands = [line.strip() for line in script.splitlines() if line.strip()]
+                llm_actions[aid] = {"description": desc, "commands": commands}
+            else:
+                logger.warning(f"Invalid action entry for {self.name}: {a}")
+        if llm_actions:
+            self.perm_variables["llm_actions"] = llm_actions
         
         # Store in permanent variables using the handler's key
         self.perm_variables[NPCConversationHandler.VAR_CONTEXT] = context_data
@@ -776,10 +808,10 @@ class Character(Actor, CharacterInterface):
         Args:
             exit_destination: The zone.room ID of the exit destination
         """
-        if not self._location_room:
+        if not self.location_room:
             return None
-        
-        for char in self._location_room.get_characters():
+
+        for char in self.location_room.get_characters():
             # Skip self
             if char == self:
                 continue

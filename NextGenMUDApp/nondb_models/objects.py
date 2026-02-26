@@ -9,7 +9,7 @@ from ..comprehensive_game_state_interface import GameStateInterface
 from .attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
 from .object_interface import ObjectInterface, ObjectFlags
 from .room_interface import RoomInterface
-from .triggers import TriggerType, Trigger
+from .triggers import TriggerType, Trigger, TriggerCriteria
 from ..utility import get_dice_parts, generate_article, replace_vars, firstcap, evaluate_functions_in_line
 
 
@@ -37,6 +37,8 @@ class Object(Actor, ObjectInterface):
         self.weight:int = 0
         self.value:int = 0
         self.contents: List[Object] = []
+        # location_room is a read-only property resolved through in_actor
+        self.initial_contents_ids: List[str] = []  # Object definition ids (zone_id.object_id or object_id) for world YAML contents
         # Consumable properties
         self.heal_amount: int = 0           # Fixed HP heal
         self.heal_dice: str = ""            # Dice-based heal (e.g., "2d6+4")
@@ -44,7 +46,7 @@ class Object(Actor, ObjectInterface):
         self.stamina_restore: int = 0       # Stamina restored
         self.use_message: str = ""          # Custom message when used
         self.charges: int = -1              # -1 = single use destroyed, 0+ = remaining charges
-
+        self.description_: str = ""
 
     def to_dict(self):
         return {
@@ -132,15 +134,20 @@ class Object(Actor, ObjectInterface):
             if 'charges' in yaml_data:
                 self.charges = yaml_data['charges']
             
-            # Object permanent flags
-            logger.debug3(f"object.from_yaml()> permanent_flags")
-            flags_data = yaml_data.get('permanent_flags', [])
+            # Object permanent flags (accept both 'permanent_flags' and 'flags')
+            logger.debug3(f"object.from_yaml()> permanent_flags / flags")
+            flags_data = yaml_data.get('permanent_flags') or yaml_data.get('flags') or []
             for flag_name in flags_data:
                 flag_name_upper = flag_name.upper().replace("-", "_")
                 if hasattr(ObjectFlags, flag_name_upper):
                     self.object_flags = self.object_flags.add_flags(getattr(ObjectFlags, flag_name_upper))
                 elif hasattr(ObjectFlags, f"IS_{flag_name_upper}"):
                     self.object_flags = self.object_flags.add_flags(getattr(ObjectFlags, f"IS_{flag_name_upper}"))
+
+            # Contents: list of object ids (zone_id.object_id or object_id); each referenced object must be in OBJECTS and can have its own contents
+            raw_contents = yaml_data.get('contents', [])
+            if isinstance(raw_contents, list):
+                self.initial_contents_ids = [str(x) for x in raw_contents]
                         
         except Exception as e:
             logger.error("Error loading object from yaml")
@@ -150,7 +157,7 @@ class Object(Actor, ObjectInterface):
 
     def add_object(self, obj: 'Object', force=False):
         self.contents.append(obj)
-        obj.in_actor = self
+        obj.set_in_actor(self)
 
     def remove_object(self, obj: 'Object'):
         self.contents.remove(obj)
@@ -213,12 +220,12 @@ class Object(Actor, ObjectInterface):
    
     @property
     def location_room(self) -> 'Room':
-        return self.in_actor if isinstance(self.in_actor, RoomInterface) else None
+        if isinstance(self.in_actor, RoomInterface):
+            return self.in_actor
+        if self.in_actor is not None:
+            return getattr(self.in_actor, "location_room", None)
+        return None
 
-    @location_room.setter
-    def location_room(self, room: 'Room'):
-        self.in_actor = room
-        
     def set_in_actor(self, actor: Actor):
         self.in_actor = actor
     
@@ -228,6 +235,11 @@ class Object(Actor, ObjectInterface):
     @property
     def art_name(self) -> str:
         return ((self.article + " ") if self.article else "") + self.name
+    
+    @property
+    def description(self) -> str:
+        """Readonly: single attribute for look/display, backed by description_."""
+        return getattr(self, "description_", "")
     
     @property
     def art_name_cap(self) -> str:
@@ -240,11 +252,11 @@ class Corpse(Object):
         id = character.id + "_corpse"
         super().__init__(id, character.definition_zone_id, name=f"{character.art_name_cap}'s corpse", create_reference=True)
         self.article = ""
-        self.description = f"The corpse of {character.art_name} lies here. It makes you feel sad..."
+        self.description_ = f"The corpse of {character.art_name} lies here. It makes you feel sad..."
         self.character = character
         self.object_flags = self.object_flags.add_flags(ObjectFlags.IS_CONTAINER)
         self.definition_zone_id = None
-        self._location_room = room
+        self.in_actor = room
         self.zone = room.zone
         self.weight = 10
         self.original_id = character.definition_zone_id + "." + character.id
@@ -272,7 +284,6 @@ class Corpse(Object):
         for obj in self.character.contents[:]:
             self.character.remove_object(obj)
             self.add_object(obj)
-            obj.location_room = self.character.location_room
 
     def transfer_inventory_only(self):
         """
@@ -280,11 +291,9 @@ class Corpse(Object):
         Equipped items stay on the player.
         """
         for obj in self.character.contents[:]:
-            # Skip items that are equipped
             if obj.equipped_location is not None:
                 continue
             self.character.remove_object(obj)
             self.add_object(obj)
-            obj.location_room = self._location_room
 
 

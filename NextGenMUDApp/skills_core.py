@@ -503,7 +503,7 @@ class Skills(SkillsInterface):
     async def start_casting(cls, actor: Actor, duration_ticks: int, cast_function: callable):
         game_tick = cls._get_game_state().get_current_tick()
         new_state = CharacterStateCasting(actor, cls._get_game_state(), actor, "casting", tick_created=game_tick, casting_finish_func=cast_function)
-        new_state.apply_state(game_tick, duration_ticks)
+        await new_state.apply_state(game_tick, duration_ticks)
         return True
 
     @classmethod
@@ -538,6 +538,49 @@ class Skills(SkillsInterface):
         return True, ""
     
     @classmethod
+    async def check_valid_finish(cls, caster: Actor, target: Actor = None) -> bool:
+        """
+        Verify caster and target are still valid for a skill finish (not dead, present, same room).
+        If invalid, sends an appropriate message to the caster only and returns False.
+        Returns True if both are valid. When target is None, only the caster is checked.
+        """
+        gs = cls._get_game_state()
+        # Caster checks
+        if hasattr(caster, 'is_dead') and caster.is_dead():
+            await caster.echo(CommTypes.DYNAMIC, "You are dead.", {}, game_state=gs)
+            return False
+        if getattr(caster, 'location_room', None) is None:
+            await caster.echo(CommTypes.DYNAMIC, "You are not here any more.", {}, game_state=gs)
+            return False
+        # Target checks (when there is a target)
+        if target is not None:
+            if hasattr(target, 'is_dead') and target.is_dead():
+                await caster.echo(
+                    CommTypes.DYNAMIC,
+                    f"{target.art_name_cap} is dead.",
+                    {},
+                    game_state=gs,
+                )
+                return False
+            if getattr(target, 'location_room', None) is None:
+                await caster.echo(
+                    CommTypes.DYNAMIC,
+                    f"{target.art_name_cap} is not here any more.",
+                    {},
+                    game_state=gs,
+                )
+                return False
+            if caster.location_room != target.location_room:
+                await caster.echo(
+                    CommTypes.DYNAMIC,
+                    "You are no longer in the same room as your target.",
+                    {},
+                    game_state=gs,
+                )
+                return False
+        return True
+    
+    @classmethod
     async def consume_resources(cls, actor: Actor, skill: Skill) -> None:
         """Consume mana/stamina for using a skill. Call this after skill succeeds."""
         from .nondb_models.character_interface import PermanentCharacterFlags
@@ -553,61 +596,65 @@ class Skills(SkillsInterface):
             await actor.send_status_update()
 
     @classmethod
-    def send_success_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
-        msg = skill_data["message_success_subject"]
-        vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_success_target"]
+    async def send_success_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
+        msg = getattr(skill, "message_success_subject", None)
+        first_target = targets[0] if targets else actor
+        vars = set_vars(actor, actor, first_target, msg)
+        await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_success_target", None)
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_success_room"]
+                await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_success_room", None)
         if msg:
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
-        
-    @classmethod
-    def send_failure_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
-        msg = skill_data["message_failure_subject"]
-        vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_failure_target"]
-        if msg and targets and len(targets) > 0:
-            for target in targets:
-                vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_failure_room"]
-        if msg:
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            vars = set_vars(actor, actor, first_target, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
 
     @classmethod
-    def send_apply_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
-        msg = skill_data["message_apply_subject"]
-        vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_apply_target"]
+    async def send_failure_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
+        msg = getattr(skill, "message_failure_subject", None)
+        first_target = targets[0] if targets else actor
+        vars = set_vars(actor, actor, first_target, msg)
+        await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_failure_target", None)
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_apply_room"]
+                await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_failure_room", None)
         if msg:
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
-        
+            vars = set_vars(actor, actor, first_target, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+
     @classmethod
-    def send_resist_message(cls, actor: Actor, targets: List[Actor], skill_data: dict, vars: dict) -> None:
-        msg = skill_data["message_resist_subject"]
-        vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_resist_target"]
+    async def send_apply_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
+        msg = getattr(skill, "message_apply_subject", None)
+        first_target = targets[0] if targets else actor
+        vars = set_vars(actor, actor, first_target, msg)
+        await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_apply_target", None)
         if msg and targets and len(targets) > 0:
             for target in targets:
                 vars = set_vars(actor, actor, target, msg)
-                target.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state())
-        msg = skill_data["message_resist_room"]
+                await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_apply_room", None)
         if msg:
-            vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            vars = set_vars(actor, actor, first_target, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+
+    @classmethod
+    async def send_resist_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
+        msg = getattr(skill, "message_resist_subject", None)
+        first_target = targets[0] if targets else actor
+        vars = set_vars(actor, actor, first_target, msg)
+        await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_resist_target", None)
+        if msg and targets and len(targets) > 0:
+            for target in targets:
+                vars = set_vars(actor, actor, target, msg)
+                await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state())
+        msg = getattr(skill, "message_resist_room", None)
+        if msg:
+            vars = set_vars(actor, actor, first_target, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)

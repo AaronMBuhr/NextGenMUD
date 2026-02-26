@@ -44,7 +44,7 @@ class ActorSpawnData:
             self.owner.zone_.add_actor(new_actor)
             self.owner.zone_.add_actor_to_room(new_actor, self.owner)
             new_actor.zone_ = self.owner.zone_
-            new_actor.location_room_ = self.owner
+            new_actor.location_room = self.owner
             new_actor.spawn_data = self
             new_actor.on_spawn()
 

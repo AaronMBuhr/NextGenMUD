@@ -90,7 +90,8 @@ class ScriptHandler:
                            if_predicate: str, vars: dict, game_state: ComprehensiveGameState = None) -> bool:
         logger = StructuredLogger(__name__, prefix="cls.evaluate_condition()> ")
         logger.debug3(f"if_subject: {if_subject}, if_operator: {if_operator}, if_predicate: {if_predicate}")
-        return evaluate_if_condition(if_subject, if_operator, if_predicate)
+        condition_str = f"{if_subject},{if_operator},{if_predicate}"
+        return evaluate_if_condition(condition_str, vars, game_state)
 
 
     # # Placeholder implementations of the functions

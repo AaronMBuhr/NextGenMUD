@@ -183,6 +183,8 @@ class Skills_Cleric(Skills):
     async def do_cleric_heal_finish(cls, actor: Actor, target: Actor, 
                                    difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the heal spell, restoring hit points."""
+        if not await cls.check_valid_finish(actor, target):
+            return False
         HEAL_DICE_NUM = 2
         HEAL_DICE_SIZE = 8
         HEAL_BASE_BONUS = 5
@@ -208,7 +210,7 @@ class Skills_Cleric(Skills):
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine energy washes over {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You channel divine energy into {target.art_name}, healing {actual_heal} hit points!"
             vars = set_vars(actor, actor, target, msg)
@@ -218,7 +220,7 @@ class Skills_Cleric(Skills):
             target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} channels divine energy into {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Send status update to target if they're a PC
         from .nondb_models.character_interface import PermanentCharacterFlags
@@ -260,6 +262,8 @@ class Skills_Cleric(Skills):
     async def do_cleric_smite_finish(cls, actor: Actor, target: Actor, 
                                     difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the smite spell, dealing holy damage with bonus vs undead."""
+        if not await cls.check_valid_finish(actor, target):
+            return False
         SMITE_DICE_NUM = 2
         SMITE_DICE_SIZE = 8
         SMITE_BASE_BONUS = 2
@@ -288,7 +292,7 @@ class Skills_Cleric(Skills):
                 attacker_attribute=CharacterAttributes.WISDOM)
             if saved:
                 vars = set_vars(actor, actor, target, "")
-                cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                 return True
 
         # Send messages
@@ -305,7 +309,7 @@ class Skills_Cleric(Skills):
         
         msg = f"{actor.art_name_cap} smites {target.art_name} with holy power!"
         vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Trigger group aggro
         await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
@@ -370,7 +374,7 @@ class Skills_Cleric(Skills):
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine favor surrounds {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You bestow divine blessings upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
@@ -380,17 +384,17 @@ class Skills_Cleric(Skills):
             target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} bestows divine blessings upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Apply hit bonus
         hit_state = CharacterStateHitBonus(target, cls._game_state, actor, "blessed", 
                                           affect_amount=hit_bonus, tick_created=game_tick)
-        hit_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
+        await hit_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
         
         # Apply damage bonus
         damage_state = CharacterStateDamageBonus(target, cls._game_state, actor, "blessed", 
                                                 affect_amount=damage_bonus, tick_created=game_tick)
-        damage_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
+        await damage_state.apply_state(game_tick or cls._game_state.get_current_tick(), BLESS_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.BLESS)
@@ -423,6 +427,8 @@ class Skills_Cleric(Skills):
         """Complete the consecrate spell, applying holy DoT to all enemies."""
         from .nondb_models.character_interface import PermanentCharacterFlags
         
+        if not await cls.check_valid_finish(actor, None):
+            return False
         CONSECRATE_DAMAGE_BASE = 3
         CONSECRATE_DAMAGE_PER_LEVEL = 0.4
         CONSECRATE_DURATION_TICKS = ticks_from_seconds(15)
@@ -443,11 +449,11 @@ class Skills_Cleric(Skills):
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} consecrates the ground with holy fire!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Apply to all enemies in the room
         enemies_hit = 0
-        for char in actor._location_room.characters:
+        for char in actor.location_room.characters:
             if char == actor:
                 continue
             # Skip friendly targets (same group or friendly flag)
@@ -461,7 +467,7 @@ class Skills_Cleric(Skills):
             # Apply the consecrate effect
             new_state = CharacterStateConsecrated(char, cls._game_state, actor, "consecrated", 
                                                  damage_amount=damage_per_tick, tick_created=game_tick)
-            new_state.apply_state(game_tick or cls._game_state.get_current_tick(), CONSECRATE_DURATION_TICKS,
+            await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), CONSECRATE_DURATION_TICKS,
                                  pulse_period_ticks=CONSECRATE_PULSE_TICKS)
             enemies_hit += 1
         
@@ -498,6 +504,8 @@ class Skills_Cleric(Skills):
     @classmethod
     async def do_cleric_zealotry_finish(cls, actor: Actor, difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the zealotry spell, applying damage bonus and healing penalty."""
+        if not await cls.check_valid_finish(actor, None):
+            return False
         ZEALOTRY_DAMAGE_BONUS_BASE = 5
         ZEALOTRY_DAMAGE_BONUS_PER_LEVEL = 0.5
         ZEALOTRY_HEALING_PENALTY = 40  # 40% less healing received
@@ -518,13 +526,13 @@ class Skills_Cleric(Skills):
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} is filled with zealous fury!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Apply the zealotry effect
         new_state = CharacterStateZealotry(actor, cls._game_state, actor, "zealous", 
                                           damage_bonus=damage_bonus, healing_penalty=ZEALOTRY_HEALING_PENALTY,
                                           tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ZEALOTRY_DURATION_TICKS)
+        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ZEALOTRY_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.ZEALOTRY)
@@ -561,6 +569,8 @@ class Skills_Cleric(Skills):
     async def do_cleric_judgment_finish(cls, actor: Actor, target: Actor, 
                                        difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the judgment spell, dealing high holy damage."""
+        if not await cls.check_valid_finish(actor, target):
+            return False
         JUDGMENT_DICE_NUM = 4
         JUDGMENT_DICE_SIZE = 10
         JUDGMENT_BASE_BONUS = 10
@@ -589,7 +599,7 @@ class Skills_Cleric(Skills):
                 attacker_attribute=CharacterAttributes.WISDOM)
             if saved:
                 vars = set_vars(actor, actor, target, "")
-                cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
                 return True
 
         # Send messages
@@ -606,7 +616,7 @@ class Skills_Cleric(Skills):
         
         msg = f"{actor.art_name_cap} passes divine judgment upon {target.art_name}!"
         vars = set_vars(actor, actor, target, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Trigger group aggro
         await CoreActionsInterface.get_instance().trigger_group_aggro(actor, target)
@@ -645,6 +655,8 @@ class Skills_Cleric(Skills):
         """Complete divine reckoning, dealing massive AoE damage and stunning enemies."""
         from .nondb_models.character_interface import PermanentCharacterFlags
         
+        if not await cls.check_valid_finish(actor, None):
+            return False
         RECKONING_DICE_NUM = 6
         RECKONING_DICE_SIZE = 12
         RECKONING_BASE_BONUS = 20
@@ -666,12 +678,12 @@ class Skills_Cleric(Skills):
         actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
         msg = f"{actor.art_name_cap} invokes DIVINE RECKONING! Blinding holy light blazes forth!"
         vars = set_vars(actor, actor, None, msg)
-        actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         
         # Hit all enemies in the room
         THIS_SKILL_DATA = ClericSkills.DIVINE_RECKONING
         enemies_hit = 0
-        for char in list(actor._location_room.characters):
+        for char in list(actor.location_room.characters):
             if char == actor:
                 continue
             # Skip friendly targets
@@ -688,7 +700,7 @@ class Skills_Cleric(Skills):
                     attacker_attribute=CharacterAttributes.WISDOM)
                 if saved:
                     vars = set_vars(actor, actor, char, "")
-                    cls.send_resist_message(actor, [char], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [char], THIS_SKILL_DATA, vars)
                     continue
 
             # Roll damage for each target
@@ -703,7 +715,7 @@ class Skills_Cleric(Skills):
             # Apply stun
             stun_state = CharacterStateStunned(char, cls._game_state, actor, "divine reckoning", 
                                               tick_created=game_tick)
-            stun_state.apply_state(game_tick or cls._game_state.get_current_tick(), RECKONING_STUN_DURATION_TICKS)
+            await stun_state.apply_state(game_tick or cls._game_state.get_current_tick(), RECKONING_STUN_DURATION_TICKS)
             enemies_hit += 1
         
         if enemies_hit == 0:
@@ -747,6 +759,8 @@ class Skills_Cleric(Skills):
     async def do_cleric_cast_armor_of_faith_finish(cls, actor: Actor, target: Actor, 
                                                   difficulty_modifier=0, game_tick=0) -> bool:
         """Complete the armor of faith spell, applying the armor bonus."""
+        if not await cls.check_valid_finish(actor, target):
+            return False
         ARMOR_BONUS_BASE = 2
         ARMOR_BONUS_PER_LEVEL = 0.3
         ARMOR_DURATION_TICKS = ticks_from_seconds(180)  # 3 minutes
@@ -767,7 +781,7 @@ class Skills_Cleric(Skills):
             actor.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"Divine armor shimmers around {actor.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
         else:
             msg = f"You invoke divine protection upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
@@ -777,11 +791,11 @@ class Skills_Cleric(Skills):
             target.echo(CommTypes.DYNAMIC, msg, vars, cls._game_state)
             msg = f"{actor.art_name_cap} invokes divine protection upon {target.art_name}!"
             vars = set_vars(actor, actor, target, msg)
-            actor._location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
+            actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         new_state = CharacterStateArmorBonus(target, cls._game_state, actor, "armor of faith", 
                                             affect_amount=armor_bonus, tick_created=game_tick)
-        new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ARMOR_DURATION_TICKS)
+        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), ARMOR_DURATION_TICKS)
         
         # Consume mana
         await Skills.consume_resources(actor, ClericSkills.ARMOR_OF_FAITH)

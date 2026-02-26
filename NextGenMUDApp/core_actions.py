@@ -1,4 +1,5 @@
 from .structured_logger import StructuredLogger
+import asyncio
 import math
 import random
 import time
@@ -13,6 +14,7 @@ from .nondb_models.actors import Actor
 from .nondb_models.actor_attitudes import ActorAttitude
 from .nondb_models.attacks_and_damage import AttackData, PotentialDamage, DamageType
 from .nondb_models.character_interface import CharacterInterface, PermanentCharacterFlags, TemporaryCharacterFlags, GamePermissionFlags, EquipLocation
+from .nondb_models.objects import Object, ObjectFlags
 from .nondb_models.rooms import Room
 from .skills_core import Skills
 from .nondb_models.triggers import TriggerType, TriggerFlags
@@ -76,9 +78,12 @@ class CoreActions(CoreActionsInterface):
     async def do_look_room(self, actor: Actor, room: Room):
         logger = StructuredLogger(__name__, prefix="do_look_room()> ")
         logger.debug3("starting")
+        if room is None:
+            logger.debug3("room is None, skipping look")
+            return
         # await actor.send_text(CommTypes.STATIC, room.description)
         logger.debug3("room parts")
-        msg_parts = [ room.name , room.description ]
+        msg_parts = [ room.name or "" , room.description or "" ]
         # TODO:M: handle batching multiples
         logger.debug3("characters")
         for character in room.characters:
@@ -111,24 +116,49 @@ class CoreActions(CoreActionsInterface):
     async def do_look_character(self, actor: Actor, target: 'Character'):
         logger = StructuredLogger(__name__, prefix="do_look_character()> ")
         msg = firstcap(target.description) + "\n" + f"{firstcap(target.pronoun_subject)} is {target.get_status_description()}"
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
 
+
+    def _format_container_contents_recursive(self, contents: List['Object'], indent_level: int = 0) -> str:
+        """Format container contents with recursive 'Containing:' and indentation for nested containers."""
+        if not contents:
+            return ""
+        indent = "  " * indent_level
+        prefix = (indent + "Containing: ") if indent_level else "Containing: "
+        parts = []
+        for obj in contents:
+            if (hasattr(obj, 'has_flags') and hasattr(obj, 'contents')
+                    and obj.has_flags(ObjectFlags.IS_CONTAINER)
+                    and not obj.has_flags(ObjectFlags.IS_CLOSED)
+                    and not obj.has_flags(ObjectFlags.IS_CONTAINER_LOCKED)):
+                sub = self._format_container_contents_recursive(obj.contents, indent_level + 1)
+                parts.append(f"{obj.art_name}.\n{sub}")
+            else:
+                parts.append(obj.art_name)
+        return prefix + ", ".join(parts)
 
     async def do_look_object(self, actor: Actor, target: 'Object'):
         logger = StructuredLogger(__name__, prefix="do_look_object()> ")
-        msg_parts = [ target.description ]
+        msg_parts = [target.description]
         if target.has_flags(ObjectFlags.IS_CONTAINER) and not target.has_flags(ObjectFlags.IS_CONTAINER_LOCKED):
-            if len(target.contents) == 0:
+            if target.has_flags(ObjectFlags.IS_CLOSED):
+                msg_parts.append(firstcap(target.pronoun_subject) + " is closed.")
+            elif len(target.contents) == 0:
                 msg_parts.append(firstcap(target.pronoun_subject) + " is empty.")
             else:
-                msg_parts.append(firstcap(target.pronoun_subject) + " contains:\n" + Object.collapse_name_multiples(target.contents, "\n"))
+                msg_parts.append(self._format_container_contents_recursive(target.contents))
         msg = '\n'.join(msg_parts)
-        await actor.echo(CommTypes.STATIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
+        await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, target, msg), game_state=self.game_state)
 
 
     async def arrive_room(self, actor: Actor, room: Room, room_from: Room = None):
         logger = StructuredLogger(__name__, prefix="arriveRoom()> ")
         logger.debug3(f"actor: {actor}, room: {room}, room_from: {room_from}")
+
+        # Any room transfer (move, transfer command, death respawn) ends combat for this actor
+        if actor in self.game_state.get_characters_fighting():
+            self.game_state.remove_character_fighting(actor)
+        actor.fighting_whom = None
 
         def reset_triggers_by_room(room: Room):
             for trigger in room.triggers_by_type.get(TriggerType.TIMER_TICK, []):
@@ -402,6 +432,8 @@ class CoreActions(CoreActionsInterface):
         if hasattr(target, 'is_meditating'):
             target.is_meditating = False
         subject.fighting_whom = target
+        self.game_state.add_character_fighting(subject)
+        self.game_state.add_character_fighting(target)
         if subject.has_perm_flags(PermanentCharacterFlags.IS_PC) and target.fighting_whom != subject:
             msg = f"You attack {target.art_name}!"
             vars = set_vars(subject, subject, target, msg)
@@ -414,8 +446,6 @@ class CoreActions(CoreActionsInterface):
             await subject.location_room.echo(CommTypes.DYNAMIC, msg,
                                         set_vars(subject.location_room, subject, target, msg),
                                         exceptions=[subject, target], game_state=self.game_state)
-            self.game_state.add_character_fighting(subject)
-            self.game_state.add_character_fighting(target)
         logger.debug3("checking for aggro or friends")
         
         # Player is initiating combat
@@ -490,7 +520,8 @@ class CoreActions(CoreActionsInterface):
                 c.fighting_whom = join_target
                 self.game_state.add_character_fighting(c)
         logger.debug3(f"looking room for {subject.rid}")
-        await self.do_look_room(subject, subject.location_room)
+        if subject.location_room is not None:
+            await self.do_look_room(subject, subject.location_room)
 
     async def fight_next_opponent(self, actor: Actor):
         logger = StructuredLogger(__name__, prefix="fight_next_opponent()> ")
@@ -738,7 +769,9 @@ class CoreActions(CoreActionsInterface):
         
         # Remove all active states (DOTs, debuffs, buffs) and cooldowns
         for state in player.current_states[:]:
-            state.remove_state(force=True)
+            result = state.remove_state(force=True)
+            if asyncio.iscoroutine(result):
+                await result
         player.cooldowns.clear()
         
         # Arrive at respawn location
@@ -896,7 +929,8 @@ class CoreActions(CoreActionsInterface):
         for dp in attack.potential_damage_:
             damage = dp.roll_damage()
             if critical:
-                damage *= (100 + actor.critical_damage_bonus) / 100
+                bonus = getattr(actor, 'critical_damage_bonus', 0)
+                damage *= (100 + bonus) / 100
             await self.do_calculated_damage(actor, target, damage, dp.damage_type)
             total_damage += damage
             logger.debug3(f"did {damage} {dp.damage_type.word()} damage to {target.rid}")
@@ -920,19 +954,11 @@ class CoreActions(CoreActionsInterface):
         target = actor.fighting_whom
         logger.debug3(f"handling combat tick for {actor.rid} against {target.rid}")
         
-        # For NPCs, use combat AI to decide whether to use a skill
-        # This queues a command rather than executing directly, so NPCs get
-        # the same command handling (duration, queueing, etc.) as players
+        # For NPCs, use combat AI to queue a skill for next tick (bonus action).
+        # Auto-attack always proceeds regardless — skills don't replace basic attacks.
         if not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             from .combat_ai import CombatAI
-            skill_queued = CombatAI.queue_combat_action(actor, target)
-            if skill_queued:
-                # A skill command was queued, skip auto-attack this round
-                # The skill will be executed when the command queue is processed
-                # Still need to check if target should fight back
-                if target.fighting_whom == None:
-                    await self.start_fighting(target, actor)
-                return
+            CombatAI.queue_combat_action(actor, target)
         
         # Standard auto-attack sequence
         total_dmg = 0
@@ -991,7 +1017,9 @@ class CoreActions(CoreActionsInterface):
                                         set_vars(target.location_room, actor, target, msg),
                                         exceptions=[actor, target], game_state=self.game_state)
             
-        if target.fighting_whom == None:
+        # Only re-engage if target is still in the same room and alive (e.g. they didn't die and respawn elsewhere)
+        if (target.fighting_whom is None and not target.is_dead()
+                and target.location_room is not None and target.location_room == actor.location_room):
             await self.start_fighting(target, actor)
             
        

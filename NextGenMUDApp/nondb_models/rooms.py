@@ -1,4 +1,5 @@
 from typing import Dict, List, Callable
+from .actor_attitudes import ActorAttitude
 from .actor_interface import ActorType, ActorSpawnData
 from .actors import Actor
 from ..communication import CommTypes
@@ -16,13 +17,17 @@ class Room(Actor, RoomInterface):
         super().__init__(ActorType.ROOM, id, name=name, create_reference=create_reference)
         self.definition_zone = zone
         self.exits = {}
-        self.description = ""
+        self.description_ = ""
         self.zone = None
         self.characters = []
         self.contents = []
-        self._location_room = self
         self.triggers_by_type = {}
         self.spawn_data = []
+
+    @property
+    def description(self) -> str:
+        """Readonly: single attribute for look/display, backed by description_."""
+        return getattr(self, "description_", "")
 
     def to_dict(self):
         return {
@@ -51,16 +56,19 @@ class Room(Actor, RoomInterface):
         logger = StructuredLogger(__name__, prefix="Room.from_yaml()> ")
         try:
             self.name = yaml_data['name']
-            self.description = yaml_data['description']
+            self.description_ = yaml_data['description']
             self.zone = zone
 
             for direction, exit_info in yaml_data['exits'].items():
                 # logger.debug3(f"loading direction: {direction}")
                 self.exits[direction] = Exit.from_yaml(exit_info)
 
-            if 'characters' in yaml_data:
+            room_characters = yaml_data.get('CHARACTERS') or yaml_data.get('characters')
+            if isinstance(room_characters, list):
                 logger.debug3("characters found")
-                for character in yaml_data['characters']:
+                for character in room_characters:
+                    if not isinstance(character, dict) or 'id' not in character:
+                        continue
                     logger.debug3(f"character: {character}")
                     if not "." in character['id']:
                         spawn_id = self.zone.id + "." + character['id']
@@ -70,6 +78,21 @@ class Room(Actor, RoomInterface):
                     # print(repr(character))
                     respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
                                                 character.get('respawn time min'), character.get('respawn time max'))
+                    self.spawn_data.append(respawn)
+
+            room_objects = yaml_data.get('OBJECTS') or yaml_data.get('objects')
+            if isinstance(room_objects, list):
+                logger.debug3("objects found")
+                for obj_entry in room_objects:
+                    if not isinstance(obj_entry, dict) or 'id' not in obj_entry:
+                        continue
+                    obj_id = obj_entry['id']
+                    if "." not in obj_id:
+                        spawn_id = self.zone.id + "." + obj_id
+                    else:
+                        spawn_id = obj_id
+                    quantity = obj_entry.get('quantity', 1)
+                    respawn = ActorSpawnData(self, ActorType.OBJECT, spawn_id, quantity, None, None)
                     self.spawn_data.append(respawn)
 
             if 'triggers' in yaml_data:
@@ -127,11 +150,11 @@ class Room(Actor, RoomInterface):
 
     def remove_object(self, obj: ObjectInterface):
         self.contents.remove(obj)
-        obj.location_room = None
+        obj.in_actor = None
 
     def add_object(self, obj: ObjectInterface):
         self.contents.append(obj)
-        obj.location_room = self
+        obj.in_actor = self
         
     def get_nearby_combatants(self, actor: Actor) -> List[Actor]:
         return [c for c in self.characters if c.fighting_whom == actor and c.location_room == self]

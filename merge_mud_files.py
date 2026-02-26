@@ -680,142 +680,227 @@ def merge_rooms(base_rooms, revision_rooms):
     return result
 
 
+def _get_zone_section(zone_dict, *keys):
+    """Return the first present value for the given keys (e.g. ROOMS or rooms)."""
+    if not zone_dict or not is_mapping(zone_dict):
+        return None
+    for k in keys:
+        if k in zone_dict:
+            return zone_dict[k]
+    return None
+
+
+def _normalize_zone_keys(zone_dict):
+    """
+    Ensure zone uses canonical keys ROOMS, CHARACTERS, OBJECTS (capitalized).
+    Rename rooms->ROOMS, characters->CHARACTERS, objects->OBJECTS if present; remove lowercase keys.
+    """
+    if not zone_dict or not is_mapping(zone_dict):
+        return
+    for old_key, new_key in [("rooms", "ROOMS"), ("characters", "CHARACTERS"), ("objects", "OBJECTS")]:
+        if old_key in zone_dict and new_key not in zone_dict:
+            zone_dict[new_key] = zone_dict.pop(old_key)
+        elif old_key in zone_dict and new_key in zone_dict:
+            del zone_dict[old_key]
+
+
+def normalize_revision_to_zones_only(revisions: dict) -> dict:
+    """
+    Fold top-level CHARACTERS and OBJECTS into ZONES.<zone_id>.CHARACTERS/OBJECTS.
+    Revision format becomes ZONES-only; legacy format (top-level CHARACTERS/OBJECTS) still accepted.
+    """
+    if not revisions or not is_mapping(revisions):
+        return revisions
+    zones = revisions.get("ZONES")
+    if not is_mapping(zones):
+        zones = create_mapping()
+        revisions["ZONES"] = zones
+
+    if "CHARACTERS" in revisions:
+        for entry in (revisions["CHARACTERS"] or []):
+            if not is_mapping(entry):
+                continue
+            zone_id = entry.get("zone")
+            if not zone_id:
+                continue
+            chars = entry.get("CHARACTERS") or entry.get("characters")
+            if zone_id not in zones:
+                zones[zone_id] = create_mapping()
+            existing = zones[zone_id].get("CHARACTERS") or zones[zone_id].get("characters")
+            zones[zone_id]["CHARACTERS"] = merge_character_or_object_list(existing, chars)
+            _normalize_zone_keys(zones[zone_id])
+        del revisions["CHARACTERS"]
+
+    if "OBJECTS" in revisions:
+        for entry in (revisions["OBJECTS"] or []):
+            if not is_mapping(entry):
+                continue
+            zone_id = entry.get("zone")
+            if not zone_id:
+                continue
+            objs = entry.get("OBJECTS") or entry.get("objects")
+            if zone_id not in zones:
+                zones[zone_id] = create_mapping()
+            existing = zones[zone_id].get("OBJECTS") or zones[zone_id].get("objects")
+            zones[zone_id]["OBJECTS"] = merge_character_or_object_list(existing, objs)
+            _normalize_zone_keys(zones[zone_id])
+        del revisions["OBJECTS"]
+
+    return revisions
+
+
+def normalize_base_to_zones_only(base: dict) -> dict:
+    """
+    Fold top-level CHARACTERS and OBJECTS into ZONES.<zone_id>.CHARACTERS/OBJECTS,
+    then normalize each zone to use ROOMS, CHARACTERS, OBJECTS (capitalized).
+    """
+    if not base or not is_mapping(base):
+        return base
+    zones = base.get("ZONES")
+    if not is_mapping(zones):
+        zones = create_mapping()
+        base["ZONES"] = zones
+
+    if "CHARACTERS" in base:
+        for entry in (base["CHARACTERS"] or []):
+            if not is_mapping(entry):
+                continue
+            zone_id = entry.get("zone")
+            if not zone_id:
+                continue
+            chars = entry.get("CHARACTERS") or entry.get("characters")
+            if zone_id not in zones:
+                zones[zone_id] = create_mapping()
+            existing = zones[zone_id].get("CHARACTERS") or zones[zone_id].get("characters")
+            zones[zone_id]["CHARACTERS"] = merge_character_or_object_list(existing, chars)
+        del base["CHARACTERS"]
+
+    if "OBJECTS" in base:
+        for entry in (base["OBJECTS"] or []):
+            if not is_mapping(entry):
+                continue
+            zone_id = entry.get("zone")
+            if not zone_id:
+                continue
+            objs = entry.get("OBJECTS") or entry.get("objects")
+            if zone_id not in zones:
+                zones[zone_id] = create_mapping()
+            existing = zones[zone_id].get("OBJECTS") or zones[zone_id].get("objects")
+            zones[zone_id]["OBJECTS"] = merge_character_or_object_list(existing, objs)
+        del base["OBJECTS"]
+
+    for zone_dict in zones.values():
+        if is_mapping(zone_dict):
+            _normalize_zone_keys(zone_dict)
+    return base
+
+
 def merge_zones(base_zones, revision_zones):
-    """Merge ZONES sections."""
+    """
+    Merge ZONES sections. Canonical keys per zone: ROOMS, CHARACTERS, OBJECTS (capitalized).
+    Accepts ROOMS or rooms, CHARACTERS or characters, OBJECTS or objects in revision.
+    """
     result = copy_item(base_zones) if base_zones else create_mapping()
-    
+
     if not revision_zones:
         return result
-    
+
+    ZONE_MERGE_EXCLUDE = frozenset([
+        "common_knowledge", "variables", "ROOMS", "rooms", "name", "description", "quests",
+        "CHARACTERS", "characters", "OBJECTS", "objects"
+    ])
+
     for zone_id in revision_zones:
         rev_zone = revision_zones[zone_id]
-        
-        if zone_id not in result:
-            # Entirely new zone
-            result[zone_id] = copy_item(rev_zone)
+        if not is_mapping(rev_zone):
             continue
-        
+
+        if zone_id not in result:
+            result[zone_id] = copy_item(rev_zone)
+            _normalize_zone_keys(result[zone_id])
+            continue
+
         base_zone = result[zone_id]
-        
+
         # Merge common_knowledge (dict)
         if "common_knowledge" in rev_zone:
             if "common_knowledge" not in base_zone:
                 base_zone["common_knowledge"] = create_mapping()
             base_zone["common_knowledge"] = deep_merge(
-                base_zone["common_knowledge"], 
+                base_zone["common_knowledge"],
                 rev_zone["common_knowledge"]
             )
-        
-        # Merge quest_variables (dict)
-        if "quest_variables" in rev_zone:
-            if "quest_variables" not in base_zone:
-                base_zone["quest_variables"] = create_mapping()
-            base_zone["quest_variables"] = deep_merge(
-                base_zone["quest_variables"],
-                rev_zone["quest_variables"]
+
+        # Merge variables (dict)
+        if "variables" in rev_zone:
+            if "variables" not in base_zone:
+                base_zone["variables"] = create_mapping()
+            base_zone["variables"] = deep_merge(
+                base_zone["variables"],
+                rev_zone["variables"]
             )
-        
-        # Merge rooms
-        if "rooms" in rev_zone:
-            base_zone["rooms"] = merge_rooms(
-                base_zone.get("rooms"),
-                rev_zone["rooms"]
-            )
-        
-        # Merge any other zone-level fields
+
+        # Merge ROOMS (accept ROOMS or rooms)
+        rev_rooms = _get_zone_section(rev_zone, "ROOMS", "rooms")
+        if rev_rooms is not None:
+            base_rooms = _get_zone_section(base_zone, "ROOMS", "rooms")
+            base_zone["ROOMS"] = merge_rooms(base_rooms, rev_rooms)
+            base_zone.pop("rooms", None)
+
+        # Merge quests
+        if "quests" in rev_zone:
+            if "quests" not in base_zone:
+                base_zone["quests"] = create_mapping()
+            base_zone["quests"] = deep_merge(base_zone["quests"], rev_zone["quests"])
+
+        # Merge CHARACTERS (accept CHARACTERS or characters)
+        rev_characters = _get_zone_section(rev_zone, "CHARACTERS", "characters")
+        if rev_characters is not None:
+            base_characters = _get_zone_section(base_zone, "CHARACTERS", "characters")
+            base_zone["CHARACTERS"] = merge_character_or_object_list(base_characters, rev_characters)
+            base_zone.pop("characters", None)
+
+        # Merge OBJECTS (accept OBJECTS or objects)
+        rev_objects = _get_zone_section(rev_zone, "OBJECTS", "objects")
+        if rev_objects is not None:
+            base_objects = _get_zone_section(base_zone, "OBJECTS", "objects")
+            base_zone["OBJECTS"] = merge_character_or_object_list(base_objects, rev_objects)
+            base_zone.pop("objects", None)
+
+        # Merge any other zone-level fields (excluding section keys)
         for field in rev_zone:
-            if field not in ["common_knowledge", "quest_variables", "rooms", "name", "description"]:
-                if field not in base_zone:
-                    base_zone[field] = copy_item(rev_zone[field])
-                elif is_mapping(base_zone[field]):
-                    base_zone[field] = deep_merge(base_zone[field], rev_zone[field])
-                elif is_sequence(base_zone[field]):
-                    for item in rev_zone[field]:
-                        if item not in base_zone[field]:
-                            base_zone[field].append(copy_item(item))
-                else:
+            if field in ZONE_MERGE_EXCLUDE:
+                if field in ["name", "description"] and rev_zone.get(field):
                     base_zone[field] = rev_zone[field]
-            elif field in ["name", "description"] and rev_zone.get(field):
-                # Allow overriding name/description if specified
-                base_zone[field] = rev_zone[field]
-    
-    return result
+                continue
+            if field not in base_zone:
+                base_zone[field] = copy_item(rev_zone[field])
+            elif is_mapping(base_zone[field]) and is_mapping(rev_zone[field]):
+                base_zone[field] = deep_merge(base_zone[field], rev_zone[field])
+            elif is_sequence(base_zone[field]) and is_sequence(rev_zone[field]):
+                for item in rev_zone[field]:
+                    if item not in base_zone[field]:
+                        base_zone[field].append(copy_item(item))
+            else:
+                base_zone[field] = copy_item(rev_zone[field])
 
-
-def merge_section_list(base_list, revision_list, item_key: str):
-    """
-    Merge a top-level section like CHARACTERS or OBJECTS.
-    
-    These have structure: [{zone: "zone_name", characters: [...]}]
-    """
-    result = copy_item(base_list) if base_list else create_sequence()
-    
-    if not revision_list:
-        return result
-    
-    for rev_entry in revision_list:
-        if not is_mapping(rev_entry):
-            continue
-            
-        zone_name = rev_entry.get("zone")
-        if not zone_name:
-            continue
-        
-        # Find matching zone entry in base
-        found = False
-        for base_entry in result:
-            if is_mapping(base_entry) and base_entry.get("zone") == zone_name:
-                # Merge the items list
-                if item_key not in base_entry:
-                    base_entry[item_key] = create_sequence()
-                base_entry[item_key] = merge_character_or_object_list(
-                    base_entry.get(item_key),
-                    rev_entry.get(item_key)
-                )
-                found = True
-                break
-        
-        if not found:
-            # New zone entry, add it
-            result.append(copy_item(rev_entry))
-    
     return result
 
 
 def apply_single_revision(base: dict, revisions: dict) -> dict:
     """
     Apply a single revision document to the base data.
-    
-    Args:
-        base: The current base data (will be modified)
-        revisions: A single revision document to apply
-        
-    Returns:
-        The modified base data
+    Base and output use ZONES-only format; ROOMS, CHARACTERS, OBJECTS (capitalized) under each zone.
+    Legacy revision format (top-level CHARACTERS/OBJECTS) is normalized into ZONES before merging.
     """
     if revisions is None:
         return base
-    
-    # Merge ZONES
+
+    revisions = normalize_revision_to_zones_only(revisions)
+
     if "ZONES" in revisions:
         base["ZONES"] = merge_zones(base.get("ZONES"), revisions["ZONES"])
-    
-    # Merge CHARACTERS
-    if "CHARACTERS" in revisions:
-        base["CHARACTERS"] = merge_section_list(
-            base.get("CHARACTERS"),
-            revisions["CHARACTERS"],
-            "characters"
-        )
-    
-    # Merge OBJECTS
-    if "OBJECTS" in revisions:
-        base["OBJECTS"] = merge_section_list(
-            base.get("OBJECTS"),
-            revisions["OBJECTS"],
-            "objects"
-        )
-    
+
     return base
 
 
@@ -849,11 +934,12 @@ def merge_mud_files(base_path: str, revisions_path: str, output_path: str, force
             else:
                 print("[WARNING] ruamel.yaml not installed - proceeding with --force, comments will be DELETED!")
         
-        # Load base file
+        # Load base file and normalize to ZONES-only (fold CHARACTERS/OBJECTS into zones, canonical keys)
         base = load_yaml(base_path, yaml_handler)
         if base is None:
             base = create_mapping()
-        
+        base = normalize_base_to_zones_only(base)
+
         # Load revisions file, splitting by # === break indicators
         revision_sections = load_yaml_sections(revisions_path, yaml_handler)
         

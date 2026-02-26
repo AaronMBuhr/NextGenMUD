@@ -8,7 +8,10 @@ Files are named {character_name}.yaml with spaces converted to dashes.
 import os
 import hashlib
 import secrets
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .nondb_models.world import WorldDefinition
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
@@ -169,36 +172,40 @@ class PlayerSaveManager:
             return False
     
     def load_character(self, character_name: str, target_character: 'Character' = None,
-                       restore_location: bool = False) -> Optional[Dict[str, Any]]:
+                       restore_location: bool = False,
+                       world_definition: 'WorldDefinition' = None) -> Optional[Dict[str, Any]]:
         """
         Load character data from a YAML file.
-        
+
         Args:
             character_name: Name of the character to load
             target_character: Optional Character object to populate with loaded data
             restore_location: Whether to restore the saved location (for combat reconnection)
-            
+            world_definition: If provided, inventory/equipment objects are created from templates
+                so triggers (e.g. catch_look) are preserved; otherwise objects are rebuilt from
+                save data only and have no scripts.
+
         Returns:
             Dictionary of character data, or None if load failed
         """
         logger = StructuredLogger(__name__, prefix="load_character()> ")
-        
+
         try:
             save_path = self._get_save_path(character_name)
-            
+
             if not os.path.exists(save_path):
                 logger.warning(f"Save file not found: {save_path}")
                 return None
-                
+
             with open(save_path, 'r', encoding='utf-8') as f:
                 data = self.yaml.load(f)
-                
+
             if not data:
                 logger.warning(f"Empty or invalid save file: {save_path}")
                 return None
-            
+
             if target_character:
-                self._apply_data_to_character(data, target_character, restore_location)
+                self._apply_data_to_character(data, target_character, restore_location, world_definition)
                 
             logger.info(f"Character {character_name} loaded from {save_path}")
             return data
@@ -317,18 +324,18 @@ class PlayerSaveManager:
             'skill_levels': character.skill_levels.copy() if hasattr(character, 'skill_levels') else {},
             'skill_points_available': character.skill_points_available,
             
-            # Skills by class (new format)
+            # Skills by class (new format): inner keys normalized for skills*.py / ClassSkillsProxy
             'skill_levels_by_role': {
-                role.name: skills.copy() 
+                role.name: {(s.lower().replace(' ', '_').replace('-', '_') if isinstance(s, str) else str(s)): level for s, level in skills.items()}
                 for role, skills in character.skill_levels_by_role.items()
             } if hasattr(character, 'skill_levels_by_role') else {},
             
             # Attributes
             'attributes': {attr.name: val for attr, val in character.attributes.items()},
             
-            # Flags (permanent only - temporary flags are states)
-            'permanent_flags': character.permanent_character_flags.value,
-            'game_permission_flags': character.game_permission_flags.value,
+            # Flags (permanent only - temporary flags are states); store as list of names
+            'permanent_flags': [f.name for f in character.permanent_character_flags.get_flags_set()],
+            'game_permission_flags': [f.name for f in character.game_permission_flags.get_flags_set()],
             
             # Stats
             'experience_points': character.experience_points,
@@ -369,7 +376,7 @@ class PlayerSaveManager:
         
         # Save temporary states if configured
         if save_states:
-            data['temporary_flags'] = character.temporary_character_flags.value
+            data['temporary_flags'] = [f.name for f in character.temporary_character_flags.get_flags_set()]
             data['states'] = [self._state_to_dict(state) for state in character.current_states]
         
         # Save cooldowns if configured  
@@ -387,7 +394,7 @@ class PlayerSaveManager:
             'definition_zone_id': obj.definition_zone_id,
             'name': obj.name,
             'article': obj.article,
-            'description': getattr(obj, 'description_', ''),
+            'description': obj.description,
             'weight': obj.weight,
             'value': obj.value,
             'object_flags': obj.object_flags.value,
@@ -421,10 +428,23 @@ class PlayerSaveManager:
             'start_tick': cooldown.start_tick if hasattr(cooldown, 'start_tick') else 0,
             'duration_ticks': cooldown.duration_ticks if hasattr(cooldown, 'duration_ticks') else 0,
         }
+
+    @staticmethod
+    def _flags_from_data(data_value, flag_class):
+        """Convert YAML flag data to a flag enum. Accepts list of names or legacy numeric value."""
+        if isinstance(data_value, list):
+            result = flag_class(0)
+            for name in data_value:
+                name_upper = str(name).strip().upper().replace(" ", "_")
+                if name_upper in flag_class.__members__:
+                    result = result.add_flags(flag_class[name_upper])
+            return result
+        return flag_class(int(data_value))
     
     def _apply_data_to_character(self, data: Dict[str, Any], character: 'Character',
-                                  restore_location: bool = False):
-        """Apply loaded data to a Character object."""
+                                  restore_location: bool = False,
+                                  world_definition: 'WorldDefinition' = None):
+        """Apply loaded data to a Character object. If world_definition is provided, inventory/equipment are created from templates (triggers preserved)."""
         from .nondb_models.character_interface import (
             PermanentCharacterFlags, TemporaryCharacterFlags, 
             GamePermissionFlags, EquipLocation, CharacterAttributes
@@ -437,7 +457,7 @@ class PlayerSaveManager:
         try:
             # Basic info
             character.name = data.get('name', character.name)
-            character.description = data.get('description', character.description)
+            character.description_ = data.get('description', character.description)
             character.article = data.get('article', character.article)
             character.pronoun_subject = data.get('pronoun_subject', 'it')
             character.pronoun_object = data.get('pronoun_object', 'it')
@@ -473,13 +493,15 @@ class PlayerSaveManager:
                 character.skill_levels = data['skill_levels'].copy()
             character.skill_points_available = data.get('skill_points_available', 0)
             
-            # Skills by class (new format)
+            # Skills by class (new format): restore to Dict[CharacterClassRole, Dict[str, int]], normalize inner keys
             if 'skill_levels_by_role' in data:
+                def _normalize_skill_key(s):
+                    return s.lower().replace(' ', '_').replace('-', '_') if isinstance(s, str) else str(s).lower().replace(' ', '_').replace('-', '_')
                 character.skill_levels_by_role = {}
                 for role_name, skills in data['skill_levels_by_role'].items():
                     try:
                         role = CharacterClassRole[role_name]
-                        character.skill_levels_by_role[role] = skills.copy()
+                        character.skill_levels_by_role[role] = {_normalize_skill_key(skill): level for skill, level in skills.items()}
                     except KeyError:
                         logger.warning(f"Unknown class role in skills: {role_name}")
             
@@ -491,13 +513,19 @@ class PlayerSaveManager:
                     except KeyError:
                         logger.warning(f"Unknown attribute: {attr_name}")
             
-            # Flags
+            # Flags: accept list of flag names or legacy numeric value
             if 'permanent_flags' in data:
-                character.permanent_character_flags = PermanentCharacterFlags(data['permanent_flags'])
+                character.permanent_character_flags = self._flags_from_data(
+                    data['permanent_flags'], PermanentCharacterFlags
+                )
             if 'game_permission_flags' in data:
-                character.game_permission_flags = GamePermissionFlags(data['game_permission_flags'])
+                character.game_permission_flags = self._flags_from_data(
+                    data['game_permission_flags'], GamePermissionFlags
+                )
             if 'temporary_flags' in data:
-                character.temporary_character_flags = TemporaryCharacterFlags(data['temporary_flags'])
+                character.temporary_character_flags = self._flags_from_data(
+                    data['temporary_flags'], TemporaryCharacterFlags
+                )
             
             # Stats
             character.experience_points = data.get('experience_points', 0)
@@ -545,10 +573,10 @@ class PlayerSaveManager:
             character.contents = []
             if 'inventory' in data:
                 for obj_data in data['inventory']:
-                    obj = self._dict_to_object(obj_data)
+                    obj = self._dict_to_object(obj_data, world_definition)
                     if obj:
                         character.add_object(obj)
-            
+
             # Clear and restore equipment
             character.equipped = {loc: None for loc in EquipLocation}
             if 'equipment' in data:
@@ -556,7 +584,7 @@ class PlayerSaveManager:
                     if obj_data:
                         try:
                             loc = EquipLocation[loc_name]
-                            obj = self._dict_to_object(obj_data)
+                            obj = self._dict_to_object(obj_data, world_definition)
                             if obj:
                                 character.equip_item(loc, obj)
                         except KeyError:
@@ -572,28 +600,47 @@ class PlayerSaveManager:
             import traceback
             traceback.print_exc()
     
-    def _dict_to_object(self, data: Dict[str, Any]) -> Optional['Object']:
-        """Convert a dictionary back to an Object."""
+    def _dict_to_object(self, data: Dict[str, Any], world_definition: Optional['WorldDefinition'] = None) -> Optional['Object']:
+        """Convert a dictionary back to an Object. If world_definition is provided, create from template so triggers (e.g. catch_look) are preserved; otherwise build from save data only."""
         from .nondb_models.character_interface import EquipLocation
         from .nondb_models.attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
         from .nondb_models.objects import Object, ObjectFlags
-        
+
         logger = StructuredLogger(__name__, prefix="_dict_to_object()> ")
-        
+
         try:
+            # When world definition is available, create from template so scripts/triggers are present
+            if world_definition is not None:
+                definition_zone_id = data.get('definition_zone_id')
+                obj_id = data.get('id')
+                if definition_zone_id and obj_id:
+                    resolved_id = f"{definition_zone_id}.{obj_id}"
+                    obj_def = world_definition.find_object_definition(resolved_id)
+                    if obj_def is None and obj_id:
+                        obj_def = world_definition.find_object_definition(obj_id)
+                    if obj_def is not None:
+                        obj = Object.create_from_definition(obj_def)
+                        # Restore container contents from save (each content created from template when possible)
+                        if obj.has_flags(ObjectFlags.IS_CONTAINER) and data.get('contents'):
+                            for content_data in data['contents']:
+                                content = self._dict_to_object(content_data, world_definition)
+                                if content:
+                                    obj.add_object(content)
+                        return obj
+            # Fallback: build from saved data only (no triggers)
             obj = Object(
                 id=data.get('id', 'unknown'),
                 definition_zone_id=data.get('definition_zone_id', 'unknown'),
                 name=data.get('name', 'Unknown Object'),
                 create_reference=True
             )
-            
+
             obj.article = data.get('article', '')
             obj.description_ = data.get('description', '')
             obj.weight = data.get('weight', 0)
             obj.value = data.get('value', 0)
             obj.object_flags = ObjectFlags(data.get('object_flags', 0))
-            
+
             # Equip locations
             obj.equip_locations = []
             for loc_name in data.get('equip_locations', []):
@@ -601,13 +648,13 @@ class PlayerSaveManager:
                     obj.equip_locations.append(EquipLocation[loc_name])
                 except KeyError:
                     pass
-                    
+
             if data.get('equipped_location'):
                 try:
                     obj.equipped_location = EquipLocation[data['equipped_location']]
                 except KeyError:
                     pass
-            
+
             # Damage multipliers
             if 'damage_multipliers' in data:
                 for dt_name, val in data['damage_multipliers'].items():
@@ -615,14 +662,14 @@ class PlayerSaveManager:
                         obj.damage_multipliers.set(DamageType[dt_name], val)
                     except KeyError:
                         pass
-                        
+
             if 'damage_reduction' in data:
                 for dt_name, val in data['damage_reduction'].items():
                     try:
                         obj.damage_reduction.set(DamageType[dt_name], val)
                     except KeyError:
                         pass
-            
+
             # Weapon stats
             if data.get('damage_type'):
                 try:
@@ -634,15 +681,15 @@ class PlayerSaveManager:
             obj.damage_bonus = data.get('damage_bonus', 0)
             obj.attack_bonus = data.get('attack_bonus', 0)
             obj.dodge_penalty = data.get('dodge_penalty', 0)
-            
+
             # Contents (for containers)
             for content_data in data.get('contents', []):
-                content_obj = self._dict_to_object(content_data)
+                content_obj = self._dict_to_object(content_data, world_definition)
                 if content_obj:
                     obj.add_object(content_obj)
-            
+
             return obj
-            
+
         except Exception as e:
             logger.error(f"Error creating object from dict: {e}")
             return None

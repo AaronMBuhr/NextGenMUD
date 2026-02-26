@@ -308,24 +308,24 @@ class TestTextPatternMatching:
         result = matches_text_pattern("test a here", pattern)
         assert isinstance(result, bool)
     
-    # Integration with evaluate_if_condition tests
+    # Integration with evaluate_if_condition tests (condition_str, vars_dict, game_state)
     def test_contains_operator_simple(self):
-        """contains operator should work with simple patterns."""
-        assert evaluate_if_condition("hello world", "contains", "hello") is True
-        assert evaluate_if_condition("hello world", "contains", "goodbye") is False
-    
-    def test_contains_operator_with_groups(self):
-        """contains operator should work with group patterns."""
-        assert evaluate_if_condition("I want to travel", "contains", "(travel|guide)") is True
-        assert evaluate_if_condition("can you guide me", "contains", "(travel|guide)") is True
-        assert evaluate_if_condition("I want to walk", "contains", "(travel|guide)") is False
-    
+        """contains operator should work with simple substring."""
+        assert evaluate_if_condition("hello world,contains,hello", {}, None) is True
+        assert evaluate_if_condition("hello world,contains,goodbye", {}, None) is False
+
+    def test_contains_operator_substring(self):
+        """contains operator uses substring matching (val2 in val1)."""
+        assert evaluate_if_condition("I want to travel,contains,travel", {}, None) is True
+        assert evaluate_if_condition("can you guide me,contains,guide", {}, None) is True
+        assert evaluate_if_condition("I want to walk,contains,travel", {}, None) is False
+
     def test_contains_operator_multiple_groups(self):
-        """contains operator should work with multiple groups."""
-        pattern = "(travel|guide) (oasis|water)"
-        assert evaluate_if_condition("guide me to the oasis", "contains", pattern) is True
-        assert evaluate_if_condition("travel to find water", "contains", pattern) is True
-        assert evaluate_if_condition("travel to the city", "contains", pattern) is False
+        """contains operator with literal substring (no pattern grammar)."""
+        # Substring "oasis" in "guide me to the oasis"
+        assert evaluate_if_condition("guide me to the oasis,contains,oasis", {}, None) is True
+        assert evaluate_if_condition("travel to find water,contains,water", {}, None) is True
+        assert evaluate_if_condition("travel to the city,contains,water", {}, None) is False
 
 
 class TestParseTextPatternTokens:

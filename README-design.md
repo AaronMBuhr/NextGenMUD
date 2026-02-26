@@ -503,7 +503,7 @@ async def process_command(cls, actor, input, vars=None, from_script=False):
 zone_id: enchanted_forest
 zone_name: The Enchanted Forest
 
-quest_variables:
+variables:
   forest_quest:
     found_fairy:
       type: boolean
