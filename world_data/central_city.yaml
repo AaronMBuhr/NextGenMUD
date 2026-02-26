@@ -4,6 +4,7 @@ ZONES:
     description: A bustling medieval metropolis filled with diverse inhabitants and rich history.
     ROOMS:
       city_gates:
+        subzone: city_entrance
         name: Grand City Gates
         description: >
           You stand before the impressive Grand City Gates, the main entrance to the sprawling  metropolis known as Central City. The gates are a masterpiece of engineering and  artistry, rising nearly thirty feet high and spanning the width of a wide cobblestone  road. 
@@ -78,6 +79,7 @@ ZONES:
           respawn time max: 90
 
       market_square:
+        subzone: commercial_district
         name: Bustling Market Square
         description: >
           You find yourself in the heart of Central City's Bustling Market Square, a vibrant  and chaotic hub of commerce and social activity. The large, cobblestone plaza is  alive with the sights, sounds, and smells of a thriving medieval marketplace.
@@ -173,6 +175,7 @@ ZONES:
           respawn time max: 45
 
       fountain_plaza:
+        subzone: city_center
         name: Central Fountain Plaza
         description: >
           You stand in the Central Fountain Plaza, the elegant heart of Central City. This  expansive circular area is paved with polished marble stones, creating intricate  patterns that radiate outward from the centerpiece - a magnificent, multi-tiered  fountain.
@@ -268,6 +271,7 @@ ZONES:
           respawn time max: 150
 
       merchant_row:
+        subzone: commercial_district
         name: Colorful Merchant Row
         description: >
           You find yourself on Merchant Row, a long, winding street that serves as the  commercial backbone of Central City. The narrow cobblestone path is flanked on  both sides by a dizzying array of shops, stalls, and emporiums, each competing  for attention with vibrant signs and eye-catching displays.
@@ -361,6 +365,7 @@ ZONES:
           respawn time max: 150
 
       artisan_alley:
+        subzone: artisan_district
         name: Skilled Artisan Alley
         description: >
           You find yourself in Skilled Artisan Alley, a narrow, winding lane that serves as  the creative heart of Central City. Unlike the bustling Merchant Row, this area  exudes a quieter, more focused energy. The cobblestone path is worn smooth by  centuries of foot traffic, and the buildings lean in slightly, their upper stories  nearly touching above your head.
@@ -454,6 +459,7 @@ ZONES:
           respawn time max: 120
 
       town_hall:
+        subzone: civic_district
         name: Imposing Town Hall
         description: >
           You stand in the grand foyer of Central City's Imposing Town Hall. The building  exudes an air of authority and history, with its soaring ceilings, polished marble  floors, and ornate woodwork. Massive columns support the upper floors, their  capitals intricately carved with scenes from the city's founding.
@@ -539,6 +545,7 @@ ZONES:
           respawn time max: 45
 
       council_chambers:
+        subzone: civic_district
         name: Ornate Council Chambers
         description: >
           You enter the Ornate Council Chambers, the very heart of Central City's governance.  The room is a testament to the city's wealth and power, with its opulent decor and  imposing architecture. A massive, circular table dominates the center of the room,  crafted from a single piece of polished oak and inlaid with intricate designs  representing the city's various districts.
@@ -623,6 +630,7 @@ ZONES:
           respawn time min: 75
           respawn time max: 150
       noble_quarter:
+        subzone: noble_district
         name: Elegant Noble Quarter
         description: >
           You find yourself in the Elegant Noble Quarter of Central City. Wide, clean streets  are lined with opulent mansions and manicured gardens. Ornate fountains and statues  adorn small parks and intersections. The air is perfumed with the scent of exotic  flowers. Well-dressed nobles and their attendants move about with purposeful grace.
@@ -702,6 +710,7 @@ ZONES:
           respawn time max: 120
 
       temple_district:
+        subzone: temple_district
         name: Serene Temple District
         description: >
           You stand in the Serene Temple District of Central City. The air is thick with the  scent of incense and the soft murmur of prayers. Towering temples and shrines of  various faiths line the streets, their spires reaching towards the heavens.  Pilgrims, priests, and acolytes move about with purpose, their colorful robes  adding splashes of color to the serene atmosphere.
@@ -781,6 +790,7 @@ ZONES:
           respawn time max: 60
 
       dockside_district:
+        subzone: harbor_district
         name: Busy Dockside District
         description: >
           You find yourself in the Busy Dockside District of Central City. The air is thick  with the smell of salt water and fish. Weathered wooden piers stretch out into the  harbor, where ships of all sizes are moored. Sailors, merchants, and dockworkers  bustle about, loading and unloading cargo. The constant cries of seagulls and the  creaking of ship timbers fill the air. Taverns and shops catering to seafarers line  the waterfront, their signs swaying in the sea breeze.
@@ -860,6 +870,7 @@ ZONES:
           respawn time max: 120
 
       craftsmen_square:
+        subzone: artisan_district
         name: Skilled Craftsmen Square
         description: >
           You stand in the Skilled Craftsmen Square, the heart of Central City's artisan  community. The square is alive with the sounds of industry: the rhythmic pounding  of hammers, the hiss of hot metal in water, and the scraping of chisels on wood.  Large workshops line the perimeter, their wide doors open to reveal masters and  apprentices hard at work. The air is filled with a mix of scents - freshly cut wood,  hot metal, and tanned leather. In the center of the square, a large fountain  depicts the patron deity of craftsmen, its waters used by many to cool their  creations.
@@ -937,6 +948,7 @@ ZONES:
           respawn time max: 45
 
       high_garden:
+        subzone: noble_district
         name: Lush High Garden
         description: >
           You find yourself in the Lush High Garden, an oasis of tranquility in the heart of  Central City. This meticulously maintained garden is a favorite retreat for the  city's nobility. Winding paths of crushed white stone meander through beds of  vibrant flowers and expertly trimmed topiaries. Ornate fountains and delicate  statuary are scattered throughout, their gentle sounds mixing with the chirping of  exotic birds. The air is sweet with the fragrance of blooming flowers and aromatic  herbs. Elegantly dressed nobles stroll along the paths or sit on ornate benches,  engaged in quiet conversation.
@@ -1014,6 +1026,7 @@ ZONES:
           respawn time max: 120
 
       mansion_row:
+        subzone: noble_district
         name: Opulent Mansion Row
         description: >
           You find yourself on Opulent Mansion Row, the most prestigious residential street  in Central City. The wide, immaculately clean cobblestone street is lined with  grand mansions, each more impressive than the last. Ornate iron gates and high  stone walls protect lush private gardens. The architecture is a breathtaking  display of wealth and artistry, with marble columns, gilded accents, and  intricately carved facades. Well-dressed servants hurry about on errands, while  guards stand watchful at the gates. The soft clop of hooves on stone occasionally  breaks the refined quiet as a noble's carriage passes by.
@@ -1091,6 +1104,7 @@ ZONES:
           respawn time max: 150
 
       grand_cathedral:
+        subzone: temple_district
         name: Majestic Grand Cathedral
         description: >
           You stand in awe before the Majestic Grand Cathedral, the spiritual heart of  Central City. Its towering spires seem to touch the heavens, while intricate  flying buttresses support walls of exquisite stained glass. The massive oak doors  stand open, inviting the faithful and curious alike. Inside, the vaulted ceilings  soar overhead, supported by massive stone columns. The air is heavy with the scent  of incense, and the soft murmur of prayers echoes throughout. Sunlight streams  through the stained glass windows, casting colorful patterns across the stone floor.  Priests and acolytes move about their duties, while worshippers kneel in quiet  contemplation.
@@ -1167,6 +1181,7 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
       monastery_grounds:
+        subzone: temple_district
         name: Peaceful Monastery Grounds
         description: >
           You find yourself in the Peaceful Monastery Grounds, a serene enclave within the  bustling city. High stone walls surround a complex of simple yet elegant buildings,  creating an atmosphere of quiet contemplation. Well-tended gardens filled with  medicinal herbs and vibrant flowers line the cobblestone paths. A central courtyard  features a tranquil pond, its surface broken only by the occasional ripple from  ornamental koi. Monks in simple robes move quietly about their duties, while the  soft sound of chanting drifts from an nearby chapel. The air is fragrant with  the scent of incense and blooming flowers.
@@ -1244,6 +1259,7 @@ ZONES:
           respawn time max: 150
 
       harbor_front:
+        subzone: harbor_district
         name: Bustling Harbor Front
         description: >
           You stand on the Bustling Harbor Front of Central City, a hive of maritime activity.  The air is thick with the smell of salt water and the cries of seagulls. Long wooden  piers stretch out into the water, where ships of all sizes are moored - from small  fishing boats to large merchant vessels. Sailors and dockworkers rush about, loading  and unloading cargo. Fishmongers hawk their fresh catch, while merchants haggle  over exotic goods newly arrived from distant lands. The constant creaking of ship  timbers and the slap of waves against the shore provide a rhythmic backdrop to the  bustling scene.
@@ -1321,6 +1337,7 @@ ZONES:
           respawn time max: 120
 
       fishmonger_alley:
+        subzone: harbor_district
         name: Pungent Fishmonger Alley
         description: >
           You find yourself in Pungent Fishmonger Alley, a narrow, winding street dedicated  to the city's seafood trade. The air is heavy with the briny scent of the sea and  the unmistakable odor of fish. Wooden stalls line both sides of the cobblestone  street, their counters laden with ice and the day's catch. Fishmongers loudly hawk  their wares, competing to be heard over the general din. Cats prowl between the  stalls, hoping for scraps. The ground is slick with water and fish scales, and  colorful awnings provide shade for both vendors and customers.
@@ -1398,6 +1415,7 @@ ZONES:
           respawn time max: 50
 
       blacksmith_forge:
+        subzone: artisan_district
         name: Sweltering Blacksmith Forge
         description: >
           You stand in the Sweltering Blacksmith Forge, the heart of Central City's  metalworking industry. The air is thick with heat and the acrid smell of hot metal.  The rhythmic clanging of hammers on anvils fills the air, punctuated by the hiss of  steam as hot metal meets water. Massive forges glow with intense heat, their fires  stoked by apprentices. Skilled blacksmiths work tirelessly, shaping metal into  tools, weapons, and works of art. Racks of finished products line the walls,  showcasing the smiths' impressive craftsmanship.
@@ -1475,6 +1493,7 @@ ZONES:
           respawn time max: 150
 
       royal_palace:
+        subzone: royal_district
         name: Resplendent Royal Palace
         description: >
           You stand in awe before the Resplendent Royal Palace, the crown jewel of Central  City. Towering spires and gleaming domes rise majestically against the sky, their  gold and silver accents catching the sunlight. The palace facade is a masterpiece  of architecture, adorned with intricate carvings, colorful frescoes, and delicate  stained glass windows. Immaculate gardens surround the palace, filled with exotic  plants and elaborate fountains. Guards in ornate armor stand at attention at every  entrance, their weapons polished to a mirror shine. The air is perfumed with the  scent of rare flowers, and the soft sound of courtly music drifts from within.
@@ -1552,6 +1571,7 @@ ZONES:
           respawn time max: 100
 
       high_tower:
+        subzone: arcane_district
         name: Arcane High Tower
         description: >
           You stand at the base of the Arcane High Tower, a structure that seems to defy the  laws of nature. The tower stretches impossibly high into the sky, its upper levels  shrouded in mist and swirling magical energies. The walls are made of a strange,  iridescent stone that shifts colors as you watch. Runes and arcane symbols cover  every surface, occasionally glowing with inner light. The air crackles with magical  energy, causing the hairs on your arms to stand on end. Robed figures hurry in and  out of the tower's entrance, their arms often full of ancient tomes or mysterious  artifacts.
@@ -1628,6 +1648,7 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
       bell_tower:
+        subzone: temple_district
         name: Echoing Bell Tower
         description: >
           You find yourself in the Echoing Bell Tower, high above the Grand Cathedral. The  circular room is open to the elements, with large arched openings providing a  breathtaking view of Central City in all directions. Massive bronze bells hang  from sturdy wooden beams overhead, their surfaces patinated with age. The air is  crisp and clean at this height, carrying the faint scents of the city below.  Pigeons coo softly from their nests in the rafters, and the wind whistles gently  through the openings. A thick rope hangs down the center of the room, used to  ring the bells for various religious and civic occasions.
@@ -1703,6 +1724,7 @@ ZONES:
           respawn time max: 150
 
       hidden_catacombs:
+        subzone: temple_district
         name: Mysterious Hidden Catacombs
         description: >
           You find yourself in the Mysterious Hidden Catacombs beneath the monastery. The air  is cool and damp, heavy with the musty scent of age. Flickering torches cast  dancing shadows on rough-hewn stone walls, revealing ancient inscriptions and  faded frescoes. Narrow passageways branch off in all directions, their depths  shrouded in darkness. The bones of the long-dead rest in alcoves along the walls,  silent witnesses to countless centuries. Water drips somewhere in the distance,  its echo creating an eerie ambiance. The atmosphere is thick with an almost  palpable sense of history and hidden knowledge.
@@ -1781,6 +1803,7 @@ ZONES:
           respawn time max: 180
 
       lighthouse_point:
+        subzone: harbor_district
         name: Guiding Lighthouse Point
         description: >
           You stand at the Guiding Lighthouse Point, the easternmost tip of Central City's  harbor. A tall, white-washed stone tower rises before you, its beacon shining  brightly even in daylight. The air is filled with the cry of seagulls and the  rhythmic crashing of waves against the rocky shore. Salt spray mists the air,  leaving a fine layer of moisture on everything. The lighthouse itself is surrounded  by a small, well-kept garden, a stark contrast to the wild, tumultuous sea beyond.  From this vantage point, you can see ships of all sizes entering and leaving the  harbor, guided by the lighthouse's unwavering light.
@@ -1856,6 +1879,7 @@ ZONES:
           respawn time max: 45
 
       fish_market:
+        subzone: harbor_district
         name: Lively Fish Market
         description: >
           You find yourself in the heart of Central City's Lively Fish Market. The air is  thick with the briny scent of the sea and the unmistakable odor of fresh fish.  Rows of stalls stretch as far as the eye can see, each overflowing with the day's  catch displayed on beds of crushed ice. Fishmongers call out their wares, their  voices competing with the general hubbub of haggling customers. The ground is  slick with water and scattered fish scales, requiring careful footing. Colorful  awnings provide shade, their edges flapping in the sea breeze. At the far end,  you can see larger stalls where whole tuna and other large fish are being expertly  filleted for eager customers.
@@ -1931,6 +1955,7 @@ ZONES:
           respawn time max: 90
 
       throne_room:
+        subzone: royal_district
         name: Opulent Throne Room
         description: >
           You stand in awe within the Opulent Throne Room, the very heart of power in Central  City. The vast chamber is a masterpiece of architectural grandeur and artistic  beauty. Soaring marble columns support a vaulted ceiling adorned with intricate  frescoes depicting the city's history. Massive chandeliers of gold and crystal  cast a warm glow over the room. The walls are hung with rich tapestries and the  banners of noble houses. At the far end of the room, atop a raised dais, sits the  royal throne - a magnificent seat of gold and precious gems, backed by an  enormous stained-glass window that bathes the area in colored light. The polished  floor reflects the opulence above, creating an almost dizzying effect.
@@ -2005,6 +2030,7 @@ ZONES:
           respawn time min: 75
           respawn time max: 150
       wizards_study:
+        subzone: arcane_district
         name: Cluttered Wizard's Study
         description: >
           You find yourself in the Cluttered Wizard's Study at the top of the Arcane High  Tower. The circular room is a chaotic whirlwind of magical paraphernalia. Towering  bookshelves line the walls, crammed with ancient tomes and scrolls. Peculiar  instruments of brass and glass crowd every surface, occasionally emitting puffs  of colored smoke or quiet chimes. Bubbling potions simmer in delicate glassware,  filling the air with strange, ever-changing scents. Mystical symbols and diagrams  cover the floor and ceiling, glowing faintly. A large window offers a breathtaking  view of the city below, though it's partially obscured by floating, shimmering  magical formulae. The very air seems to crackle with arcane energy.
@@ -2080,6 +2106,7 @@ ZONES:
           respawn time max: 60
 
       guard_barracks:
+        subzone: military_district
         name: Disciplined Guard Barracks
         description: >
           You enter the Disciplined Guard Barracks, the headquarters of Central City's  peacekeeping force. The large, rectangular room is a model of military efficiency  and order. Neat rows of bunk beds line the walls, each impeccably made. Weapon  racks filled with polished swords, spears, and crossbows stand at regular intervals.  The air carries the scent of leather and metal polish. Notice boards covered with  duty rosters, wanted posters, and city regulations are prominently displayed.  At one end, a heavy door leads to the armory, while a sturdy desk for the watch  captain dominates the other. The room buzzes with the constant activity of guards  preparing for their shifts or returning from patrol.
@@ -2157,6 +2184,7 @@ ZONES:
           respawn time max: 150
 
       training_grounds:
+        subzone: military_district
         name: Bustling Training Grounds
         description: >
           You stand in the Bustling Training Grounds of Central City's guard force. The large,  open area is alive with activity. One section is dedicated to archery, with  straw targets set up at various distances. Another area features training dummies  for sword practice, while a sandy pit is set aside for hand-to-hand combat drills.  The clash of practice weapons and the thud of arrows hitting targets fill the air.  Instructors bark orders and offer critiques to groups of recruits and veteran  guards alike. The perimeter is lined with weapon racks, water barrels, and benches  for resting between drills. Despite the intensity of the training, there's an  underlying sense of camaraderie among the guards.
@@ -2232,6 +2260,7 @@ ZONES:
           respawn time max: 180
 
       city_jail:
+        subzone: military_district
         name: Secure City Jail
         description: >
           You find yourself in the Secure City Jail, a stark contrast to the lively streets  above. The air is cool and damp, with a faint musty odor. Thick stone walls are  lined with iron-barred cells, each secured with heavy locks. Torches in wall  sconces cast flickering shadows, creating an atmosphere of gloom. A sturdy desk  sits near the entrance, where guards process prisoners and maintain records.  The occasional clink of chains or muffled conversation breaks the oppressive  silence. A board on the wall displays wanted posters and notices of recent  arrests. Despite its grim purpose, the jail is kept reasonably clean, reflecting  the city guard's commitment to maintaining order with a degree of humanity.
@@ -2307,6 +2336,7 @@ ZONES:
           respawn time max: 240
 
       sewers_entrance:
+        subzone: commercial_district
         name: Dank Sewers Entrance
         description: >
           You stand at the entrance to Central City's vast sewer system. A large, circular  stone archway leads into darkness, the faint sound of running water echoing from  within. The air is thick with humidity and carries a pungent odor that makes your  nose wrinkle. Slick moss covers parts of the walls, and the stones are stained  with years of moisture and grime. A few guttering torches provide minimal  illumination, casting long shadows that seem to move of their own accord. Rats  scurry in the corners, their eyes glinting in the dim light. A worn sign warns  against unauthorized entry, but it's clear from the footprints in the muck that  not everyone heeds this warning.

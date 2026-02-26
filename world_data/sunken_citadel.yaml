@@ -5,6 +5,7 @@ ZONES:
       The central hub of the city, dominated by the Life-Breath Spire and  surrounded by the grand gateways to the city's specialized districts.
     ROOMS:
       aethel_plaza_center:
+        subzone: citadel_core
         name: The Spire Center
         description: |
           You stand at the absolute center of Aethelgard. A massive, six-story  pulsing blue crystal—the Life-Breath Spire—rises from a raised marble  dais, disappearing into the heights of the dome. The air here vibrates  with a constant, low-frequency hum that resonates in your chest.  Concentric rings of white marble radiate outward toward the city's  districts.
@@ -40,6 +41,7 @@ ZONES:
         - id: unit_734b
           quantity: 1
       promenade_n:
+        subzone: inner_promenade
         name: North Promenade
         description: |
           A wide walkway of polished stone. To the north, the architecture becomes  increasingly ornate, leading toward the scholarly heart of the city.  Empty fountains shaped like leaping dolphins line the path.
@@ -61,6 +63,7 @@ ZONES:
           script: |
             echo The sound of phantom water splashing echoes briefly from the dry fountains.
       gateway_scholarium:
+        subzone: inner_promenade
         name: The Scholarium Arch
         description: |
           A grand archway carved from translucent glass-stone. Violet runes  flicker along the rim of the arch, casting long, dancing shadows.  This is the entrance to the city's archives and laboratories.
@@ -79,6 +82,7 @@ ZONES:
           script: |
             echo The runes are written in a language of pure mathematics and tide-charts.
       promenade_s:
+        subzone: inner_promenade
         name: South Promenade
         description: |
           The air here feels heavier and smells faintly of machine oil. The  marble is scuffed by the heavy treads of ancient machinery.
@@ -94,6 +98,7 @@ ZONES:
           respawn_time_min: 60
           respawn_time_max: 120
       gateway_barracks:
+        subzone: inner_promenade
         name: The Iron Threshold
         description: |
           A brutalist gateway of dark basalt. Massive iron-reinforced doors  stand open, leading into the military district. A heavy brass  plaque above the door displays a trident crossed with a gear.
@@ -103,6 +108,7 @@ ZONES:
           north: promenade_s
           south: barracks_iron_threshold
       promenade_e:
+        subzone: inner_promenade
         name: East Promenade
         description: |
           This section of the ring was once the primary commercial artery.  The marble is stained with colorful dyes, and the remains of  wooden stall-frames lean against the walls like skeletons.
@@ -112,6 +118,7 @@ ZONES:
           west: aethel_plaza_center
           east: gateway_markets
       gateway_markets:
+        subzone: inner_promenade
         name: The Market Thoroughfare
         description: |
           A wide thoroughfare that smells of dried kelp and old spices.  Ornate street lamps, long since dark, line the road as it  curves toward the sunken bazaar.
@@ -121,6 +128,7 @@ ZONES:
           west: promenade_e
           east: bazaar_entrance
       promenade_w:
+        subzone: inner_promenade
         name: West Promenade
         description: |
           The most elegant section of the plaza. The walls are inlaid  with mother-of-pearl, reflecting the blue light of the spire in  shimmering rainbows.
@@ -130,6 +138,7 @@ ZONES:
           east: aethel_plaza_center
           west: gateway_ascent
       gateway_ascent:
+        subzone: inner_promenade
         name: Base of the Royal Ascent
         description: |
           The ground slopes upward here, meeting the first steps of a  colossal spiral staircase. Massive glass panes in the outer  wall look out into the crushing dark of the Silver Sea.
@@ -142,6 +151,7 @@ ZONES:
         - id: golden_automaton_guardian
           quantity: 2
       shattered_vista:
+        subzone: outer_rim
         name: The Shattered Dome Vista
         description: |
           The floor has collapsed here, leaving a jagged hole that looks  down into the lower city foundations. To your side, the  Prism Veil is visible—a shimmering film of light holding  back millions of tons of seawater.
@@ -164,6 +174,7 @@ ZONES:
           respawn_time_min: 180
           respawn_time_max: 300
       civic_podium:
+        subzone: citadel_core
         name: The Civic Podium
         description: |
           A small, raised platform overlooking the center of the Plaza.  From here, officials once addressed the citizens. A heavy  stone lectern sits at the front, covered in a fine layer of silt.
@@ -172,6 +183,7 @@ ZONES:
         exits:
           down: aethel_plaza_center
       central_spire_base:
+        subzone: citadel_core
         name: The Spire Foundation
         description: |
           Beneath the plaza, you descend into a vast cylindrical chamber 
@@ -220,6 +232,7 @@ ZONES:
           respawn_time_min: 180
           respawn_time_max: 360
       scholarium_hall_runes:
+        subzone: the_scholarium
         name: The Hall of Runes
         description: |
           The grand entrance to the Scholarium is a cathedral-like space  of bioluminescent glass. Massive runic arches curve over  the walkway, humming with a violet light that flickers in  response to ambient arcane energy.
@@ -254,6 +267,7 @@ ZONES:
           respawn_time_min: 300
           respawn_time_max: 600
       archive_waves:
+        subzone: the_scholarium
         name: The Archive of Waves
         description: |
           A vast, circular library where stone shelves spiral upward  into the shadowed heights of the dome. Glass tubes contain  thousands of water-damaged but magically preserved scrolls.
@@ -295,6 +309,7 @@ ZONES:
           respawn_time_min: 120
           respawn_time_max: 240
       resonance_lab:
+        subzone: the_scholarium
         name: The Resonance Laboratory
         description: |
           A high-ceilinged laboratory filled with massive brass resonators  and oversized tuning forks. Crystalline structures glow with  a steady, azure pulse.
@@ -321,6 +336,7 @@ ZONES:
               damage %S% 5 force
             }
       sky_sea_balcony:
+        subzone: the_scholarium
         name: The Sky-Sea Balcony
         description: |
           An observation deck pressed directly against the inner curve  of the Prism Veil. The shimmering film of light is all that  separates you from the crushing blackness of the Silver Sea.
@@ -455,6 +471,7 @@ ZONES:
         - id: commander_vaelen_echo
           quantity: 1
       pressure_pits:
+        subzone: industrial_depths
         name: The Pressure Pits
         description: |
           The heat here is intense. Massive hydraulic pistons surge up and  down to maintain the city's internal atmosphere.
@@ -494,6 +511,7 @@ ZONES:
           respawn_time_min: 30
           respawn_time_max: 60
       breach_chamber:
+        subzone: industrial_depths
         name: The Breach Chamber
         description: "A jagged wound in the foundations of Aethelgard. The original \nbasalt walls have crumbled here, revealing a rough-hewn tunnel \nthat was clearly carved long after the city's construction. \nChisel marks score the raw stone, and the passage reeks of \nancient sewage and damp earth. Trickles of brackish water seep \nthrough cracks where the city's magical barriers have weakened. \nThis unauthorized excavation was hidden from official records—\nperhaps the work of smugglers, or something far more sinister. \nThe pristine architecture of the Pressure Pits is visible to the \neast, a stark contrast to this crude, secret entrance.\n\nExits: east, west\n"
         flags:
@@ -543,6 +561,7 @@ ZONES:
           respawn_time_min: 60
           respawn_time_max: 180
       bazaar_entrance:
+        subzone: the_markets
         name: The Sunken Bazaar
         description: |
           A vast, vaulted marketplace where the air still carries the ghost 
@@ -577,6 +596,7 @@ ZONES:
           script: |
             echo Most stalls are empty, but you spot the occasional corroded coin or shattered ceramic jar.
       palace_wing.throne_approach:
+        subzone: royal_wing
         name: The Pearl Stairs
         description: |
           A colossal spiraling staircase of pearl-inlay stone that winds  upward along the inner curve of the city's dome.
@@ -603,6 +623,7 @@ ZONES:
           script: |
             echo Each step is dated. There are exactly one thousand steps.
       royal_ascent_hanging_gardens:
+        subzone: royal_wing
         name: The Hanging Gardens of Aethel
         description: |
           A mid-level terrace where the city's flora has grown into a  wild, bioluminescent jungle.

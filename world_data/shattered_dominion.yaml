@@ -5,6 +5,7 @@ ZONES:
       A desert realm of buried pyramids and forgotten sun-kings. The sands hide the remnants of an ancient civilization that sought divine ascension through elaborate ritual—and failed. Now only echoes, constructs, and the undying remain to guard secrets that were never meant to be unearthed.
     ROOMS:
       room_pyr_desert_approach:
+        subzone: great_pyramid
         name: Desert Approach to a Buried Pyramid
         description: |
           The dunes rise unnaturally here, pressed hard against the exposed upper stones of a massive pyramid. Wind-carved sun symbols line a half-buried causeway descending into darkness.
@@ -67,6 +68,7 @@ ZONES:
             damage %S% 2d6 fire
             echoto %S% The desert remembers what you have done.
       room_pyr_sunken_causeway:
+        subzone: great_pyramid
         name: Sunken Ceremonial Causeway
         description: |
           Stone slabs slope gently downward beneath drifting sand. The walls are carved with procession scenes, their faces smoothed away by erosion and age.
@@ -97,6 +99,7 @@ ZONES:
           script: |
             echo Sand slides slowly across the causeway, softening the edges of old footprints.
       room_pyr_collapse_galleries:
+        subzone: great_pyramid
         name: Sand-Collapse Galleries
         description: |
           Narrow corridors twist inward, their ceilings cracked and bowed. Faded murals show figures reaching toward a missing sun, their outlines scraped away.
@@ -134,6 +137,7 @@ ZONES:
             echo Sand and stone cascade down!
             damage %S% 1d8 bludgeoning
       room_pyr_processional_ring:
+        subzone: great_pyramid
         name: Royal Processional Ring
         description: |
           A circular corridor surrounds the pyramid's core. Reliefs depict a crowned ruler walking calmly toward a radiant sun while priests kneel behind him.
@@ -176,6 +180,7 @@ ZONES:
               echo The carvings make one thing clear: this was no burial, but a promised ascension.
             }
       room_pyr_false_tombs:
+        subzone: great_pyramid
         name: False Royal Tombs
         description: |
           Lavish burial chambers branch outward, filled with offerings and ornate sarcophagi. Every coffin lies cracked open—empty.
@@ -193,6 +198,7 @@ ZONES:
           script: |
             echo Despite the wealth, the space feels rehearsed rather than sacred.
       room_pyr_priest_seals:
+        subzone: great_pyramid
         name: Priest Seal Chambers
         description: |
           Tall stone doors block access to auxiliary chambers. Their ritual glyphs overlap, suggesting repeated revision rather than age.
@@ -222,6 +228,7 @@ ZONES:
           script: |
             echo The seals emit a faint, disapproving hum as you approach.
       room_pyr_kings_path:
+        subzone: great_pyramid
         name: The King's Ascending Path
         description: |
           This narrow corridor slopes upward. The air grows hotter with each step, and the stone beneath your feet vibrates faintly.
@@ -248,6 +255,7 @@ ZONES:
             setquestvar %S% shattered_dominion.apotheosis_intent_known 3
             echo This was not a descent toward death—but an ascent toward divinity.
       room_pyr_solar_lens:
+        subzone: great_pyramid
         name: Solar Lens Chamber
         description: |
           A fractured crystal lens hangs above a scorched dais, bending sunlight into blinding spears that dance unpredictably across the chamber.
@@ -272,6 +280,7 @@ ZONES:
             setquestvar %S% shattered_dominion.solar_corruption_level $random(1,5)
             damage %S% 1d10 radiant
       room_pyr_apex_shrine:
+        subzone: great_pyramid
         name: Buried Apex Shrine
         description: |
           The final chamber stands empty. A scorched circle marks the floor, and the massive doors bear sealing glyphs carved from the inside.
@@ -300,6 +309,7 @@ ZONES:
       # =========================================================
       # DESERT CROSSROADS SUB-ZONE
       room_desert_crossroads_waystone:
+        subzone: the_sands
         name: Desert Crossroads at the Waystone
         description: |
           Four ancient roads converge at a weathered obelisk of black basalt. Faded carvings mark distances to places that no longer exist. The wind carries grit and whispers in equal measure.
@@ -360,6 +370,7 @@ ZONES:
             echo The sky darkens with churning sand. The desert remembers your choices.
             damage %S% 1d6 bludgeoning
       room_crossroads_buried_shrine:
+        subzone: the_sands
         name: Half-Buried Wayshrine
         description: |
           A small shrine juts from the sand beside the crossroads, its roof collapsed and offerings scattered. Faded prayer strips flutter from a bent iron frame.
@@ -384,6 +395,7 @@ ZONES:
       # =========================================================
       # TEMPLE RUINS SUB-ZONE
       room_temple_scorched_path:
+        subzone: temple_ruins
         name: The Scorched Path to the Temple
         description: |
           A processional road of cracked flagstones leads toward towering ruins. The stones underfoot are heat-fused, and nothing grows in the shallow sand between them.
@@ -426,6 +438,7 @@ ZONES:
             damage %S% 1d6 fire
             echoto %S% The temple's residual power recognizes your opposition.
       room_temple_shattered_gates:
+        subzone: temple_ruins
         name: Shattered Temple Gates
         description: |
           Massive bronze doors lie twisted and melted across the threshold. The blast pattern radiates outward—whatever destroyed these gates came from inside.
@@ -669,6 +682,7 @@ ZONES:
       # =========================================================
       # OASIS SUB-ZONE
       room_desert_southern_trail:
+        subzone: the_sands
         name: Southern Desert Trail
         description: |
           A dusty trail winds through low, sun-scorched hills at the southern edge of the desert. To the south, scattered vegetation hints at more hospitable lands beyond the heat-shimmered horizon. The trail bends eastward toward a distant smudge of green—an oasis marking a rare respite in this harsh expanse.
@@ -708,6 +722,7 @@ ZONES:
           script: |
             echo The relentless sun beats down, and the trail ahead seems to waver in the heat.
       room_oasis_approach:
+        subzone: verdant_oasis
         name: Approach to the Oasis of Veils
         description: |
           Palm fronds appear on the horizon, impossibly green against the bleached landscape. The air carries hints of moisture and the sound of distant voices. A trail leads west toward the southern desert edge, while the main road continues north to a distant crossroads.
@@ -755,6 +770,7 @@ ZONES:
           script: |
             echo Distant figures melt back into the heat haze. You are being watched, and not welcomed.
       room_oasis_outer_camp:
+        subzone: verdant_oasis
         name: Outer Camp of the Oasis
         description: |
           Weathered tents cluster beneath date palms, their fabric marked with knotted cords and faded symbols. Travelers and traders move with unhurried purpose.
@@ -785,6 +801,7 @@ ZONES:
           script: |
             echo Nods of recognition greet your arrival. Word travels fast in the desert.
       room_oasis_central_pool:
+        subzone: verdant_oasis
         name: Central Pool of the Oasis
         description: |
           Clear water wells up from ancient stones, forming a pool ringed by palm roots and carved markers. This is the heart of the settlement, where all disputes are heard and all stories are shared.
@@ -817,6 +834,7 @@ ZONES:
               echoto %S% The ripples persist, as if doubting your sincerity.
             }
       room_oasis_veiled_tent:
+        subzone: verdant_oasis
         name: The Veiled Speaker's Tent
         description: |
           A large tent of layered fabric stands apart from the others, its entrance hung with knotted cords of different lengths and colors. Each knot represents a memory preserved.
@@ -840,6 +858,7 @@ ZONES:
           script: |
             echo You enter the space of collective memory. Here, silence speaks loudest.
       room_oasis_trade_circle:
+        subzone: verdant_oasis
         name: Trade Circle
         description: |
           Merchants display salvage and crafted goods on woven mats. Barter is the rule—gold has little meaning when water and knowledge hold true value.
@@ -869,6 +888,7 @@ ZONES:
           script: |
             echo Traders haggle in low voices, exchanging goods and carefully curated information.
       room_oasis_memory_tents:
+        subzone: verdant_oasis
         name: The Memory Tents
         description: |
           A cluster of small tents where the elders practice the art of oral preservation. Bundles of knotted cords hang from every pole, each encoding events too important to forget.
@@ -909,6 +929,7 @@ ZONES:
       # =========================================================
       # WASTES SUB-ZONE
       room_wastes_glassed_expanse:
+        subzone: scorched_wastes
         name: The Glassed Expanse
         description: |
           The sand here has been fused into sheets of rippled glass, reflecting the sun in blinding patterns. Nothing lives. The silence is absolute.
@@ -968,6 +989,7 @@ ZONES:
               setquestvar %S% shattered_dominion.failure_cause_known 3
             }
       room_wastes_crater_rim:
+        subzone: scorched_wastes
         name: Rim of the Blast Crater
         description: |
           You stand at the edge of an immense depression in the glassed terrain. The crater's center glows faintly even now, centuries after the event that created it.
@@ -1009,6 +1031,7 @@ ZONES:
             echo A pulse of residual energy ripples up from the crater floor.
             damage %S% 1d4 radiant
       room_wastes_crater_floor:
+        subzone: scorched_wastes
         name: The Crater Floor
         description: |
           Crystallized energy formations jut from fused stone at impossible angles. The air shimmers with trapped light, and time itself seems to stutter in the residual field.
@@ -1062,6 +1085,7 @@ ZONES:
               echoto %S% You understand now: this was not ascension. This was destruction, weaponized.
             }
       room_wastes_buried_conduits:
+        subzone: scorched_wastes
         name: Buried Conduit Array
         description: |
           Exposed by wind erosion, a network of crystalline conduits spreads across the sand like the roots of a dead tree. Each conduit is scorched black at one end.
@@ -1088,6 +1112,7 @@ ZONES:
               echoto %S% The engineering is precise, but the safeguards are conspicuously absent.
             }
       room_wastes_salt_flats:
+        subzone: scorched_wastes
         name: Salt Flats of the Burned Sea
         description: |
           An expanse of cracked white salt stretches toward the horizon, marking where an ancient sea was flash-evaporated. Crystalline formations grow in unnatural spirals.
@@ -1137,6 +1162,7 @@ ZONES:
           script: |
             echo To the south, the white expanse gives way to the sun-bleached stone of a ruined garrison.
       room_wastes_nomad_crossing:
+        subzone: scorched_wastes
         name: Nomad Crossing Point
         description: |
           A rare passage through the wastes marked by cairns of stacked bones and salvage. The route shifts with the seasons, tracked only by those who understand the desert's moods.
@@ -1183,6 +1209,7 @@ ZONES:
             echo The cairns have been scattered. The route is no longer safe.
             damage %S% 2d6 bludgeoning
       room_ossuary_fissure_drop:
+        subzone: the_ossuary
         name: The Fissure Drop
         description: |
           A jagged crack in the fused desert floor leads down into a subterranean vault. The walls here are not stone, but thick, translucent sheets of glass that hum with a low, vibrating frequency.
@@ -1210,6 +1237,7 @@ ZONES:
           respawn_time_min: 120
           respawn_time_max: 240
       room_ossuary_vitrified_corridor:
+        subzone: the_ossuary
         name: Vitrified Burial Corridor
         description: |
           This long hallway is lined with alcoves where the elite of the Dominion were once laid to rest. The catastrophe has turned the very air to a shimmering haze, and the remains in the alcoves have been partially fused into the walls.
@@ -1245,6 +1273,7 @@ ZONES:
           respawn_time_min: 180
           respawn_time_max: 300
       room_ossuary_heart_of_refraction:
+        subzone: the_ossuary
         name: The Heart of Refraction
         description: |
           A massive domed chamber where the glass is at its thickest. A central pillar of pure, solar-etched crystal pulses with a rhythmic, dying light, casting prismatic shadows that dance across the floor.
@@ -1285,6 +1314,7 @@ ZONES:
           respawn_time_min: 240
           respawn_time_max: 480
       room_ossuary_shattered_gallery:
+        subzone: the_ossuary
         name: Gallery of Shattered Souls
         description: |
           This long gallery is filled with the remains of crystalline "Memory Keepers" that shattered during the energy overload. Sharp shards of prismatic glass cover the floor like drifts of frozen snow.
@@ -1314,6 +1344,7 @@ ZONES:
           quantity: 2
           respawn_time_min: 180
       room_ossuary_echo_chamber:
+        subzone: the_ossuary
         name: The Resonant Echo Chamber
         description: |
           The walls here are curved to amplify the "incomplete harmonies" of the old ritual. The air itself feels heavy, as if the energy release was "catastrophic and instantaneous" and remains trapped here.
@@ -1339,6 +1370,7 @@ ZONES:
           respawn_time_min: 240
           respawn_time_max: 480
       room_ossuary_noble_crypts:
+        subzone: the_ossuary
         name: The Noble Crypts
         description: |
           A cluster of private burial chambers for high-ranking officials. Unlike the public corridor, these rooms are lined with "gold-inlaid script" and "sun-etched stone" that resisted the worst of the heat.
@@ -1365,6 +1397,7 @@ ZONES:
           quantity: 1
           respawn_time_min: 300
       room_ossuary_sun_kings_repose:
+        subzone: the_ossuary
         name: The High Priest's Repose
         description: |
           The final resting place of a high priest of the Black Sun. A massive "ornate false sarcophagus" sits at the center, its lid "cracked open from the inside" as if something fought to escape.
@@ -1389,6 +1422,7 @@ ZONES:
         - id: npc_ossuary_solar_flare_sentinel
           quantity: 1
       room_ossuary_vitrified_archives:
+        subzone: the_ossuary
         name: The Vitrified Archives
         description: |
           A cramped room where "crystalline memory slabs" were stored. Most have melted into a single, glowing mass of slag, but a few individual pieces remain "scorched black" at the edges.
@@ -1420,6 +1454,7 @@ ZONES:
         - id: npc_ossuary_memory_echo
           quantity: 1
       room_ossuary_servants_tunnel:
+        subzone: the_ossuary
         name: The Servants' Escape Tunnel
         description: |
           A low, narrow tunnel designed for quick movement between the vaults and the barracks. The glass walls here are thinner, revealing the "sand-woken" creatures prowling in the dunes outside.
@@ -1445,6 +1480,7 @@ ZONES:
         - id: npc_ossuary_prismatic_stalker
           quantity: 1
       room_ossuary_barracks_junction:
+        subzone: the_ossuary
         name: The Barracks Junction
         description: |
           The tunnel ends at a set of "shattered temple gates" that once protected the ossuary from the garrison above. Fused sand and "scorched flagstones" block much of the northern exit.
@@ -1468,6 +1504,7 @@ ZONES:
           quantity: 2
           respawn_time_min: 180
       room_scriptorium_scorched_arch:
+        subzone: the_scriptorium
         name: The Scorched Archway
         description: |
           A heavy stone archway, its surface blackened and bubbling from extreme heat, marks the entrance to the Scriptorium. Ash drifts from the ceiling like gray snow, coating the cracked flagstones.
@@ -1494,6 +1531,7 @@ ZONES:
           respawn_time_min: 150
           respawn_time_max: 300
       room_scriptorium_hall_of_records:
+        subzone: the_scriptorium
         name: Hall of Melted Records
         description: |
           What were once towering bookshelves are now mounds of slagged stone and carbonized ash. A few fragments of crystalline "memory slabs" jut from the debris, glowing with dim, flickering data.
@@ -1527,6 +1565,7 @@ ZONES:
         - id: npc_script_burned_cantor
           quantity: 1
       room_scriptorium_calculation_chamber:
+        subzone: the_scriptorium
         name: The Calculation Chamber
         description: |
           A circular room dominated by a massive, floor-to-ceiling brass orrery that has been melted into a static, golden tangle. This is where the mages once calculated the "solar tolerances" for the ritual.
@@ -1559,6 +1598,7 @@ ZONES:
           respawn_time_min: 300
           respawn_time_max: 600
       room_scriptorium_scribe_alcoves:
+        subzone: the_scriptorium
         name: The Scribe Alcoves
         description: |
           Small, cell-like spaces where scribes once tirelessly copied ritual parameters. The desks are fused to the floors, and the walls are etched with desperate, final notations.
@@ -1584,6 +1624,7 @@ ZONES:
           quantity: 4
           respawn_time_min: 120
       room_scriptorium_containment_cell:
+        subzone: the_scriptorium
         name: Failed Containment Cell
         description: |
           This room was designed to hold volatile energy samples. The lead-lined walls are buckled outward, and the floor is a glassed crater of "uncontained solar energy" residue.
@@ -1616,6 +1657,7 @@ ZONES:
           quantity: 2
           respawn_time_min: 300
       room_scriptorium_restricted_stacks:
+        subzone: the_scriptorium
         name: The Restricted Stacks
         description: |
           A high-security archive where "safeguard documentation" was kept. Unlike the outer halls, the shelves here are made of heat-resistant basalt, and many tablets remain intact.
@@ -1645,6 +1687,7 @@ ZONES:
         - id: npc_script_ink_wraith
           quantity: 1
       room_scriptorium_chief_archivist_office:
+        subzone: the_scriptorium
         name: Office of the Chief Archivist
         description: |
           The remains of an opulent office. A "master chronicle slab" sits on a scorched desk, surrounded by "glyph-scraping tools" used to edit the Dominion's history.
@@ -1668,6 +1711,7 @@ ZONES:
         - id: npc_script_chief_archivist
           quantity: 1
       room_scriptorium_secret_scriptorium:
+        subzone: the_scriptorium
         name: The Secret Scriptorium
         description: |
           A hidden chamber where the "doctrinal revision" actually took place. This is where the truth of the "hidden sacrifice" was excised from the official records.
@@ -1693,6 +1737,7 @@ ZONES:
           quantity: 3
           respawn_time_min: 180
       room_scriptorium_observation_deck:
+        subzone: the_scriptorium
         name: Scriptorium Observation Deck
         description: |
           A high balcony overlooking the "Glassed Expanse." From here, the "radial heat damage" and the "catastrophic energy release" patterns are visible across the entire Dominion.
@@ -1714,6 +1759,7 @@ ZONES:
           quantity: 1
           respawn_time_min: 300
       room_scriptorium_failed_alcove:
+        subzone: the_scriptorium
         name: The Failed Alcove
         description: |
           A collapsed corner of the scriptorium where the heat was so intense it fused the basalt shelves into a single, obsidian-like mass.
@@ -1726,6 +1772,7 @@ ZONES:
         - id: npc_script_burned_cantor
           quantity: 2
       room_barracks_salt_trail:
+        subzone: military_camp
         name: The Salt-Dusted Trail
         description: |
           A narrow path, heavily encrusted with white salt crystals, leads away from the flats. The ground is brittle and crunches loudly with every step.
@@ -1755,6 +1802,7 @@ ZONES:
         - id: obj_barracks_cairn_stone
           quantity: 3
       room_barracks_main_gate:
+        subzone: military_camp
         name: Garrison Main Gate
         description: |
           The stone pillars here once held massive wooden gates, now replaced by pillars of jagged salt. A low stone wall extends to the east and west, crumbling into the dunes.
@@ -1781,6 +1829,7 @@ ZONES:
           respawn_time_min: 150
           respawn_time_max: 300
       room_barracks_training_grounds:
+        subzone: military_camp
         name: Salt-Fused Training Grounds
         description: |
           This wide courtyard was once used for drills. Now, weapon racks have been fused into solid blocks of salt, and the stone floor is cracked and buckled.
@@ -1823,6 +1872,7 @@ ZONES:
         - id: obj_barracks_legion_shield
           quantity: 2
       room_barracks_officer_quarters:
+        subzone: military_camp
         name: Desiccated Officer Quarters
         description: |
           The interior has been preserved by salt, leaving furniture as brittle, white ghosts. The air is thick with the scent of dry rot and old iron.
@@ -1852,6 +1902,7 @@ ZONES:
         - id: obj_barracks_salt_pitted_key
           quantity: 1
       room_barracks_mess_hall:
+        subzone: military_camp
         name: Salt-Crusted Mess Hall
         description: |
           Long stone tables dominate this room. Piles of salt-preserved rations and rusted metal utensils remain exactly where they were left centuries ago.
@@ -1879,6 +1930,7 @@ ZONES:
         - id: obj_barracks_salt_rations
           quantity: 5
       room_barracks_sleeping_quarters:
+        subzone: military_camp
         name: Sleeping Quarters
         description: |
           Rows of stone bunks line the walls, each covered in salt. Personal effects are scattered across the floor, long since turned to brittle slag.
@@ -1903,6 +1955,7 @@ ZONES:
           quantity: 3
           respawn_time_min: 150
       room_barracks_armory_foyer:
+        subzone: military_camp
         name: Armory Foyer
         description: |
           A transition chamber protecting equipment. Racks of scorched metal shields lean against walls, etched with sun-disc imagery.
@@ -1931,6 +1984,7 @@ ZONES:
           quantity: 2
           respawn_time_min: 300
       room_barracks_high_security_vault:
+        subzone: military_camp
         name: Garrison Commander's Vault
         description: |
           The heart of garrison security. This circular chamber contains advanced weapons and military "doctrinal law" records.
@@ -1966,6 +2020,7 @@ ZONES:
         - id: obj_barracks_doctrinal_codex
           quantity: 1
       room_barracks_crumbling_watchtower:
+        subzone: military_camp
         name: Crumbling Watchtower
         description: |
           A stone tower leaning precariously. From the top, the scorched road and the white salt flats are visible.
@@ -1988,6 +2043,7 @@ ZONES:
           quantity: 2
           respawn_time_min: 150
       room_barracks_subterranean_cistern:
+        subzone: military_camp
         name: Subterranean Cistern
         description: |
           A deep chamber beneath the garrison. It is now a dry crater filled with white salt and desiccated remains.

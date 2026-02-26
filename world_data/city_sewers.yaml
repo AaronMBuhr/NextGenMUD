@@ -4,6 +4,7 @@ ZONES:
     description: The dank and filthy sewers of the imperial city. The stench is unbearable.
     ROOMS:
       sewer_entrance:
+        subzone: upper_works
         name: Sewer Entrance
         description: >
           You stand at the entrance to the Imperial City's vast sewer system. A large, 
@@ -83,6 +84,7 @@ ZONES:
             respawn_time_max: 120
       
       main_junction:
+        subzone: central_conduits
         name: Main Sewer Junction
         description: >
           You find yourself in a vast, circular chamber that serves as the main junction 
@@ -173,6 +175,7 @@ ZONES:
             respawn_time_max: 120
       
       northern_tunnel:
+        subzone: northern_conduits
         name: Northern Sewer Tunnel
         description: >
           You find yourself in a long, arched tunnel stretching northward into the gloom. 
@@ -253,6 +256,7 @@ ZONES:
             respawn_time_max: 90
 
       waste_processing_chamber:
+        subzone: industrial_sector
         name: Waste Processing Chamber
         description: >
           You enter a large, circular chamber that serves as a primitive waste processing 
@@ -337,6 +341,7 @@ ZONES:
             respawn_time_max: 120
 
       filtration_room:
+        subzone: industrial_sector
         name: Filtration Room
         description: >
           You enter a long, rectangular chamber that appears to be a crude attempt at 
@@ -419,6 +424,7 @@ ZONES:
             respawn_time_max: 120
 
       sludge_pit:
+        subzone: industrial_sector
         name: Sludge Pit
         description: >
           You find yourself at the edge of a vast, circular pit filled with a thick, 
@@ -500,6 +506,7 @@ ZONES:
             respawn_time_max: 120
             
       underground_stream:
+        subzone: natural_caverns
         name: Underground Stream
         description: >
           You find yourself in a long, winding cavern carved out by an underground stream. 
@@ -582,6 +589,7 @@ ZONES:
             respawn_time_max: 150
 
       muck_cavern:
+        subzone: natural_caverns
         name: Muck-Filled Cavern
         description: >
           You stand at the edge of a vast, natural cavern that has become a repository for 
@@ -663,6 +671,7 @@ ZONES:
             respawn_time_max: 180
 
       waterfall_chamber:
+        subzone: natural_caverns
         name: Sewer Waterfall Chamber
         description: >
           You enter a massive, cathedral-like cavern dominated by a thundering waterfall. 
@@ -748,6 +757,7 @@ ZONES:
             respawn_time_max: 180
 
       fungal_grove:
+        subzone: natural_caverns
         name: Bioluminescent Fungal Grove
         description: >
           You step into a surreal underground chamber that seems to pulse with alien life. 
@@ -829,6 +839,7 @@ ZONES:
             respawn_time_max: 180
 
       whirlpool_room:
+        subzone: central_conduits
         name: Whirlpool Room
         description: >
           You enter a circular chamber dominated by a massive, swirling whirlpool at its center. 
@@ -910,6 +921,7 @@ ZONES:
             respawn_time_max: 240
 
       rat_nest:
+        subzone: vermin_warrens
         name: Giant Rat Nest
         description: >
           You've stumbled into a vast chamber that serves as a breeding ground for the sewer's 
@@ -991,6 +1003,7 @@ ZONES:
             respawn_time_max: 360
 
       flooded_corridor:
+        subzone: western_floods
         name: Flooded Corridor
         description: >
           You wade into a long, partially submerged corridor. Murky water reaches up to your 
@@ -1072,6 +1085,7 @@ ZONES:
             respawn_time_max: 75
 
       crumbling_passage:
+        subzone: western_floods
         name: Crumbling Stone Passage
         description: >
           You find yourself in a narrow, winding passage where the very stone seems to be 
@@ -1154,6 +1168,7 @@ ZONES:
             respawn_time_max: 180
 
       pump_room:
+        subzone: industrial_sector
         name: Ancient Pump Room
         description: >
           You enter a vast, circular chamber dominated by an enormous, ancient water pump. 
@@ -1236,6 +1251,7 @@ ZONES:
             respawn_time_max: 180
 
       ancient_crypt:
+        subzone: forgotten_depths
         name: Forgotten Sewer Crypt
         description: >
           You descend into a grim, forgotten chamber that appears to be an ancient crypt, 
@@ -1319,6 +1335,7 @@ ZONES:
             respawn_time_max: 90
 
       maintenance_shaft:
+        subzone: upper_works
         name: Vertical Maintenance Shaft
         description: >
           You find yourself in a towering vertical shaft that seems to stretch endlessly 
@@ -1402,6 +1419,7 @@ ZONES:
             respawn_time_max: 180
 
       bone_pile:
+        subzone: forgotten_depths
         name: Mysterious Bone Pile
         description: >
           You enter a chamber that sends a chill down your spine. The room is dominated by an 
@@ -1484,6 +1502,7 @@ ZONES:
             respawn_time_max: 240
 
       lower_tunnels:
+        subzone: forgotten_depths
         name: Lower Sewer Tunnels
         description: >
           You find yourself in a maze-like network of narrow, winding tunnels that form the 
@@ -1569,6 +1588,7 @@ ZONES:
             respawn_time_max: 180
 
       smugglers_den:
+        subzone: clandestine_hideout
         name: Abandoned Smugglers' Den
         description: >
           You enter a spacious cavern that bears clear signs of recent human habitation. 
@@ -1652,6 +1672,7 @@ ZONES:
             respawn_time_max: 180
 
       slime_pools:
+        subzone: clandestine_hideout
         name: Glowing Slime Pools
         description: >
           You enter a vast, cavern-like chamber dominated by a series of bubbling pools 
@@ -1735,6 +1756,7 @@ ZONES:
             respawn_time_max: 240
 
       echoing_chamber:
+        subzone: clandestine_hideout
         name: Echoing Chamber
         description: >
           You enter an enormous, dome-shaped cavern that seems to capture and amplify every 
@@ -1821,6 +1843,7 @@ ZONES:
             respawn_time_max: 120
 
       secret_passage:
+        subzone: clandestine_hideout
         name: Secret Underground Passage
         description: >
           You find yourself in a narrow, winding tunnel that bears the hallmarks of 
@@ -1904,6 +1927,7 @@ ZONES:
             respawn_time_max: 180
 
       alchemical_dumping_ground:
+        subzone: industrial_sector
         name: Alchemical Waste Dumping Ground
         description: >
           You enter a large, circular chamber that reeks of noxious chemicals and magical 
@@ -1987,6 +2011,7 @@ ZONES:
             respawn_time_max: 120
 
       bat_roost:
+        subzone: natural_caverns
         name: Giant Sewer Bat Roost
         description: >
           You enter a vast, vertical chamber that stretches far above your head, disappearing 
@@ -2069,6 +2094,7 @@ ZONES:
             respawn_time_max: 60
 
       forgotten_treasury:
+        subzone: forgotten_depths
         name: Forgotten Imperial Treasury Vault
         description: >
           You step into a grand chamber that stands in stark contrast to the rest of the 
@@ -2152,6 +2178,7 @@ ZONES:
             respawn_time_max: 180
 
       mutant_lair:
+        subzone: vermin_warrens
         name: Sewer Mutant Lair
         description: >
           You enter a nightmarish chamber that seems to pulsate with unnatural life. This 
@@ -2235,6 +2262,7 @@ ZONES:
             respawn_time_max: 90
 
       rough_hewn_tunnel_entrance:
+        subzone: citadel_approach
         name: Rough-Hewn Tunnel Entrance
         description: >
           The sewer walls give way here to raw, unworked stone. A crude tunnel has been 
@@ -2303,6 +2331,7 @@ ZONES:
             respawn_time_max: 150
 
       rough_hewn_tunnel_descent:
+        subzone: citadel_approach
         name: Descending Tunnel
         description: >
           The rough-hewn tunnel plunges deeper into the earth at a steep angle. Crude 
@@ -2371,6 +2400,7 @@ ZONES:
             respawn_time_max: 180
 
       rough_hewn_tunnel_deep:
+        subzone: citadel_approach
         name: Deep Tunnel Junction
         description: >
           The tunnel levels out here in a small, roughly circular chamber. Tool marks 
@@ -2440,6 +2470,7 @@ ZONES:
             respawn_time_max: 150
 
       rough_hewn_tunnel_citadel_approach:
+        subzone: citadel_approach
         name: Tunnel's End - Ancient Foundation
         description: >
           The rough-hewn tunnel terminates here against a wall of worked stone utterly 

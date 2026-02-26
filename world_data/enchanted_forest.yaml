@@ -4,6 +4,7 @@ ZONES:
     description: A mystical forest filled with ancient magic and wonder.
     ROOMS:
       mystical_glade:
+        subzone: heart_of_forest
         name: Mystical Glade
         description: >
           In a secluded corner of an ancient forest lies a mystical glade, a hidden
@@ -136,6 +137,7 @@ ZONES:
           script: |
             echo A faint breeze stirs the air, causing the crystals to tinkle softly, like chimes in a gentle wind.
       whispering_waterfall:
+        subzone: cascade_falls
         name: Whispering Waterfall
         description: >
           Nestled deep in the Enchanted Forest lies the Whispering Waterfall, a magical spectacle
@@ -183,6 +185,7 @@ ZONES:
             echo Drawn to the water's edge, you sense the pure, revitalizing energy of the cascading falls.
 
       fairy_meadow:
+        subzone: cascade_falls
         name: Fairy Meadow
         description: >
           In the heart of the Enchanted Forest, Fairy Meadow is a wonderland of vibrant colors and enchanting
@@ -230,6 +233,7 @@ ZONES:
           respawn time max: 90
 
       twilight_thicket:
+        subzone: outer_wilds
         name: Twilight Thicket
         description: >
           Twilight Thicket, a realm of perpetual dusk, lies on the outskirts of the Enchanted Forest. Here, the light is always soft and dim, filtering through the dense canopy in gentle beams. The undergrowth is thick and full of mystery, with strange, luminous fungi dotting the forest floor. Sounds are muffled in this part of the forest, as if the very air is reluctant to disturb the peace. The thicket feels timeless, a place where hours pass like minutes, enveloping visitors in its tranquil embrace.
@@ -271,6 +275,7 @@ ZONES:
             echo The essence of twilight here is palpable, its magic weaving through the air, casting a spell of serene calmness.
 
       moonlit_clearing:
+        subzone: heart_of_forest
         name: Moonlit Clearing
         description: >
           The Moonlit Clearing is a serene, open space, bathed in the gentle glow of a perpetual full moon, even during the day. The moonlight casts a silvery sheen over everything, making the clearing sparkle with a surreal, dreamlike quality. Soft, lush grass carpets the ground, inviting visitors to sit and gaze at the stars visible through the clear night sky. The edges of the clearing are bordered by tall, whispering trees that seem to guard this sacred space. The air here is cool and crisp, carrying the faint scent of jasmine and night-blooming flowers.
@@ -315,6 +320,7 @@ ZONES:
           respawn time max: 90
 
       echo_pond:
+        subzone: cascade_falls
         name: Echo Pond
         description: >
           Echo Pond is a small, secluded body of water nestled within the Enchanted Forest. The pond's surface is so clear and still it mirrors the sky and surrounding foliage perfectly, creating an almost surreal symmetry. The unique acoustics of the area mean that even the slightest sound is echoed back, imbuing the pond with a mystical, auditory magic. The banks of the pond are soft with moss and dotted with delicate, colorful wildflowers. Dragonflies skim the water's surface, and occasionally, a fish leaps, creating ripples that disrupt the perfect reflection.
@@ -354,6 +360,7 @@ ZONES:
             echo Your words are softly echoed back to you, as if the pond itself is listening and responding to your presence.
 
       ancient_oak:
+        subzone: heart_of_forest
         name: Ancient Oak
         description: >
           The Ancient Oak stands majestically in the heart of the Enchanted Forest, its massive trunk and sprawling branches a testament to its centuries-old existence. The bark is gnarled and etched with patterns that seem to tell a story of time itself. A small, mysterious door in the trunk suggests a hidden world within. The air around the oak is heavy with the scent of earth and wood, and the rustling of its leaves sounds like ancient whispers. This majestic tree is a natural guardian of the forest, inspiring awe and reverence in all who gaze upon it.
@@ -397,6 +404,7 @@ ZONES:
             echo The tree seems to hum with a quiet energy, its life force palpable in the peaceful surroundings.
 
       whispering_pines:
+        subzone: outer_wilds
         name: Whispering Pines
         description: >
           The Whispering Pines is a serene grove of tall pine trees, their needles creating a soft, whispering sound as the wind blows through them. The ground is carpeted with a thick layer of fragrant pine needles, softening footsteps and adding to the tranquil ambiance. Sunlight filters through the canopy, casting dappled shadows on the forest floor. The air is crisp and invigorating, filled with the resinous scent of pine. This grove feels like a sanctuary, offering peace and a deep connection with nature.
@@ -475,6 +483,7 @@ ZONES:
             echo A flash of silver catches your eye as a fish leaps, creating ripples that spread across the stream's surface.
 
       enchanted_glade:
+        subzone: heart_of_forest
         name: Enchanted Glade
         description: >
           The Enchanted Glade is a magical clearing, alive with an ethereal light that seems to emanate from every leaf and blade of grass. The light shifts and changes, casting a soft glow that gives the glade a dreamlike quality. Flowers of all colors bloom in abundance here, their petals shimmering as if sprinkled with fairy dust. The air is filled with the gentle music of nature, a symphony of bird songs, rustling leaves, and the distant trickle of a stream. This glade is a place of beauty and serenity, a reminder of the magic that lies hidden in the natural world.
@@ -516,6 +525,7 @@ ZONES:
             echo The light around you dances in mesmerizing patterns, creating a feeling of deep connection with the enchanted surroundings.
 
       golden_grove:
+        subzone: heart_of_forest
         name: Golden Grove
         description: >
           The Golden Grove is a breathtaking sight, especially during the golden hours of dawn and dusk. Each tree in the grove has leaves that shimmer with a golden hue, casting a warm, inviting light throughout the area. The ground is carpeted with fallen golden leaves, creating a soft, rustling blanket that crunches underfoot. The atmosphere in the grove is one of tranquility and timelessness, as if the grove itself is basking in eternal autumn. Sunbeams filter through the canopy, enhancing the golden glow and creating a serene, almost mystical environment.

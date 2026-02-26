@@ -268,6 +268,7 @@ ZONES:
               val: true
     ROOMS:
       forest_road_s:
+        subzone: forest_verge
         name: South Dark Forest Road
         description: |
           A narrow, winding path shrouded in shadows, marking the southern entrance to the dark forest. The dense canopy overhead allows only slivers of moonlight to penetrate, casting eerie patterns on the ground. The air is thick with the scent of moss and damp earth. An unsettling silence pervades, broken occasionally by distant, unidentifiable sounds. To the east, the trees thin out and you can see the imposing silhouette of city walls in the distance.
@@ -300,6 +301,7 @@ ZONES:
           script: |
             echo A gust of wind rustles the leaves, creating a haunting melody.
       forest_road_mid:
+        subzone: forest_verge
         name: Middle of Dark Forest Road
         description: |
           The forest road here is overgrown, the trees encroaching upon the path. Vines and brambles snag at your clothing as you pass. The darkness is more profound, the sounds of the forest more pronounced. An occasional rustle in the underbrush or a snap of a twig suggests you are not alone.
@@ -329,6 +331,7 @@ ZONES:
           script: |
             echo The trees here are gnarled and twisted, their branches reaching out like clawed hands.
       dark_forest_se:
+        subzone: deep_woods
         name: South East Dark Forest
         description: |
           This part of the forest feels ancient and untouched. The trees are colossal, their trunks thick and covered in strange markings. The ground is uneven, littered with fallen branches and leaves. Occasionally, the eyes of small creatures reflect the moonlight, watching you from the darkness.
@@ -358,6 +361,7 @@ ZONES:
           script: |
             echo The moonlight filters through the canopy, casting ghostly shadows that dance across your path.
       dark_forest_sw:
+        subzone: deep_woods
         name: South West Dark Forest
         description: |
           A dense, foreboding part of the forest where the trees grow so close together that they almost seem to merge into one another. The ground is spongy underfoot, covered in a thick layer of decaying leaves and moss. The air is damp and heavy, carrying a faint, musty odor. Occasional patches of moonlight reveal gnarled roots and twisting vines that seem to grasp at your feet.
@@ -390,6 +394,7 @@ ZONES:
           script: |
             echo A mysterious fog begins to rise from the ground, enveloping the area in a ghostly veil.
       dark_forest_w:
+        subzone: deep_woods
         name: West Dark Forest
         description: |
           This part of the forest feels more wild and untamed. The trees are older, their bark rough and covered in lichen. The path is barely visible, obscured by overgrowth. The sounds of the forest are louder here, a symphony of nocturnal creatures. The darkness seems to thicken, making it difficult to see far ahead.
@@ -424,6 +429,7 @@ ZONES:
           script: |
             echo Shadows move and twist around you, as if alive, casting an eerie gloom over the forest.
       dark_forest_nw:
+        subzone: deep_woods
         name: North West Dark Forest
         description: |
           The trees here are so tall they seem to touch the sky, their leaves forming a dense canopy above. The path is rocky and uneven, making travel treacherous. The deeper parts of the forest are shrouded in an almost impenetrable darkness. The air is colder here, and every sound seems amplified, echoing through the trees.
@@ -456,6 +462,7 @@ ZONES:
           script: |
             echo The moonlight struggles to penetrate the dense foliage, creating a haunting and otherworldly atmosphere.
       dark_forest_s:
+        subzone: deep_woods
         name: South Dark Forest
         description: |
           A shadowy expanse of the forest where the trees are less dense but taller, creating long, dark shadows that stretch across the forest floor. The path here is clearer but twists unpredictably, leading deeper into the heart of the forest. The air is filled with the scent of pine and the distant sound of running water.
@@ -490,6 +497,7 @@ ZONES:
           script: |
             echo The leaves rustle as if whispering secrets to each other, creating an unsettling chorus.
       dark_forest_mid:
+        subzone: deep_woods
         name: Middle of Dark Forest
         description: |
           The heart of the dark forest, where the sense of age and mystery is palpable. The trees here are ancient and massive, their branches forming a dense network above. The ground is uneven, with roots snaking across the path. The forest seems alive, its sounds and movements suggesting a watchful presence.
@@ -526,6 +534,7 @@ ZONES:
           script: |
             echo A mysterious, faint light appears and disappears between the trees, like will-o'-the-wisps leading you further into the forest.
       dark_forest_n:
+        subzone: deep_woods
         name: North Dark Forest
         description: |
           A dense, almost impenetrable part of the forest where the trees grow close together, their leaves forming a thick canopy that blocks out most of the light. The air is cool and damp, filled with the sounds of creaking branches and the occasional distant howl. The path is barely visible, covered in a thick layer of leaves and debris.
@@ -560,6 +569,7 @@ ZONES:
           script: |
             echo The shadows seem to move and shift around you, as if they were alive and watching your every step.
       dark_forest_e:
+        subzone: deep_woods
         name: East Dark Forest
         description: |
           The eastern region of the forest is marked by a gradual rise in terrain, leading towards a series of small, rocky hills. The trees here are thinner, allowing more moonlight to filter through, casting a silvery glow on the forest floor. The path is lined with small, delicate flowers that seem to glow faintly in the dark. The atmosphere is quieter, but the sense of being watched remains.
@@ -594,6 +604,7 @@ ZONES:
           script: |
             echo The moon casts long, slender shadows between the trees, creating an almost ethereal landscape.
       dark_forest_ne:
+        subzone: deep_woods
         name: North East Dark Forest
         description: |
           This part of the forest feels more wild and untamed. The trees are closely packed, their branches intertwining to form a dense canopy overhead. The path is narrow and treacherous, winding through thick underbrush and overgrown roots. The air is filled with the sound of rustling leaves and the occasional distant howl.
@@ -626,6 +637,7 @@ ZONES:
           script: |
             echo Shadows dance across your path, as if playing tricks with your eyes in the dim moonlight.
       forest_road_n:
+        subzone: forest_verge
         name: North Dark Forest Road
         description: |
           The forest road here begins to widen as it approaches the edge of the graveyard. Old, gnarled trees line the path, their branches like twisted hands reaching towards the sky. A chill breeze whispers through the leaves, carrying a hint of decay. The graveyard's wrought iron gates loom in the distance, while a cozy looking inn sits invitingly to the east, its windows glowing with warm light. To the north, a dusty trail climbs toward barren hills where the trees grow thin and sparse.
@@ -658,6 +670,7 @@ ZONES:
           script: |
             echo A cold gust of wind blows down the road, rustling leaves and stirring up small whirlwinds of dust.
       forest_northern_edge:
+        subzone: forest_verge
         name: Northern Edge of the Forest
         description: |
           The forest thins dramatically here as the land rises toward barren, sun-bleached hills. Gnarled trees give way to scraggly brush and wind-twisted shrubs. The soil underfoot transitions from dark loam to pale, dusty earth. The air grows noticeably drier, carrying hints of distant heat rather than forest decay. A well-worn trail continues north, climbing toward increasingly arid terrain.
@@ -693,6 +706,7 @@ ZONES:
             setpermvar char %S% visited_forest_northern_edge true
             echo The change in terrain is striking - the lush darkness of the forest gives way to pale, sun-scorched earth.
       arid_borderlands:
+        subzone: the_wastes
         name: Arid Borderlands
         description: |
           This windswept stretch of barren terrain marks the boundary between the forested lowlands and the great desert beyond. Only the hardiest vegetation survives here - thorny scrub and sun-bleached grasses that crackle underfoot. To the north, the land flattens into an expanse of sand and heat-shimmered air. Ancient stone markers, half-buried in drifted sand, line what was once a proper road.
@@ -728,6 +742,7 @@ ZONES:
           script: |
             echo The stone markers are weathered beyond reading, but their placement suggests this was once a well-traveled trade route.
       inn_common_room:
+        subzone: the_inn
         name: Inn Common Room
         description: |
           The common room of the inn is a large, welcoming space. A roaring fire in the stone hearth provides warmth and light. Several tables are scattered around, some occupied by travelers and locals alike, enjoying their meals and drinks. The bar is well-stocked, and the barkeep offers a friendly nod to newcomers. Stairs lead up to the guest rooms.
@@ -769,6 +784,7 @@ ZONES:
             setpermvar char %S% visited_inn true
             echo You overhear hushed conversations about a recent murder at the manor...
       inn_hallway:
+        subzone: the_inn
         name: Inn Hallway
         description: |
           A narrow, dimly lit hallway on the upper floor of the inn, lined with doors leading to the guest rooms. The wooden floorboards creak softly underfoot. Portraits of the local landscape and past innkeepers hang on the walls, their eyes seeming to follow your movements. The hallway is quiet, with only the muffled sounds of the common room below.
@@ -798,6 +814,7 @@ ZONES:
           script: |
             echo Soft, ghostly whispers seem to echo down the corridor, though their origin is unclear.
       inn_room_e:
+        subzone: the_inn
         name: Inn Room East
         description: |
           This cozy room at the inn is warmly decorated, offering a comfortable and inviting space. A plush bed dominates the room, with soft linens and a thick quilt. A small wooden desk sits near a window that provides a view of the forest. The room is adorned with simple, rustic decorations, and a gentle light from an oil lamp casts a soothing ambiance.
@@ -835,6 +852,7 @@ ZONES:
           script: |
             echo The soft flickering of the oil lamp casts dancing shadows across the room, creating a peaceful, serene atmosphere.
       inn_room_w:
+        subzone: the_inn
         name: Inn Room West
         description: |
           This charming room on the west side of the inn is decorated with floral wallpapers and hardwood floors. It features a comfortable bed with fluffy pillows and a hand-woven blanket. A small fireplace provides warmth and a cozy feel. An antique dresser and a mirror complete the room's quaint and homely feel.
@@ -860,6 +878,7 @@ ZONES:
           script: |
             echo The shadows cast by the firelight dance across the walls, creating a tranquil and restful ambiance.
       graveyard_road_e:
+        subzone: graveyard_exterior
         name: East Graveyard Road
         description: |
           A narrow, cobblestone road leading to the graveyard. The road is lined with gnarled trees, their branches casting unsettling shadows in the moonlight. An eerie mist clings to the ground, swirling around your feet as you walk. The distant sound of an owl hooting adds to the somber atmosphere.
@@ -887,6 +906,7 @@ ZONES:
           script: |
             echo The mist seems to thicken, momentarily obscuring the path ahead before clearing again.
       graveyard_entrance:
+        subzone: graveyard_exterior
         name: Graveyard Entrance
         description: |
           The entrance to the graveyard is marked by a pair of imposing wrought iron gates, partially rusted by time. The gates stand ajar, creaking softly in the wind. Beyond them, rows of tombstones and crypts stretch out, bathed in the pale light of the moon. A palpable sense of solemnity and decay pervades the air.
@@ -944,6 +964,7 @@ ZONES:
               }
             }
       graveyard_road_w:
+        subzone: graveyard_exterior
         name: West Graveyard Road
         description: |
           This road leads away from the graveyard towards the manor house, which looms ominously in the distance. The path is less maintained here, with weeds and vines encroaching upon the cobblestones. The trees along the road are older, their branches entangled above, creating a natural archway. The air is colder, and the silence more profound.
@@ -971,6 +992,7 @@ ZONES:
           script: |
             echo The shadows along the road seem to shift and move, as if something unseen is stirring within them.
       graveyard_s:
+        subzone: consecrated_grounds
         name: Graveyard South
         description: |
           The southern part of the graveyard is an expanse of uneven ground dotted with weathered tombstones. Some are tilted or half-sunken, their inscriptions worn away by time. A heavy fog clings to the ground, obscuring the path and giving the tombstones an eerie, floating appearance. The air is damp and carries a faint, earthy smell.
@@ -1011,6 +1033,7 @@ ZONES:
           script: |
             echo A sudden chill sweeps through the graveyard, causing the fog to swirl around your feet.
       graveyard_se:
+        subzone: consecrated_grounds
         name: Graveyard South East
         description: |
           This corner of the graveyard is quieter and more isolated. The tombstones here are older and more ornate, some adorned with statues of angels or weeping figures. The ground is covered in a carpet of ivy and moss, which creeps up the sides of the crypts. The moon casts long, haunting shadows between the graves.
@@ -1106,6 +1129,7 @@ ZONES:
           script: |
             echo The shadows here seem darker, more oppressive, as if trying to smother the light of the moon.
       graveyard_n:
+        subzone: consecrated_grounds
         name: Graveyard North
         description: |
           The northern section of the graveyard is a somber place of quiet reflection. Here, the graves are more recent, with fresh flowers laid upon them and inscriptions still legible. A small chapel with stained glass windows stands solemnly, offering a place of solace. The path is well-tended, lined with small shrubs and stone benches.
@@ -1150,6 +1174,7 @@ ZONES:
           script: |
             echo A gentle breeze carries the scent of freshly turned earth and flowers, a reminder of life amidst the memorials to the dead.
       graveyard_ne:
+        subzone: consecrated_grounds
         name: Graveyard North East
         description: |
           This part of the graveyard is set on a slight hill, offering a view over the rest of the grounds. The graves here are spaced further apart, each with its own unique character. A large, ancient oak tree stands sentinel, its branches spreading wide. The atmosphere is peaceful, with the rustle of leaves and the occasional chirp of a night bird.
@@ -1186,6 +1211,7 @@ ZONES:
           script: |
             echo Moonbeams filter through the leaves of the oak, casting dappled light across the graves.
       graveyard_nw:
+        subzone: consecrated_grounds
         name: Graveyard North West
         description: |
           The northwest corner of the graveyard is dominated by a large mausoleum, its doors sealed with iron chains. The ground is uneven, and several tombstones are cracked or fallen over. A dense thicket borders this area, and the air feels colder. The silence here is profound, as if even the wind dares not disturb the slumber of the dead.
@@ -1222,6 +1248,7 @@ ZONES:
           script: |
             echo A sense of unease lingers in the air, as if the ground itself remembers the sorrow of those interred here.
       crypt_entrance:
+        subzone: the_crypt
         name: Crypt Entrance
         description: |
           The entrance to the crypt is a small, arched doorway set into the side of a hill, partially obscured by overhanging vines. Stone steps lead down into darkness, the air growing colder as you descend. The walls are damp and covered in moss, and the musty smell of the earth fills your nostrils. The silence is broken only by the sound of your own footsteps echoing off the stone.
@@ -1249,6 +1276,7 @@ ZONES:
           script: |
             echo A chill wind seems to whisper through the crypt, carrying with it the scent of decay and forgotten memories.
       crypt_center:
+        subzone: the_crypt
         name: Crypt Center
         description: |
           The center of the crypt is a large, vaulted chamber, lit by flickering torches set in sconces along the walls. The air is heavy and still, as if undisturbed for centuries. Coffins and sarcophagi of various ages and designs line the walls, some ornately decorated, others simple and unadorned. In the center of the room stands a stone altar, its purpose long forgotten.
@@ -1279,6 +1307,7 @@ ZONES:
           script: |
             echo The flickering torchlight casts eerie shadows across the chamber, making the statues and coffins appear to shift and move in the corner of your eye.
       manor_house_entrance:
+        subzone: ashford_manor
         name: Manor House Entrance
         description: |
           The entrance to the manor house is grand and imposing, with large wooden doors set in a stone archway. Ivy climbs the walls, and two stone gargoyles watch over the entrance. The doors open to a spacious foyer, its floor covered in ornate tiles. An air of faded elegance pervades the space, the walls adorned with portraits of stern-looking ancestors.
@@ -1673,7 +1702,7 @@ ZONES:
           operator: numlte
           predicate: 10
         script: |
-          leaverandom stayinzone
+          leaverandom gloomy_graveyard.deep_woods
       natural_attacks:
       - attack_noun: bite
         attack_verb: bites
@@ -1717,7 +1746,7 @@ ZONES:
           operator: numlte
           predicate: 10
         script: |
-          leaverandom stayinzone
+          leaverandom gloomy_graveyard.consecrated_grounds
       damage_multipliers:
         piercing: 0.25
       natural_attacks:
@@ -1761,7 +1790,7 @@ ZONES:
           operator: numlte
           predicate: 10
         script: |
-          leaverandom stayinzone
+          leaverandom gloomy_graveyard.consecrated_grounds
       damage_multipliers:
         bludgeoning: 0.5
         unholy: 0
@@ -1933,12 +1962,12 @@ ZONES:
             murder_mystery.heard_about_murder: true
         - id: hint_at_manor
           description: If pressed, point the player toward the manor and Edmund.
-          disposition_required: 3
+          disposition_required: 20
           on_achieve_set_vars:
             murder_mystery.suspects_butler: true
         - id: close_case
           description: Mark the quest complete when the player returns with both the cufflink and the murder weapon.
-          disposition_required: 4
+          disposition_required: 30
           on_achieve_set_vars:
             murder_mystery.quest_complete: true
         actions:
@@ -2044,17 +2073,17 @@ ZONES:
             murder_mystery.heard_about_murder: true
         - id: gain_trust
           description: Trust the player after they show genuine concern and promise to help.
-          disposition_required: 5
+          disposition_required: 20
           on_achieve_set_vars:
             murder_mystery.tom_trusts_player: true
         - id: reveal_figure
           description: Tell the player about the figure seen leaving the manor.
-          disposition_required: 6
+          disposition_required: 25
           on_achieve_set_vars:
             murder_mystery.knows_about_figure: true
         - id: reveal_cufflink
           description: Tell the player about the hidden cufflink and let them search for it.
-          disposition_required: 7
+          disposition_required: 35
           on_achieve_set_vars:
             murder_mystery.knows_about_cufflink: true
             murder_mystery.can_find_cufflink: true
@@ -2135,14 +2164,14 @@ ZONES:
         - id: implicates_butler
           description: Eliza reveals her suspicions about the butler
           condition: Player has earned trust and asks about that night or Edmund
-          disposition_required: 7
+          disposition_required: 20
           on_achieve_set_vars:
             gloomy_graveyard.murder_mystery.suspects_butler: true
           on_achieve_message: The evidence is pointing toward Edmund the butler...
         - id: reveals_cellar
           description: Eliza suggests searching the wine cellar
           condition: Player has high trust and asks where to find evidence
-          disposition_required: 8
+          disposition_required: 25
           on_achieve_set_vars:
             gloomy_graveyard.murder_mystery.knows_to_check_cellar: true
           on_achieve_message: The wine cellar might hold crucial evidence!
