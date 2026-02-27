@@ -3,6 +3,73 @@ ZONES:
     name: Shattered Dominion
     description: |
       A desert realm of buried pyramids and forgotten sun-kings. The sands hide the remnants of an ancient civilization that sought divine ascension through elaborate ritual—and failed. Now only echoes, constructs, and the undying remain to guard secrets that were never meant to be unearthed.
+ZONES:
+  shattered_dominion:
+    quests:
+      sun_king_legacy:
+        __replace__: true
+        title: The Sun King's Legacy
+        description: Navigate the crystalline ruins of the Shattered Dominion to restore the Solar Lens and reactive the Apex Shrine.
+        objectives:
+          - Locate the Solar Lens within the vitrified Ossuary.
+          - Infiltrate the Scriptorium to find the calculation for the solar alignment.
+          - Ascend the Great Pyramid to the Apex Shrine.
+          - Align the Solar Lens to ignite the desert's ancient beacon.
+        stages:
+          - name: The Glassed Expanse
+            sequence: 10
+            description: The desert sands have turned to glass. You must find a way into the Sun King's Ossuary to begin your search for the Solar Lens.
+            conditions:
+              sun_king_legacy.status: "not_started"
+
+          - name: Heart of Refraction
+            sequence: 20
+            description: You have entered the Ossuary. Locate the Solar Lens within the vitrified corridors before the crystalline echoes overwhelm you.
+            conditions:
+              sun_king_legacy.status: "started"
+              sun_king_legacy.has_lens: false
+
+          - name: The Scriptorium's Secret
+            sequence: 30
+            description: You have the Lens, but it must be aligned. Search the Scriptorium's Hall of Records for the ancient calculation scrolls.
+            conditions:
+              sun_king_legacy.has_lens: true
+              sun_king_legacy.has_calculations: false
+
+          - name: The Final Ascent
+            sequence: 40
+            description: With both the Lens and the calculations, you must climb to the Apex Shrine of the Great Pyramid for the final alignment.
+            conditions:
+              sun_king_legacy.has_calculations: true
+              sun_king_legacy.status: "started"
+
+          - name: Beacon of the Sands
+            sequence: 100
+            description: The Solar Lens is set, and the desert beacon shines once more. The Shattered Dominion's ancient power has been restored.
+            conditions:
+              sun_king_legacy.status: "completed"
+
+        variables:
+          status:
+            type: string
+            default: "not_started"
+            description: Main progression state for the dominion restoration.
+          has_lens:
+            type: boolean
+            default: false
+            description: Player has recovered the Solar Lens from the Ossuary.
+            knowledge_updates:
+              - condition: true
+                updates:
+                  lens_recovered: true
+          has_calculations:
+            type: boolean
+            default: false
+            description: Player has found the alignment scrolls in the Scriptorium.
+            knowledge_updates:
+              - condition: true
+                updates:
+                  alignment_known: true
     ROOMS:
       room_pyr_desert_approach:
         subzone: great_pyramid

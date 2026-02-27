@@ -19,6 +19,7 @@ class Room(Actor, RoomInterface):
         self.exits = {}
         self.description_ = ""
         self.zone = None
+        self.subzone_id = None
         self.characters = []
         self.contents = []
         self.triggers_by_type = {}
@@ -36,6 +37,7 @@ class Room(Actor, RoomInterface):
             'name': self.name,
             'description': self.description,
             'zone': self.zone.id if self.zone else None,
+            'subzone_id': self.subzone_id,
             'exits': self.exits,
             'triggers': self.triggers_by_type,
             # Convert complex objects to a serializable format, if necessary
@@ -58,6 +60,7 @@ class Room(Actor, RoomInterface):
             self.name = yaml_data['name']
             self.description_ = yaml_data['description']
             self.zone = zone
+            self.subzone_id = yaml_data.get('subzone')
 
             for direction, exit_info in yaml_data['exits'].items():
                 # logger.debug3(f"loading direction: {direction}")

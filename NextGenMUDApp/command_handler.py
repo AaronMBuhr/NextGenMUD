@@ -4169,6 +4169,45 @@ class CommandHandler(CommandHandlerInterface):
         await actor.location_room.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, None, msg), exceptions=[actor], game_state=cls._game_state)
 
 
+    @classmethod
+    def _leaverandom_resolve_destination_room(cls, actor: Actor, direction: str):
+        """Resolve an exit direction to the destination Room, or None if invalid."""
+        room = actor.location_room
+        if not room or direction not in room.exits:
+            return None
+        dest = room.exits[direction].destination
+        if "." in dest:
+            zone_id, room_id = dest.split(".", 1)
+        else:
+            zone_id = room.zone.id if room.zone else None
+            room_id = dest
+        if not zone_id or not room_id:
+            return None
+        try:
+            zone = cls._game_state.get_zone_by_id(zone_id)
+            return zone.rooms.get(room_id)
+        except (KeyError, AttributeError):
+            return None
+
+    @classmethod
+    def _leaverandom_room_matches_spec(cls, room, spec, current_zone_id: str) -> bool:
+        """Return True if room matches the filter spec. spec is (zone_id,) or (zone_id, subzone_id) or (zone_id, subzone_id, room_id)."""
+        if not room or not room.zone:
+            return False
+        if spec[0] == "stayinzone":
+            spec = (current_zone_id,)
+        if len(spec) == 1:
+            return room.zone.id == spec[0]
+        if len(spec) == 2:
+            return room.zone.id == spec[0] and getattr(room, "subzone_id", None) == spec[1]
+        if len(spec) == 3:
+            return (
+                room.zone.id == spec[0]
+                and getattr(room, "subzone_id", None) == spec[1]
+                and room.id == spec[2]
+            )
+        return False
+
     async def cmd_leaverandom(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_leaverandom()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
@@ -4177,52 +4216,54 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "You can't leave while fighting!")
             return
         
-        # Check if the actor wants to stay in the current zone
-        stay_in_zone = False
-        if input and input.strip().lower() == "stayinzone":
-            stay_in_zone = True
-            
-        # Get valid exits
         if actor.location_room is None:
             await actor.send_text(CommTypes.DYNAMIC, "You are not in a room.")
             return
-        else:
-            valid_directions = list(actor.location_room.exits.keys())
-            
-        # Filter exits if staying in zone
-        if stay_in_zone:
-            filtered_directions = []
-            current_zone = actor.location_room.zone.id
-            
-            for direction in valid_directions:
-                exit_obj = actor.location_room.exits[direction]
-                destination = exit_obj.destination  # Exit object has .destination property
-                # Check if destination is in the same zone
-                if "." in destination:
-                    zone_id, _ = destination.split(".")
-                    if zone_id == current_zone:
-                        filtered_directions.append(direction)
+
+        valid_directions = list(actor.location_room.exits.keys())
+        current_zone_id = actor.location_room.zone.id if actor.location_room.zone else None
+
+        # Optional: comma-separated list of selectors (each type may be repeated).
+        # Three selector types: zone_id (any room in zone); zone_id.subzone_id (any room in that subzone);
+        # zone_id.subzone_id.room_id (that specific room). Acceptable exits match any selector.
+        if input and input.strip():
+            raw = [s.strip() for s in input.split(",") if s.strip()]
+            specs = []
+            for s in raw:
+                if s.lower() == "stayinzone":
+                    specs.append(("stayinzone",))
                 else:
-                    # If no zone specified, it's in the current zone
-                    filtered_directions.append(direction)
-                    
-            valid_directions = filtered_directions
-            
+                    parts = s.split(".")
+                    if 1 <= len(parts) <= 3:
+                        specs.append(tuple(parts))
+            if specs:
+                filtered = []
+                for direction in valid_directions:
+                    dest_room = cls._leaverandom_resolve_destination_room(actor, direction)
+                    if dest_room and any(
+                        cls._leaverandom_room_matches_spec(dest_room, spec, current_zone_id)
+                        for spec in specs
+                    ):
+                        filtered.append(direction)
+                valid_directions = filtered
+
         logger.debug3("valid_exits: " + str(valid_directions))
         num_exits = len(valid_directions)
         if num_exits == 0:
-            if stay_in_zone:
-                await actor.send_text(CommTypes.DYNAMIC, "There are no exits that stay in the current zone.")
-            else:
-                await actor.send_text(CommTypes.DYNAMIC, "There are no exits here.")
+            await actor.send_text(
+                CommTypes.DYNAMIC,
+                "There are no exits here that match your criteria."
+                if input and input.strip() else "There are no exits here."
+            )
             return
             
         exit_num = random.randint(0, num_exits - 1)
-        msg = f"You randomly decide to go {valid_directions[exit_num]}."
+        chosen = valid_directions[exit_num]
+        msg = f"You randomly decide to go {chosen}."
         logger.debug3("msg: " + msg)
         vars = set_vars(actor, actor, None, msg)
         await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
-        await CoreActionsInterface.get_instance().world_move(actor, valid_directions[exit_num])
+        await CoreActionsInterface.get_instance().world_move(actor, chosen)
         
     async def cmd_save(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_save()> ")

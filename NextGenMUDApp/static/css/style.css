@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 960px; /* 20% wider for more content, still centered */
     margin: 20px auto;
     padding: 10px;
     display: flex;

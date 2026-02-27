@@ -17,7 +17,7 @@
             text-align: center;
         }
         .container {
-            max-width: 800px;
+            max-width: 960px; /* 20% wider for more content, still centered */
             margin: 20px auto;
             padding: 10px;
             display: flex;
@@ -50,7 +50,7 @@
             overflow-y: scroll;
         }
         #staticText, #dynamicText {
-            height: 15em;
+            height: 18em; /* 20% more content area than 15em */
             overflow-y: scroll;
             transition: height 0.3s ease;
         }
@@ -113,7 +113,7 @@
         /* When debug is shown, make the text areas shorter */
         body.debug-visible #staticText,
         body.debug-visible #dynamicText {
-            height: 8em; /* Further reduced from 10em to 8em when debug is visible */
+            height: 9.6em; /* 20% more content area than 8em */
         }
         .input-area {
             display: flex;

@@ -3,6 +3,57 @@ ZONES:
     name: The Sunken Citadel of Aethelgard
     description: |
       The central hub of the city, dominated by the Life-Breath Spire and  surrounded by the grand gateways to the city's specialized districts.
+    quests:
+      citadel_resonance:
+        __replace__: true
+        title: The Resonance of Aethelgard
+        description: Help High Archivist Valerius stabilize the failing resonance field of the sunken city.
+        objectives:
+          - Seek out High Archivist Valerius in the Scholarium.
+          - Find a personal memento to earn Valerius's trust.
+          - Use the tuning fork to attune the crystals in the Resonance Lab.
+          - Return to the Aethelgard Plaza to confirm the city is stable.
+        stages:
+          - name: A City in Peril
+            sequence: 10
+            description: You have heard that the city is in danger. You should find High Archivist Valerius in the Scholarium to see how you can help.
+            conditions:
+              citadel_resonance.status: "not_started"
+          - name: Earning Trust
+            sequence: 20
+            description: Valerius is wary of strangers. You need to find a personal memento from the old empire to prove your intentions are honorable.
+            conditions:
+              citadel_resonance.status: "started"
+              citadel_resonance.valerius_trust: false
+          - name: The Tuning Fork
+            sequence: 30
+            description: With Valerius's trust earned, you must now take the tuning fork to the Resonance Lab and attune the crystals.
+            conditions:
+              citadel_resonance.valerius_trust: true
+              citadel_resonance.status: "started"
+          - name: Stability Restored
+            sequence: 40
+            description: The resonance is stable. Return to the Aethelgard Plaza to report your success to the High Archivist.
+            conditions:
+              citadel_resonance.status: "attuned"
+          - name: Savior of Aethelgard
+            sequence: 100
+            description: You have saved the Sunken Citadel from collapse. The ancient resonance hums with a steady, peaceful light once more.
+            conditions:
+              citadel_resonance.status: "completed"
+        variables:
+          status:
+            type: string
+            default: "not_started"
+            description: Tracks the technical progression of the quest (started, attuned, completed).
+          valerius_trust:
+            type: boolean
+            default: false
+            description: Set to true once the silver locket is given to Valerius.
+          found_locket:
+            type: boolean
+            default: false
+            description: Player has discovered the locket in the Sky-Sea Balcony.
     ROOMS:
       aethel_plaza_center:
         subzone: citadel_core
