@@ -3,13 +3,13 @@ from enum import Enum
 from ..basic_types import DescriptiveFlags
 
 class TriggerType(Enum):
-    CATCH_ANY = 1
-    CATCH_SAY = 2
+    ON_ANY = 1
+    ON_SAY = 2
     CATCH_TELL = 3
     TIMER_TICK = 4
     CATCH_LOOK = 5
-    ON_ENTER = 6      # Fires when a character enters the room
-    ON_EXIT = 7       # Fires when a character exits the room
+    ON_ARRIVE = 6     # Fires when someone arrives at this room/NPC/object (their perspective: they enter)
+    ON_LEAVE = 7     # Fires when a character leaves the room
     ON_RECEIVE = 8    # Fires when an NPC receives an item via give
     ON_GET = 9        # Fires when an object is picked up
     ON_DROP = 10      # Fires when an object is dropped
@@ -20,6 +20,9 @@ class TriggerType(Enum):
     ON_USE = 15       # Fires when an object is used
     ON_ATTACKED = 16  # Fires when an actor is attacked (hit by an attack)
     CATCH_GO = 17     # Fires when a player uses "go <keyword>" or "enter <keyword>"
+    ON_ENTER = 18     # Fires when this actor enters a room (condition: %room_id% contains zone/subzone/room)
+    CATCH_ZEROHP = 19 # Fires when damage reduces this actor's HP to 0 or less; script can heal to cancel death
+    ON_SIGNAL = 20   # Fires when a signal is sent to this receiver's room/subzone/zone/world
     UNKNOWN = 99
 
     def __str__(self):

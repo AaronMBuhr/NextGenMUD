@@ -242,7 +242,7 @@ class TriggerType(Enum):
     TIMER_TICK = 4     # Fires periodically based on elapsed time
     CATCH_LOOK = 5     # Fires when someone looks at something
     ON_ENTER = 6       # Fires when character enters room
-    ON_EXIT = 7        # Fires when character exits room
+    ON_LEAVE = 7       # Fires when character leaves room
     ON_RECEIVE = 8     # Fires when NPC receives item via give
     ON_GET = 9         # Fires when object is picked up
     ON_DROP = 10       # Fires when object is dropped
@@ -266,7 +266,7 @@ TriggerInterface (abstract)
             ├── TriggerCatchLook
             ├── TriggerTimerTick    # Special: maintains class-level registry
             ├── TriggerOnEnter
-            ├── TriggerOnExit
+            ├── TriggerOnLeave
             ├── TriggerOnReceive
             ├── TriggerOnGet
             ├── TriggerOnDrop

@@ -13,7 +13,7 @@ class CommandResult:
 @dataclass 
 class TriggerResult:
     """Results from a single trigger's script execution."""
-    trigger_type: str  # e.g., "CATCH_SAY", "ON_ENTER"
+    trigger_type: str  # e.g., "ON_SAY", "ON_ARRIVE"
     trigger_id: str
     trigger_criteria: str  # Human readable criteria like "word 'gold'" or "object 'key'"
     command_results: List[CommandResult] = field(default_factory=list)

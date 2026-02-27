@@ -65,6 +65,12 @@ class GameStateInterface:
                            start_room: 'Room' = None, start_zone: 'Zone' = None, search_world=False) -> 'Object':
         raise NotImplementedError
 
+    def find_target_object_with_parent(self, target_name: str, actor: 'Actor' = None,
+                                       start_room: 'Room' = None,
+                                       target_number: int = 1) -> tuple:
+        """Find object by keyword in actor/room including containers. Returns (object, parent) or (None, None)."""
+        raise NotImplementedError
+
     @abstractmethod
     def add_scheduled_event(self, type: EventType, subject: Any, name: str, scheduled_tick: int = None, 
                             in_ticks: int = None, vars: Dict[str, Any] = None, 

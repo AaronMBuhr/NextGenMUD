@@ -15,8 +15,8 @@ ZONES:
             destination: enchanted_forest.whispering_pines
             description: A path leads north into the whispering pines.
         triggers:
-        - id: catch_say_random
-          type: catch_say
+        - id: on_say_random
+          type: on_say
           criteria:
           - subject: "%*%"
             operator: contains
@@ -51,8 +51,8 @@ ZONES:
           east:
             destination: enchanted_forest.whispering_pines
         triggers:
-        - id: catch_any_arrives
-          type: catch_any
+        - id: on_any_arrives
+          type: on_any
           criteria:
           - subject: "%*%"
             operator: contains
@@ -60,8 +60,8 @@ ZONES:
           script: |
             echoto %S% You trip as you enter.
             echoexcept %S% $cap(%s%) trips as %q% enters.
-        - id: catch_say_random
-          type: catch_say
+        - id: on_say_random
+          type: on_say
           criteria:
           - subject: "%*%"
             operator: contains
@@ -96,8 +96,8 @@ ZONES:
           script: |
             echoto %S% You see a squirrel.
             echoexcept %S% %s% sees a squirrel.
-        - id: catch_say_anything
-          type: catch_say
+        - id: on_say_anything
+          type: on_say
           criteria:
           - subject: "%*%"
             operator: true
@@ -253,7 +253,7 @@ ZONES:
       #       level: 1
       #   hit_dice: 1d4+1
       #   triggers:
-      #     - type: catch_any
+      #     - type: on_any
       #       criteria:
       #         - subject: "%*%"
       #           operator: contains
@@ -261,7 +261,7 @@ ZONES:
       #       script: |
       #         emote dodges your kick!
       #         lick %S%
-      #     - type: catch_any
+      #     - type: on_any
       #       criteria:
       #         - subject: "%*%"
       #           operator: contains
@@ -269,7 +269,7 @@ ZONES:
       #       script: |
       #         emote gets angry!
       #         kick %S%
-      #     - type: catch_say
+      #     - type: on_say
       #       criteria:
       #         - subject: "%*%"
       #           operator: contains
@@ -306,8 +306,8 @@ ZONES:
       object_flags:
       - is_weapon
       triggers:
-      - id: catch_any_drops_you
-        type: catch_any
+      - id: on_any_drops_you
+        type: on_any
         criteria:
         - subject: "%*%"
           operator: contains

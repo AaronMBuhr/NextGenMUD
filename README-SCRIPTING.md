@@ -35,12 +35,12 @@ Scripts can access and manipulate various variables:
 
 NextGenMUD supports the following trigger types:
 
-### `catch_any`
+### `on_any`
 
 Responds to any game event that matches the criteria.
 
 ```yaml
-- type: catch_any
+- type: on_any
   criteria: 
     - subject: "%*%"
       operator: contains
@@ -50,12 +50,12 @@ Responds to any game event that matches the criteria.
     echoexcept %S% $cap(%s%) trips as %q% enters.
 ```
 
-### `catch_say`
+### `on_say`
 
 Responds when a character says something matching the criteria.
 
 ```yaml
-- type: catch_say
+- type: on_say
   criteria: 
     - subject: "%*%"
       operator: contains
@@ -92,6 +92,76 @@ Executes periodically based on time elapsed.
     emote shifts slightly.
 ```
 
+### `on_arrive`
+
+Fires when **someone arrives** at the room, NPC, or object where this trigger is attached. From the room’s perspective: someone else arrives. Use on **rooms**, **NPCs**, or **objects**. The arriving character is `%S%` / `%s%`; the script runs as the room/NPC/object.
+
+```yaml
+# On a room: greet anyone who arrives
+- type: on_arrive
+  script: |
+    echoto %S% A cool draft washes over you as you step inside.
+# On an NPC: greet the arriving player
+- type: on_arrive
+  script: |
+    sayto %S% Welcome, traveler. Have a look at my wares.
+```
+
+### `on_enter`
+
+Fires when **this actor enters** a room (by any means: walking, teleport, etc.). Use on **characters** (e.g. PCs). From the mover’s perspective: I enter. Variables: `%room_id%` is the full id of the room just entered (`zone_id.subzone_id.room_id` or `zone_id.room_id`); `%S%` / `%s%` are this actor. **No criteria** = fires on every room entry. **With criteria** you can restrict by room: e.g. subject `%room_id%`, operator `contains`, predicate `sunken_citadel` (zone), `sunken_citadel.depths` (subzone), or the full room id.
+
+```yaml
+# On a character: every room
+- type: on_enter
+  script: |
+    emote glances around.
+# Only when entering a specific zone
+- type: on_enter
+  criteria:
+    - subject: "%room_id%"
+      operator: contains
+      predicate: "sunken_citadel"
+  script: |
+    echoto %S% The pressure of the deep weighs on you.
+```
+
+### `catch_zerohp`
+
+Fires when **damage** reduces this actor's HP to 0 or less. The script runs before death is applied. If the script sets this actor's HP above 0 (e.g. via `setstat %A% hp 5` or a heal), **death is cancelled** and the actor is treated as still alive (combat continues, no corpse, no room/state changes). If HP is still 0 or less when the script finishes, normal death proceeds.
+
+Use on **characters** (e.g. for "second wind", divine intervention, or one-time survival). Variables: **%a%/%A%** = this actor (script owner, the one who hit 0 HP), **%s%/%S%** = the actor who did the damage, **%t%/%T%** = this actor (same as a/A).
+
+```yaml
+# One-time survival when reduced to 0 HP (e.g. second wind)
+- type: catch_zerohp
+  script: |
+    setstat %A% hp 5
+    echo $cap(%a%) gasps and staggers back to %q% feet!
+
+```
+
+### `on_signal`
+
+Fires when a **signal** is sent to this receiver's scope (room, subzone, zone, or world). The **signal** command sends to all registered `on_signal` triggers whose location matches the scope. Use on **rooms**, **characters**, or **objects** that should react to signals.
+
+**Variables:** **actor** = trigger owner (this receiver): `%a%`/`%A%`; **subject** = who ran the signal command: `%s%`/`%S%`, `%p%`/`%P%`; **target** = the third argument of the signal command (usually a reference): `%t%`/`%T%`, `%r%`/`%R%`; `%signal%` = the signal name; `%text%` = the message (fourth and later words).
+
+**Criteria:** Use subject `%signal%` with operator `eq` and predicate the signal name to only fire for that signal (e.g. `subject: "%signal%"`, `operator: "eq"`, `predicate: "alarm"`). No criteria = fires for any signal in scope.
+
+**Registry:** When the trigger is **enabled** it registers in a global list; when **disabled** it unregisters. Invalid receivers (e.g. dead, no location, dereferenced) are **automatically pruned** when signals are sent—creators do not need to manually deregister in `catch_zerohp`. Use **deregistersignals** only when you want an actor to stay in the world but stop receiving signals ("deaf").
+
+```yaml
+# React only to "alarm" signals in this zone
+- type: on_signal
+  criteria:
+    - subject: "%signal%"
+      operator: eq
+      predicate: "alarm"
+  script: |
+    echo A distant alarm echoes through the area. %text%
+```
+
 ## Trigger Criteria
 
 Each trigger contains one or more criteria that determine when it should activate. Criteria have three components:
@@ -120,6 +190,8 @@ Each trigger contains one or more criteria that determine when it should activat
 
 - `%*%` - The current message or event text
 - `%time_elapsed%` - Time elapsed since the last trigger execution (for timer_tick triggers)
+- `%room_id%` - Full id of the room being entered (for `on_enter` triggers); use with `contains` to match zone, subzone, or full room id
+- `%signal%` - The signal name (for `on_signal` triggers); use with `eq` to match a specific signal
 
 ## Script Commands
 
@@ -170,9 +242,35 @@ setquestvar %s% murder_mystery.found_body true
 - `tell [character] [text]` - Send a private message
 - `move [direction]` - Move in a direction
 - `attack [character]` - Attack a character
-- `give [object] [character]` - Give an object to a character
+- `give [item] [target]` - Give an item to a character or to a room (see **Give command** below)
+- `signal [scope] [signal_name] [target] [message...]` - Send a signal to on_signal receivers (see **Signal command** below)
+- `deregistersignals [target]` - Disable all on_signal triggers for the target (default: me), so that actor no longer receives signals until re-enabled. Optional; invalid receivers (dead, no location, etc.) are pruned automatically. Target can be a reference (e.g. `@C123`).
 - `get [object]` - Pick up an object
 - `drop [object]` - Drop an object
+
+#### Give command
+
+**Syntax:** `give <item> <target>`
+
+Give works when the script runs as a **character**, **room**, or **object**. The item can be in the actor’s inventory or in the room (including inside containers); it is **automatically removed from any container** when given.
+
+- **Targeting (room-first):** By default, the target is resolved **room-only** (same room as the initiator). So `give sword guard` finds “guard” in the current room.
+- **Room as target:** A **room** is a valid target. Use `here` for the current room, or a **room_id** (e.g. `zone_id.room_id` or `zone_id.subzone_id.room_id`) to give to a specific room. Example: an object script can do `give me here` to put itself in the room when picked up.
+- **Reference override:** If the target is a **reference** (e.g. `@C123`, `@R456`), room-only is overridden: give can target that character or room **anywhere in the world** and succeeds regardless of location.
+- **Rooms/objects giving:** When the script runs as a room or object, the **item** can be an existing object (by keyword, or `me`/`self` for the object itself) or an object **spawned from the zone** by id (e.g. `give rusty_key guard` spawns the zone’s `rusty_key` and gives it to “guard” in the room).
+
+#### Signal command
+
+**Syntax:** `signal <scope> <signal_name> <target> <message...>`
+
+Sends a signal to all **on_signal** triggers whose receiver is in the given scope (relative to the signaler's location).
+
+- **scope:** `room` (same room only), `subzone` (same zone and subzone), `zone` (same zone), or `world` (everywhere).
+- **signal_name:** Name of the signal (e.g. `alarm`, `help`). Receivers can filter by this using criteria `%signal%` eq `alarm`.
+- **target:** Any actor (typically a reference like `@C123`). Available in on_signal scripts as `%t%`/`%T%`.
+- **message:** Fourth and later words; available in on_signal scripts as `%text%`.
+
+Example: `signal zone alarm @C455 The gates are under attack!` notifies all on_signal receivers in the same zone; their scripts see actor = trigger owner (me), subject = signaler, target = @C455, `%signal%` = "alarm", `%text%` = "The gates are under attack!".
 
 ## Script Functions
 
@@ -267,6 +365,9 @@ The following system variables are available in scripts:
 - `%r%` - The target's subject pronoun
 - `%R%` - The target's object pronoun
 - `%*%` - The current message or event text
+- `%room_id%` - Full id of the room just entered (for `on_enter` triggers): `zone_id.subzone_id.room_id` or `zone_id.room_id`
+- `%signal%` - Signal name (for `on_signal` triggers)
+- `%text%` - Message text from the signal command (fourth and later words)
 
 ## Special Trigger Flags
 
@@ -285,7 +386,7 @@ Triggers can have optional flags that modify when they can execute:
   article: the
   description: A friendly shopkeeper.
   triggers:
-    - type: catch_say
+    - type: on_say
       criteria:
         - subject: "%*%"
           operator: contains
@@ -319,7 +420,7 @@ Triggers can have optional flags that modify when they can execute:
           predicate: ""
       script: |
         echoto %S% The orb pulses briefly as you look at it.
-    - type: catch_any
+    - type: on_any
       criteria:
         - subject: "%*%"
           operator: contains
@@ -349,7 +450,7 @@ starting_room:
           predicate: 20
       script: |
         echo A gentle breeze rustles the leaves around you.
-    - type: catch_any
+    - type: on_any
       criteria:
         - subject: "%*%"
           operator: contains
@@ -450,7 +551,7 @@ You can create complex behaviors by having one trigger set variables that anothe
 
 ```yaml
 # First trigger sets a state
-- type: catch_say
+- type: on_say
   criteria:
     - subject: "%*%"
       operator: contains
@@ -478,7 +579,7 @@ You can create complex behaviors by having one trigger set variables that anothe
 Use permanent variables to give NPCs memory of past interactions:
 
 ```yaml
-- type: catch_say
+- type: on_say
   criteria:
     - subject: "%*%"
       operator: contains
@@ -488,7 +589,7 @@ Use permanent variables to give NPCs memory of past interactions:
     setpermvar char %a% knows_%S%_name $tempvar(%a%, player_name)
     sayto %S% Nice to meet you, $tempvar(%a%, player_name)!
 
-- type: catch_any
+- type: on_any
   criteria:
     - subject: "%*%"
       operator: contains

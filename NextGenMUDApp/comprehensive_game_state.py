@@ -784,7 +784,55 @@ class ComprehensiveGameState:
         if 0 < target_number <= len(candidates):
             return candidates[target_number - 1]
         return None
-    
+
+    def find_target_object_with_parent(self, target_name: str, actor: Actor = None,
+                                       start_room: 'Room' = None,
+                                       target_number: int = 1) -> tuple:
+        """
+        Find an object by keyword in actor inventory and/or room, including inside containers.
+        Returns (object, parent) where parent is the Character, Room, or Object that directly
+        contains the object (so caller can parent.remove_object(obj) to auto-remove from container).
+        Returns (None, None) if not found.
+        """
+        logger = StructuredLogger(__name__, prefix="find_target_object_with_parent()> ")
+        if not target_name:
+            return (None, None)
+        if target_name[0] == Constants.REFERENCE_SYMBOL:
+            ref_key = self._normalize_reference_key(target_name[1:])
+            resolved = Actor.get_reference(ref_key)
+            if resolved is not None and isinstance(resolved, Object):
+                # Resolved by reference; parent is wherever it currently is
+                parent = getattr(resolved, 'in_actor', None)
+                return (resolved, parent)
+            return (None, None)
+        if target_name.lower() in ('me', 'self'):
+            return (actor if isinstance(actor, Object) else (None, None))
+        if '#' in target_name:
+            parts = target_name.split('#')
+            target_name = parts[0]
+            try:
+                target_number = int(parts[1])
+            except ValueError:
+                return (None, None)
+        target_lower = target_name.lower()
+        candidates = []  # list of (obj, parent)
+
+        def collect_with_parent(container, parent_actor):
+            if not hasattr(container, 'contents'):
+                return
+            for obj in container.contents:
+                if obj.matches_keyword(target_lower):
+                    candidates.append((obj, parent_actor))
+                collect_with_parent(obj, obj)
+
+        if actor and hasattr(actor, 'contents'):
+            collect_with_parent(actor, actor)
+        if start_room and hasattr(start_room, 'contents'):
+            collect_with_parent(start_room, start_room)
+
+        if 0 < target_number <= len(candidates):
+            return candidates[target_number - 1]
+        return (None, None)
 
     
     async def start_connection(self, consumer: 'MyWebsocketConsumer'):

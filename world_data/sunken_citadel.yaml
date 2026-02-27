@@ -341,7 +341,7 @@ ZONES:
           script: |
             echo A heavy thud echoes from the upper tiers, as if a book has fallen from a shelf.
         - id: search_for_tome
-          type: catch_any
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -371,7 +371,7 @@ ZONES:
           north: scripting_nook
         triggers:
         - id: harvest_prism_shard
-          type: catch_any
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -438,7 +438,7 @@ ZONES:
           south: barracks_training_grounds
         triggers:
         - id: threshold_sensor
-          type: on_enter
+          type: on_arrive
           script: |
             $if($permvar(%S%, seen_barracks), !=, true){
               echo A hidden sensor clicks, and a dim red light pulses once from the ceiling.
@@ -545,7 +545,7 @@ ZONES:
             echoto %S% Scalding steam vents near you!
             damage %S% 10 fire
         - id: find_regulator
-          type: catch_any
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -711,7 +711,7 @@ ZONES:
           north: royal_ascent_solar
         triggers:
         - id: phantom_music_echo
-          type: on_enter
+          type: on_arrive
           script: |
             echo You hear the upbeat strains of a violin, quickly fading.
         CHARACTERS:
@@ -747,7 +747,7 @@ ZONES:
           down: royal_ascent_solar
         triggers:
         - id: empress_presence_aura
-          type: on_enter
+          type: on_arrive
           script: |
             echo The air here is heavy with ancient power.
         CHARACTERS:
@@ -945,7 +945,7 @@ ZONES:
             sunken_citadel.the_drowned_queen.met_valerius: true
       triggers:
       - id: check_stability_for_harmonic
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -1139,7 +1139,7 @@ ZONES:
       experience_points: 450
       triggers:
       - id: prime_logic_error
-        type: catch_any
+        type: on_any
         criteria:
         - subject: '%*%'
           operator: contains
@@ -1295,7 +1295,7 @@ ZONES:
       experience_points: 100
       triggers:
       - id: detect_loud_magic
-        type: catch_any
+        type: on_any
         criteria:
         - subject: '%*%'
           operator: contains
@@ -1343,7 +1343,7 @@ ZONES:
       experience_points: 180
       triggers:
       - id: barracks_patrol_check
-        type: on_enter
+        type: on_arrive
         script: |
           # Checks for authorization via the command baton or sigil
           $if($hasitem(%S%, command_baton), eq, true){
@@ -1409,7 +1409,7 @@ ZONES:
       experience_points: 80
       triggers:
       - id: eternal_salute
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $tempvar(%S%, has_soldier_clearance)
           operator: eq
@@ -1456,7 +1456,7 @@ ZONES:
       experience_points: 15
       triggers:
       - id: mite_scuttle
-        type: on_enter
+        type: on_arrive
         script: echo A rust-mite scuttles down the basalt wall, its mandibles clicking hungrily at your equipment.
     - id: high_chamberlain_kaelas
       name: High Chamberlain Kaelas
@@ -1507,7 +1507,7 @@ ZONES:
           content: The Golden Automata will only allow passage to those wearing the Imperial Sigil.
       triggers:
       - id: protocol_check
-        type: on_enter
+        type: on_arrive
         script: "$if($hasitem(%S%, imperial_diadem), eq, true){\n  pause 0.5\n  emote bows stiffly, his chain of office clinking.\n  say Your Grace. Her Majesty is expecting your report in the Solar.\n}\nelse {\n  pause 0.5\n  say Halt. You are not on the guest list, and your attire is... distressing. \n}\n"
     - id: golden_automaton_guardian
       name: golden automaton
@@ -1546,7 +1546,7 @@ ZONES:
       experience_points: 140
       triggers:
       - id: golden_sentry_logic
-        type: on_enter
+        type: on_arrive
         script: |
           # Only attacks if the player doesn't have the Diadem or Sigil
           $if($hasitem(%S%, imperial_diadem), eq, true){

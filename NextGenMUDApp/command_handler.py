@@ -19,7 +19,7 @@ from .nondb_models.character_interface import CharacterInterface, CharacterAttri
 from .nondb_models.object_interface import ObjectInterface, ObjectFlags
 from .nondb_models.objects import Object
 from .nondb_models.room_interface import RoomInterface
-from .nondb_models.triggers import TriggerType, Trigger
+from .nondb_models.triggers import TriggerType, Trigger, TriggerOnSignal
 from .nondb_models import world
 from .utility import replace_vars, firstcap, set_vars, split_preserving_quotes, article_plus_name, normalize_var_value
 from .nondb_models.rooms import Room
@@ -68,7 +68,7 @@ class CommandHandler(CommandHandlerInterface):
         "getlogfilter", "deltempvar", "delpermvar", "showvars", "save", "load", "saves", "deletesave",
         "stop", "walkto", "route", "delay", "setquestvar", "getquestvar", "spawnobj",
         "pause", "damage", "heal", "removeitem", "transfer", "force", "command",
-        "interrupt", "teleport", "reload", "setstat", "getstat", "_trigger_start", "_trigger_end",
+        "interrupt", "teleport", "reload", "setstat", "getstat", "signal", "deregistersignals", "_trigger_start", "_trigger_end",
         "showscripts", "debug"
     }
 
@@ -77,14 +77,14 @@ class CommandHandler(CommandHandlerInterface):
     instant_commands = {
         "_trigger_start", "_trigger_end",
         "settempvar", "setpermvar", "deltempvar", "delpermvar", "showvars",
-        "setquestvar", "getquestvar", "setstat", "getstat"
+        "setquestvar", "getquestvar", "setstat", "getstat", "signal", "deregistersignals"
     }
 
     # Commands whose argument text should keep user capitalization (say, whisper, echo, emotes, etc.)
     # Commands whose args must not be lowercased (e.g. contain refs like |C455 or quoted text)
     PRESERVE_CAPITALIZATION_COMMANDS = frozenset({
         "say", "whisper", "sayto", "ask", "echo", "echoto", "echoexcept", "emote",
-        "setquestvar", "getquestvar",
+        "setquestvar", "getquestvar", "signal",
     })
 
     # Debug sections toggleable via "debug <name>" / "debug -<name>". name must be in this list.
@@ -261,6 +261,8 @@ class CommandHandler(CommandHandlerInterface):
         "logout": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_quit(char, input),
         "savegame": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_savegame(char, input),
         "commands": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_commands(char, input),
+        "signal": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_signal(char, input),
+        "deregistersignals": lambda command, char, input: CommandHandlerInterface.get_instance().cmd_deregistersignals(char, input),
         # various emotes are in the EMOTE_MESSAGES dict below
     }
 
@@ -496,12 +498,12 @@ class CommandHandler(CommandHandlerInterface):
                 await room.echo(CommTypes.DYNAMIC, text, vars, exceptions=[actor], game_state=cls._game_state, skip_triggers=True)
             else:
                 raise NotImplementedError(f"ActorType {actor.actor_type} not implemented.")
-            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
-                for trig in room.triggers_by_type[TriggerType.CATCH_SAY]:
+            if actor != room and TriggerType.ON_SAY in room.triggers_by_type:
+                for trig in room.triggers_by_type[TriggerType.ON_SAY]:
                     await trig.run(room, text, vars, cls._game_state)
             for ch in room.get_characters():
-                if ch != actor and TriggerType.CATCH_SAY in ch.triggers_by_type:
-                    for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
+                if ch != actor and TriggerType.ON_SAY in ch.triggers_by_type:
+                    for trig in ch.triggers_by_type[TriggerType.ON_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
         else:
             actor.send_text(CommTypes.DYNAMIC, "You have no location room.")
@@ -531,11 +533,11 @@ class CommandHandler(CommandHandlerInterface):
         await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor.location_room
 
-        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
+        # Run ON_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         from .llm_npc_conversation import NPCConversationHandler
         any_trigger_fired = False
-        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
-            for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
+        if target != actor and TriggerType.ON_SAY in target.triggers_by_type:
+            for trig in target.triggers_by_type[TriggerType.ON_SAY]:
                 if await trig.run(target, text, vars, cls._game_state):
                     any_trigger_fired = True
 
@@ -548,12 +550,12 @@ class CommandHandler(CommandHandlerInterface):
             msg = f"{actor.art_name_cap} says to {target.name}, \"{text}\""
             vars = set_vars(actor, actor, target, msg)
             await room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state = cls._game_state)
-            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
-                for trig in room.triggers_by_type[TriggerType.CATCH_SAY]:
+            if actor != room and TriggerType.ON_SAY in room.triggers_by_type:
+                for trig in room.triggers_by_type[TriggerType.ON_SAY]:
                     await trig.run(room, text, vars, cls._game_state)
             for ch in room.get_characters():
-                if ch != actor and ch != target and TriggerType.CATCH_SAY in ch.triggers_by_type:
-                    for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
+                if ch != actor and ch != target and TriggerType.ON_SAY in ch.triggers_by_type:
+                    for trig in ch.triggers_by_type[TriggerType.ON_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
 
     async def cmd_ask(cls, actor: Actor, input: str):
@@ -590,11 +592,11 @@ class CommandHandler(CommandHandlerInterface):
         await target.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
         room = actor.location_room
 
-        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
+        # Run ON_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         from .llm_npc_conversation import NPCConversationHandler
         any_trigger_fired = False
-        if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
-            for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
+        if target != actor and TriggerType.ON_SAY in target.triggers_by_type:
+            for trig in target.triggers_by_type[TriggerType.ON_SAY]:
                 if await trig.run(target, text, vars, cls._game_state):
                     any_trigger_fired = True
 
@@ -607,12 +609,12 @@ class CommandHandler(CommandHandlerInterface):
             msg = f"{actor.art_name_cap} asks {target.name}, \"{text}\""
             vars = set_vars(actor, actor, target, msg)
             await room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state = cls._game_state)
-            if actor != room and TriggerType.CATCH_SAY in room.triggers_by_type:
-                for trig in room.triggers_by_type[TriggerType.CATCH_SAY]:
+            if actor != room and TriggerType.ON_SAY in room.triggers_by_type:
+                for trig in room.triggers_by_type[TriggerType.ON_SAY]:
                     await trig.run(room, text, vars, cls._game_state)
             for ch in room.get_characters():
-                if ch != actor and ch != target and TriggerType.CATCH_SAY in ch.triggers_by_type:
-                    for trig in ch.triggers_by_type[TriggerType.CATCH_SAY]:
+                if ch != actor and ch != target and TriggerType.ON_SAY in ch.triggers_by_type:
+                    for trig in ch.triggers_by_type[TriggerType.ON_SAY]:
                         await trig.run(ch, text, vars, cls._game_state)
     
     @staticmethod
@@ -1164,13 +1166,13 @@ class CommandHandler(CommandHandlerInterface):
             await target.echo(CommTypes.DYNAMIC, msg, game_state=cls._game_state)
             await actor.send_text(CommTypes.DYNAMIC, f"You tell {target.name} '{text}'.")
         
-        # Run CATCH_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
+        # Run ON_SAY triggers first (they may queue _trigger_start/_trigger_end which calls LLM)
         room = actor.location_room
         from .llm_npc_conversation import NPCConversationHandler
         any_trigger_fired = False
         if room and target in room.get_characters():
-            if target != actor and TriggerType.CATCH_SAY in target.triggers_by_type:
-                for trig in target.triggers_by_type[TriggerType.CATCH_SAY]:
+            if target != actor and TriggerType.ON_SAY in target.triggers_by_type:
+                for trig in target.triggers_by_type[TriggerType.ON_SAY]:
                     if await trig.run(target, text, vars, cls._game_state):
                         any_trigger_fired = True
             
@@ -1744,81 +1746,126 @@ class CommandHandler(CommandHandlerInterface):
         if debug_give:
             logger.debug(f"[give] parsed: item_name={item_name!r}, target_name={target_name!r}")
         
-        # When actor is a Room or Object (e.g. trigger script), spawn item from zone and give to target
+        # When actor is a Room or Object (e.g. trigger script): room-only targeting unless reference; room_id valid
         if actor.actor_type != ActorType.CHARACTER:
             if debug_give:
                 logger.debug(f"[give] non-CHARACTER path: actor_type={actor.actor_type}")
-            target = cls._game_state.find_target_character(actor, target_name)
-            if debug_give:
-                logger.debug(f"[give] find_target_character(actor, {target_name!r}) => {target!r} (rid={getattr(target, 'rid', None) if target else None})")
-            if not target:
-                if debug_give:
-                    logger.debug("[give] early return: target not found")
+            start_room = actor if isinstance(actor, Room) else getattr(actor, 'location_room', None)
+            start_zone = getattr(start_room, 'zone', None) if start_room else None
+            target = None
+            target_room = None
+            use_reference = target_name and target_name.strip().startswith(Constants.REFERENCE_SYMBOL)
+            if use_reference:
+                ref_key = cls._game_state._normalize_reference_key(target_name.strip()[1:])
+                resolved = Actor.get_reference(ref_key)
+                if isinstance(resolved, Character):
+                    target = resolved
+                elif isinstance(resolved, Room):
+                    target_room = resolved
+            if target is None and target_room is None:
+                target = cls._game_state.find_target_character(actor, target_name, search_world=False)
+                if not target and target_name and target_name.strip().lower() == 'here' and start_room:
+                    target_room = start_room
+                if not target and not target_room and start_zone:
+                    target_room = cls._game_state.find_target_room(actor, target_name, start_zone)
+            if not target and not target_room:
                 if hasattr(actor, 'send_text'):
                     await actor.send_text(CommTypes.DYNAMIC, f"Could not find '{target_name}'.")
                 return
+            # Find existing item (including in containers) or spawn from zone
+            item = None
+            parent = None
+            if isinstance(actor, Object) and (item_name.strip().lower() in ('me', 'self') or actor.matches_keyword(item_name.strip().lower())):
+                item = actor
+                parent = getattr(actor, 'in_actor', None)
+            else:
+                item, parent = cls._game_state.find_target_object_with_parent(item_name, actor=actor, start_room=start_room)
+            if item and parent:
+                parent.remove_object(item)
+                if target_room:
+                    target_room.add_object(item)
+                    if debug_give:
+                        logger.debug("[give] non-CHARACTER: gave existing item to room")
+                    return
+                if target:
+                    target.add_to_inventory(item)
+                    await target.send_text(CommTypes.DYNAMIC, f"You receive {item.art_name}.")
+                    if debug_give:
+                        logger.debug("[give] non-CHARACTER: gave existing item to character")
+                    return
             zone = getattr(actor, 'zone', None) or (getattr(actor, 'location_room', None) and getattr(actor.location_room, 'zone', None))
-            if debug_give:
-                logger.debug(f"[give] zone => {zone!r} (zone.id={getattr(zone, 'id', None) if zone else None})")
             if not zone:
-                if debug_give:
-                    logger.debug("[give] early return: no zone")
                 if hasattr(actor, 'send_text'):
                     await actor.send_text(CommTypes.DYNAMIC, "No zone context for give.")
                 return
             obj_id = f"{zone.id}.{item_name}" if "." not in item_name else item_name
             obj_template = cls._game_state.world_definition.objects.get(obj_id)
-            if debug_give:
-                logger.debug(f"[give] obj_id={obj_id!r}, obj_template=>{obj_template!r}, world_definition.objects keys (sample): {list(cls._game_state.world_definition.objects.keys())[:20]}")
             if not obj_template:
-                if debug_give:
-                    logger.debug("[give] early return: object template not found")
                 if hasattr(actor, 'send_text'):
                     await actor.send_text(CommTypes.DYNAMIC, f"Could not find object '{item_name}'.")
                 return
             new_obj = Object.create_from_definition(obj_template)
-            if debug_give:
-                logger.debug(f"[give] new_obj from create_from_definition => {new_obj!r}")
             if not new_obj:
-                if debug_give:
-                    logger.debug("[give] early return: create_from_definition returned None")
                 if hasattr(actor, 'send_text'):
                     await actor.send_text(CommTypes.DYNAMIC, "Failed to create object.")
                 return
+            if target_room:
+                target_room.add_object(new_obj)
+                if debug_give:
+                    logger.debug("[give] non-CHARACTER: spawned and added to room")
+                return
             target.add_to_inventory(new_obj)
-            if debug_give:
-                logger.debug(f"[give] added to target inventory; target.inventory count={len(getattr(target, 'inventory', []) or [])}")
             await target.send_text(CommTypes.DYNAMIC, f"You receive {new_obj.art_name}.")
             if debug_give:
                 logger.debug("[give] non-CHARACTER path done (spawn-and-give success)")
             return
 
-        # Find the item in actor's inventory
+        # CHARACTER path: find item (including in containers; auto-remove from container)
         if debug_give:
-            logger.debug("[give] CHARACTER path: looking up item in actor inventory")
-        item = cls._game_state.find_target_object(item_name, actor=actor)
+            logger.debug("[give] CHARACTER path: looking up item (including containers)")
+        item, parent = cls._game_state.find_target_object_with_parent(item_name, actor=actor, start_room=actor.location_room)
         if debug_give:
-            logger.debug(f"[give] find_target_object({item_name!r}, actor) => {item!r}")
+            logger.debug(f"[give] find_target_object_with_parent({item_name!r}) => item={item!r}, parent={parent!r}")
         if not item:
-            if debug_give:
-                logger.debug("[give] early return: item not in actor inventory")
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{item_name}'.")
             return
-        
-        # Find the target character
-        target = cls._game_state.find_target_character(actor, target_name)
-        if debug_give:
-            logger.debug(f"[give] find_target_character(actor, {target_name!r}) => {target!r}")
-        if not target:
+        if parent:
+            parent.remove_object(item)
+        # Resolve target: reference overrides room-only (search_world); else room-only; room_id (e.g. "here") valid
+        start_room = actor.location_room
+        start_zone = getattr(start_room, 'zone', None) if start_room else None
+        target = None
+        target_room = None
+        use_reference = target_name and target_name.strip().startswith(Constants.REFERENCE_SYMBOL)
+        if use_reference:
+            ref_key = cls._game_state._normalize_reference_key(target_name.strip()[1:])
+            resolved = Actor.get_reference(ref_key)
+            if isinstance(resolved, Character):
+                target = resolved
+            elif isinstance(resolved, Room):
+                target_room = resolved
+        if target is None and target_room is None:
+            target = cls._game_state.find_target_character(actor, target_name, search_world=False)
+            if not target and target_name and target_name.strip().lower() == 'here' and start_room:
+                target_room = start_room
+            if not target and not target_room and start_zone:
+                target_room = cls._game_state.find_target_room(actor, target_name, start_zone)
+        if not target and not target_room:
             await actor.send_text(CommTypes.DYNAMIC, f"Could not find '{target_name}'.")
             return
-        
         if target == actor:
             await actor.send_text(CommTypes.DYNAMIC, "You can't give something to yourself.")
             return
-        
         # Transfer the item
-        actor.remove_from_inventory(item)
+        if target_room:
+            target_room.add_object(item)
+            await actor.send_text(CommTypes.DYNAMIC, f"You drop {item.art_name}.")
+            msg = f"{actor.art_name_cap} drops {item.art_name}."
+            vars = set_vars(actor.location_room, actor, actor, msg)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+            if debug_give:
+                logger.debug("[give] CHARACTER path: gave to room")
+            return
         target.add_to_inventory(item)
         if debug_give:
             logger.debug("[give] CHARACTER path: transfer done")
@@ -1832,10 +1879,10 @@ class CommandHandler(CommandHandlerInterface):
         await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, target], game_state=cls._game_state)
         
         # Fire ON_RECEIVE triggers on the target (for NPC quest reactions)
-        # Convention: actor (a/A) = giver, subject (s/S) = item received, target (t/T) = givee (receiver)
+        # Convention: actor (a/A) = trigger owner (receiver), subject (s/S) = giver, target (t/T) = receiver, object (o/O) = item
         trigger_ran = False
         if TriggerType.ON_RECEIVE in target.triggers_by_type:
-            receive_vars = set_vars(actor, item, target, msg)
+            receive_vars = set_vars(target, actor, target, msg)
             receive_vars.update({
                 'item': item.name,
                 'item_id': item.id,
@@ -1863,6 +1910,78 @@ class CommandHandler(CommandHandlerInterface):
         if debug_give:
             logger.debug("[give] CHARACTER path done")
 
+    async def cmd_signal(cls, actor: Actor, input: str):
+        """
+        Send a signal to on_signal receivers in the given scope.
+        Usage: signal <scope> <signal_name> <target> <message...>
+        scope: room | subzone | zone | world
+        target: any actor (e.g. @C123) or the word none for no target
+        message: fourth and later words, available as %text% in on_signal scripts
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_signal()> ")
+        if not input or not input.strip():
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: signal <room|subzone|zone|world> <signal_name> <target> <message...>")
+            return
+        pieces = split_preserving_quotes(input)
+        if len(pieces) < 3:
+            await actor.send_text(CommTypes.DYNAMIC, "Usage: signal <room|subzone|zone|world> <signal_name> <target> <message...>")
+            return
+        scope = pieces[0].strip().lower()
+        if scope not in ("room", "subzone", "zone", "world"):
+            await actor.send_text(CommTypes.DYNAMIC, "Scope must be room, subzone, zone, or world.")
+            return
+        signal_name = pieces[1].strip()
+        target_arg = pieces[2].strip()
+        message = " ".join(pieces[3:]).strip() if len(pieces) > 3 else ""
+        signaler_room = actor if isinstance(actor, Room) else getattr(actor, "location_room", None)
+        if not signaler_room:
+            await actor.send_text(CommTypes.DYNAMIC, "You must be in a room to send a signal.")
+            return
+        target_actor = None
+        if target_arg.lower() != "none":
+            if target_arg.startswith(Constants.REFERENCE_SYMBOL):
+                ref_key = cls._game_state._normalize_reference_key(target_arg[1:])
+                target_actor = Actor.get_reference(ref_key)
+            else:
+                target_actor = cls._game_state.find_target_character(actor, target_arg, search_world=True)
+        receivers = TriggerOnSignal.get_receivers_for_scope(signaler_room, scope)
+        signal_vars = {
+            "signal": signal_name,
+            "target_actor": target_actor,
+            "text": message,
+        }
+        for trigger in receivers:
+            if trigger.disabled_:
+                continue
+            run_vars = {**signal_vars}
+            ran = await trigger.run(actor, message, run_vars, cls._game_state)
+            if ran:
+                pass  # can run multiple receivers
+        logger.debug3(f"signal {scope} {signal_name} -> {len(receivers)} receivers")
+
+    async def cmd_deregistersignals(cls, actor: Actor, input: str):
+        """
+        Remove all on_signal triggers for the target from the signal registry (and disable them).
+        Usage: deregistersignals [target]
+        target: me (default), self, or a reference (e.g. @C123). Used from catch_zerohp to stop receiving signals on death.
+        """
+        logger = StructuredLogger(__name__, prefix="cmd_deregistersignals()> ")
+        target_str = (input or "").strip()
+        if not target_str or target_str.lower() in ("me", "self"):
+            target = actor
+        elif target_str.startswith(Constants.REFERENCE_SYMBOL):
+            ref_key = cls._game_state._normalize_reference_key(target_str[1:])
+            target = Actor.get_reference(ref_key)
+        else:
+            target = cls._game_state.find_target_character(actor, target_str, search_world=True)
+        if target is None:
+            await actor.send_text(CommTypes.DYNAMIC, f"Could not find target '{target_str}'.")
+            return
+        triggers = list(getattr(target, "triggers_by_type", {}).get(TriggerType.ON_SIGNAL, []))
+        for trigger in triggers:
+            if isinstance(trigger, TriggerOnSignal):
+                trigger.disable()
+        logger.debug3(f"deregistersignals: {len(triggers)} on_signal trigger(s) disabled for {getattr(target, 'name', target)}")
 
     async def cmd_pause(cls, actor: Actor, input: str):
         """
@@ -2015,7 +2134,7 @@ class CommandHandler(CommandHandlerInterface):
         # Format trigger results for LLM
         trigger_actions = []
         for trigger_result in context.trigger_results:
-            # Format: "CATCH_SAY trigger (matched 'gold'): say 'Here!' (succeeded), give gold player (failed)"
+            # Format: "ON_SAY trigger (matched 'gold'): say 'Here!' (succeeded), give gold player (failed)"
             trigger_desc = f"{trigger_result.trigger_type} trigger"
             if trigger_result.trigger_criteria:
                 trigger_desc += f" ({trigger_result.trigger_criteria})"
@@ -3341,50 +3460,55 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, "There's no way past your enemies!")
             return
         
-        # Calculate flee success chance
-        base_chance = 50
-        flee_roll = random.randint(1, 100)
+        # Privileged "force" argument: auto-succeed flee (only for non-PCs, e.g. NPCs/scripts)
+        tokens = (input or "").strip().lower().split()
+        force_flee = "force" in tokens and not actor.has_perm_flags(PermanentCharacterFlags.IS_PC)
         
-        # Dexterity modifier: +(DEX - 10) * 4
-        dex = actor.attributes.get(CharacterAttributes.DEXTERITY, 10)
-        dex_mod = (dex - 10) * 4
-        
-        # Rogue class bonus: +10 per tier (levels 1-9 = +10, 10-19 = +20, 20+ = +30)
-        rogue_level = actor.levels_by_role.get(CharacterClassRole.ROGUE, 0)
-        rogue_bonus = 0
-        if rogue_level >= 20:
-            rogue_bonus = 30
-        elif rogue_level >= 10:
-            rogue_bonus = 20
-        elif rogue_level >= 1:
-            rogue_bonus = 10
-        
-        # Penalty for number of attackers: -10 per enemy
-        num_attackers = sum(1 for c in room.get_characters() if c.fighting_whom == actor)
-        attacker_penalty = num_attackers * 10
-        
-        # Low HP bonus: +15 if HP < 25%
-        hp_bonus = 0
-        if actor.current_hit_points < actor.max_hit_points * 0.25:
-            hp_bonus = 15
-        
-        # Sitting penalty
-        sit_penalty = 0
-        if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
-            sit_penalty = 20
-        
-        # Calculate total
-        flee_check = flee_roll + dex_mod + rogue_bonus + hp_bonus - attacker_penalty - sit_penalty
-        
-        logger.debug3(f"Flee check: roll={flee_roll} + dex={dex_mod} + rogue={rogue_bonus} + hp={hp_bonus} - attackers={attacker_penalty} - sit={sit_penalty} = {flee_check} vs {base_chance}")
-        
-        if flee_check < base_chance:
-            # Failed to flee
-            await actor.send_text(CommTypes.DYNAMIC, "You try to flee but can't get away!")
-            msg = f"{actor.art_name_cap} tries to flee but fails!"
-            vars = set_vars(room, actor, actor, msg)
-            await room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
-            return
+        if not force_flee:
+            # Calculate flee success chance
+            base_chance = 50
+            flee_roll = random.randint(1, 100)
+            
+            # Dexterity modifier: +(DEX - 10) * 4
+            dex = actor.attributes.get(CharacterAttributes.DEXTERITY, 10)
+            dex_mod = (dex - 10) * 4
+            
+            # Rogue class bonus: +10 per tier (levels 1-9 = +10, 10-19 = +20, 20+ = +30)
+            rogue_level = actor.levels_by_role.get(CharacterClassRole.ROGUE, 0)
+            rogue_bonus = 0
+            if rogue_level >= 20:
+                rogue_bonus = 30
+            elif rogue_level >= 10:
+                rogue_bonus = 20
+            elif rogue_level >= 1:
+                rogue_bonus = 10
+            
+            # Penalty for number of attackers: -10 per enemy
+            num_attackers = sum(1 for c in room.get_characters() if c.fighting_whom == actor)
+            attacker_penalty = num_attackers * 10
+            
+            # Low HP bonus: +15 if HP < 25%
+            hp_bonus = 0
+            if actor.current_hit_points < actor.max_hit_points * 0.25:
+                hp_bonus = 15
+            
+            # Sitting penalty
+            sit_penalty = 0
+            if actor.has_temp_flags(TemporaryCharacterFlags.IS_SITTING):
+                sit_penalty = 20
+            
+            # Calculate total
+            flee_check = flee_roll + dex_mod + rogue_bonus + hp_bonus - attacker_penalty - sit_penalty
+            
+            logger.debug3(f"Flee check: roll={flee_roll} + dex={dex_mod} + rogue={rogue_bonus} + hp={hp_bonus} - attackers={attacker_penalty} - sit={sit_penalty} = {flee_check} vs {base_chance}")
+            
+            if flee_check < base_chance:
+                # Failed to flee
+                await actor.send_text(CommTypes.DYNAMIC, "You try to flee but can't get away!")
+                msg = f"{actor.art_name_cap} tries to flee but fails!"
+                vars = set_vars(room, actor, actor, msg)
+                await room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=cls._game_state)
+                return
         
         # Success! Determine direction
         # 70% chance to go back the way we came if that's a valid option

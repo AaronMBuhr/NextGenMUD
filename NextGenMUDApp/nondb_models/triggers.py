@@ -139,24 +139,24 @@ class Trigger(TriggerInterface):
             logger.error(f"Invalid trigger_type type ({type(trigger_type)}) passed to new_trigger for actor '{actor.rid if actor else 'None'}'")
             raise TypeError(f"trigger_type must be str or TriggerType enum, got {type(trigger_type)}")
 
-        if trigger_type_enum == TriggerType.CATCH_ANY:
-            logger.debug3("returning TriggerCatchAny")
-            return TriggerCatchAny(trigger_id, actor, disabled)
+        if trigger_type_enum == TriggerType.ON_ANY:
+            logger.debug3("returning TriggerOnAny")
+            return TriggerOnAny(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.TIMER_TICK:
             logger.debug3("returning TriggerTimerTick")
             return TriggerTimerTick(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.CATCH_LOOK:
             logger.debug3("returning TriggerCatchLook")
             return TriggerCatchLook(trigger_id, actor, disabled)
-        elif trigger_type_enum == TriggerType.CATCH_SAY:
-            logger.debug3("returning TriggerCatchSay")
-            return TriggerCatchSay(trigger_id, actor, disabled)
-        elif trigger_type_enum == TriggerType.ON_ENTER:
-            logger.debug3("returning TriggerOnEnter")
-            return TriggerOnEnter(trigger_id, actor, disabled)
-        elif trigger_type_enum == TriggerType.ON_EXIT:
-            logger.debug3("returning TriggerOnExit")
-            return TriggerOnExit(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_SAY:
+            logger.debug3("returning TriggerOnSay")
+            return TriggerOnSay(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_ARRIVE:
+            logger.debug3("returning TriggerOnArrive")
+            return TriggerOnArrive(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_LEAVE:
+            logger.debug3("returning TriggerOnLeave")
+            return TriggerOnLeave(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.ON_RECEIVE:
             logger.debug3("returning TriggerOnReceive")
             return TriggerOnReceive(trigger_id, actor, disabled)
@@ -187,6 +187,15 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.CATCH_GO:
             logger.debug3("returning TriggerCatchGo")
             return TriggerCatchGo(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_ENTER:
+            logger.debug3("returning TriggerOnEnter")
+            return TriggerOnEnter(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_ZEROHP:
+            logger.debug3("returning TriggerCatchZerohp")
+            return TriggerCatchZerohp(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_SIGNAL:
+            logger.debug3("returning TriggerOnSignal")
+            return TriggerOnSignal(trigger_id, actor, disabled)
         else:
             logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
             raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
@@ -279,16 +288,16 @@ class Trigger(TriggerInterface):
 #             await 
             
 
-class TriggerCatchAny(Trigger):
+class TriggerOnAny(Trigger):
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
-        super().__init__(id, TriggerType.CATCH_ANY, actor)
+        super().__init__(id, TriggerType.ON_ANY, actor)
         if disabled:
             self.disable()
         else:
             self.enable()
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
-        logger = StructuredLogger(__name__, prefix="TriggerCatchAny.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerOnAny.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 
@@ -410,9 +419,9 @@ class TriggerCatchLook(Trigger):
         return True
     
 
-class TriggerCatchSay(Trigger):
+class TriggerOnSay(Trigger):
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
-        super().__init__(id, TriggerType.CATCH_SAY, actor)
+        super().__init__(id, TriggerType.ON_SAY, actor)
         if disabled:
             self.disable()
         else:
@@ -420,7 +429,7 @@ class TriggerCatchSay(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor
-        logger = StructuredLogger(__name__, prefix="TriggerCatchSay.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerOnSay.run()> ")
         if self.disabled_:
             return False
         vars = {**(vars or {}), 
@@ -467,9 +476,11 @@ class TriggerCatchGo(Trigger):
 
 class TriggerOnEnter(Trigger):
     """
-    Fires when a character enters the room where this trigger is attached.
-    The entering character is the 'actor' for script execution.
-    Variables available: %S% = entering character, %s% = character name
+    Fires when this actor enters a new room (via any means: walk, teleport, etc.).
+    Condition: no criteria = any room; otherwise %room_id% contains zone_id, or
+    zone_id.subzone_id, or zone_id.subzone_id.room_id.
+    Variables: %room_id% = zone_id.subzone_id.room_id of the room being entered;
+    %S%/%s% = this actor.
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
         super().__init__(id, TriggerType.ON_ENTER, actor)
@@ -478,25 +489,53 @@ class TriggerOnEnter(Trigger):
         else:
             self.enable()
 
-    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
-        """
-        Run this trigger when a character enters.
-        
-        Args:
-            actor: The character who just entered the room
-            text: Unused for this trigger type
-            vars: Variables dict
-            game_state: Current game state
-            
-        Returns:
-            True if the trigger executed, False otherwise
-        """
-        from ..nondb_models.actors import Actor
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface = None) -> bool:
         logger = StructuredLogger(__name__, prefix="TriggerOnEnter.run()> ")
         if self.disabled_:
             return False
+        # vars must include room_id (set by caller to zone_id.subzone_id.room_id of room entered)
+        vars = {**(vars or {}),
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object,
+                     'q': actor.pronoun_possessive, '*': text or '' }),
+                **(actor.get_vars("s"))}
+        # No criteria = fire on any room entry
+        if not self.criteria_:
+            logger.debug3("executing on_enter script (no criteria)")
+            await self.execute_trigger_script(actor, vars, game_state)
+            return True
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                logger.debug3("criteria not met")
+                return False
+        logger.debug3("executing on_enter script")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnArrive(Trigger):
+    """
+    Fires when someone arrives at the room/NPC/object where this trigger is attached.
+    From the room's perspective: someone else arrives. Variables: %S% = arriving character, %s% = name.
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_ARRIVE, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
+        """
+        Run this trigger when someone arrives (actor = the arriving character).
+        """
+        from ..nondb_models.actors import Actor
+        logger = StructuredLogger(__name__, prefix="TriggerOnArrive.run()> ")
+        if self.disabled_:
+            return False
         
-        # Build vars with entering character info
+        # Build vars with arriving character info
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -504,26 +543,172 @@ class TriggerOnEnter(Trigger):
                      'q': actor.pronoun_possessive, '*': text or '' }),
                 **(actor.get_vars("s"))}
         
-        logger.debug3(f"evaluating on_enter for {actor.name}")
+        logger.debug3(f"evaluating on_arrive for {actor.name}")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
                 logger.debug3("criteria not met")
                 return False
         
-        logger.debug3("executing on_enter script")
-        # Execute script as the trigger owner (room/npc/object), not the entering character
-        # The entering character is still available via %S%, %s%, etc. in vars
+        logger.debug3("executing on_arrive script")
+        # Execute script as the trigger owner (room/npc/object); arriving character is %S%/%s%
         await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
 
-class TriggerOnExit(Trigger):
+class TriggerCatchZerohp(Trigger):
     """
-    Fires when a character exits the room where this trigger is attached.
-    The exiting character is available via %S%, %s%, etc. in vars.
+    Fires when damage reduces this actor's HP to 0 or less. If the script sets the actor's HP
+    above 0 before finishing, death is cancelled and combat continues. Variables: %a%/%A% = this
+    actor (script owner), %s%/%S% = the actor who did the damage, %t%/%T% = this actor (target).
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
-        super().__init__(id, TriggerType.ON_EXIT, actor)
+        super().__init__(id, TriggerType.CATCH_ZEROHP, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface = None) -> bool:
+        """
+        actor = the one who did the damage (subject); self.actor_ = the one who hit 0 HP (script owner/target).
+        """
+        logger = StructuredLogger(__name__, prefix="TriggerCatchZerohp.run()> ")
+        if self.disabled_:
+            return False
+        # vars from caller: a/A = damaged (this actor), s/S = damager, t/T = damaged
+        vars = {**(vars or {}),
+                **({ 'a': self.actor_.name, 'A': Constants.REFERENCE_SYMBOL + self.actor_.reference_number,
+                     's': actor.name if actor else '', 'S': Constants.REFERENCE_SYMBOL + actor.reference_number if actor else '',
+                     't': self.actor_.name, 'T': Constants.REFERENCE_SYMBOL + self.actor_.reference_number,
+                     'p': self.actor_.pronoun_subject, 'P': self.actor_.pronoun_object,
+                     'q': self.actor_.pronoun_possessive, '*': text or '' }),
+                **(self.actor_.get_vars("a"))}
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        await self.execute_trigger_script(self.actor_, vars, game_state)
+        return True
+
+
+class TriggerOnSignal(Trigger):
+    """
+    Fires when a signal is sent to this receiver's scope (room/subzone/zone/world).
+    Registers in a class-level registry when enabled; unregisters when disabled.
+    Variables: %a%/%A% = signaler (who ran the signal command), %t%/%T% = target (third arg of signal),
+    %signal% = signal name, %text% = message (fourth and later words).
+    """
+    _signal_registry = []  # list of TriggerOnSignal instances; pruned when iterating
+
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_SIGNAL, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    def enable(self):
+        super().enable()
+        if self not in TriggerOnSignal._signal_registry:
+            TriggerOnSignal._signal_registry.append(self)
+
+    def disable(self):
+        TriggerOnSignal.unregister_trigger(self)
+        super().disable()
+
+    @classmethod
+    def unregister_trigger(cls, trigger: 'TriggerOnSignal') -> None:
+        """Remove the given trigger from the signal registry (e.g. when disabling or in catch_zerohp)."""
+        if trigger in cls._signal_registry:
+            cls._signal_registry.remove(trigger)
+
+    @classmethod
+    def get_receivers_for_scope(cls, signaler_room, scope: str):
+        """
+        Return list of TriggerOnSignal instances whose receiver is in the given scope.
+        scope is 'room' | 'subzone' | 'zone' | 'world'.
+        Prunes registry of triggers whose owner is deleted or has no location.
+        """
+        if not signaler_room:
+            return []
+        signaler_zone = getattr(signaler_room, 'zone', None)
+        signaler_subzone_id = getattr(signaler_room, 'subzone_id', None)
+        valid = []
+        to_remove = []
+        for trig in cls._signal_registry:
+            if trig.disabled_:
+                to_remove.append(trig)
+                continue
+            owner = trig.actor_
+            if owner is None or getattr(owner, 'is_deleted', False):
+                to_remove.append(trig)
+                continue
+            # Owner was dereferenced (e.g. zone unload) -> no longer in registry
+            ref_num = getattr(owner, 'reference_number', None)
+            if ref_num and Actor.get_reference(ref_num) is None:
+                to_remove.append(trig)
+                continue
+            recv_room = getattr(owner, 'location_room', None)
+            if recv_room is None:
+                to_remove.append(trig)
+                continue
+            if scope == 'room':
+                if recv_room != signaler_room:
+                    continue
+            elif scope == 'subzone':
+                recv_zone = getattr(recv_room, 'zone', None)
+                recv_sub = getattr(recv_room, 'subzone_id', None)
+                if recv_zone != signaler_zone or recv_sub != signaler_subzone_id:
+                    continue
+            elif scope == 'zone':
+                recv_zone = getattr(recv_room, 'zone', None)
+                if recv_zone != signaler_zone:
+                    continue
+            # scope == 'world' or anything else: match all
+            valid.append(trig)
+        for t in to_remove:
+            if t in cls._signal_registry:
+                cls._signal_registry.remove(t)
+        return valid
+
+    async def run(self, signaler: 'Actor', text: str, vars: dict, game_state: GameStateInterface = None) -> bool:
+        """
+        signaler = who ran the signal command (subject in script).
+        In script: actor (a/A) = trigger owner (receiver), subject (s/S) = signaler, target (t/T) = third arg.
+        """
+        logger = StructuredLogger(__name__, prefix="TriggerOnSignal.run()> ")
+        if self.disabled_:
+            return False
+        signal_name = (vars or {}).get('signal', '')
+        target_actor = (vars or {}).get('target_actor')
+        vars = {**(vars or {}),
+                'signal': signal_name,
+                'text': text or '',
+                '*': text or '',
+                'a': self.actor_.name if self.actor_ else '',
+                'A': Constants.REFERENCE_SYMBOL + self.actor_.reference_number if self.actor_ else '',
+                's': signaler.name if signaler else '',
+                'S': Constants.REFERENCE_SYMBOL + signaler.reference_number if signaler else '',
+                'p': signaler.pronoun_subject if signaler else '',
+                'P': signaler.pronoun_object if signaler else '',
+                't': target_actor.name if target_actor else '',
+                'T': Constants.REFERENCE_SYMBOL + target_actor.reference_number if target_actor else '',
+                'r': target_actor.pronoun_subject if target_actor else '',
+                'R': target_actor.pronoun_object if target_actor else '',
+                **(self.actor_.get_vars("a"))}
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        await self.execute_trigger_script(self.actor_, vars, game_state)
+        return True
+
+
+class TriggerOnLeave(Trigger):
+    """
+    Fires when a character leaves the room where this trigger is attached.
+    The leaving character is available via %S%, %s%, etc. in vars.
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_LEAVE, actor)
         if disabled:
             self.disable()
         else:
@@ -531,7 +716,7 @@ class TriggerOnExit(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'ComprehensiveGameState' = None) -> bool:
         from ..nondb_models.actors import Actor
-        logger = StructuredLogger(__name__, prefix="TriggerOnExit.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerOnLeave.run()> ")
         if self.disabled_:
             return False
         
@@ -542,14 +727,14 @@ class TriggerOnExit(Trigger):
                      'q': actor.pronoun_possessive, '*': text or '' }),
                 **(actor.get_vars("s"))}
         
-        logger.debug3(f"evaluating on_exit for {actor.name}")
+        logger.debug3(f"evaluating on_leave for {actor.name}")
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
                 return False
         
-        logger.debug3("executing on_exit script")
-        # Execute script as the trigger owner (room/npc/object), not the exiting character
-        # The exiting character is still available via %S%, %s%, etc. in vars
+        logger.debug3("executing on_leave script")
+        # Execute script as the trigger owner (room/npc/object), not the leaving character
+        # The leaving character is still available via %S%, %s%, etc. in vars
         await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
@@ -558,12 +743,11 @@ class TriggerOnReceive(Trigger):
     """
     Fires when an NPC receives an item via the give command.
 
-    Variables (from give command; do not overwrite):
-    - a/A = giver (actor who gave the item)
-    - t/T = givee (target who received the item = this trigger's owner)
-    - s/S and o/O = the received object; both refer to the same item, different ways:
-      s = subject art_name (display name), S = subject ref
-      o = object id (e.g. butler_cufflink), O = object ref (same as S)
+    Variable convention: actor = trigger owner, subject = initiator, target = recipient, object = item.
+    - a/A = trigger owner (receiver)
+    - s/S = subject = giver (initiator of the give)
+    - t/T = target = receiver (recipient of the give, same as actor)
+    - o/O = object = the item received (o = art_name/id, O = reference)
     - item, item_id, item_name, giver, giver_id
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
@@ -579,10 +763,10 @@ class TriggerOnReceive(Trigger):
         if self.disabled_:
             return False
 
-        # Keep vars from give command (a/A=giver, s/S=item, t/T=givee). Only add trigger text and actor extras.
+        # Vars from give: a/A=receiver, s/S=giver, t/T=receiver, o/O=item. Add * and trigger-owner prefixed vars.
         vars = {**(vars or {}),
-                **({ '*': text or '' }),
-                **(actor.get_vars("s"))}
+                '*': text or '',
+                **(self.actor_.get_vars("a"))}
         
         logger.debug3(f"evaluating on_receive for {self.actor_.name}, item: {vars.get('item_id', 'unknown')}")
         for crit in self.criteria_:
@@ -591,7 +775,7 @@ class TriggerOnReceive(Trigger):
                 return False
         
         logger.debug3("executing on_receive script")
-        await self.execute_trigger_script(actor, vars, game_state)
+        await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
 

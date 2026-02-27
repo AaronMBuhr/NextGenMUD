@@ -90,7 +90,7 @@ ZONES:
             description: The dunes slope back toward a distant crossroads marked by a dark obelisk.
         triggers:
         - id: pyr_approach_first_impression
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
             operator: numeq
@@ -98,7 +98,7 @@ ZONES:
           script: |
             echo The pyramid looms with deliberate intent, as if discovery was never expected.
         - id: desert_approach_calm
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.desert_unrest)
             operator: numlte
@@ -109,7 +109,7 @@ ZONES:
           script: |
             echo The sand lies still today. The desert seems at peace.
         - id: desert_approach_storm_building
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.desert_unrest)
             operator: numgte
@@ -193,7 +193,7 @@ ZONES:
           respawn_time_max: 180
         triggers:
         - id: pyr_gallery_collapse
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $random(1,100)
             operator: numlte
@@ -261,7 +261,7 @@ ZONES:
             description: The processional ring curves away to the west.
         triggers:
         - id: pyr_false_tombs_entry
-          type: on_enter
+          type: on_arrive
           script: |
             echo Despite the wealth, the space feels rehearsed rather than sacred.
       room_pyr_priest_seals:
@@ -287,7 +287,7 @@ ZONES:
           respawn_time_max: 600
         triggers:
         - id: pyr_seals_reaction
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.temple_alignment)
             operator: numlt
@@ -313,7 +313,7 @@ ZONES:
             description: The corridor ends at massive sealed doors radiating heat.
         triggers:
         - id: pyr_kings_path_realization
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
             operator: numlt
@@ -365,7 +365,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: pyr_apex_truth
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
             operator: numlt
@@ -428,7 +428,7 @@ ZONES:
               echoto %S% The distances don't match—someone revised these after the original carving.
             }
         - id: crossroads_desert_remembers_storm
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.desert_unrest)
             operator: numgte
@@ -495,7 +495,7 @@ ZONES:
             echo Heat radiates from the stones, burning through your footwear.
             damage %S% 1d4 fire
         - id: scorched_path_temple_wrath
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.temple_alignment)
             operator: numlt
@@ -533,7 +533,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: gates_blast_realization
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.failure_cause_known)
             operator: numlt
@@ -542,7 +542,7 @@ ZONES:
             setquestvar %S% shattered_dominion.failure_cause_known 2
             echo The destruction pattern is unmistakable—energy burst outward, not inward.
         - id: gates_scriptorium_hint
-          type: on_enter
+          type: on_arrive
           script: |
             echo To the west, the air shimmers with the scent of burned parchment and old ozone.
       room_temple_outer_sanctum:
@@ -585,7 +585,7 @@ ZONES:
           script: |
             echo Fine ash drifts down from above, coating everything in grey silence.
         - id: outer_sanctum_alignment_check
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.temple_alignment)
             operator: numlt
@@ -616,7 +616,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: inner_sanctum_revelation
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
             operator: numlt
@@ -625,7 +625,7 @@ ZONES:
             setquestvar %S% shattered_dominion.ritual_mechanics_known 2
             echo The conduit pattern reveals an energy focusing system of immense complexity.
         - id: inner_sanctum_hostile_if_opposed
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.temple_alignment)
             operator: numlt
@@ -649,7 +649,7 @@ ZONES:
             description: Stone steps descend back into the inner sanctum below.
         triggers:
         - id: sun_altar_sacrifice_revealed
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.hidden_sacrifice_known)
             operator: numlt
@@ -743,7 +743,7 @@ ZONES:
             description: The shattered temple gates stand to the north.
         triggers:
         - id: cloister_destruction_scale
-          type: on_enter
+          type: on_arrive
           script: |
             echo The scale of destruction defies natural explanation. This was raw power, uncontained.
       # =========================================================
@@ -767,7 +767,7 @@ ZONES:
             description: A path leads south toward the borderlands where sparse vegetation returns.
         triggers:
         - id: southern_trail_first_entry
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $permvar(%S%, sd_entered_from_south)
             operator: '!='
@@ -810,7 +810,7 @@ ZONES:
             description: A trail winds west toward the southern edge of the desert.
         triggers:
         - id: oasis_approach_warning
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.nomad_trust)
             operator: numlt
@@ -818,7 +818,7 @@ ZONES:
           script: |
             echo Distant figures pause in their work, watching your approach with guarded interest.
         - id: oasis_approach_trusted
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.nomad_trust)
             operator: numgte
@@ -826,7 +826,7 @@ ZONES:
           script: |
             echo Word of your coming has traveled ahead. The path to the oasis seems clearer.
         - id: oasis_approach_distrusted
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.temple_alignment)
             operator: numgte
@@ -860,7 +860,7 @@ ZONES:
             description: A cluster of small tents stands apart to the west.
         triggers:
         - id: outer_camp_welcome
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.nomad_trust)
             operator: numgte
@@ -886,11 +886,11 @@ ZONES:
             description: A large tent hung with knotted cords stands apart to the south.
         triggers:
         - id: central_pool_peace
-          type: on_enter
+          type: on_arrive
           script: |
             echo The water's surface reflects the sky without ripple. Violence is forbidden here.
         - id: pool_truth_test
-          type: catch_say
+          type: on_say
           criteria:
           - subject: '%*%'
             operator: contains
@@ -921,7 +921,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: veiled_tent_respect
-          type: on_enter
+          type: on_arrive
           script: |
             echo You enter the space of collective memory. Here, silence speaks loudest.
       room_oasis_trade_circle:
@@ -985,7 +985,7 @@ ZONES:
           script: |
             echo Soft voices recite patterns of knots, translating memory into rhythm.
         - id: memory_tent_distrust_written
-          type: catch_say
+          type: on_say
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1075,7 +1075,7 @@ ZONES:
             description: A treacherous path descends into the glowing crater below.
         triggers:
         - id: crater_rim_scale
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
             operator: numlt
@@ -1128,7 +1128,7 @@ ZONES:
             echo Reality flickers—you see the same moment repeat from different angles.
             damage %S% 1d6 radiant
         - id: crater_floor_final_truth
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.apotheosis_intent_known)
             operator: numlt
@@ -1137,7 +1137,7 @@ ZONES:
             setquestvar %S% shattered_dominion.apotheosis_intent_known 5
             echo At the epicenter, you find traces of what was meant to be created here—not a god, but a weapon.
         - id: crater_floor_knowledge_response
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.ritual_mechanics_known)
             operator: numgte
@@ -1225,7 +1225,7 @@ ZONES:
           script: |
             echo The crystals contain trapped water vapor from the evaporated sea. The heat that did this exceeded any natural source.
         - id: salt_flats_barracks_hint
-          type: on_enter
+          type: on_arrive
           script: |
             echo To the south, the white expanse gives way to the sun-bleached stone of a ruined garrison.
       room_wastes_nomad_crossing:
@@ -1247,7 +1247,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: nomad_crossing_guide_hint
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.guide_favor)
             operator: numgte
@@ -1255,7 +1255,7 @@ ZONES:
           script: |
             echo The cairn markers have been recently adjusted. Someone is maintaining this route.
         - id: nomad_crossing_danger
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.guide_favor)
             operator: numlt
@@ -1267,7 +1267,7 @@ ZONES:
             echo The path seems wrong. The markers lead nowhere safe.
             damage %S% 1d8 bludgeoning
         - id: nomad_crossing_desert_wrath
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%, shattered_dominion.desert_unrest)
             operator: numgte
@@ -1294,7 +1294,7 @@ ZONES:
             description: A slope of smooth, razor-edged glass leads deeper into the dark.
         triggers:
         - id: ossuary_entry_cut
-          type: on_enter
+          type: on_arrive
           script: |
             echo The descent is treacherous; sharp glass edges catch at your gear.
             damage %S% 1d4 slashing
@@ -1399,7 +1399,7 @@ ZONES:
             description: A narrow archway leads into a chamber that hums with trapped sound.
         triggers:
         - id: ossuary_gallery_hazard
-          type: on_enter
+          type: on_arrive
           script: |
             echo The glass shards crunch beneath your feet, vibrating with residual heat.
             damage %S% 1d4 fire
@@ -1428,7 +1428,7 @@ ZONES:
             description: A small, cramped room filled with melted stone slabs.
         triggers:
         - id: ossuary_harmonic_pressure
-          type: on_enter
+          type: on_arrive
           script: |
             echo The trapped sound of the ritual presses against your ears.
         CHARACTERS:
@@ -1454,7 +1454,7 @@ ZONES:
             description: A heavily reinforced door leads to the most ornate crypt.
         triggers:
         - id: ossuary_noble_silence
-          type: on_enter
+          type: on_arrive
           script: |
             echo The air is unnaturally still here, insulated from the tremors of the surface.
         CHARACTERS:
@@ -1538,7 +1538,7 @@ ZONES:
             description: The tunnel opens into a wider area near the garrison.
         triggers:
         - id: ossuary_tunnel_wariness
-          type: on_enter
+          type: on_arrive
           script: |
             echo You feel a sense of frantic urgency clinging to this narrow space.
         CHARACTERS:
@@ -1564,7 +1564,7 @@ ZONES:
             description: The path rises toward the Salt-Choked Barracks.
         triggers:
         - id: ossuary_junction_blast
-          type: on_enter
+          type: on_arrive
           script: echo The blast pattern on the gates indicates energy erupted from the ossuary, not into it.
         CHARACTERS:
         - id: npc_ossuary_crystalline_shambler
@@ -1589,7 +1589,7 @@ ZONES:
             description: A hallway lined with melted stone shelves leads west into the heart of the ruins.
         triggers:
         - id: scriptorium_heat_warning
-          type: on_enter
+          type: on_arrive
           script: |
             echo The air here is stagnant, carrying the weight of centuries-old fire.
         CHARACTERS:
@@ -1771,7 +1771,7 @@ ZONES:
             description: A hidden lever behind a shelf reveals a path north.
         triggers:
         - id: office_history_revision
-          type: on_enter
+          type: on_arrive
           script: |
             echo The air smells of ink and ancient, cold ash.
         CHARACTERS:
@@ -1796,7 +1796,7 @@ ZONES:
             description: A spiral staircase of brass leads up.
         triggers:
         - id: secret_scriptorium_truth
-          type: on_enter
+          type: on_arrive
           script: |
             echo You feel the weight of a thousand suppressed lies in this silent room.
         CHARACTERS:
@@ -1819,7 +1819,7 @@ ZONES:
             description: The spiral stairs lead back down.
         triggers:
         - id: observation_deck_vision
-          type: on_enter
+          type: on_arrive
           script: echo The scale of the "infrastructure failure" is breathtaking from this height.
         CHARACTERS:
         - id: npc_script_living_equation
@@ -1857,7 +1857,7 @@ ZONES:
             description: A pair of heavy stone pillars marks the entrance to the garrison.
         triggers:
         - id: barracks_trail_crunch
-          type: on_enter
+          type: on_arrive
           script: |
             echo Your footsteps echo sharply in the dry, still air.
         CHARACTERS:
@@ -1887,7 +1887,7 @@ ZONES:
             description: A wide courtyard filled with salt-fused weapon racks.
         triggers:
         - id: barracks_gate_shadows
-          type: on_enter
+          type: on_arrive
           script: |
             echo You feel the weight of unseen eyes watching from the crumbling battlements.
         CHARACTERS:
@@ -1986,7 +1986,7 @@ ZONES:
             description: A hallway leads south toward the sleeping quarters.
         triggers:
         - id: mess_hall_stagnant_air
-          type: on_enter
+          type: on_arrive
           script: |
             echo The air is thick with the smell of brine and ancient dust.
         CHARACTERS:
@@ -2014,7 +2014,7 @@ ZONES:
             description: A heavy stone door leads east into the armory.
         triggers:
         - id: sleeping_quarters_silence
-          type: on_enter
+          type: on_arrive
           script: |
             echo This room holds an oppressive silence, as if the occupants simply vanished in their sleep.
         CHARACTERS:
@@ -2102,7 +2102,7 @@ ZONES:
             description: The training grounds lie at the tower's base.
         triggers:
         - id: watchtower_view
-          type: on_enter
+          type: on_arrive
           script: |
             echo From this height, the "environmental overload" that glassed the desert is clearly visible.
         CHARACTERS:
@@ -2125,7 +2125,7 @@ ZONES:
             description: The shaft leads back up into the vault.
         triggers:
         - id: cistern_despair
-          type: on_enter
+          type: on_arrive
           script: |
             echo The scale of the tragedy is evident in the piles of white, salt-preserved bones.
         CHARACTERS:
@@ -2352,7 +2352,7 @@ ZONES:
         - sd_ossuary_refraction
       triggers:
       - id: archivist_first_recognition
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $permvar(%S%, sd_met_archivist)
           operator: '!='
@@ -2361,7 +2361,7 @@ ZONES:
           setpermvar char %S% sd_met_archivist true
           echo The Archivist's eyes brighten slightly, as if indexing you.
       - id: archivist_test_understanding
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2373,7 +2373,7 @@ ZONES:
           say Truth requires context. You lack sufficient indexed data.
           emote tilts its head, as if measuring something invisible.
       - id: archivist_acknowledge_understanding
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2388,7 +2388,7 @@ ZONES:
           }
           echoto %S% The Archivist regards you with something approaching acknowledgment.
       - id: archivist_reacts_to_doctrine
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2463,7 +2463,7 @@ ZONES:
         - sd_barracks_preservation
       triggers:
       - id: guide_weathered_greeting
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $random(1,100)
           operator: numlte
@@ -2471,7 +2471,7 @@ ZONES:
         script: |
           say Wind's wrong today. Means something's shifting again.
       - id: guide_demands_favor
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2494,7 +2494,7 @@ ZONES:
             say This has value. The desert takes note.
           }
       - id: guide_warns_about_desert
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2504,7 +2504,7 @@ ZONES:
           pause 0.2
           say The sand shifts. The routes change. Only fools trust yesterday's map.
       - id: guide_reacts_to_unrest
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.desert_unrest)
           operator: numgte
@@ -2513,7 +2513,7 @@ ZONES:
           emote looks at the sky with narrowed eyes.
           say You've stirred something. The desert doesn't forget.
       - id: guide_travel_oasis
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2525,7 +2525,7 @@ ZONES:
           transfer %S% room_oasis_approach
           echo You arrive at the edge of the Oasis.
       - id: guide_travel_barracks
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2537,7 +2537,7 @@ ZONES:
           transfer %S% room_barracks_salt_trail
           echo The smell of brine and rot hits you as the Barracks come into view.
       - id: guide_travel_expanse
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2549,7 +2549,7 @@ ZONES:
           transfer %S% room_wastes_crater_rim
           echo The heat becomes unbearable as you reach the Crater Rim.
       - id: guide_travel_oasis
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2561,7 +2561,7 @@ ZONES:
           transfer %S% room_oasis_approach
           echoto %S% After a disorienting trek through the heat, you emerge at the edge of the vegetation.
       - id: guide_travel_barracks
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2573,7 +2573,7 @@ ZONES:
           transfer %S% room_barracks_salt_trail
           echoto %S% The smell of brine and rot hits you as the Salt-Choked Barracks come into view.
       - id: guide_travel_expanse
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2585,7 +2585,7 @@ ZONES:
           transfer %S% room_wastes_crater_rim
           echoto %S% The heat becomes unbearable as you stand upon the Rim of the Blast Crater.
       - id: guide_travel_oasis
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2597,7 +2597,7 @@ ZONES:
           transfer %S% room_oasis_approach
           echoto %S% You arrive at the Oasis edge.
       - id: guide_travel_barracks
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2609,7 +2609,7 @@ ZONES:
           transfer %S% room_barracks_salt_trail
           echoto %S% The smell of brine hits you at the Barracks.
       - id: guide_travel_expanse
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2621,7 +2621,7 @@ ZONES:
           transfer %S% room_wastes_crater_rim
           echoto %S% The heat is unbearable at the Crater Rim.
       - id: guide_travel_oasis
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2633,7 +2633,7 @@ ZONES:
           transfer %S% room_oasis_approach
           echoto %S% After a disorienting trek, you arrive at the edge of the vegetation.
       - id: guide_travel_barracks
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2645,7 +2645,7 @@ ZONES:
           transfer %S% room_barracks_salt_trail
           echoto %S% The smell of brine and rot hits you as the Salt-Choked Barracks come into view.
       - id: guide_travel_expanse
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2742,7 +2742,7 @@ ZONES:
         script: |
           say That knowledge should be handled with care. Not everyone is ready.
       - id: hierophant_test_faith
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2755,7 +2755,7 @@ ZONES:
             setquestvar %S% shattered_dominion.temple_alignment 1
           }
       - id: hierophant_recruitment
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2768,7 +2768,7 @@ ZONES:
           pause 0.3
           say Bring me something from the pyramid—a relic of the old ways. Show me your commitment is not merely words.
       - id: hierophant_rejects_heresy
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2783,7 +2783,7 @@ ZONES:
             setquestvar %S% shattered_dominion.desert_unrest $math($questvar(%S%, shattered_dominion.desert_unrest) + 1)
           }
       - id: hierophant_reacts_to_truth_seeker
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.truth_integrity)
           operator: numgte
@@ -2792,7 +2792,7 @@ ZONES:
           emote regards you with smoldering intensity.
           say I sense corruption in your understanding. The Archivist's lies have reached you.
       - id: hierophant_react_history
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2802,7 +2802,7 @@ ZONES:
           say You speak of 'failure'. I speak of 'interruption'. The Scriptorium records prove our faith was sound; only the vessels were weak.
           echo The Hierophant stares at you, daring you to contradict the Doctrine.
       - id: hierophant_react_history
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2880,11 +2880,11 @@ ZONES:
         - sd_barracks_preservation
       triggers:
       - id: veiled_speaker_observes
-        type: on_enter
+        type: on_arrive
         script: |
           echo The Veiled Speaker inclines their head, studying you in silence.
       - id: veiled_speaker_tests_humility
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2897,7 +2897,7 @@ ZONES:
           pause 0.3
           say Tell me what you have seen. Then perhaps I will share what we remember.
       - id: veiled_speaker_misleads_arrogant
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2910,7 +2910,7 @@ ZONES:
             setquestvar %S% shattered_dominion.truth_integrity $math($questvar(%S%, shattered_dominion.truth_integrity) - 1)
           }
       - id: veiled_speaker_shares_with_trust
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2935,7 +2935,7 @@ ZONES:
             say You understand exchange. That is a beginning.
           }
       - id: veiled_speaker_distrust_temple
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3169,8 +3169,8 @@ ZONES:
         common_knowledge_refs:
         - solar_doctrine
       triggers:
-      - id: hierophant_on_enter
-        type: on_enter
+      - id: hierophant_on_arrive
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.temple_alignment)
           operator: numlte
@@ -3225,7 +3225,7 @@ ZONES:
         - outcome
       triggers:
       - id: doctrine_warden_check
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.temple_alignment)
           operator: numlt
@@ -3284,7 +3284,7 @@ ZONES:
         - doctrine_publicly
       triggers:
       - id: penitent_on_say_forgive
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3384,7 +3384,7 @@ ZONES:
         - authority
       triggers:
       - id: acolyte_avoidance
-        type: on_enter
+        type: on_arrive
         script: |
           emote lowers their gaze and steps aside.
     - id: npc_oasis_veiled_speaker
@@ -3452,8 +3452,8 @@ ZONES:
         common_knowledge_refs:
         - doctrinal_revision_practice
       triggers:
-      - id: veiled_speaker_on_enter
-        type: on_enter
+      - id: veiled_speaker_on_arrive
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.nomad_trust)
           operator: numlt
@@ -3511,7 +3511,7 @@ ZONES:
         - individual_guilt
       triggers:
       - id: memory_keeper_react_write
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3571,7 +3571,7 @@ ZONES:
         - doctrine
       triggers:
       - id: trader_on_mention_temple
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3606,7 +3606,7 @@ ZONES:
       - immune_fear
       triggers:
       - id: watcher_first_notice
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $permvar(%S%, sd_seen_glassbound_watcher)
           operator: '!='
@@ -3627,7 +3627,7 @@ ZONES:
           echo Light refracts through the fused glass.
           echoto %S% The posture suggests sudden interruption, not rest.
       - id: watcher_catastrophe_memory
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3703,7 +3703,7 @@ ZONES:
       - obj_bone_knife
       triggers:
       - id: nomad_initial_wariness
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.nomad_trust)
           operator: numlt
@@ -3712,7 +3712,7 @@ ZONES:
           emote watches you carefully, hand never far from a blade.
           say Wind’s not kind to strangers out here.
       - id: nomad_truth_with_trust
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3740,7 +3740,7 @@ ZONES:
         script: |
           say Keep moving when the ground glows. Standing still kills.
       - id: nomad_teach_survival
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3749,7 +3749,7 @@ ZONES:
           say Eyes on the ground, stranger. If the sand glows, it's glass. If it's glass, it's hot enough to cook you in your boots.
           emote points a scarred finger toward the shimmering horizon.
       - id: nomad_teach_survival
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3803,11 +3803,11 @@ ZONES:
       - obj_scavenger_prybar
       triggers:
       - id: scavenger_assess_player
-        type: on_enter
+        type: on_arrive
         script: |
           emote glances at you, then back to the half-melted ruins.
       - id: scavenger_discuss_relics
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -3886,7 +3886,7 @@ ZONES:
         damage: 1d6
       triggers:
       - id: echo_reacts_to_presence
-        type: on_enter
+        type: on_arrive
         script: |
           echo The air warps as light bends unnaturally.
       - id: echo_pattern_repeat
@@ -4080,7 +4080,7 @@ ZONES:
             force %A% emote's strike passes through empty, shimmering air.
           }
       - id: stalker_pounce
-        type: on_enter
+        type: on_arrive
         script: |
           pause 0.5
           echo A prismatic blur streaks across the room!
@@ -4180,7 +4180,7 @@ ZONES:
           echo The sentinel's bronze plating glows white-hot as you strike it!
           damage %A% 1d10 fire
       - id: sentinel_guardian_warning
-        type: on_enter
+        type: on_arrive
         script: |-
           say INTUSION DETECTED. PURIFICATION SEQUENCE INITIATED.
           emote raises its incandescent blade.
@@ -5347,7 +5347,7 @@ ZONES:
       equip_location: neck
       triggers:
       - id: medallion_authority
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%, shattered_dominion.temple_alignment)
           operator: numlt

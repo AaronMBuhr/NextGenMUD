@@ -186,6 +186,7 @@ class CoreActions(CoreActionsInterface):
         # await room.send_text("dynamic", f"{actor.name} arrives.", exceptions=[actor])
         room_msg = f"{actor.art_name_cap} arrives."
         vars = set_vars(actor, actor, actor, room_msg)
+        vars["room_id"] = room.room_full_id  # zone_id.subzone_id.room_id for on_enter
         await self.do_look_room(actor, actor.location_room)
         await room.echo(CommTypes.DYNAMIC, room_msg, vars, exceptions=[actor], game_state=self.game_state)
         
@@ -193,32 +194,33 @@ class CoreActions(CoreActionsInterface):
         if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             await actor.send_status_update()
         
-        # Fire ON_ENTER triggers on the room itself
-        if TriggerType.ON_ENTER in room.triggers_by_type:
-            for trigger in room.triggers_by_type[TriggerType.ON_ENTER]:
+        # Fire ON_ARRIVE triggers on the room (someone arrived here)
+        if TriggerType.ON_ARRIVE in room.triggers_by_type:
+            for trigger in room.triggers_by_type[TriggerType.ON_ARRIVE]:
                 await trigger.run(actor, "", vars, self.game_state)
         
-        # Fire ON_ENTER triggers on NPCs in the room when a player enters
-        # This allows NPCs to react to players entering (e.g., greet them)
-        # The NPC is the executor (commands go to NPC's queue), entering player is %s%/%S%
+        # Fire ON_ARRIVE triggers on NPCs in the room when a player arrives
+        # NPC is the executor; arriving player is %s%/%S%
         if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             for npc in room.get_characters():
                 if npc == actor:
                     continue
                 if not npc.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                    # Fire NPC's ON_ENTER triggers - NPC executes script, entering player in %s%/%S%
-                    if TriggerType.ON_ENTER in npc.triggers_by_type:
+                    if TriggerType.ON_ARRIVE in npc.triggers_by_type:
                         npc_vars = set_vars(npc, actor, actor, room_msg)
-                        for trigger in npc.triggers_by_type[TriggerType.ON_ENTER]:
+                        for trigger in npc.triggers_by_type[TriggerType.ON_ARRIVE]:
                             await trigger.run(npc, "", npc_vars, self.game_state)
             
-            # Fire ON_ENTER triggers on objects in the room
-            # Objects execute immediately (no queue), entering player is %s%/%S%
+            # Fire ON_ARRIVE triggers on objects in the room
             for obj in room.contents:
-                if TriggerType.ON_ENTER in obj.triggers_by_type:
+                if TriggerType.ON_ARRIVE in obj.triggers_by_type:
                     obj_vars = set_vars(obj, actor, actor, room_msg)
-                    for trigger in obj.triggers_by_type[TriggerType.ON_ENTER]:
+                    for trigger in obj.triggers_by_type[TriggerType.ON_ARRIVE]:
                         await trigger.run(obj, "", obj_vars, self.game_state)
+        # Fire ON_ENTER triggers on the entering actor (any room entry, any means)
+        if TriggerType.ON_ENTER in actor.triggers_by_type:
+            for trigger in actor.triggers_by_type[TriggerType.ON_ENTER]:
+                await trigger.run(actor, "", vars, self.game_state)
         # reset trigger timers
         reset_triggers_by_room(room)
         # was this a zone change?
@@ -345,42 +347,42 @@ class CoreActions(CoreActionsInterface):
         await actor.location_room.echo("dynamic", msg, exceptions=[actor], game_state=self.game_state)
         await actor.send_text("dynamic", f"You leave {direction}.")
         
-        # Fire ON_EXIT triggers before leaving the room
-        await self._fire_exit_triggers(actor, old_room, direction)
+        # Fire ON_LEAVE triggers before leaving the room
+        await self._fire_leave_triggers(actor, old_room, direction)
         
         actor.location_room.remove_character(actor)
         actor.location_room = None
         await self.arrive_room(actor, new_room, old_room)
 
 
-    async def _fire_exit_triggers(self, actor: Actor, room: Room, direction: str):
-        """Fire ON_EXIT triggers when a character leaves a room."""
+    async def _fire_leave_triggers(self, actor: Actor, room: Room, direction: str):
+        """Fire ON_LEAVE triggers when a character leaves a room."""
         from .nondb_models.character_interface import PermanentCharacterFlags
         
         exit_vars = set_vars(room, actor, actor, direction, {'direction': direction})
         
-        # Fire room's ON_EXIT triggers (room executes script immediately)
-        if TriggerType.ON_EXIT in room.triggers_by_type:
-            for trigger in room.triggers_by_type[TriggerType.ON_EXIT]:
+        # Fire room's ON_LEAVE triggers (room executes script immediately)
+        if TriggerType.ON_LEAVE in room.triggers_by_type:
+            for trigger in room.triggers_by_type[TriggerType.ON_LEAVE]:
                 await trigger.run(room, direction, exit_vars, self.game_state)
         
-        # Fire NPC ON_EXIT triggers when a player leaves
+        # Fire NPC ON_LEAVE triggers when a player leaves
         # NPCs execute script (commands queued), leaving player is %s%/%S%
         if actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             for npc in room.get_characters():
                 if npc == actor:
                     continue
                 if not npc.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                    if TriggerType.ON_EXIT in npc.triggers_by_type:
+                    if TriggerType.ON_LEAVE in npc.triggers_by_type:
                         npc_vars = set_vars(npc, actor, actor, direction, {'direction': direction})
-                        for trigger in npc.triggers_by_type[TriggerType.ON_EXIT]:
+                        for trigger in npc.triggers_by_type[TriggerType.ON_LEAVE]:
                             await trigger.run(npc, direction, npc_vars, self.game_state)
             
-            # Fire object ON_EXIT triggers (objects execute immediately)
+            # Fire object ON_LEAVE triggers (objects execute immediately)
             for obj in room.contents:
-                if TriggerType.ON_EXIT in obj.triggers_by_type:
+                if TriggerType.ON_LEAVE in obj.triggers_by_type:
                     obj_vars = set_vars(obj, actor, actor, direction, {'direction': direction})
-                    for trigger in obj.triggers_by_type[TriggerType.ON_EXIT]:
+                    for trigger in obj.triggers_by_type[TriggerType.ON_LEAVE]:
                         await trigger.run(obj, direction, obj_vars, self.game_state)
 
 
@@ -390,7 +392,7 @@ class CoreActions(CoreActionsInterface):
     #     if actor.actor_type == ActorType.CHARACTER and actor.connection_ != None: 
     #         await actor.send_text(comm_type, text)
     #     # check triggers
-    #     for trigger_type in [ TriggerType.CATCH_ANY ]:
+    #     for trigger_type in [ TriggerType.ON_ANY ]:
     #         if trigger_type in actor.triggers_by_type:
     #             for trigger in actor.triggers_by_type[trigger_type]:
     #                 await trigger.run(actor, text, None)
@@ -829,7 +831,15 @@ class CoreActions(CoreActionsInterface):
                                             set_vars(actor.location_room, actor, target, msg),
                                             exceptions=[actor, target], game_state=self.game_state)
         if target.current_hit_points <= 0 and do_die:
-            await self.do_die(target, actor)
+            # Give catch_zerohp triggers a chance to heal (e.g. second wind, divine intervention)
+            if TriggerType.CATCH_ZEROHP in target.triggers_by_type:
+                zerohp_msg = f"{actor.art_name_cap} reduces {target.art_name} to 0 HP!"
+                zerohp_vars = set_vars(target, actor, target, zerohp_msg)
+                for trigger in target.triggers_by_type[TriggerType.CATCH_ZEROHP]:
+                    await trigger.run(actor, "", zerohp_vars, self.game_state)
+            # If script set HP above 0, actor is still alive; otherwise proceed with death
+            if target.current_hit_points <= 0:
+                await self.do_die(target, actor)
         else:
             if target.has_temp_flags(TemporaryCharacterFlags.IS_SLEEPING):
                 target.remove_states_by_flag(TemporaryCharacterFlags.IS_SLEEPING)

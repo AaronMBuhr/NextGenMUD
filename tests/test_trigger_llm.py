@@ -59,12 +59,12 @@ class TestTriggerResultDataclass:
     def test_trigger_result_creation(self):
         """TriggerResult should store trigger info."""
         result = TriggerResult(
-            trigger_type="CATCH_SAY",
+            trigger_type="ON_SAY",
             trigger_id="greet_trigger",
             trigger_criteria="* contains 'hello'"
         )
         
-        assert result.trigger_type == "CATCH_SAY"
+        assert result.trigger_type == "ON_SAY"
         assert result.trigger_id == "greet_trigger"
         assert result.trigger_criteria == "* contains 'hello'"
         assert result.command_results == []
@@ -72,7 +72,7 @@ class TestTriggerResultDataclass:
     def test_trigger_result_with_commands(self):
         """TriggerResult should store command results."""
         result = TriggerResult(
-            trigger_type="CATCH_SAY",
+            trigger_type="ON_SAY",
             trigger_id="test",
             trigger_criteria="test"
         )
@@ -351,14 +351,14 @@ class TestTriggerContextCommands:
         handler = CommandHandler()
         await handler.cmd_trigger_start(
             mock_npc, 
-            "CATCH_SAY|greet_trigger|* contains 'hello'|@C123"
+            "ON_SAY|greet_trigger|* contains 'hello'|@C123"
         )
         
         assert mock_npc.trigger_context is not None
         assert mock_npc.trigger_context.nesting_level == 1
         assert mock_npc.trigger_context.initiator_ref == "@C123"
         assert len(mock_npc.trigger_context.trigger_results) == 1
-        assert mock_npc.trigger_context.trigger_results[0].trigger_type == "CATCH_SAY"
+        assert mock_npc.trigger_context.trigger_results[0].trigger_type == "ON_SAY"
     
     @pytest.mark.asyncio
     async def test_trigger_start_increments_nesting(self, mock_npc):
@@ -371,7 +371,7 @@ class TestTriggerContextCommands:
         # First trigger
         await handler.cmd_trigger_start(
             mock_npc,
-            "CATCH_SAY|trigger1|crit1|@C1"
+            "ON_SAY|trigger1|crit1|@C1"
         )
         assert mock_npc.trigger_context.nesting_level == 1
         
@@ -393,7 +393,7 @@ class TestTriggerContextCommands:
             initiator_ref="@C1",
             nesting_level=2,
             trigger_results=[
-                TriggerResult("CATCH_SAY", "t1", "c1"),
+                TriggerResult("ON_SAY", "t1", "c1"),
                 TriggerResult("ON_RECEIVE", "t2", "c2")
             ]
         )
@@ -414,7 +414,7 @@ class TestTriggerContextCommands:
         mock_npc.trigger_context = TriggerContext(
             initiator_ref="@C1",
             nesting_level=1,
-            trigger_results=[TriggerResult("CATCH_SAY", "t1", "c1")]
+            trigger_results=[TriggerResult("ON_SAY", "t1", "c1")]
         )
         
         # NPC not LLM-enabled, so it should just clear context
@@ -446,7 +446,7 @@ class TestCommandResultRecording:
         npc.connection = None
         
         # Set up trigger context
-        current_trigger = TriggerResult("CATCH_SAY", "test", "test criteria")
+        current_trigger = TriggerResult("ON_SAY", "test", "test criteria")
         npc.trigger_context = TriggerContext(
             initiator_ref="@C1",
             nesting_level=1,
@@ -537,7 +537,7 @@ class TestTriggerExecutionWithLLMTracking:
     def test_trigger_queues_start_and_end(self, mock_npc):
         """Trigger execution should queue _trigger_start and _trigger_end."""
         # Simulate what execute_trigger_script should do
-        trigger_type = "CATCH_SAY"
+        trigger_type = "ON_SAY"
         trigger_id = "greet"
         criteria_summary = "* contains 'hello'"
         initiator_ref = "@C123"
@@ -572,7 +572,7 @@ class TestLLMIntegration:
     def test_trigger_results_formatting(self):
         """Trigger results should be formatted for LLM consumption."""
         trigger_result = TriggerResult(
-            trigger_type="CATCH_SAY",
+            trigger_type="ON_SAY",
             trigger_id="greet",
             trigger_criteria="* contains 'hello'"
         )
@@ -593,7 +593,7 @@ class TestLLMIntegration:
             cmd_descs.append(f"{cmd_result.command} ({status})")
         trigger_desc += " " + ", ".join(cmd_descs)
         
-        assert "CATCH_SAY trigger" in trigger_desc
+        assert "ON_SAY trigger" in trigger_desc
         assert "* contains 'hello'" in trigger_desc
         assert "say 'Hi there!' (succeeded)" in trigger_desc
         assert "give key player (failed)" in trigger_desc
@@ -607,7 +607,7 @@ class TestLLMIntegration:
         npc.trigger_context = TriggerContext(
             initiator_ref="@C1",
             nesting_level=1,
-            trigger_results=[TriggerResult("CATCH_SAY", "t1", "c1")]
+            trigger_results=[TriggerResult("ON_SAY", "t1", "c1")]
         )
         npc.get_perm_var = MagicMock(return_value=None)  # No LLM context
         

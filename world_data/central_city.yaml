@@ -52,16 +52,16 @@ ZONES:
             predicate: "guard"
           script: |
             echo The city guard stands at attention, their armor gleaming in the sunlight. They regard you with a mixture of caution and curiosity.
-        - id: catch_any_bow
-          type: catch_any
+        - id: on_any_bow
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "bow"
           script: |
             echo As you bow, one of the guards nods respectfully in acknowledgment.
-        - id: catch_say_password
-          type: catch_say
+        - id: on_say_password
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -132,24 +132,24 @@ ZONES:
             predicate: "fountain"
           script: |
             echo The central fountain is a marvel of craftsmanship, depicting heroic figures from the city's history. Coins glitter at the bottom, tossed by those hoping for good fortune.
-        - id: catch_any_haggle
-          type: catch_any
+        - id: on_any_haggle
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "haggle"
           script: |
             echo As you attempt to haggle, the merchant's eyes light up with the thrill of negotiation. "Ah, a savvy customer! Let's see if we can strike a deal, shall we?"
-        - id: catch_say_price
-          type: catch_say
+        - id: on_say_price
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "price"
           script: |
             echo A nearby merchant overhears and calls out, "Best prices in all of Central City, right here! Come and see for yourself!"
-        - id: catch_any_perform
-          type: catch_any
+        - id: on_any_perform
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -228,24 +228,24 @@ ZONES:
             predicate: "fountain"
           script: |
             echo Upon closer inspection, you notice that the water in the fountain seems to shimmer with an unusual, almost magical quality. Small, iridescent fish dart about in the lower basins.
-        - id: catch_any_sit
-          type: catch_any
+        - id: on_any_sit
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "sit"
           script: |
             echo As you sit on one of the ornate benches, you feel a sense of tranquility wash over you. The bench is surprisingly comfortable, as if designed to perfectly fit the human form.
-        - id: catch_say_wish
-          type: catch_say
+        - id: on_say_wish
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "wish"
           script: |
             echo As the word 'wish' leaves your lips, you notice a slight ripple in the fountain's water, as if in response to your words.
-        - id: catch_any_coin
-          type: catch_any
+        - id: on_any_coin
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -322,24 +322,24 @@ ZONES:
             predicate: "shop"
           script: |
             echo As you peer into the shop, you're amazed by the variety of goods on display. Exotic items from far-off lands sit beside locally crafted wares, creating a treasure trove of potential purchases.
-        - id: catch_any_haggle_merchant
-          type: catch_any
+        - id: on_any_haggle_merchant
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "haggle"
           script: |
             echo The merchant's eyes light up at your attempt to haggle. "Ah, a discerning customer! Let's see if we can come to an agreement that pleases us both, shall we?"
-        - id: catch_say_price_merchant
-          type: catch_say
+        - id: on_say_price_merchant
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "price"
           script: |
             echo Nearby merchants perk up at the mention of prices. One calls out, "Whatever they're offering, I'll beat it! Come see my wares, friend!"
-        - id: catch_any_buy
-          type: catch_any
+        - id: on_any_buy
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -416,24 +416,24 @@ ZONES:
             predicate: "workshop"
           script: |
             echo Peering into the workshop, you're amazed by the intricate tools and half-finished projects scattered about. The artisan's skill is evident in every detail.
-        - id: catch_any_craft
-          type: catch_any
+        - id: on_any_craft
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "craft"
           script: |
             echo Your interest in crafting catches the attention of a nearby artisan. They smile warmly, clearly pleased to see someone appreciating their art.
-        - id: catch_say_commission
-          type: catch_say
+        - id: on_say_commission
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "commission"
           script: |
             echo At the mention of a commission, several artisans perk up, their eyes sparkling with creative possibilities.
-        - id: catch_any_apprentice
-          type: catch_any
+        - id: on_any_apprentice
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -510,16 +510,16 @@ ZONES:
             predicate: "portrait"
           script: |
             echo The portrait you examine shows a stern-faced individual in official robes. A plaque beneath reads, "Mayor Aldric the Just, who guided our city through the Great Plague."
-        - id: catch_any_petition
-          type: catch_any
+        - id: on_any_petition
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "petition"
           script: |
             echo A nearby clerk overhears your mention of a petition and approaches. "Petitions can be filed at the Office of Civic Affairs, down the left corridor," they inform you helpfully.
-        - id: catch_say_mayor
-          type: catch_say
+        - id: on_say_mayor
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -596,16 +596,16 @@ ZONES:
             predicate: "table"
           script: |
             echo As you examine the council table, you notice that the inlaid design is actually a detailed map of Central City, with tiny gemstones marking important locations.
-        - id: catch_any_council_sit
-          type: catch_any
+        - id: on_any_council_sit
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "sit"
           script: |
             echo As you move to sit, a guard steps forward, shaking his head. "I'm sorry, but only council members are permitted to be seated at the table," he says firmly but politely.
-        - id: catch_say_law
-          type: catch_say
+        - id: on_say_law
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -675,16 +675,16 @@ ZONES:
             predicate: "mansion"
           script: |
             echo The mansion you examine is a masterpiece of architecture, its facade adorned with intricate carvings and gold leaf accents.
-        - id: catch_any_greet
-          type: catch_any
+        - id: on_any_greet
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "greet"
           script: |
             echo As you attempt to greet a passing noble, they regard you with a mixture of curiosity and mild disdain before continuing on their way.
-        - id: catch_say_party
-          type: catch_say
+        - id: on_say_party
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -755,16 +755,16 @@ ZONES:
             predicate: "temple"
           script: |
             echo The temple you examine is an architectural marvel, its facade adorned with intricate religious symbols and statues of deities.
-        - id: catch_any_pray
-          type: catch_any
+        - id: on_any_pray
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "pray"
           script: |
             echo As you begin to pray, you feel a sense of calm wash over you. The ambient sounds of the district seem to fade away, leaving you in a moment of peace.
-        - id: catch_say_blessing
-          type: catch_say
+        - id: on_say_blessing
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -835,16 +835,16 @@ ZONES:
             predicate: "ship"
           script: |
             echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
-        - id: catch_any_swim
-          type: catch_any
+        - id: on_any_swim
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "swim"
           script: |
             echo A nearby sailor chuckles at your interest in swimming. "I wouldn't recommend it, friend. These waters are for ships, not people," he warns good-naturedly.
-        - id: catch_say_voyage
-          type: catch_say
+        - id: on_say_voyage
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -913,16 +913,16 @@ ZONES:
             predicate: "workshop"
           script: |
             echo The workshop you examine is a hive of activity. Craftsmen of all ages work diligently, their hands moving with practiced precision as they shape raw materials into works of art.
-        - id: catch_any_apprentice
-          type: catch_any
+        - id: on_any_apprentice
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "apprentice"
           script: |
             echo Your interest in apprenticeship catches the attention of a nearby master craftsman. They look you up and down, considering whether you might have the makings of a skilled artisan.
-        - id: catch_say_commission
-          type: catch_say
+        - id: on_say_commission
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -991,16 +991,16 @@ ZONES:
             predicate: "flower"
           script: |
             echo The flower you examine is a rare and beautiful specimen, its petals an array of vibrant colors unlike any you've seen before.
-        - id: catch_any_sit
-          type: catch_any
+        - id: on_any_sit
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "sit"
           script: |
             echo As you sit on one of the ornate benches, you feel a sense of calm wash over you. The bench seems perfectly placed to provide a stunning view of the garden.
-        - id: catch_say_beautiful
-          type: catch_say
+        - id: on_say_beautiful
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1069,16 +1069,16 @@ ZONES:
             predicate: "mansion"
           script: |
             echo The mansion you examine is a true masterpiece of architecture. Its facade is adorned with intricate carvings, and you catch a glimpse of a beautiful garden through the ornate iron gates.
-        - id: catch_any_enter
-          type: catch_any
+        - id: on_any_enter
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "enter"
           script: |
             echo As you show interest in entering one of the mansions, a guard steps forward with a stern look. "This is private property, citizen. Move along," he says firmly.
-        - id: catch_say_invitation
-          type: catch_say
+        - id: on_say_invitation
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1147,16 +1147,16 @@ ZONES:
             predicate: "window"
           script: |
             echo The stained glass window you examine depicts a scene from religious lore, its vibrant colors telling a story of divine intervention and mortal faith.
-        - id: catch_any_pray
-          type: catch_any
+        - id: on_any_pray
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "pray"
           script: |
             echo As you begin to pray, you feel a sense of peace wash over you. The ambient sounds of the cathedral seem to fade away, leaving you in a moment of spiritual connection.
-        - id: catch_say_blessing
-          type: catch_say
+        - id: on_say_blessing
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1224,16 +1224,16 @@ ZONES:
             predicate: "garden"
           script: |
             echo The garden you examine is meticulously maintained, with neat rows of medicinal herbs and vibrant flowers. A monk tends to the plants with careful, practiced movements.
-        - id: catch_any_meditate
-          type: catch_any
+        - id: on_any_meditate
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "meditate"
           script: |
             echo As you begin to meditate, you feel a sense of calm wash over you. The peaceful atmosphere of the monastery seems to deepen, enveloping you in tranquility.
-        - id: catch_say_knowledge
-          type: catch_say
+        - id: on_say_knowledge
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1302,16 +1302,16 @@ ZONES:
             predicate: "ship"
           script: |
             echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
-        - id: catch_any_harbor_swim
-          type: catch_any
+        - id: on_any_harbor_swim
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "swim"
           script: |
             echo A grizzled old sailor overhears your interest in swimming. "I wouldn't recommend it, landlubber. These waters are for ships, not pleasure," he warns with a chuckle.
-        - id: catch_say_harbor_voyage
-          type: catch_say
+        - id: on_say_harbor_voyage
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1380,16 +1380,16 @@ ZONES:
             predicate: "fish"
           script: |
             echo The fish you examine looks impressively fresh, its scales glistening in the light. The fishmonger notices your interest and begins extolling its quality and flavor.
-        - id: catch_any_smell
-          type: catch_any
+        - id: on_any_smell
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "smell"
           script: |
             echo As you comment on the smell, a nearby fishmonger chuckles. "Aye, it's the smell of honest work and good eating! You'll get used to it, or you'll learn to love it!"
-        - id: catch_say_recipe
-          type: catch_say
+        - id: on_say_recipe
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1458,16 +1458,16 @@ ZONES:
             predicate: "forge"
           script: |
             echo The forge burns with an intense heat, the flames dancing hypnotically as they heat metal to malleability. The blacksmith works with practiced precision, their movements a testament to years of experience.
-        - id: catch_any_weapon
-          type: catch_any
+        - id: on_any_weapon
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "weapon"
           script: |
             echo Your interest in weapons catches the eye of a nearby blacksmith. "Looking for a new blade? We forge the finest in all the land," they say with pride.
-        - id: catch_say_forge_commission
-          type: catch_say
+        - id: on_say_forge_commission
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1536,16 +1536,16 @@ ZONES:
             predicate: "guard"
           script: |
             echo The palace guard you observe stands perfectly still, their armor gleaming in the sunlight. Their eyes, however, are alert and watchful, missing nothing.
-        - id: catch_any_enter_palace
-          type: catch_any
+        - id: on_any_enter_palace
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "enter"
           script: |
             echo As you show interest in entering the palace, a guard steps forward. "The palace is only open to those with royal invitation or official business," they state firmly but politely.
-        - id: catch_say_audience
-          type: catch_say
+        - id: on_say_audience
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1614,16 +1614,16 @@ ZONES:
             predicate: "rune"
           script: |
             echo As you examine the runes, they seem to shift and change before your eyes. You feel a slight tingling sensation in your fingertips.
-        - id: catch_any_spell
-          type: catch_any
+        - id: on_any_spell
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "spell"
           script: |
             echo Your mention of spells catches the attention of a passing apprentice. They eye you curiously, as if assessing your magical potential.
-        - id: catch_say_magic
-          type: catch_say
+        - id: on_say_magic
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1689,16 +1689,16 @@ ZONES:
             predicate: "bell"
           script: |
             echo The bell you examine is enormous up close, its surface covered in intricate religious symbols and dedications. You can see your distorted reflection in the polished bronze.
-        - id: catch_any_ring
-          type: catch_any
+        - id: on_any_ring
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "ring"
           script: |
             echo As you reach for the bell rope, a voice calls out, "Hold there! The bells are only rung at appointed times or in emergencies. Best leave it be, friend."
-        - id: catch_say_view
-          type: catch_say
+        - id: on_say_view
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1768,16 +1768,16 @@ ZONES:
             predicate: "inscription"
           script: |
             echo As you examine the inscription, the symbols seem to shift and change. You feel a slight dizziness, as if the very act of reading is altering your perception.
-        - id: catch_any_touch
-          type: catch_any
+        - id: on_any_touch
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "touch"
           script: |
             echo As your hand nears one of the ancient relics, you feel a tingling sensation in your fingertips. A nearby monk clears his throat warningly.
-        - id: catch_say_secret
-          type: catch_say
+        - id: on_say_secret
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1844,16 +1844,16 @@ ZONES:
             predicate: "ship"
           script: |
             echo You spot a majestic ship in the distance, its sails full as it makes its way towards the harbor. The lighthouse's beam sweeps over it, guiding its path.
-        - id: catch_any_climb_lighthouse
-          type: catch_any
+        - id: on_any_climb_lighthouse
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "climb"
           script: |
             echo As you show interest in climbing the lighthouse, the keeper shakes his head. "Sorry, friend. The tower's off-limits to visitors. Safety regulations, you understand."
-        - id: catch_say_storm
-          type: catch_say
+        - id: on_say_storm
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1920,16 +1920,16 @@ ZONES:
             predicate: "fish"
           script: |
             echo The fish you examine looks remarkably fresh, its eyes clear and scales glistening. The fishmonger notices your interest and begins extolling its quality and flavor.
-        - id: catch_any_market_haggle
-          type: catch_any
+        - id: on_any_market_haggle
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "haggle"
           script: |
             echo As you start to haggle, the fishmonger's eyes light up with the thrill of negotiation. "Ah, a discerning customer! Let's see if we can strike a deal, shall we?"
-        - id: catch_say_fish_recipe
-          type: catch_say
+        - id: on_say_fish_recipe
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1996,16 +1996,16 @@ ZONES:
             predicate: "throne"
           script: |
             echo As you examine the throne, you're struck by its intricate craftsmanship. Every inch is covered in delicate engravings and inlaid with precious stones. It's as much a work of art as it is a seat of power.
-        - id: catch_any_court_bow
-          type: catch_any
+        - id: on_any_court_bow
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "bow"
           script: |
             echo As you bow, you notice the courtiers around you doing the same. A nearby noble nods approvingly at your show of respect.
-        - id: catch_say_royal_audience
-          type: catch_say
+        - id: on_say_royal_audience
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2071,16 +2071,16 @@ ZONES:
             predicate: "book"
           script: |
             echo As you look at the book, the letters on its spine seem to rearrange themselves. You blink, and they settle back into their original configuration.
-        - id: catch_any_touch_artifact
-          type: catch_any
+        - id: on_any_touch_artifact
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "touch"
           script: |
             echo Just as you're about to touch one of the magical artifacts, a disembodied voice warns, "I wouldn't do that if I were you. Unless you fancy being turned into a toad, of course."
-        - id: catch_say_spell
-          type: catch_say
+        - id: on_say_spell
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2149,16 +2149,16 @@ ZONES:
             predicate: "weapon"
           script: |
             echo The weapons are meticulously maintained, each one a lethal work of art. A nearby guard eyes you warily as you examine them.
-        - id: catch_any_join_guard
-          type: catch_any
+        - id: on_any_join_guard
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "join"
           script: |
             echo Your interest in joining the guard catches the attention of a recruiter. "Thinking of enlisting, eh? It's a noble calling, but not for the faint of heart."
-        - id: catch_say_crime
-          type: catch_say
+        - id: on_say_crime
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2225,16 +2225,16 @@ ZONES:
             predicate: "weapon"
           script: |
             echo The training weapons are well-worn but carefully maintained. They're blunted for safety, but still look capable of delivering a solid blow.
-        - id: catch_any_train
-          type: catch_any
+        - id: on_any_train
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "train"
           script: |
             echo Your interest in training catches the eye of a grizzled instructor. "Want to try your hand, citizen? We're always looking for new recruits with fighting spirit."
-        - id: catch_say_duel
-          type: catch_say
+        - id: on_say_duel
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2301,16 +2301,16 @@ ZONES:
             predicate: "cell"
           script: |
             echo The cell is small and sparsely furnished, with a simple cot and a bucket in the corner. The iron bars look thick and sturdy, designed to discourage any thoughts of escape.
-        - id: catch_any_prisoner
-          type: catch_any
+        - id: on_any_prisoner
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "prisoner"
           script: |
             echo As you show interest in the prisoners, a guard steps closer, watching you carefully. "Move along, citizen. This isn't a place for sightseeing," he warns gruffly.
-        - id: catch_say_innocent
-          type: catch_say
+        - id: on_say_innocent
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2379,16 +2379,16 @@ ZONES:
             predicate: "water"
           script: |
             echo The water flowing into the sewer entrance is a murky, unpleasant-looking stream. Various bits of debris float on its surface, heading deeper into the tunnels.
-        - id: catch_any_enter_sewer
-          type: catch_any
+        - id: on_any_enter_sewer
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "enter"
           script: |
             echo As you move to enter the sewer, a passing city guard calls out, "Careful down there, citizen. It's easy to get lost in those tunnels, and not everything you meet will be friendly."
-        - id: catch_say_sewer_secret
-          type: catch_say
+        - id: on_say_sewer_secret
+          type: on_say
           criteria:
           - subject: "%{*}"
             operator: contains

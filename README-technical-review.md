@@ -132,7 +132,7 @@ Skills have: cooldowns, resource costs (mana/stamina), cast times, level require
 | `nondb_models/triggers.py` | Event-driven trigger dispatch. Criteria evaluation with subject/operator/predicate matching. |
 
 **Trigger Types:**
-`CATCH_ANY`, `CATCH_SAY`, `CATCH_LOOK`, `ON_ENTER`, `ON_EXIT`, `ON_ATTACKED`, `ON_DEATH`, `ON_GET`, `ON_DROP`, `ON_USE`, `ON_EQUIP`, `ON_UNEQUIP`, `TIMER_TICK`, `ON_RECEIVE`, `ON_RESET`, `ON_GREET`
+`CATCH_ANY`, `CATCH_SAY`, `CATCH_LOOK`, `ON_ENTER`, `ON_LEAVE`, `ON_ATTACKED`, `ON_DEATH`, `ON_GET`, `ON_DROP`, `ON_USE`, `ON_EQUIP`, `ON_UNEQUIP`, `TIMER_TICK`, `ON_RECEIVE`, `ON_RESET`, `ON_GREET`
 
 ### AI Integration
 

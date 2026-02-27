@@ -53,16 +53,16 @@ ZONES:
                 predicate: "torch"
             script: |
               echo The torch flickers weakly, its flame struggling against the damp air of the sewers.
-          - id: catch_any_smell
-            type: catch_any
+          - id: on_any_smell
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "smell"
             script: |
               echo You instantly regret trying to smell anything here. The stench is overwhelming.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -140,16 +140,16 @@ ZONES:
                 predicate: "fungi"
             script: |
               echo The phosphorescent fungi glow with an eerie, pale blue light, providing just enough illumination to navigate the chamber.
-          - id: catch_any_sewer_swim
-            type: catch_any
+          - id: on_any_sewer_swim
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming in these foul waters would be extremely unwise and potentially deadly.
-          - id: catch_say_sewer_echo
-            type: catch_say
+          - id: on_say_sewer_echo
+            type: on_say
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -225,16 +225,16 @@ ZONES:
                 predicate: "torch"
             script: |
               echo The torch flickers weakly, its flame struggling against the damp air. The rusted bracket holding it looks ready to give way at any moment.
-          - id: catch_any_sewer_drink
-            type: catch_any
+          - id: on_any_sewer_drink
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The very thought of drinking this foul water turns your stomach. It would be extremely unwise and potentially deadly.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -310,16 +310,16 @@ ZONES:
                 predicate: "jar"
             script: |
               echo The clay jars are labeled with crude symbols. You recognize some as basic alchemical notations for acids and bases.
-          - id: catch_any_sewer_touch
-            type: catch_any
+          - id: on_any_sewer_touch
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You think better of touching anything in this foul chamber. Who knows what diseases lurk in the waste?
-          - id: catch_say_help
-            type: catch_say
+          - id: on_say_help
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -393,16 +393,16 @@ ZONES:
                 predicate: "basin"
             script: |
               echo As you peer into the basin, you notice small, pale creatures darting between the layers of filtration material.
-          - id: catch_any_sewer_drink
-            type: catch_any
+          - id: on_any_sewer_drink
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo Despite the filtration process, this water is still far from safe to drink. The thought alone makes your stomach churn.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -475,16 +475,16 @@ ZONES:
                 predicate: "fungi"
             script: |
               echo The bioluminescent fungi pulsate slowly, their eerie green light seeming to throb in time with the bubbling of the sludge.
-          - id: catch_any_jump
-            type: catch_any
+          - id: on_any_jump
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "jump"
             script: |
               echo The thought of jumping into the sludge pit fills you with dread. It would surely mean a quick and unpleasant death.
-          - id: catch_say_help
-            type: catch_say
+          - id: on_say_help
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -558,16 +558,16 @@ ZONES:
                 predicate: "crystal"
             script: |
               echo As you examine the crystals more closely, you notice they seem to pulse faintly with an inner light.
-          - id: catch_any_sewer_drink
-            type: catch_any
+          - id: on_any_sewer_drink
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo While the water looks clearer here, drinking from an unknown underground source could still be dangerous.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -640,16 +640,16 @@ ZONES:
                 predicate: "fungi"
             script: |
               echo The mutated fungi seem to recoil as you look at them, their sickly glow flickering erratically.
-          - id: catch_any_sewer_swim
-            type: catch_any
+          - id: on_any_sewer_swim
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo The very thought of swimming in this muck fills you with revulsion. It would be incredibly dangerous and likely fatal.
-          - id: catch_say_help
-            type: catch_say
+          - id: on_say_help
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -722,16 +722,16 @@ ZONES:
                 predicate: "algae"
             script: |
               echo As you examine the phosphorescent algae, its glow intensifies, creating mesmerizing patterns on the wet stone.
-          - id: catch_any_sewer_swim
-            type: catch_any
+          - id: on_any_sewer_swim
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming here would be extremely dangerous. The current looks strong enough to sweep you over the edge to the chambers below.
-          - id: catch_say_sewer_echo
-            type: catch_say
+          - id: on_say_sewer_echo
+            type: on_say
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -808,16 +808,16 @@ ZONES:
                 predicate: "mushroom"
             script: |
               echo As you examine the mushroom more closely, you notice intricate patterns on its surface that seem to shift and change as you watch.
-          - id: catch_any_eat
-            type: catch_any
+          - id: on_any_eat
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "eat"
             script: |
               echo The idea of eating any of these strange fungi seems extremely unwise. There's no telling what effects they might have.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -890,16 +890,16 @@ ZONES:
                 predicate: "whirlpool"
             script: |
               echo As you gaze into the swirling vortex, you feel a momentary vertigo, as if the whirlpool might pull you in at any moment.
-          - id: catch_any_sewer_swim
-            type: catch_any
+          - id: on_any_sewer_swim
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "swim"
             script: |
               echo Swimming here would be certain death. The power of the whirlpool would suck you in instantly.
-          - id: catch_say_help
-            type: catch_say
+          - id: on_say_help
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -972,16 +972,16 @@ ZONES:
                 predicate: "nest"
             script: |
               echo As you examine the nest more closely, you notice it's constructed partially from gnawed human bones. A chill runs down your spine.
-          - id: catch_any_food
-            type: catch_any
+          - id: on_any_food
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "food"
             script: |
               echo The mere thought of eating anything in this filthy, disease-ridden chamber turns your stomach.
-          - id: catch_say_cheese
-            type: catch_say
+          - id: on_say_cheese
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1054,16 +1054,16 @@ ZONES:
                 predicate: "water"
             script: |               # Corrected indentation
               echo As you peer into the murky water, you catch glimpses of pale, eyeless fish darting in the depths.
-          - id: catch_any_sewer_swim
-            type: catch_any
+          - id: on_any_sewer_swim
+            type: on_any
             criteria:
               - subject: "%{*}"         # Corrected indentation
                 operator: contains
                 predicate: "swim"
             script: |
               echo Swimming in this foul water would be unwise. The current is stronger than it appears, and who knows what lurks beneath the surface.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1137,16 +1137,16 @@ ZONES:
                 predicate: "crack"
             script: |
               echo Peering into a large crack in the wall, you catch a glimpse of something moving in the darkness beyond. You quickly step back.
-          - id: catch_any_sewer_touch
-            type: catch_any
+          - id: on_any_sewer_touch
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo As you touch the crumbling stone, a piece breaks off in your hand, disintegrating into gritty powder.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1220,16 +1220,16 @@ ZONES:
                 predicate: "pump"
             script: |
               echo As you examine the pump, you notice strange, archaic symbols carved into its base, barely visible beneath years of grime.
-          - id: catch_any_sewer_touch
-            type: catch_any
+          - id: on_any_sewer_touch
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You reach out to touch the pump, feeling the vibrations of its constant motion. The metal is surprisingly warm.
-          - id: catch_say_stop
-            type: catch_say
+          - id: on_say_stop
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1304,16 +1304,16 @@ ZONES:
                 predicate: "inscription"
             script: |
               echo As you study the faded inscription, you make out words like "guardian", "eternal vigil", and "seal", sending a chill down your spine.
-          - id: catch_any_open
-            type: catch_any
+          - id: on_any_open
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "open"
             script: |
               echo The very thought of opening one of these ancient coffins fills you with dread. Some things are better left undisturbed.
-          - id: catch_say_rest
-            type: catch_say
+          - id: on_say_rest
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1388,16 +1388,16 @@ ZONES:
                 predicate: "ladder"
             script: |
               echo The iron ladder looks dangerously corroded. You wonder if it could support your weight.
-          - id: catch_any_jump
-            type: catch_any
+          - id: on_any_jump
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "jump"
             script: |
               echo The thought of jumping in this shaft is terrifying. The bottom, if there is one, is lost in darkness.
-          - id: catch_say_hello
-            type: catch_say
+          - id: on_say_hello
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1471,16 +1471,16 @@ ZONES:
                 predicate: "skull"
             script: |
               echo As you examine one of the skulls, its eye sockets seem to glow briefly with a malevolent red light.
-          - id: catch_any_take
-            type: catch_any
+          - id: on_any_take
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "take"
             script: |
               echo As you reach out to take a bone, the entire pile trembles ominously. Perhaps it's best not to disturb it.
-          - id: catch_say_who
-            type: catch_say
+          - id: on_say_who
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1557,16 +1557,16 @@ ZONES:
                 predicate: "root"
             script: |
               echo As you examine the root, you notice it seems to twitch and move slightly, as if alive and aware of your presence.
-          - id: catch_any_sewer_drink
-            type: catch_any
+          - id: on_any_sewer_drink
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The mere thought of drinking this foul water makes your stomach churn. It would surely lead to a nasty illness, if not worse.
-          - id: catch_say_lost
-            type: catch_say
+          - id: on_say_lost
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1641,16 +1641,16 @@ ZONES:
                 predicate: "crate"
             script: |
               echo As you peer into an open crate, you see the glint of glass vials filled with an unknown, swirling liquid.
-          - id: catch_any_search
-            type: catch_any
+          - id: on_any_search
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "search"
             script: |
               echo Your search reveals little of value. It seems the smugglers took their most precious goods when they fled.
-          - id: catch_say_password
-            type: catch_say
+          - id: on_say_password
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1725,16 +1725,16 @@ ZONES:
                 predicate: "slime"
             script: |
               echo As you examine the slime closely, you see tiny, squirming organisms moving within it. The longer you look, the more you feel drawn to the hypnotic movements.
-          - id: catch_any_sewer_touch
-            type: catch_any
+          - id: on_any_sewer_touch
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo You resist the urge to touch the glowing slime. Its unnatural light and movement suggest it could be extremely dangerous.
-          - id: catch_say_magic
-            type: catch_say
+          - id: on_say_magic
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1808,16 +1808,16 @@ ZONES:
                 predicate: "pillar"
             script: |
               echo As you examine the pillar, you notice faint inscriptions near its base. They appear to be musical notes, barely visible after years of erosion.
-          - id: catch_any_sing
-            type: catch_any
+          - id: on_any_sing
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "sing"
             script: |
               echo Your singing is caught by the chamber's acoustics, amplified and distorted into an otherworldly chorus that seems to come from everywhere at once.
-          - id: catch_say_sewer_echo
-            type: catch_say
+          - id: on_say_sewer_echo
+            type: on_say
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1896,16 +1896,16 @@ ZONES:
                 predicate: "alcove"
             script: |
               echo As you examine the alcove, you notice faint markings on the wall - perhaps a code or message left for other passage users.
-          - id: catch_any_knock
-            type: catch_any
+          - id: on_any_knock
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "knock"
             script: |
               echo Your knock produces a series of echoes that seem to travel far down the passage. For a moment, you think you hear a responding knock, but then silence returns.
-          - id: catch_say_open
-            type: catch_say
+          - id: on_say_open
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1980,16 +1980,16 @@ ZONES:
                 predicate: "pool"
             script: |
               echo As you examine the pool, you see swirling patterns forming and dissolving rapidly on its surface. The longer you look, the more you feel a strange tingling sensation.
-          - id: catch_any_sewer_drink
-            type: catch_any
+          - id: on_any_sewer_drink
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "drink"
             script: |
               echo The mere thought of drinking anything in this room fills you with dread. The magical contamination here could have horrific effects.
-          - id: catch_say_transmute
-            type: catch_say
+          - id: on_say_transmute
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2063,16 +2063,16 @@ ZONES:
                 predicate: "bat"
             script: |
               echo As you peer into the darkness, you see a pair of enormous, glowing eyes staring back at you. They blink once, then vanish.
-          - id: catch_any_climb
-            type: catch_any
+          - id: on_any_climb
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "climb"
             script: |
               echo The thought of climbing the slimy, guano-covered walls fills you with dread. It would be extremely dangerous, if not impossible.
-          - id: catch_say_sewer_echo
-            type: catch_say
+          - id: on_say_sewer_echo
+            type: on_say
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -2147,16 +2147,16 @@ ZONES:
                 predicate: "chest"
             script: |
               echo As you examine the chest, you notice intricate locking mechanisms and what appear to be magical wards etched into its surface.
-          - id: catch_any_take
-            type: catch_any
+          - id: on_any_take
+            type: on_any
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "take"
             script: |
               echo As you reach for an item, you feel a tingling sensation in your hand. A faint voice seems to whisper, "Are you worthy?"
-          - id: catch_say_gold
-            type: catch_say
+          - id: on_say_gold
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2231,16 +2231,16 @@ ZONES:
                 predicate: "pool"
             script: |
               echo As you peer into the mutagenic pool, you see a half-formed creature staring back at you with too many eyes. It reaches out with a misshapen limb before sinking back into the sludge.
-          - id: catch_any_sewer_touch
-            type: catch_any
+          - id: on_any_sewer_touch
+            type: on_any
             criteria:
             - subject: "%{*}"
               operator: contains
               predicate: "touch"
             script: |
               echo The urge to touch anything in this horrific place is quickly overwhelmed by your sense of self-preservation. Who knows what transformations might occur from mere contact?
-          - id: catch_say_human
-            type: catch_say
+          - id: on_say_human
+            type: on_say
             criteria: 
               - subject: "%{*}"
                 operator: contains

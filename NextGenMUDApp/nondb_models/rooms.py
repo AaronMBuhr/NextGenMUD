@@ -30,6 +30,16 @@ class Room(Actor, RoomInterface):
         """Readonly: single attribute for look/display, backed by description_."""
         return getattr(self, "description_", "")
 
+    @property
+    def room_full_id(self) -> str:
+        """Full room id for triggers: zone_id.subzone_id.room_id or zone_id.room_id if no subzone."""
+        if not self.zone:
+            return self.id
+        parts = [self.zone.id, self.id]
+        if getattr(self, "subzone_id", None):
+            parts.insert(1, self.subzone_id)
+        return ".".join(parts)
+
     def to_dict(self):
         return {
             'ref#': self.reference_number,

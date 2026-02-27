@@ -95,7 +95,21 @@ class Actor(ActorInterface):
             return cls.references_[reference_number]
         except KeyError:
             return None
-    
+
+    @classmethod
+    def get_reference_if_alive(cls, reference_number):
+        """
+        Return the actor for reference_number only if it exists and is not marked deleted.
+        Use this when you need a "live" actor (e.g. before using as target). Returns None if
+        the reference is not in the registry or the actor has is_deleted=True (e.g. dead NPC).
+        """
+        ref = cls.get_reference(reference_number)
+        if ref is None:
+            return None
+        if getattr(ref, 'is_deleted', False):
+            return None
+        return ref
+
     @classmethod
     def dereference_(cls, reference_number):
         if reference_number in cls.references_:
@@ -175,7 +189,7 @@ class Actor(ActorInterface):
             logger.debug3("skipping triggers")
         else:
             logger.debug3(f"triggers:\n{self.triggers_by_type}")
-            for trigger_type in [ TriggerType.CATCH_ANY ]:
+            for trigger_type in [ TriggerType.ON_ANY ]:
                 if trigger_type in self.triggers_by_type:
                     logger.debug3(f"checking trigger_type: {trigger_type}")
                     for trigger in self.triggers_by_type[trigger_type]:

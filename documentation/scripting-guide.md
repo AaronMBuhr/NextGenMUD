@@ -275,13 +275,13 @@ Fires when a character enters the room/area where the trigger is attached.
     echo The innkeeper waves as you enter.
 ```
 
-#### `on_exit`
+#### `on_leave`
 
-Fires when a character exits the room/area.
+Fires when a character leaves the room/area.
 
 ```yaml
 - id: farewell
-  type: on_exit
+  type: on_leave
   script: |
     echo "Safe travels!" calls out the shopkeeper.
 ```

@@ -769,7 +769,7 @@ Triggers are event-driven scripts that execute when conditions are met.
 | Type | Fires When | Available On |
 |------|------------|--------------|
 | `on_enter` | Character enters room | Room, NPC, Object |
-| `on_exit` | Character leaves room | Room, NPC, Object |
+| `on_leave` | Character leaves room | Room, NPC, Object |
 | `catch_say` | Someone speaks | Room, NPC |
 | `catch_look` | Someone looks at entity | Object, NPC |
 | `catch_any` | Any text matches criteria | Room, NPC |

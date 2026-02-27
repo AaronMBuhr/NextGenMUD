@@ -50,16 +50,16 @@ ZONES:
             predicate: "tree"
           script: |
             echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
-        - id: catch_any_sing
-          type: catch_any
+        - id: on_any_sing
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "sing"
           script: |
             echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
-        - id: catch_any_dance
-          type: catch_any
+        - id: on_any_dance
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -107,16 +107,16 @@ ZONES:
             predicate: "crystal"
           script: |
             echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
-        - id: catch_any_touch
-          type: catch_any
+        - id: on_any_touch
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "touch"
           script: |
             echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
-        - id: catch_any_sing_2
-          type: catch_any
+        - id: on_any_sing_2
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -173,8 +173,8 @@ ZONES:
             predicate: "rainbow"
           script: |
             echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
-        - id: catch_any_water
-          type: catch_any
+        - id: on_any_water
+          type: on_any
           flags:
           - only_when_pc_room
           criteria:
@@ -218,8 +218,8 @@ ZONES:
             predicate: "flower"
           script: |
             echo Gazing at a particularly bright flower, you catch a fleeting glimpse of a fairy darting behind its petals.
-        - id: catch_any_fairy
-          type: catch_any
+        - id: on_any_fairy
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -265,8 +265,8 @@ ZONES:
             predicate: "shadow"
           script: |
             echo Focusing on the shadows, you feel a sense of ancient mysteries surrounding you, as if the thicket guards old secrets.
-        - id: catch_any_twilight
-          type: catch_any
+        - id: on_any_twilight
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -305,8 +305,8 @@ ZONES:
             predicate: "moon"
           script: |
             echo Looking up at the moon, you feel a profound sense of peace and connection to the wider universe.
-        - id: catch_any_star
-          type: catch_any
+        - id: on_any_star
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -350,8 +350,8 @@ ZONES:
             predicate: "water"
           script: |
             echo Peering into the water, you see not only your reflection but a glimpse into a world as tranquil and mysterious as the pond itself.
-        - id: catch_any_echo
-          type: catch_any
+        - id: on_any_echo
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -392,8 +392,8 @@ ZONES:
             predicate: "door"
           script: |
             echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
-        - id: catch_any_tree
-          type: catch_any
+        - id: on_any_tree
+          type: on_any
           flags:
           - only_when_pc_room
           criteria:
@@ -432,8 +432,8 @@ ZONES:
             predicate: "pine"
           script: |
             echo Observing the pines closely, you feel enveloped by their ancient presence, standing as silent witnesses to time.
-        - id: catch_any_wind
-          type: catch_any
+        - id: on_any_wind
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -473,8 +473,8 @@ ZONES:
             predicate: "water"
           script: |
             echo Gazing into the water, you are captivated by the stream's serene flow, its rhythm like a meditative chant.
-        - id: catch_any_fish
-          type: catch_any
+        - id: on_any_fish
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -515,8 +515,8 @@ ZONES:
             predicate: "flower"
           script: |
             echo As you gaze at the flowers, their colors seem to brighten, responding to your attention with a vibrant display.
-        - id: catch_any_light
-          type: catch_any
+        - id: on_any_light
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -555,8 +555,8 @@ ZONES:
             predicate: "leaf"
           script: |
             echo As you pick up a golden leaf, its texture and the intricate patterns etched upon it captivate your senses.
-        - id: catch_any_sunbeam
-          type: catch_any
+        - id: on_any_sunbeam
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -604,8 +604,8 @@ ZONES:
           script: |
             echo Peering into the mist, you feel a sense of timelessness,
             as if the copse exists in a world apart from the rest.
-        - id: catch_any_tree_2
-          type: catch_any
+        - id: on_any_tree_2
+          type: on_any
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -644,8 +644,8 @@ ZONES:
           predicate: 20
         script: |
           leaverandom stayinzone
-      - id: catch_any_kicks_you
-        type: catch_any
+      - id: on_any_kicks_you
+        type: on_any
         criteria:
         - subject: "%*%"
           operator: contains
@@ -653,8 +653,8 @@ ZONES:
         script: |
           emote dodges your kick!
           lick %S%
-      - id: catch_any_starts_fighting_you
-        type: catch_any
+      - id: on_any_starts_fighting_you
+        type: on_any
         criteria:
         - subject: "%*%"
           operator: contains
@@ -662,8 +662,8 @@ ZONES:
         script: |
           emote gets angry!
           kick %S%
-      - id: catch_say_hello
-        type: catch_say
+      - id: on_say_hello
+        type: on_say
         criteria:
         - subject: "%*%"
           operator: contains

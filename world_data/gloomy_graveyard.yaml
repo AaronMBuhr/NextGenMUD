@@ -284,8 +284,8 @@ ZONES:
             destination: central_city.city_gates
             description: A well-worn trail leads eastward toward the grand gates of Central City.
         triggers:
-        - id: catch_any_howl
-          type: catch_any
+        - id: on_any_howl
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -314,8 +314,8 @@ ZONES:
           west:
             destination: dark_forest_se
         triggers:
-        - id: catch_any_growl
-          type: catch_any
+        - id: on_any_growl
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -344,8 +344,8 @@ ZONES:
           west:
             destination: dark_forest_s
         triggers:
-        - id: catch_any_whisper
-          type: catch_any
+        - id: on_any_whisper
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -377,8 +377,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_rustle
-          type: catch_any
+        - id: on_any_rustle
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -412,8 +412,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_howl_2
-          type: catch_any
+        - id: on_any_howl_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -445,8 +445,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_growl_2
-          type: catch_any
+        - id: on_any_growl_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -480,8 +480,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_whistle
-          type: catch_any
+        - id: on_any_whistle
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -517,8 +517,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_scream
-          type: catch_any
+        - id: on_any_scream
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -552,8 +552,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_growl_3
-          type: catch_any
+        - id: on_any_growl_3
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -587,8 +587,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_rustling
-          type: catch_any
+        - id: on_any_rustling
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -620,8 +620,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_howl_3
-          type: catch_any
+        - id: on_any_howl_3
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -653,8 +653,8 @@ ZONES:
           west:
             destination: graveyard_road_e
         triggers:
-        - id: catch_any_whisper_2
-          type: catch_any
+        - id: on_any_whisper_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -697,7 +697,7 @@ ZONES:
           script: |
             echo A dry wind sweeps down from the barren hills, rustling the dying brush.
         - id: northern_edge_first_visit
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $permvar(%S%, visited_forest_northern_edge)
             operator: '!='
@@ -758,8 +758,8 @@ ZONES:
         - id: barkeep
           quantity: 1
         triggers:
-        - id: catch_any_laugh
-          type: catch_any
+        - id: on_any_laugh
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -775,7 +775,7 @@ ZONES:
           script: |
             echo The warm, inviting scent of freshly cooked food wafts from the kitchen, mingling with the crackling sound of the fire.
         - id: first_enter_hear_gossip
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $permvar(%S%,visited_inn)
             operator: '!='
@@ -797,8 +797,8 @@ ZONES:
           west:
             destination: inn_room_w
         triggers:
-        - id: catch_any_creak
-          type: catch_any
+        - id: on_any_creak
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -835,8 +835,8 @@ ZONES:
         - id: chest_key
           quantity: 1
         triggers:
-        - id: catch_any_breeze
-          type: catch_any
+        - id: on_any_breeze
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -861,8 +861,8 @@ ZONES:
           east:
             destination: inn_hallway
         triggers:
-        - id: catch_any_crackle
-          type: catch_any
+        - id: on_any_crackle
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -889,8 +889,8 @@ ZONES:
           west:
             destination: graveyard_entrance
         triggers:
-        - id: catch_any_rustle_2
-          type: catch_any
+        - id: on_any_rustle_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -923,8 +923,8 @@ ZONES:
         - id: old_tom
           quantity: 1
         triggers:
-        - id: catch_any_creak_2
-          type: catch_any
+        - id: on_any_creak_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -975,8 +975,8 @@ ZONES:
           west:
             destination: manor_house_entrance
         triggers:
-        - id: catch_any_whisper_3
-          type: catch_any
+        - id: on_any_whisper_3
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1016,8 +1016,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_rustling_2
-          type: catch_any
+        - id: on_any_rustling_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1063,8 +1063,8 @@ ZONES:
         - id: victim_signet_ring
           quantity: 1
         triggers:
-        - id: catch_any_whisper_4
-          type: catch_any
+        - id: on_any_whisper_4
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1080,7 +1080,7 @@ ZONES:
           script: |
             echo A pale light flickers between the graves, too quick to catch, before vanishing into the darkness.
         - id: discover_body
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%,murder_mystery.found_body)
             operator: '!='
@@ -1112,8 +1112,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_moan
-          type: catch_any
+        - id: on_any_moan
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1157,8 +1157,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_bell
-          type: catch_any
+        - id: on_any_bell
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1194,8 +1194,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_owl
-          type: catch_any
+        - id: on_any_owl
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1231,8 +1231,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_echo
-          type: catch_any
+        - id: on_any_echo
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1259,8 +1259,8 @@ ZONES:
           east:
             destination: crypt_center
         triggers:
-        - id: catch_any_drip
-          type: catch_any
+        - id: on_any_drip
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1290,8 +1290,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_whisper_5
-          type: catch_any
+        - id: on_any_whisper_5
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1321,8 +1321,8 @@ ZONES:
         - id: edmund_butler
           quantity: 1
         triggers:
-        - id: catch_any_echo_2
-          type: catch_any
+        - id: on_any_echo_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1338,7 +1338,7 @@ ZONES:
           script: |
             echo A draft stirs the dust on the floor, creating ghostly patterns in the moonlight filtering through the windows.
         - id: butler_greeting
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $permvar(%S%,met_butler)
             operator: '!='
@@ -1368,8 +1368,8 @@ ZONES:
         - id: manor_maid
           quantity: 1
         triggers:
-        - id: catch_any_fire
-          type: catch_any
+        - id: on_any_fire
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1398,8 +1398,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_book
-          type: catch_any
+        - id: on_any_book
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1436,8 +1436,8 @@ ZONES:
             destination: manor_house_parlor
             description: A grand staircase sweeps down to the parlor below.
         triggers:
-        - id: catch_any_creak_3
-          type: catch_any
+        - id: on_any_creak_3
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1485,8 +1485,8 @@ ZONES:
         - id: dusty_journal
           quantity: 1
         triggers:
-        - id: catch_any_mirror
-          type: catch_any
+        - id: on_any_mirror
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1512,8 +1512,8 @@ ZONES:
           west:
             destination: manor_house_kitchen
         triggers:
-        - id: catch_any_chandelier
-          type: catch_any
+        - id: on_any_chandelier
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1551,8 +1551,8 @@ ZONES:
               key_id: cellar_key
               linked_exit: gloomy_graveyard.manor_house_wine_cellar.up
         triggers:
-        - id: catch_any_sizzle
-          type: catch_any
+        - id: on_any_sizzle
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1594,8 +1594,8 @@ ZONES:
           respawn time max: 90
         objects: []
         triggers:
-        - id: catch_any_drip_2
-          type: catch_any
+        - id: on_any_drip_2
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1633,7 +1633,7 @@ ZONES:
               echo Large oak barrels, used for aging wine. Nothing unusual about them.
             }
         - id: cellar_search_hint
-          type: on_enter
+          type: on_arrive
           criteria:
           - subject: $questvar(%S%,murder_mystery.knows_to_check_cellar)
             operator: eq
@@ -1655,8 +1655,8 @@ ZONES:
           respawn time min: 30
           respawn time max: 90
         triggers:
-        - id: catch_any_music
-          type: catch_any
+        - id: on_any_music
+          type: on_any
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1983,7 +1983,7 @@ ZONES:
         - If asked for a drink, be warm and offer to pour something.
       triggers:
       - id: barkeep_greeted
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $permvar(%S%,barkeep_greeted)
           operator: neq
@@ -2021,7 +2021,7 @@ ZONES:
              say You've done it. I'll send for the constable. Old Tom is safe.
           }
       - id: barkeep_provide_drink
-        type: catch_say
+        type: on_say
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2089,7 +2089,7 @@ ZONES:
             murder_mystery.can_find_cufflink: true
       triggers:
       - id: tom_react_to_player
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%,murder_mystery.tom_trusts_player)
           operator: '!='
@@ -2099,7 +2099,7 @@ ZONES:
           echo Old Tom flinches as you approach, eyeing you warily.
           emote mutters nervously to himself
       - id: tom_greet_trusted
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%,murder_mystery.tom_trusts_player)
           operator: eq
@@ -2339,14 +2339,14 @@ ZONES:
       - torn_note
       triggers:
       - id: body_draws_attention
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%,murder_mystery.found_body)
           operator: '!='
           predicate: 'true'
         script: echo Something catches your eye among the graves... a body lies partially hidden behind a headstone.
       - id: note_flutters
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%,murder_mystery.found_body)
           operator: eq
@@ -2401,7 +2401,7 @@ ZONES:
       flags: []
       triggers:
       - id: ring_glints
-        type: on_enter
+        type: on_arrive
         criteria:
         - subject: $questvar(%S%,murder_mystery.found_body)
           operator: eq
