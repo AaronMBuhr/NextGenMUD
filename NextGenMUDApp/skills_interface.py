@@ -21,7 +21,7 @@ class SkillsInterface(metaclass=ABCMeta):
     
     # Attributes
     ATTRIBUTE_AVERAGE = 10
-    ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 4
+    ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 2
     
     @classmethod
     @abstractmethod

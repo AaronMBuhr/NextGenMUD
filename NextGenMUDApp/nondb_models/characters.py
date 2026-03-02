@@ -149,7 +149,6 @@ class Character(Actor, CharacterInterface):
         self.contents: List[Object] = []
         self.permanent_character_flags = PermanentCharacterFlags(0)
         self.temporary_character_flags = TemporaryCharacterFlags(0)
-        self.current_states = []
         self.connection: 'Connection' = None
         self.fighting_whom: Character = None
         self.charmed_by: Character = None  # Who has charmed/controls this character
@@ -879,23 +878,15 @@ class Character(Actor, CharacterInterface):
     #     return states
     
     def get_character_states_by_flag(self, flags: TemporaryCharacterFlags) -> List['ActorState']:
-        return [s for s in self.current_states if s.does_affect_flag(flags)]
+        return [s for s in self.states if s.does_affect_flag(flags)]
     
     def get_character_states_by_type(self, cls) -> List['ActorState']:
-        return [state for state in self.current_states if isinstance(state, cls)]
+        return [state for state in self.states if isinstance(state, cls)]
 
     def add_state(self, state: 'ActorState') -> bool:
-        self.current_states.append(state)
+        super().add_state(state)
         return True
 
-    def remove_state(self, state: 'ActorState') -> bool:
-        if state in self.current_states:
-            self.current_states.remove(state)
-            return True
-        else:
-            logger.warning(f"Attempted to remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from character {self.name} ({self.id}), but state was not in current_states list.")
-            return False
-    
     def remove_states_by_flag(self, flags: TemporaryCharacterFlags) -> bool:
         for state in self.get_character_states_by_flag(flags):
             self.remove_state(state)
@@ -1155,7 +1146,7 @@ class Character(Actor, CharacterInterface):
         return Cooldown.last_cooldown(self.cooldowns, cooldown_source, cooldown_name)
 
     def get_states(self):
-        return self.current_states
+        return self.states
     
     def has_temp_flags(self, flags: TemporaryCharacterFlags) -> bool:
         return self.temporary_character_flags.are_flags_set(flags)
@@ -1556,27 +1547,29 @@ class Character(Actor, CharacterInterface):
         else:
             return Constants.HP_REGEN_WALKING
     
-    def regenerate_resources(self) -> bool:
+    def regenerate_resources(self, *, include_hp: bool = True) -> bool:
         """
-        Regenerate HP, mana and stamina based on current state. Called each tick.
-        Returns True if any resource changed (for status update purposes).
+        Regenerate HP, mana and stamina based on current state.
+        Mana/stamina: rate per second, called once per second.
+        HP: rate per pulse, pulsed every 8 seconds when include_hp is True.
+        Returns True if any resource changed.
         """
         changed = False
         
-        # HP regen (off in combat)
-        if self.current_hit_points < self.max_hit_points:
-            hp_regen = int(self.get_hp_regen_rate())
+        # HP regen (off in combat); pulsed every 8 seconds by main loop
+        if include_hp and self.current_hit_points < self.max_hit_points:
+            hp_regen = round(self.get_hp_regen_rate())
             if hp_regen > 0 and self.increase_hp(hp_regen):
                 changed = True
         
         # Mana regen
         if self.current_mana < self.max_mana:
-            if self.increase_mana(int(self.get_mana_regen_rate())):
+            if self.increase_mana(round(self.get_mana_regen_rate())):
                 changed = True
         
         # Stamina regen
         if self.current_stamina < self.max_stamina:
-            if self.increase_stamina(int(self.get_stamina_regen_rate())):
+            if self.increase_stamina(round(self.get_stamina_regen_rate())):
                 changed = True
         
         return changed
@@ -1843,9 +1836,12 @@ class Character(Actor, CharacterInterface):
                     return self.skill_levels_by_role[r][normalized]
         return 0
 
-    def gain_xp(self, xp_amount: int) -> bool:
-        self.experience_points += xp_amount
-        return self.can_level()
+    def gain_xp(self, xp_amount: int) -> tuple:
+        """Apply experience modifier from states (e.g. CharacterStateExperienceModifier), add XP. Returns (actual_xp_added, can_level)."""
+        modifier = self.get_experience_modifier()
+        actual = max(0, int(round(xp_amount * modifier)))
+        self.experience_points += actual
+        return (actual, self.can_level())
 
     @property
     def location_room(self) -> 'Room':

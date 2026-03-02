@@ -171,9 +171,10 @@ class PlayerSaveManager:
             traceback.print_exc()
             return False
     
-    def load_character(self, character_name: str, target_character: 'Character' = None,
-                       restore_location: bool = False,
-                       world_definition: 'WorldDefinition' = None) -> Optional[Dict[str, Any]]:
+    async def load_character(self, character_name: str, target_character: 'Character' = None,
+                             restore_location: bool = False,
+                             world_definition: 'WorldDefinition' = None,
+                             game_state: Any = None) -> Optional[Dict[str, Any]]:
         """
         Load character data from a YAML file.
 
@@ -184,6 +185,7 @@ class PlayerSaveManager:
             world_definition: If provided, inventory/equipment objects are created from templates
                 so triggers (e.g. catch_look) are preserved; otherwise objects are rebuilt from
                 save data only and have no scripts.
+            game_state: Required when target_character is set and save has states; used to restore state objects.
 
         Returns:
             Dictionary of character data, or None if load failed
@@ -205,7 +207,7 @@ class PlayerSaveManager:
                 return None
 
             if target_character:
-                self._apply_data_to_character(data, target_character, restore_location, world_definition)
+                await self._apply_data_to_character(data, target_character, restore_location, world_definition, game_state)
                 
             logger.info(f"Character {character_name} loaded from {save_path}")
             return data
@@ -377,7 +379,8 @@ class PlayerSaveManager:
         # Save temporary states if configured
         if save_states:
             data['temporary_flags'] = [f.name for f in character.temporary_character_flags.get_flags_set()]
-            data['states'] = [self._state_to_dict(state) for state in character.current_states]
+            saved = [state.save_state() for state in character.states]
+            data['states'] = [s for s in saved if s is not None]
         
         # Save cooldowns if configured  
         if save_cooldowns:
@@ -411,15 +414,6 @@ class PlayerSaveManager:
             'contents': [self._object_to_dict(c) for c in obj.contents] if hasattr(obj, 'contents') else []
         }
     
-    def _state_to_dict(self, state: 'ActorState') -> Dict[str, Any]:
-        """Convert an ActorState to a saveable dictionary."""
-        return {
-            'type': type(state).__name__,
-            'start_tick': state.start_tick if hasattr(state, 'start_tick') else 0,
-            'duration_ticks': state.duration_ticks if hasattr(state, 'duration_ticks') else 0,
-            # Additional state-specific data could be added here
-        }
-    
     def _cooldown_to_dict(self, cooldown: 'Cooldown') -> Dict[str, Any]:
         """Convert a Cooldown to a saveable dictionary."""
         return {
@@ -441,9 +435,10 @@ class PlayerSaveManager:
             return result
         return flag_class(int(data_value))
     
-    def _apply_data_to_character(self, data: Dict[str, Any], character: 'Character',
-                                  restore_location: bool = False,
-                                  world_definition: 'WorldDefinition' = None):
+    async def _apply_data_to_character(self, data: Dict[str, Any], character: 'Character',
+                                       restore_location: bool = False,
+                                       world_definition: 'WorldDefinition' = None,
+                                       game_state: Any = None):
         """Apply loaded data to a Character object. If world_definition is provided, inventory/equipment are created from templates (triggers preserved)."""
         from .nondb_models.character_interface import (
             PermanentCharacterFlags, TemporaryCharacterFlags, 
@@ -451,6 +446,7 @@ class PlayerSaveManager:
         )
         from .nondb_models.attacks_and_damage import DamageType, DamageMultipliers
         from .nondb_models.objects import Object, ObjectFlags
+        from .nondb_models.actor_states import load_state_from_data
         
         logger = StructuredLogger(__name__, prefix="_apply_data_to_character()> ")
         
@@ -590,8 +586,13 @@ class PlayerSaveManager:
                         except KeyError:
                             logger.warning(f"Unknown equip location: {loc_name}")
             
-            # States and cooldowns would need more complex restoration
-            # For now we'll skip restoring actual state objects
+            # Restore states via each state class's load_state
+            if game_state and data.get('states'):
+                for state_data in data.get('states', []):
+                    try:
+                        await load_state_from_data(character, game_state, state_data)
+                    except Exception as e:
+                        logger.warning(f"Failed to restore state {state_data.get('class', '?')}: {e}")
             
             logger.info(f"Applied save data to character {character.name}")
             

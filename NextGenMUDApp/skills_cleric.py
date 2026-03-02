@@ -292,7 +292,7 @@ class Skills_Cleric(Skills):
                 attacker_attribute=CharacterAttributes.WISDOM)
             if saved:
                 vars = set_vars(actor, actor, target, "")
-                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                 return True
 
         # Send messages
@@ -599,7 +599,7 @@ class Skills_Cleric(Skills):
                 attacker_attribute=CharacterAttributes.WISDOM)
             if saved:
                 vars = set_vars(actor, actor, target, "")
-                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                 return True
 
         # Send messages

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Callable, Optional
+from typing import Any, Dict, List, Callable, Optional, Tuple
 import asyncio
 import inspect
 
@@ -49,8 +49,16 @@ class GameStateInterface:
         return cls._instance
 
     @abstractmethod
-    def find_target_character(self, actor: 'Actor', target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> 'Character':
+    def find_target_characters(self, actor: 'Actor', target_name: str, first_match: int = 1, last_match: int = 0,
+                               search_scope: str = None, search_zone: bool = False, search_world: bool = False,
+                               exclude_initiator: bool = True) -> List['Character']:
+        """Return list of matching characters. last_match < 1 means return all from first_match on."""
         raise NotImplementedError
+
+    def find_target_character(self, actor: 'Actor', target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Optional['Character']:
+        """Return first matching character, or None. Default impl uses find_target_characters(..., 1, 1)."""
+        lst = self.find_target_characters(actor, target_name, first_match=1, last_match=1, search_zone=search_zone, search_world=search_world, exclude_initiator=exclude_initiator)
+        return lst[0] if lst else None
 
     @abstractmethod
     def find_all_characters(self, actor: 'Actor', target_name: str) -> str:
@@ -61,8 +69,25 @@ class GameStateInterface:
         raise NotImplementedError
 
     @abstractmethod
+    def find_target_objects(self, target_name: str, actor: 'Actor' = None, equipped: Dict['EquipLocation', 'Object'] = None,
+                            start_room: 'Room' = None, start_zone: 'Zone' = None, first_match: int = 1, last_match: int = 0,
+                            search_scope: str = None, search_world: bool = False,
+                            search_list: list = None) -> List['Object']:
+        """Return list of matching objects. last_match < 1 means return all from first_match on."""
+        raise NotImplementedError
+
     def find_target_object(self, target_name: str, actor: 'Actor' = None, equipped: Dict['EquipLocation', 'Object'] = None, 
-                           start_room: 'Room' = None, start_zone: 'Zone' = None, search_world=False) -> 'Object':
+                           start_room: 'Room' = None, start_zone: 'Zone' = None, search_world=False,
+                           search_list: list = None) -> Optional['Object']:
+        """Return first matching object, or None. Default impl uses find_target_objects(..., 1, 1)."""
+        lst = self.find_target_objects(target_name, actor=actor, equipped=equipped, start_room=start_room, start_zone=start_zone, first_match=1, last_match=1, search_world=search_world, search_list=search_list)
+        return lst[0] if lst else None
+
+    @abstractmethod
+    def find_target_objects_with_parent(self, target_name: str, actor: 'Actor' = None,
+                                        start_room: 'Room' = None,
+                                        first_match: int = 1, last_match: int = 0) -> List[Tuple['Object', Any]]:
+        """Return list of (object, parent)."""
         raise NotImplementedError
 
     def find_target_object_with_parent(self, target_name: str, actor: 'Actor' = None,

@@ -95,6 +95,12 @@ class ComprehensiveGameState:
         """Return True if the given debug section is currently turned on."""
         return name in self.active_debug
 
+    def get_debug_activator_character(self, section: str):
+        """Return the Character who turned on the given debug section, or None."""
+        name = self.active_debug.get(section)
+        if not name:
+            return None
+        return next((p for p in self.players if p.name == name), None)
 
     def _load_world_from_yaml(self, target_wd: WorldDefinition, load_quest_variables: bool = True) -> bool:
         """Load all YAML world files into target_wd. Returns True if at least one file was loaded and zones exist."""
@@ -235,8 +241,11 @@ class ComprehensiveGameState:
                         logger.warning(f"Character definition for {spawndata.id} not found.")
                         raise Exception(f"Character definition for {spawndata.id} not found.")
                     for i in range(spawndata.desired_quantity):
+                        if len(spawndata.spawned) >= spawndata.desired_quantity:
+                            logger.debug3(f"Spawn cap already met for {spawndata.id} in room {spawndata.owner.rid}, skipping")
+                            break
                         new_character = Character.create_from_definition(character_def, self)
-                        new_character.spawned_by = spawndata
+                        new_character.spawned_from = spawndata
                         self.characters.append(new_character)
                         spawndata.owner.add_character(new_character)
                         spawndata.spawned.append(new_character)
@@ -383,10 +392,13 @@ class ComprehensiveGameState:
                     f", {events_removed} scheduled events purged.")
 
     def _purge_actor_events(self, actor: Actor):
-        """Remove all scheduled events for this actor and disable their timer triggers."""
+        """Remove all scheduled events for this actor, for any of the actor's states, and disable their timer triggers."""
+        actor_states = getattr(actor, 'states', [])[:]
         for tick in list(self.scheduled_events.keys()):
             for event in self.scheduled_events[tick][:]:
                 if event.subject is actor or event.attach_to_actor is actor:
+                    self.remove_scheduled_event(event)
+                elif event.subject in actor_states:
                     self.remove_scheduled_event(event)
         for trig in getattr(actor, 'triggers_by_type', {}).get(TriggerType.TIMER_TICK, []):
             if hasattr(trig, 'disable'):
@@ -563,21 +575,28 @@ class ComprehensiveGameState:
             return ref_str[0].upper() + ref_str[1:]
         return ref_str
 
-    def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Character:
-        logger = StructuredLogger(__name__, prefix="find_target_character()> ")
-        # search_world automatically turns on search_zone
+    def find_target_characters(self, actor: Actor, target_name: str, first_match: int = 1, last_match: int = 0,
+                                search_scope: str = None, search_zone: bool = False, search_world: bool = False,
+                                exclude_initiator: bool = True) -> List[Character]:
+        """
+        Find characters matching target_name. Returns a list.
+        first_match, last_match: 1-based indices; last_match < 1 means return all from first_match on.
+        E.g. guard#4 → first=4, last=4 (single item at index 4). Use first_match=1, last_match=0 for all.
+        search_scope: 'room' | 'subzone' | 'zone' | 'world' to limit search; None = use search_zone/search_world.
+        Stops collecting once last_match items are in the list (when last_match >= 1).
+        """
+        logger = StructuredLogger(__name__, prefix="find_target_characters()> ")
         if not target_name:
-            return None
+            return []
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             ref_key = self._normalize_reference_key(target_name[1:])
             resolved = Actor.get_reference(ref_key)
             if resolved is not None and isinstance(resolved, Character):
-                return resolved
-            return None
+                return [resolved]
+            return []
         if target_name.lower() == 'me' or target_name.lower() == 'self':
-            return actor
-                
-        # Determine the starting point
+            return [actor] if isinstance(actor, Character) else []
+
         start_room = None
         if isinstance(actor, Character):
             start_room = actor.location_room
@@ -585,53 +604,76 @@ class ComprehensiveGameState:
             start_room = actor
         elif isinstance(actor, Object) and actor.location_room:
             start_room = actor.location_room
-
         if not start_room:
-            return None
+            return []
 
-        # Parse the target name and target number
-        target_number = 1
+        if search_scope == 'zone':
+            search_zone = True
+        if search_scope == 'world' or search_world:
+            search_zone = True
+            search_world = True
+
+        first_match = max(1, first_match)
         if '#' in target_name:
             parts = target_name.split('#')
             target_name = parts[0]
             try:
-                target_number = int(parts[1])
-            except:
-                return None
+                first_match = int(parts[1])
+                last_match = first_match
+            except (ValueError, IndexError):
+                pass
 
-        candidates = []
+        candidates: List[Character] = []
         target_lower = target_name.lower()
+        stop_at = last_match if last_match >= 1 else None
 
-        # Helper function to add candidates from a room
-        def add_candidates_from_room(actor, room):
+        def add_candidates_from_room(act, room):
             for char in room.get_characters():
-                if exclude_initiator and char == actor:
+                if exclude_initiator and char == act:
                     continue
-                if char.matches_keyword(target_lower) and self.can_see(char, actor):
+                if char.matches_keyword(target_lower) and self.can_see(char, act):
                     candidates.append(char)
+                    if stop_at is not None and len(candidates) >= stop_at:
+                        return True
+            return False
 
-        # Search in the current room
-        add_candidates_from_room(actor, start_room)
-
-        if search_zone or search_world:
-            # If not found in the current room, search in the current zone
-            if len(candidates) < target_number and isinstance(start_room, Room) and start_room.zone:
+        def rooms_for_scope():
+            yield start_room
+            if search_scope == 'room':
+                return
+            if not isinstance(start_room, Room) or not start_room.zone:
+                return
+            if search_scope == 'subzone':
+                sub_id = getattr(start_room, 'subzone_id', None)
                 for room in start_room.zone.rooms.values():
-                    add_candidates_from_room(actor, room)
-
-        if search_world:
-            # If still not found, search across all zones
-            if len(candidates) < target_number:
+                    if room is not start_room and getattr(room, 'subzone_id', None) == sub_id:
+                        yield room
+                return
+            if search_zone or search_scope == 'zone':
+                for room in start_room.zone.rooms.values():
+                    if room is not start_room:
+                        yield room
+            if search_world or search_scope == 'world':
                 for zone in self.zones.values():
                     for room in zone.rooms.values():
-                        add_candidates_from_room(actor, room)
+                        if zone is not start_room.zone or room is not start_room:
+                            yield room
 
-        # Return the target character
-        logger.debug3(f"candidates: {candidates}")
-        if 0 < target_number <= len(candidates):
-            return candidates[target_number - 1]
+        for room in rooms_for_scope():
+            if add_candidates_from_room(actor, room):
+                break
+            if stop_at is not None and len(candidates) >= stop_at:
+                break
 
-        return None
+        logger.debug3(f"candidates: {len(candidates)}")
+        if last_match >= 1:
+            return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+        return candidates[first_match - 1:] if first_match <= len(candidates) else []
+
+    def find_target_character(self, actor: Actor, target_name: str, search_zone=False, search_world=False, exclude_initiator=True) -> Optional[Character]:
+        """Return the first matching character, or None. Wrapper around find_target_characters(..., first_match=1, last_match=1)."""
+        lst = self.find_target_characters(actor, target_name, first_match=1, last_match=1, search_zone=search_zone, search_world=search_world, exclude_initiator=exclude_initiator)
+        return lst[0] if lst else None
 
 
     def find_all_characters(self, actor: Actor, target_name: str) -> str:
@@ -719,120 +761,188 @@ class ComprehensiveGameState:
         return None
     
 
-    def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None, 
-                           start_room: 'Room' = None, start_zone: Zone = None, search_world=False,
-                           search_list: list = None) -> Object:
-        logger = StructuredLogger(__name__, prefix="find_target_object()> ")
-
+    def find_target_objects(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None,
+                            start_room: 'Room' = None, start_zone: Zone = None, first_match: int = 1, last_match: int = 0,
+                            search_scope: str = None, search_world: bool = False,
+                            search_list: list = None) -> List[Object]:
+        """
+        Find objects matching target_name. Returns a list.
+        first_match, last_match: 1-based; last_match < 1 means return all from first_match on.
+        search_scope: 'room' | 'subzone' | 'zone' | 'world' to limit search; None = use start_zone/search_world.
+        Stops collecting once last_match items are in the list (when last_match >= 1).
+        """
+        logger = StructuredLogger(__name__, prefix="find_target_objects()> ")
         if not target_name:
-            return None
+            return []
         if target_name[0] == Constants.REFERENCE_SYMBOL:
             ref_key = self._normalize_reference_key(target_name[1:])
             resolved = Actor.get_reference(ref_key)
             if resolved is not None and isinstance(resolved, Object):
-                return resolved
-            return None
-        if target_name.lower() == 'me' or target_name.lower() == "self":
-            return actor
+                return [resolved]
+            return []
+        if target_name.lower() in ('me', 'self'):
+            return [actor] if isinstance(actor, Object) else []
 
-        # Prefer current room when searching: use start_room if given, else actor's location when available
         if start_room is None and actor is not None:
             start_room = getattr(actor, 'location_room', None)
 
-        target_number = 1
+        first_match = max(1, first_match)
         if '#' in target_name:
             parts = target_name.split('#')
             target_name = parts[0]
             try:
-                target_number = int(parts[1])
-            except:
-                return None
+                first_match = int(parts[1])
+                last_match = first_match
+            except (ValueError, IndexError):
+                pass
 
         target_lower = target_name.lower()
         candidates: List[Object] = []
+        stop_at = last_match if last_match >= 1 else None
+
+        def maybe_append(obj):
+            if obj and obj.matches_keyword(target_lower):
+                candidates.append(obj)
+                return stop_at is not None and len(candidates) >= stop_at
+            return False
 
         if search_list is not None:
             for obj in search_list:
-                if obj.matches_keyword(target_lower):
-                    candidates.append(obj)
+                if maybe_append(obj):
+                    return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
         if equipped:
             for obj in equipped.values():
-                if obj and obj.matches_keyword(target_lower):
-                    candidates.append(obj)
-        if actor:
+                if maybe_append(obj):
+                    return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+        if actor and hasattr(actor, 'contents'):
             for obj in actor.contents:
-                if obj.matches_keyword(target_lower):
-                    candidates.append(obj)
-        if start_room:
-            for obj in start_room.contents:
-                if obj.matches_keyword(target_lower):
-                    candidates.append(obj)
-        if start_zone:
-            for room in start_zone.rooms.values():
-                for obj in room.contents:
-                    if obj.matches_keyword(target_lower):
-                        candidates.append(obj)
-        if search_world:
-            for zone in self.zones.values():
+                if maybe_append(obj):
+                    return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+
+        if not start_room:
+            return candidates[first_match - 1:] if last_match < 1 and first_match <= len(candidates) else (candidates[first_match - 1:last_match] if first_match <= len(candidates) else [])
+
+        if stop_at is not None and len(candidates) >= stop_at:
+            logger.debug3(f"candidates: {len(candidates)} (early exit before rooms)")
+            return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+
+        use_zone = start_zone if search_scope is None else None
+        use_world = search_world if search_scope is None else False
+        if search_scope == 'room':
+            use_zone = None
+            use_world = False
+        elif search_scope == 'subzone':
+            use_zone = None
+            use_world = False
+        elif search_scope == 'zone':
+            use_zone = start_room.zone if start_room and getattr(start_room, 'zone', None) else start_zone
+            use_world = False
+        elif search_scope == 'world':
+            use_zone = start_room.zone if start_room and getattr(start_room, 'zone', None) else start_zone
+            use_world = True
+
+        def rooms_for_scope():
+            yield start_room
+            if search_scope == 'room':
+                return
+            zone = getattr(start_room, 'zone', None) if start_room else None
+            if search_scope == 'subzone' and zone:
+                sub_id = getattr(start_room, 'subzone_id', None)
                 for room in zone.rooms.values():
-                    for obj in room.contents:
-                        if obj.matches_keyword(target_lower):
-                            candidates.append(obj)
-        
-        # Return the target object
-        logger.debug3(f"candidates: {candidates}")
-        if 0 < target_number <= len(candidates):
-            return candidates[target_number - 1]
-        return None
+                    if room is not start_room and getattr(room, 'subzone_id', None) == sub_id:
+                        yield room
+                return
+            if use_zone:
+                for room in use_zone.rooms.values():
+                    if room is not start_room:
+                        yield room
+            if use_world:
+                for z in self.zones.values():
+                    for room in z.rooms.values():
+                        if z is not zone or room is not start_room:
+                            yield room
+
+        for room in rooms_for_scope():
+            for obj in room.contents:
+                if maybe_append(obj):
+                    logger.debug3(f"candidates: {len(candidates)}")
+                    return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+        logger.debug3(f"candidates: {len(candidates)}")
+        if last_match >= 1:
+            return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+        return candidates[first_match - 1:] if first_match <= len(candidates) else []
+
+    def find_target_object(self, target_name: str, actor: Actor = None, equipped: Dict[EquipLocation, Object] = None,
+                           start_room: 'Room' = None, start_zone: Zone = None, search_world=False,
+                           search_list: list = None) -> Optional[Object]:
+        """Return the first matching object, or None. Wrapper around find_target_objects(..., first_match=1, last_match=1)."""
+        lst = self.find_target_objects(target_name, actor=actor, equipped=equipped, start_room=start_room, start_zone=start_zone, first_match=1, last_match=1, search_world=search_world, search_list=search_list)
+        return lst[0] if lst else None
+
+    def find_target_objects_with_parent(self, target_name: str, actor: Actor = None,
+                                         start_room: 'Room' = None,
+                                         first_match: int = 1, last_match: int = 0) -> List[tuple]:
+        """
+        Find objects by keyword in actor inventory and/or room, including inside containers.
+        Returns list of (object, parent). last_match < 1 means return all from first_match on.
+        """
+        logger = StructuredLogger(__name__, prefix="find_target_objects_with_parent()> ")
+        if not target_name:
+            return []
+        if target_name[0] == Constants.REFERENCE_SYMBOL:
+            ref_key = self._normalize_reference_key(target_name[1:])
+            resolved = Actor.get_reference(ref_key)
+            if resolved is not None and isinstance(resolved, Object):
+                parent = getattr(resolved, 'in_actor', None)
+                return [(resolved, parent)]
+            return []
+        if target_name.lower() in ('me', 'self'):
+            return [(actor, None)] if isinstance(actor, Object) else []
+        first_match = max(1, first_match)
+        if '#' in target_name:
+            parts = target_name.split('#')
+            target_name = parts[0]
+            try:
+                first_match = int(parts[1])
+                last_match = first_match
+            except (ValueError, IndexError):
+                pass
+        target_lower = target_name.lower()
+        candidates: List[tuple] = []
+        stop_at = last_match if last_match >= 1 else None
+
+        def collect_with_parent(container, parent_actor):
+            if not hasattr(container, 'contents'):
+                return False
+            for obj in container.contents:
+                if obj.matches_keyword(target_lower):
+                    candidates.append((obj, parent_actor))
+                    if stop_at is not None and len(candidates) >= stop_at:
+                        return True
+                if collect_with_parent(obj, obj):
+                    return True
+            return False
+
+        if actor and hasattr(actor, 'contents'):
+            if collect_with_parent(actor, actor):
+                logger.debug3(f"candidates: {len(candidates)} (early exit after actor)")
+                if last_match >= 1:
+                    return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+                return candidates[first_match - 1:] if first_match <= len(candidates) else []
+        if (stop_at is None or len(candidates) < stop_at) and start_room and hasattr(start_room, 'contents'):
+            collect_with_parent(start_room, start_room)
+
+        logger.debug3(f"candidates: {len(candidates)}")
+        if last_match >= 1:
+            return candidates[first_match - 1:last_match] if first_match <= len(candidates) else []
+        return candidates[first_match - 1:] if first_match <= len(candidates) else []
 
     def find_target_object_with_parent(self, target_name: str, actor: Actor = None,
                                        start_room: 'Room' = None,
                                        target_number: int = 1) -> tuple:
-        """
-        Find an object by keyword in actor inventory and/or room, including inside containers.
-        Returns (object, parent) where parent is the Character, Room, or Object that directly
-        contains the object (so caller can parent.remove_object(obj) to auto-remove from container).
-        Returns (None, None) if not found.
-        """
-        logger = StructuredLogger(__name__, prefix="find_target_object_with_parent()> ")
-        if not target_name:
-            return (None, None)
-        if target_name[0] == Constants.REFERENCE_SYMBOL:
-            ref_key = self._normalize_reference_key(target_name[1:])
-            resolved = Actor.get_reference(ref_key)
-            if resolved is not None and isinstance(resolved, Object):
-                # Resolved by reference; parent is wherever it currently is
-                parent = getattr(resolved, 'in_actor', None)
-                return (resolved, parent)
-            return (None, None)
-        if target_name.lower() in ('me', 'self'):
-            return (actor if isinstance(actor, Object) else (None, None))
-        if '#' in target_name:
-            parts = target_name.split('#')
-            target_name = parts[0]
-            try:
-                target_number = int(parts[1])
-            except ValueError:
-                return (None, None)
-        target_lower = target_name.lower()
-        candidates = []  # list of (obj, parent)
-
-        def collect_with_parent(container, parent_actor):
-            if not hasattr(container, 'contents'):
-                return
-            for obj in container.contents:
-                if obj.matches_keyword(target_lower):
-                    candidates.append((obj, parent_actor))
-                collect_with_parent(obj, obj)
-
-        if actor and hasattr(actor, 'contents'):
-            collect_with_parent(actor, actor)
-        if start_room and hasattr(start_room, 'contents'):
-            collect_with_parent(start_room, start_room)
-
-        if 0 < target_number <= len(candidates):
-            return candidates[target_number - 1]
-        return (None, None)
+        """Return (object, parent) for the first match, or (None, None). Wrapper around find_target_objects_with_parent(..., first_match=target_number, last_match=target_number)."""
+        lst = self.find_target_objects_with_parent(target_name, actor=actor, start_room=start_room, first_match=max(1, target_number), last_match=max(1, target_number))
+        return lst[0] if lst else (None, None)
 
     
     async def start_connection(self, consumer: 'MyWebsocketConsumer'):
@@ -1089,9 +1199,9 @@ class ComprehensiveGameState:
         
         # Load save data and apply it to the character
         # For now, always start at default location (not combat reconnect scenario)
-        save_data = player_save_manager.load_character(
+        save_data = await player_save_manager.load_character(
             character_name, new_player, restore_location=False,
-            world_definition=self.world_definition
+            world_definition=self.world_definition, game_state=self
         )
         
         if not save_data:
@@ -1367,8 +1477,11 @@ class ComprehensiveGameState:
 
     def spawn_character(self, character_def: Actor, room: 'Room', spawned_by: ActorSpawnData = None):
         logger = StructuredLogger(__name__, prefix="spawn_character()> ")
+        if spawned_by and len(spawned_by.spawned) >= spawned_by.desired_quantity:
+            logger.debug3(f"Spawn cap reached for {spawned_by.id} in room {room.rid}, skipping spawn")
+            return
         new_character = Character.create_from_definition(character_def)
-        new_character.spawned_by = spawned_by
+        new_character.spawned_from = spawned_by
         self.characters.append(new_character)
         room.add_character(new_character)
         if spawned_by:
@@ -1377,9 +1490,15 @@ class ComprehensiveGameState:
 
     def respawn_character(self, owner: Actor, vars: dict):
         logger = StructuredLogger(__name__, prefix="respawn_character()> ")
-        spawn_data = vars['spawned_from']
+        spawn_data = vars.get('spawned_from') or vars.get('spawn_data')
+        if not spawn_data:
+            logger.warning("respawn_character called without spawned_from/spawn_data in vars")
+            return
+        if spawn_data.current_quantity >= spawn_data.desired_quantity:
+            logger.debug3(f"Respawn cap already met for {spawn_data.id}, skipping")
+            return
         character_def = self.world_definition.find_character_definition(spawn_data.id)
-        if character_def == None:
+        if character_def is None:
             raise Exception(f"Character definition for {spawn_data.id} not found.")
         self.spawn_character(character_def, owner, spawn_data)
 

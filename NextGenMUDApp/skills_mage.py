@@ -137,6 +137,23 @@ from .core_actions_interface import CoreActionsInterface
 
 
 class Skills_Mage(Skills):
+    def get_level_requirement(self, skill_name: str) -> int:
+        """Return the level requirement for a skill (used by skills UI; tier list matches MageSkills)."""
+        tier1_skills = ["magic missile", "shield", "detect magic", "light", "blur", "ignite"]
+        tier2_skills = ["fireball", "ice bolt", "arcane armor", "invisibility", "arcane barrier", "mana burn", "animate dead"]
+        tier3_skills = ["lightning bolt", "teleport", "polymorph"]
+        tier4_skills = ["meteor swarm", "time stop"]
+        skill_name = skill_name.lower()
+        if skill_name in tier1_skills:
+            return Skills.TIER1_MIN_LEVEL
+        if skill_name in tier2_skills:
+            return Skills.TIER2_MIN_LEVEL
+        if skill_name in tier3_skills:
+            return Skills.TIER3_MIN_LEVEL
+        if skill_name in tier4_skills:
+            return Skills.TIER4_MIN_LEVEL
+        return Skills.TIER1_MIN_LEVEL
+
     @classmethod
     async def _send_skill_message(cls, actor: Actor, target: Actor, message: str, game_state: 'ComprehensiveGameState'=None):
         """Helper to send a skill message with proper variable processing."""
@@ -163,10 +180,10 @@ class Skills_Mage(Skills):
                                game_state: 'ComprehensiveGameState'=None):
         msg = f"Your {spell_name} spell fizzles!"
         vars = set_vars(actor, actor, target, msg)
-        actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=game_state)
+        await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=game_state)
         msg = f"{actor.art_name_cap}'s {spell_name} spell fizzles!"
         vars = set_vars(actor, actor, target, msg)
-        actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
+        await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor], game_state=game_state)
 
     @classmethod
     async def do_mage_cast_fireball(cls, actor: Actor, target: Actor, 
@@ -175,7 +192,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         continue_func = lambda: cls.do_mage_cast_fireball_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
@@ -183,7 +200,7 @@ class Skills_Mage(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -207,13 +224,14 @@ class Skills_Mage(Skills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
 
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.FIREBALL],
-                              difficulty_modifier - attrib_mod):
+                              difficulty_modifier + attrib_mod):
             if THIS_SKILL_DATA.save_type:
                 save_chance, saved = target.attempt_save(
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.INTELLIGENCE)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    vars = set_vars(actor, actor, target, "")
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             damage = roll_dice(FIREBALL_DMG_DICE_NUM, FIREBALL_DMG_DICE_SIZE) + FIREBALL_DMG_BONUS
             
@@ -230,13 +248,13 @@ class Skills_Mage(Skills):
                 if c != actor and c != target:
                     msg = f"Your fireball also hits {c.art_name}!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+                    await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
                     msg = f"{actor.art_name_cap}'s fireball also hits you!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+                    await c.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
                     msg = f"{actor.art_name_cap}'s fireball also hits {c.art_name}!"
                     vars = set_vars(actor, actor, c, msg, { 'd': damage })
-                    actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls._game_state)
+                    await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, exceptions=[actor, c], game_state=cls._game_state)
                     await CoreActionsInterface.get_instance().do_calculated_damage(actor, c, damage, DamageType.FIRE)
             
             await Skills.consume_resources(actor, THIS_SKILL_DATA)
@@ -291,13 +309,14 @@ class Skills_Mage(Skills):
         
         # Skill determines chance of success
         if Skills.do_skill_check(actor, magic_missile_skill,
-                              difficulty_modifier - attrib_mod):
+                              difficulty_modifier + attrib_mod):
             if THIS_SKILL_DATA.save_type:
                 save_chance, saved = target.attempt_save(
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.INTELLIGENCE)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    vars = set_vars(actor, actor, target, "")
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             # Damage calculation: base dice + attribute bonus + skill bonus + level bonus
             # Keep damage relatively low - skill adds small bonus (skill/20 for low scaling)
@@ -337,7 +356,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         continue_func = lambda: cls.do_mage_cast_arcane_barrier_finish(actor, target, difficulty_modifier, game_tick)
         actor.recovers_at = (game_tick or cls._game_state.get_current_tick()) + actor.recovery_ticks
@@ -345,7 +364,7 @@ class Skills_Mage(Skills):
             continue_func()
         else:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -400,7 +419,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Default to self if no target
@@ -413,7 +432,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -427,16 +446,27 @@ class Skills_Mage(Skills):
         THIS_SKILL_DATA = MageSkills.SHIELD
         if not await cls.check_valid_finish(actor, target):
             return False
-        SHIELD_RESIST_BASE = 10  # Base multiplier value for shield (note: value may need adjustment to 0-2 range)
-        SHIELD_RESIST_PER_LEVEL = 0.5
-        
-        # Calculate multiplier based on caster's mage level
-        mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
-        multiplier_value = int(SHIELD_RESIST_BASE + (mage_level * SHIELD_RESIST_PER_LEVEL))
-        
+        game_tick = game_tick or cls._game_state.get_current_tick()
+
+        attrib_mod = (actor.attributes[CharacterAttributes.INTELLIGENCE] - Skills.ATTRIBUTE_AVERAGE) \
+            * Skills.ATTRIBUTE_SKILL_MODIFIER_PER_POINT
+        shield_skill = actor.skills_by_class[CharacterClassRole.MAGE][MageSkills.SHIELD]
+
         cooldown = Cooldown(actor, THIS_SKILL_DATA.cooldown_name, cls._game_state, cooldown_source=actor, 
                            cooldown_vars={"duration": THIS_SKILL_DATA.cooldown_ticks})
-        await cooldown.start(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.cooldown_ticks)
+        await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
+
+        if not Skills.do_skill_check(actor, shield_skill, difficulty_modifier + attrib_mod):
+            await cls._send_skill_message(actor, target, THIS_SKILL_DATA.message_failure_subject, cls._game_state)
+            if THIS_SKILL_DATA.message_failure_target:
+                await cls._send_skill_message_to_target(actor, target, THIS_SKILL_DATA.message_failure_target, cls._game_state)
+            await cls._send_skill_message_to_room(actor, target, THIS_SKILL_DATA.message_failure_room, [actor, target] if target != actor else [actor], cls._game_state)
+            return False
+
+        SHIELD_RESIST_BASE = 10  # Base multiplier value for shield (note: value may need adjustment to 0-2 range)
+        SHIELD_RESIST_PER_LEVEL = 0.5
+        mage_level = actor.levels_by_role.get(CharacterClassRole.MAGE, 1)
+        multiplier_value = int(SHIELD_RESIST_BASE + (mage_level * SHIELD_RESIST_PER_LEVEL))
 
         # Send success messages from skill definition
         if target == actor:
@@ -454,7 +484,7 @@ class Skills_Mage(Skills):
         
         new_state = CharacterStateShielded(target, cls._game_state, actor, "arcane shield", 
                                           multipliers=multipliers, tick_created=game_tick)
-        await new_state.apply_state(game_tick or cls._game_state.get_current_tick(), THIS_SKILL_DATA.duration_min_ticks)
+        await new_state.apply_state(game_tick, THIS_SKILL_DATA.duration_min_ticks)
         
         # Consume mana
         await Skills.consume_resources(actor, THIS_SKILL_DATA)
@@ -468,7 +498,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Default to self if no target
@@ -481,7 +511,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -529,12 +559,12 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to burn the mana of?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_mana_burn_finish(actor, target, difficulty_modifier, game_tick)
@@ -543,7 +573,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -571,7 +601,7 @@ class Skills_Mage(Skills):
         if not hasattr(target, 'current_mana') or target.max_mana <= 0:
             msg = f"{target.art_name_cap} has no magical energy to burn!"
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             await Skills.consume_resources(actor, THIS_SKILL_DATA)
             return False
         
@@ -580,7 +610,8 @@ class Skills_Mage(Skills):
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.INTELLIGENCE)
             if saved:
-                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                vars = set_vars(actor, actor, target, "")
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                 return True
         
         # Calculate actual mana drained (can't drain more than they have)
@@ -613,12 +644,12 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         if target is None:
             msg = "Who do you want to set on fire?"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_ignite_finish(actor, target, difficulty_modifier, game_tick)
@@ -627,7 +658,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, target, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -656,7 +687,8 @@ class Skills_Mage(Skills):
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.INTELLIGENCE)
             if saved:
-                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                vars = set_vars(actor, actor, target, "")
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                 return True
 
         # Send success messages from skill definition
@@ -682,7 +714,7 @@ class Skills_Mage(Skills):
         ready, msg = Skills.check_ready(actor, THIS_SKILL_DATA.cooldown_name, THIS_SKILL_DATA)
         if not ready:
             vars = set_vars(actor, actor, target, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             return False
         
         # Find an NPC corpse in the room
@@ -694,7 +726,7 @@ class Skills_Mage(Skills):
         
         if corpse is None:
             msg = "There is no corpse here to animate!"
-            actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, {}, game_state=cls._game_state)
             return False
             
         continue_func = lambda: cls.do_mage_cast_animate_dead_finish(actor, corpse, difficulty_modifier, game_tick)
@@ -703,7 +735,7 @@ class Skills_Mage(Skills):
             await continue_func()
         else:
             vars = set_vars(actor, actor, None, THIS_SKILL_DATA.message_prepare)
-            actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, THIS_SKILL_DATA.message_prepare, vars, game_state=cls._game_state)
             actor.recovers_at += THIS_SKILL_DATA.cast_time_ticks
             await cls.start_casting(actor, THIS_SKILL_DATA.cast_time_ticks, continue_func)
         return True
@@ -742,7 +774,7 @@ class Skills_Mage(Skills):
         if not char_def:
             msg = "The dark magic fails - the spirit has fled too far!"
             vars = set_vars(actor, actor, None, msg)
-            actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
+            await actor.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._game_state)
             await Skills.consume_resources(actor, MageSkills.ANIMATE_DEAD)
             return False
         
@@ -953,8 +985,8 @@ class MageSkills(ClassSkills):
         message_resist_subject="%t% resists your magic missiles!",
         message_resist_target="You resist $cap(%a%)'s magic missiles!",
         message_resist_room="%t% resists $cap(%a%)'s magic missiles!",
-        save_type="reflex",
-        save_difficulty=-10,
+        # No save: magic missile always hits if the cast succeeds (classic D&D behavior)
+        save_type=None,
         skill_function="do_mage_cast_magic_missile",
         ai_priority=50,
         ai_condition=SkillAICondition.IN_COMBAT,
@@ -1167,8 +1199,11 @@ class MageSkills(ClassSkills):
     ) 
 
 
+# Mage skills are defined on MageSkills (ClassSkills); register by name -> Skill from each member's .value
 SkillsRegistry.register_skill_class("mage", {
-    attr_name.lower(): getattr(Skills_Mage, attr_name)
-    for attr_name in dir(Skills_Mage)
-    if not attr_name.startswith('_') and isinstance(getattr(Skills_Mage, attr_name), Skill)
+    getattr(MageSkills, attr_name).value.name.lower(): getattr(MageSkills, attr_name).value
+    for attr_name in dir(MageSkills)
+    if not attr_name.startswith("_")
+    and hasattr(getattr(MageSkills, attr_name), "value")
+    and isinstance(getattr(MageSkills, attr_name).value, Skill)
 })

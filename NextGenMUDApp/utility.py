@@ -2,6 +2,7 @@ from .structured_logger import StructuredLogger
 from enum import IntFlag
 import re
 import random
+import string
 from typing import Any, Dict, List, Tuple
 from .constants import Constants
 
@@ -213,7 +214,8 @@ def evaluate_if_condition(condition_str, vars_dict, game_state):
     # We trim the values and the operator to handle "$if( x , eq , y )"
     val1 = parts[0].strip()
     operator = parts[1].strip().lower()
-    val2 = parts[2].strip()
+    # If more than 3 parts, predicate may contain commas (e.g. "xp,contains,xp,scroll" for activation words)
+    val2 = ",".join(p.strip() for p in parts[2:]) if len(parts) > 3 else parts[2].strip()
     # --- TARGETED TRIMMING END ---
 
     # Logic for numeric operators (should always be trimmed)
@@ -237,9 +239,15 @@ def evaluate_if_condition(condition_str, vars_dict, game_state):
     if operator == "neq":
         return val1.lower() != val2.lower()
     if operator == "contains":
-        # Note: We do NOT trim here if we want spaces to be significant in searches
-        # but for $if, it is generally safer to use the trimmed versions.
+        # Comma-separated predicate: true if subject contains any of the words (for activation-word lists)
+        if "," in val2:
+            words = [w.strip().lower() for w in val2.split(",") if w.strip()]
+            return any(w in val1.lower() for w in words)
         return val2.lower() in val1.lower()
+    if operator == "oneof":
+        # val1 is a single value, val2 is comma-separated list; true if val1 equals one of the list entries
+        choices = [x.strip().lower() for x in val2.split(",")]
+        return val1.strip().lower() in choices
 
     return False
 
@@ -385,6 +393,7 @@ SCRIPT_FUNCTIONS = {
     "loczone": lambda a,b,c,gs: gs.find_target_character(None, a).current_room_.zone_.name_,
     "olocroom": lambda a,b,c,gs: gs.find_target_object(a).current_room_.name_,
     "oloczone": lambda a,b,c,gs: gs.find_target_object(a).current_room_.zone_.name_,
+    "words": lambda a,b,c,gs: script_words(a, b, c, gs),
 }
 
 # TODO:M: make these handle containers
@@ -412,6 +421,42 @@ def try_get(lst: [], idx: int, default=None):
         return lst[idx]
     except IndexError:
         return default
+
+
+def script_words(text: str, first_str: str, last_str: str, game_state) -> str:
+    """
+    Extract a range of words from text. Word numbering is 1-based (first word is 1).
+    Punctuation (e.g. , . ! ? ) is stripped from word boundaries and ignored when
+    determining words; e.g. "Hello, world!" is two words: "Hello", "world".
+    $words(text, first, last): returns words from index first to last (inclusive).
+    If last < 1 or last > number of words, returns from first to end of text.
+    """
+    if not isinstance(text, str):
+        text = str(text) if text is not None else ""
+    raw = text.split()
+    words = []
+    for token in raw:
+        w = token.strip(string.punctuation)
+        if w:
+            words.append(w)
+    n = len(words)
+    if n == 0:
+        return ""
+    first = to_int(first_str)
+    last = to_int(last_str)
+    if first < 1:
+        first = 1
+    if first > n:
+        return ""
+    # last < 1 or last > n -> through end
+    if last < 1 or last > n:
+        last = n
+    if last < first:
+        return ""
+    # 1-based to 0-based slice
+    start = first - 1
+    end = last
+    return " ".join(words[start:end])
 
 
 def evaluate_functions_in_line(line: str, vars: dict, game_state: 'ComprehensiveGameState') -> str:

@@ -262,7 +262,7 @@ class CoreActions(CoreActionsInterface):
         if actor.fighting_whom == None and actor.group_id is not None \
             and not actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
             for c in room.get_characters():
-                if c != actor and c.group_id == actor.group_id and c.fighting_whom != None \
+                if c != actor and not c.is_dead() and c.group_id == actor.group_id and c.fighting_whom != None \
                     and not c.has_perm_flags(PermanentCharacterFlags.IS_PC) \
                         and c.fighting_whom != actor:
                     msg = f"You join the attack against {c.fighting_whom.art_name}!"
@@ -404,7 +404,7 @@ class CoreActions(CoreActionsInterface):
     #     do_echo(actor, CommTypes.DYNAMIC, f"You tell {target.name}, \"{text}\"")
     #     do_echo(target, CommTypes.DYNAMIC, f"{actor.name} tells you, \"{text}\"")
     #     var = { 'actor': actor, 'text': text }
-    #     for trigger_type in [ TriggerType.CATCH_TELL ]:
+    #     for trigger_type in [ TriggerType.ON_TELL ]:
     #         if trigger_type in target.triggers_by_type:
     #             for trigger in target.triggers_by_type[trigger_type]:
     #                 await trigger.run(actor, text, var, None)
@@ -458,8 +458,8 @@ class CoreActions(CoreActionsInterface):
         for c in target.location_room.get_characters():
             logger.debug3(f"checking {c.rid}: attitude={c.attitude}, group={c.group_id}")
             
-            # Skip if already fighting or if this is the subject or target
-            if c.fighting_whom is not None or c == subject or c == target:
+            # Skip if dead, already fighting, or if this is the subject or target
+            if c.is_dead() or c.fighting_whom is not None or c == subject or c == target:
                 continue
                 
             will_join_fight = False
@@ -534,7 +534,7 @@ class CoreActions(CoreActionsInterface):
             raise Exception("Actor must not be fighting anyone to fight next opponent.")
             # return
         for c in actor.location_room.get_characters():
-            if c.fighting_whom == actor:
+            if c.fighting_whom == actor and not c.is_dead():
                 logger.debug3(f"actor: {actor}, c: {c}")
                 await self.start_fighting(actor, c)
                 break
@@ -554,8 +554,8 @@ class CoreActions(CoreActionsInterface):
         for c in target.location_room.get_characters():
             logger.debug3(f"checking {c.rid}: attitude={c.attitude}, group={c.group_id}")
             
-            # Skip if already fighting, or is the attacker/target
-            if c.fighting_whom is not None or c == attacker or c == target:
+            # Skip if dead, already fighting, or is the attacker/target
+            if c.is_dead() or c.fighting_whom is not None or c == attacker or c == target:
                 continue
             
             # Skip PCs - they make their own decisions
@@ -638,8 +638,8 @@ class CoreActions(CoreActionsInterface):
             if total_levels > 0:
                 for c in those_fighting_dier:
                     this_xp = math.ceil(xp_amount * c.total_levels() / total_levels)
-                    c.experience_points += this_xp
-                    msg = f"You gain {this_xp} experience points!"
+                    actual_xp, _ = c.gain_xp(this_xp)
+                    msg = f"You gain {actual_xp} experience points!"
                     await c.echo(CommTypes.DYNAMIC, msg, set_vars(c, c, dying_actor, msg), game_state=self.game_state)
 
         # Those fighting the dying actor switch to new targets
@@ -648,6 +648,13 @@ class CoreActions(CoreActionsInterface):
             if c in self.game_state.get_characters_fighting():
                 self.game_state.remove_character_fighting(c)
             await self.fight_next_opponent(c)
+
+        # Remove all actor states and cancel their scheduled events (so no state removal runs after location_room is cleared)
+        self.game_state._purge_actor_events(dying_actor)
+        for state in list(getattr(dying_actor, 'states', [])):
+            result = state.remove_state(force=True)
+            if asyncio.iscoroutine(result):
+                await result
 
         # Remove from room (temporarily for players)
         dying_actor.location_room.remove_character(dying_actor)
@@ -693,7 +700,7 @@ class CoreActions(CoreActionsInterface):
                         in_ticks = ticks_from_seconds(dying_actor.spawned_from.respawn_time_min 
                                                         + random.randint(0, dying_actor.spawned_from.respawn_time_max 
                                                                         - dying_actor.spawned_from.respawn_time_min))
-                        event_vars = { 'spawn_data': dying_actor.spawned_from }
+                        event_vars = { 'spawned_from': dying_actor.spawned_from }
                         self.game_state.add_scheduled_event(EventType.RESPAWN, dying_actor.spawned_from.owner, "respawn", in_ticks=in_ticks,
                                                             vars=event_vars, func=lambda subject, current_tick, game_state, vars: self.game_state.respawn_character(subject, vars),
                                                             attach_to_actor=dying_actor.spawned_from.owner)
@@ -770,7 +777,7 @@ class CoreActions(CoreActionsInterface):
                                   TemporaryCharacterFlags.IS_SITTING)
         
         # Remove all active states (DOTs, debuffs, buffs) and cooldowns
-        for state in player.current_states[:]:
+        for state in player.states[:]:
             result = state.remove_state(force=True)
             if asyncio.iscoroutine(result):
                 await result

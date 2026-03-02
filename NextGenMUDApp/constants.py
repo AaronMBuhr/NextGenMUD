@@ -127,7 +127,7 @@ class Constants:
     # Player save settings
     PLAYER_SAVES_DIR: ClassVar[str] = "player_saves"
     DEFAULT_START_LOCATION: ClassVar[str] = "central_city.city_gates"  # Format: zone.room
-    DEFAULT_CHARACTER_TEMPLATE: ClassVar[str] = "debug_zone.test_player"
+    DEFAULT_CHARACTER_TEMPLATE: ClassVar[str] = "master_zone.test_player"
     
     # Disconnect/linkdead settings
     DISCONNECT_GRACE_PERIOD_SECONDS: ClassVar[int] = 60
@@ -142,23 +142,25 @@ class Constants:
     # Mana system
     MANA_BY_CHARACTER_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], int]] = {}
     MANA_ATTRIBUTE_SCALING: ClassVar[int] = 2
-    MANA_REGEN_COMBAT: ClassVar[float] = 0.1
-    MANA_REGEN_WALKING: ClassVar[float] = 0.5
-    MANA_REGEN_RESTING: ClassVar[float] = 2.0
-    MANA_REGEN_MEDITATING: ClassVar[float] = 4.0
+    # Mana regen: rate per second (regen pulse runs once per second)
+    MANA_REGEN_COMBAT: ClassVar[float] = 1.0
+    MANA_REGEN_WALKING: ClassVar[float] = 2.0
+    MANA_REGEN_RESTING: ClassVar[float] = 4.0
+    MANA_REGEN_MEDITATING: ClassVar[float] = 8.0
     
     # Stamina system
     STAMINA_BY_CHARACTER_CLASS: ClassVar[Dict[Union[CharacterClassRole, int], int]] = {}
     STAMINA_ATTRIBUTE_SCALING: ClassVar[int] = 2
-    STAMINA_REGEN_COMBAT: ClassVar[float] = 0.5
+    # Stamina regen: rate per second (minimum 1)
+    STAMINA_REGEN_COMBAT: ClassVar[float] = 1.0
     STAMINA_REGEN_WALKING: ClassVar[float] = 2.0
     STAMINA_REGEN_RESTING: ClassVar[float] = 4.0
     
-    # HP regeneration
+    # HP regeneration: amount per pulse; pulse runs every 8 seconds (0 in combat)
     HP_REGEN_COMBAT: ClassVar[float] = 0.0
-    HP_REGEN_WALKING: ClassVar[float] = 0.1
-    HP_REGEN_RESTING: ClassVar[float] = 0.5
-    HP_REGEN_SLEEPING: ClassVar[float] = 1.0
+    HP_REGEN_WALKING: ClassVar[float] = 1.0
+    HP_REGEN_RESTING: ClassVar[float] = 2.0
+    HP_REGEN_SLEEPING: ClassVar[float] = 4.0
     
     # Combat scaling progressions (per level, by class)
     HIT_BONUS_PROGRESSION: ClassVar[Dict[Union[CharacterClassRole, int], List[int]]] = {}

@@ -185,7 +185,7 @@ class Skills_Rogue(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.DEXTERITY)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             damage = roll_dice(mhw.damage_dice_number_, mhw.damage_dice_size_, mhw.damage_dice_modifier_) * BACKSTAB_DAMAGE_MULT
             msg = f"You backstab {target.art_name} for {damage} damage!"
@@ -270,7 +270,7 @@ class Skills_Rogue(Skills):
     @classmethod
     def remove_stealth(cls, actor: Actor):
         actor.remove_temp_flags(TemporaryCharacterFlags.IS_STEALTHED)
-        states = [s for s in actor.current_states if s is CharacterStateStealthed]
+        states = [s for s in actor.states if s is CharacterStateStealthed]
         for s in actor.remove_state:
             actor.remove_state(s)
         cds = [cd for cd in actor.cooldowns_ if cd.cooldown_source_ == cls.do_rogue_stealth]

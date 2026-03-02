@@ -9,6 +9,7 @@ from .core_actions_interface import CoreActionsInterface
 from .nondb_models.actor_states import Cooldown, CharacterStateForcedSitting, CharacterStateHitPenalty, \
     CharacterStateStealthed, CharacterStateStunned, CharacterStateBleeding, CharacterStateHitBonus, \
     CharacterStateDodgeBonus, CharacterStateShielded, CharacterStateDamageBonus, CharacterStateBerserkerStance, CharacterStateCasting
+from .nondb_models.actor_interface import ActorType
 from .nondb_models.actors import Actor
 from .nondb_models.attacks_and_damage import DamageType, DamageReduction, DamageMultipliers, PotentialDamage
 from .nondb_models.character_interface import CharacterAttributes, EquipLocation,\
@@ -94,7 +95,16 @@ class SkillsRegistry(SkillsRegistryInterface):
         logger.debug3(f"direct match: {skill}")
         if skill:
             return skill.name, ""
-            
+
+        # Try word-prefix match (longest first): e.g. "shield me" -> "shield" + "me", "magic missile rabbit" -> "magic missile" + "rabbit"
+        for n in range(len(words), 0, -1):
+            candidate = " ".join(words[:n])
+            skill = cls._skills_by_name.get(candidate)
+            if skill:
+                remainder = " ".join(words[n:])
+                logger.debug3(f"word-prefix match: {skill.name}, remainder: {remainder}")
+                return skill.name, remainder
+
         logger.debug3(f"no direct match, trying partial match against {len(cls._skills_by_name)} skills")
         # Try partial matching
         matches = []
@@ -202,11 +212,8 @@ class SkillsRegistry(SkillsRegistryInterface):
                 game_tick=current_tick,
                 nowait=False
             )
-            
-            # Consume resources if skill succeeded
-            if result and (skill.mana_cost > 0 or skill.stamina_cost > 0):
-                await Skills.consume_resources(actor, skill)
-            
+            # Resource consumption (mana/stamina) is done only on finish by each skill
+            # (e.g. in _finish for cast-time skills, or at end of instant skills).
             return result
         except Exception as e:
             logger.error(f"Error executing skill {skill_name}: {e}")
@@ -419,7 +426,7 @@ class Skills(SkillsInterface):
     _initialized = False
 
     ATTRIBUTE_AVERAGE = 10
-    ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 4
+    ATTRIBUTE_SKILL_MODIFIER_PER_POINT = 2
 
     # Tier 1 skills (levels 1-9)
     TIER1_MIN_LEVEL = 1
@@ -502,23 +509,32 @@ class Skills(SkillsInterface):
     @classmethod
     async def start_casting(cls, actor: Actor, duration_ticks: int, cast_function: callable):
         game_tick = cls._get_game_state().get_current_tick()
+        # Clear any stuck or previous casting state so we only have one at a time
+        if hasattr(actor, 'get_character_states_by_type'):
+            for state in actor.get_character_states_by_type(CharacterStateCasting):
+                await state.remove_state(force=True)
         new_state = CharacterStateCasting(actor, cls._get_game_state(), actor, "casting", tick_created=game_tick, casting_finish_func=cast_function)
         await new_state.apply_state(game_tick, duration_ticks)
         return True
 
     @classmethod
     def check_skill_roll(cls, skill_roll: int, actor: Actor, skill: 'CharacterSkill', difficulty_mod: int=0) -> int:
-        return skill_roll - skill.skill_level - difficulty_mod
-    
+        """
+        Skill is 0 (unlearned) to 100 (mastered). Success when roll <= threshold.
+        Returns (threshold - roll); result >= 0 means success.
+        """
+        threshold = max(0, min(100, skill.skill_level + difficulty_mod))
+        return threshold - skill_roll
+
     @classmethod
     def do_skill_check(cls, actor: Actor, skill: 'CharacterSkill', difficulty_mod: int=0) -> bool:
         """
-        Perform a skill check by rolling 1-100 and comparing against skill level.
-        Returns True if the check succeeds (roll >= skill_level + difficulty_mod).
+        Perform a skill check: roll 1-100, succeed if roll <= skill_level + difficulty_mod.
+        So skill 30 = 30% chance (roll 1-30), skill 100 = 100% (roll 1-100).
         """
         skill_roll = random.randint(1, 100)
         result = cls.check_skill_roll(skill_roll, actor, skill, difficulty_mod)
-        return result >= 0 
+        return result >= 0
     
     @classmethod
     def check_ready(cls, actor: Actor, cooldown_name: str=None, skill: Skill=None) -> Tuple[bool, str]:
@@ -609,7 +625,7 @@ class Skills(SkillsInterface):
         msg = getattr(skill, "message_success_room", None)
         if msg:
             vars = set_vars(actor, actor, first_target, msg)
-            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state(), exceptions=[actor] + list(targets or []))
 
     @classmethod
     async def send_failure_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
@@ -625,7 +641,7 @@ class Skills(SkillsInterface):
         msg = getattr(skill, "message_failure_room", None)
         if msg:
             vars = set_vars(actor, actor, first_target, msg)
-            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state(), exceptions=[actor] + list(targets or []))
 
     @classmethod
     async def send_apply_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
@@ -641,10 +657,10 @@ class Skills(SkillsInterface):
         msg = getattr(skill, "message_apply_room", None)
         if msg:
             vars = set_vars(actor, actor, first_target, msg)
-            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state(), exceptions=[actor] + list(targets or []))
 
     @classmethod
-    async def send_resist_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict) -> None:
+    async def send_resist_message(cls, actor: Actor, targets: List[Actor], skill: Skill, vars: dict, *, start_combat_on_resist: bool = False) -> None:
         msg = getattr(skill, "message_resist_subject", None)
         first_target = targets[0] if targets else actor
         vars = set_vars(actor, actor, first_target, msg)
@@ -657,4 +673,10 @@ class Skills(SkillsInterface):
         msg = getattr(skill, "message_resist_room", None)
         if msg:
             vars = set_vars(actor, actor, first_target, msg)
-            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, cls._get_game_state(), exceptions=targets)
+            await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars, game_state=cls._get_game_state(), exceptions=[actor] + list(targets or []))
+        if start_combat_on_resist and targets and len(targets) == 1:
+            target = targets[0]
+            if (actor.actor_type == ActorType.CHARACTER and target.actor_type == ActorType.CHARACTER
+                    and actor.location_room and target.location_room == actor.location_room
+                    and not target.is_dead() and not getattr(target, "is_unkillable", False)):
+                await CoreActionsInterface.get_instance().start_fighting(actor, target)

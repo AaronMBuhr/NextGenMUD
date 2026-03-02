@@ -5,7 +5,7 @@ from ..structured_logger import StructuredLogger
 from enum import Enum, auto, IntFlag
 import json
 import random
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING
 from .actor_interface import ActorInterface, ActorType, ActorSpawnData
 from ..basic_types import DescriptiveFlags
 from ..communication import CommTypes
@@ -90,9 +90,25 @@ class Actor(ActorInterface):
         return f"{self.__class__.__name__}({fields_info})"
 
     @classmethod
+    def _reference_key_canonical(cls, key: str):
+        """Return the actual key in references_ that matches key case-insensitively, or key if not found."""
+        if not key:
+            return key
+        if key in cls.references_:
+            return key
+        key_upper = key.upper()
+        for k in cls.references_.keys():
+            if k.upper() == key_upper:
+                return k
+        return key
+
+    @classmethod
     def get_reference(cls, reference_number):
+        if reference_number is None:
+            return None
+        canonical = cls._reference_key_canonical(reference_number)
         try:
-            return cls.references_[reference_number]
+            return cls.references_[canonical]
         except KeyError:
             return None
 
@@ -112,8 +128,9 @@ class Actor(ActorInterface):
 
     @classmethod
     def dereference_(cls, reference_number):
-        if reference_number in cls.references_:
-            del cls.references_[reference_number]
+        canonical = cls._reference_key_canonical(reference_number) if reference_number else None
+        if canonical and canonical in cls.references_:
+            del cls.references_[canonical]
 
     def dereference(self):
         Actor.dereference_(self.reference_number)
@@ -121,15 +138,22 @@ class Actor(ActorInterface):
     async def send_text(self, text_type: CommTypes, text: str):
         pass
 
-    def apply_state(self, state: "ActorState"):
+    def add_state(self, state: "ActorState") -> None:
+        """Add a state to this actor's state list. Used by apply_state and for direct adds."""
         self.states.append(state)
 
-    def remove_state(self, state: "ActorState"):
+    def apply_state(self, state: "ActorState") -> None:
+        """Add a state to this actor's state list (same as add_state; name matches ActorState.apply_state flow)."""
+        self.states.append(state)
+
+    def remove_state(self, state: "ActorState") -> bool:
+        """Remove a state from this actor's state list. Returns True (idempotent if already absent)."""
         if state in self.states:
             self.states.remove(state)
-        else:
-            logger = StructuredLogger(__name__, prefix="Actor.remove_state()> ")
-            logger.warning(f"Attempted to remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from actor {self.name} ({self.id}), but state was not in states list.")
+            return True
+        logger = StructuredLogger(__name__, prefix="Actor.remove_state()> ")
+        logger.debug(f"Remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from actor {self.name} ({self.id}): not in states (already removed).")
+        return True
         
     def can_act(self, allow_if_hindered=False) -> tuple[bool, str]:
         if self.has_temp_flags(TemporaryCharacterFlags.IS_FROZEN):
@@ -150,6 +174,8 @@ class Actor(ActorInterface):
     def matches_keyword(self, keyword: str) -> bool:
         """Check if this actor matches a keyword via id, name words, or keywords list.
         All comparisons use case-insensitive startswith for consistency.
+        Multi-word keywords (e.g. "savant scroll of learning") match against the full
+        name as well as individual words.
         Non-string entries in id, name, or keywords (e.g. from YAML) are skipped or coerced."""
         if not isinstance(keyword, str):
             return False
@@ -157,7 +183,11 @@ class Actor(ActorInterface):
         if isinstance(self.id, str) and self.id.lower().startswith(keyword_lower):
             return True
         if isinstance(self.name, str):
-            for word in self.name.lower().split():
+            name_lower = self.name.lower()
+            if " " in keyword_lower:
+                if name_lower.startswith(keyword_lower) or name_lower == keyword_lower:
+                    return True
+            for word in name_lower.split():
                 if word.startswith(keyword_lower):
                     return True
         for kw in self.keywords:
@@ -223,7 +253,21 @@ class Actor(ActorInterface):
         return self.perm_variables.get(varname, default)
     
     def get_recovery_modifier(self):
-        return sum([state.recovery_modifier for state in self.states if isinstance(state, CharacterStateRecoveryModifier)])
+        from .actor_states import CharacterStateRecoveryModifier, get_actor_states
+        return sum(state.recovery_modifier for state in get_actor_states(self, CharacterStateRecoveryModifier))
+
+    def get_experience_modifier(self) -> float:
+        """Multiplicative XP modifier from ExperienceModifier states (e.g. 1.5 = 50% more). No states = 1.0."""
+        from .actor_states import CharacterStateExperienceModifier, get_actor_states
+        product = 1.0
+        for state in get_actor_states(self, CharacterStateExperienceModifier):
+            product *= state.modifier
+        return product
+
+    def get_actor_state(self, state_class: type) -> Optional['ActorState']:
+        """Return the first state on this actor that is an instance of state_class, or None."""
+        from .actor_states import get_actor_state as _get_actor_state
+        return _get_actor_state(self, state_class)
     
     def make_busy_until(self, game_tick: int):
         self.recovers_at = game_tick

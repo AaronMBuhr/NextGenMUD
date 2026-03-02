@@ -10,6 +10,41 @@ from ..comprehensive_game_state_interface import GameStateInterface
 from .trigger_interface import TriggerInterface, TriggerType, TriggerFlags
 from ..utility import evaluate_if_condition, replace_vars, evaluate_functions_in_line
 
+# -----------------------------------------------------------------------------
+# trigger_run debug: log only for triggers on actors in the activator's room
+# -----------------------------------------------------------------------------
+def _trigger_run_should_log(game_state, trigger_owner) -> bool:
+    """True if trigger_run debug is on and trigger_owner is in same room as the PC who enabled it."""
+    if not game_state or not getattr(game_state, 'is_debug_enabled', lambda n: False)('trigger_run'):
+        return False
+    get_activator = getattr(game_state, 'get_debug_activator_character', None)
+    if not get_activator:
+        return False
+    activator = get_activator('trigger_run')
+    if not activator or not getattr(activator, 'location_room', None):
+        return False
+    if trigger_owner is None:
+        return False
+    from .actor_interface import ActorType
+    owner_room = (
+        trigger_owner
+        if getattr(trigger_owner, 'actor_type', None) == ActorType.ROOM
+        else getattr(trigger_owner, 'location_room', None)
+    )
+    return owner_room is not None and owner_room == activator.location_room
+
+
+def _trigger_run_log(game_state, trigger_owner, msg: str, **kwargs):
+    """Emit a [trigger_run] debug log line if trigger_run is on and owner is in activator's room."""
+    if not _trigger_run_should_log(game_state, trigger_owner):
+        return
+    log = StructuredLogger(__name__, prefix="[trigger_run] ")
+    parts = [msg]
+    for k, v in kwargs.items():
+        vstr = repr(v) if len(repr(v)) <= 120 else repr(v)[:117] + "..."
+        parts.append(f"{k}={vstr}")
+    log.debug(" ".join(parts))
+
 
 class TriggerCriteria:
     def __init__(self) -> None:
@@ -56,8 +91,14 @@ class TriggerCriteria:
         # if self.subject_ == subject:
         #     raise Exception(f"Unable to replace variables in subject: {self.subject_}")
         logger.debug3(f"checking calculated {subject},{self.operator},{predicate}")
-        condition_str = f"{subject},{self.operator},{predicate}"
-        result = evaluate_if_condition(condition_str, vars, game_state)
+        # For "contains" with comma-separated predicate (activation words), match if subject contains any of them
+        if self.operator and self.operator.strip().lower() == "contains" and "," in str(predicate):
+            words = [w.strip().lower() for w in str(predicate).split(",") if w.strip()]
+            subject_lower = str(subject).lower()
+            result = any(w in subject_lower for w in words)
+        else:
+            condition_str = f"{subject},{self.operator},{predicate}"
+            result = evaluate_if_condition(condition_str, vars, game_state)
         # if self.operator_.lower() == 'contains':
         #     return predicate.lower() in subject.lower()
         # elif self.operator_.lower() == 'matches':
@@ -151,6 +192,9 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.ON_SAY:
             logger.debug3("returning TriggerOnSay")
             return TriggerOnSay(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_TELL:
+            logger.debug3("returning TriggerOnTell")
+            return TriggerOnTell(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.ON_ARRIVE:
             logger.debug3("returning TriggerOnArrive")
             return TriggerOnArrive(trigger_id, actor, disabled)
@@ -196,6 +240,9 @@ class Trigger(TriggerInterface):
         elif trigger_type_enum == TriggerType.ON_SIGNAL:
             logger.debug3("returning TriggerOnSignal")
             return TriggerOnSignal(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_COMMAND:
+            logger.debug3("returning TriggerCatchCommand")
+            return TriggerCatchCommand(trigger_id, actor, disabled)
         else:
             logger.warning(f"Unhandled trigger type enum: {trigger_type_enum}")
             raise ValueError(f"Unknown or unhandled trigger type: {trigger_type_enum}")
@@ -213,6 +260,10 @@ class Trigger(TriggerInterface):
 
     def are_flags_set(self, flags: TriggerFlags) -> bool:
         return self.flags.are_flags_set(flags)
+
+    def _trigger_run_debug_log(self, game_state, msg: str, **kwargs):
+        """Log for trigger_run debug mode (only when owner is in activator's room)."""
+        _trigger_run_log(game_state, self.actor_, msg, **kwargs)
 
     def get_criteria_summary(self) -> str:
         """Get a human-readable summary of this trigger's criteria."""
@@ -242,7 +293,23 @@ class Trigger(TriggerInterface):
         logger = StructuredLogger(__name__, prefix="Trigger.execute_trigger_script()> ")
         logger.debug3("executing execute_trigger_script")
         logger.debug3(f"script: {self.script_}")
-        
+
+        # trigger_run debug: detailed log only for triggers in activator's room
+        if _trigger_run_should_log(game_state, actor):
+            vars_preview = {k: (repr(v)[:80] + "..." if len(repr(v)) > 80 else repr(v)) for k, v in (vars or {}).items()}
+            self._trigger_run_debug_log(
+                game_state,
+                "execute_trigger_script START",
+                trigger_id=self.id,
+                trigger_type=self.trigger_type_.name,
+                owner_rid=getattr(actor, 'rid', None),
+                owner_name=getattr(actor, 'name', None),
+                owner_id=getattr(actor, 'id', None),
+                vars_keys=list((vars or {}).keys()),
+                vars_preview=vars_preview,
+            )
+            _trigger_run_log(game_state, actor, "script", script=self.script_ or "")
+
         # For Characters with LLM tracking enabled (not TIMER_TICK), wrap script with tracking commands
         from .actor_interface import ActorType
         should_track = (
@@ -274,11 +341,14 @@ class Trigger(TriggerInterface):
             # No tracking - just run the script normally
             await self.script_handler_.run_script(actor, self.script_, vars, game_state)
 
+        if _trigger_run_should_log(game_state, actor):
+            self._trigger_run_debug_log(game_state, "execute_trigger_script DONE", trigger_id=self.id)
+
 
 
 # class CatchTellTrigger(Trigger):
 #     def __init__(self) -> None:
-#         super().__init__(TriggerType.CATCH_TELL)
+#         super().__init__(TriggerType.ON_TELL)
 #         self.criteria_ = ""
 #         self.script_ = ""
 
@@ -298,14 +368,17 @@ class TriggerOnAny(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         logger = StructuredLogger(__name__, prefix="TriggerOnAny.run()> ")
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         if self.disabled_:
             return False
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
         logger.debug3("evaluating")
-        for crit in self.criteria_:
-            if not crit.evaluate(vars, game_state):
+        for i, crit in enumerate(self.criteria_):
+            result = crit.evaluate(vars, game_state)
+            self._trigger_run_debug_log(game_state, f"criterion[{i}]", subject=getattr(crit, 'subject', None), operator=getattr(crit, 'operator', None), predicate=getattr(crit, 'predicate', None), result=result)
+            if not result:
                 logger.debug3("criteria not met")
                 return False
         logger.debug3("executing script")
@@ -351,6 +424,7 @@ class TriggerTimerTick(Trigger):
         if self.disabled_:
             logger.debug3("disabled")
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         if not Actor.get_reference(actor.reference_number) or actor.is_deleted:
             if self in TriggerTimerTick.timer_tick_triggers_:
                 TriggerTimerTick.timer_tick_triggers_.remove(self)
@@ -407,6 +481,7 @@ class TriggerCatchLook(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerCatchLook.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
@@ -432,6 +507,7 @@ class TriggerOnSay(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnSay.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
@@ -441,6 +517,77 @@ class TriggerOnSay(Trigger):
                 return False
         logger.debug3("executing script")
         await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
+
+class TriggerOnTell(Trigger):
+    """
+    Fires when someone directs speech at this actor via sayto, tell, whisper, or ask.
+    Does not fire on plain 'say' (room speech); use ON_SAY for that.
+    Variables: %s%/%S% = the speaker (who said to you), %a%/%A% = this actor (recipient), %*% = the text said.
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_TELL, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: 'GameStateInterface' = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnTell.run()> ")
+        if self.disabled_:
+            return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
+        # actor param = trigger owner (this NPC); vars from caller have a/A = speaker, t/T = target (this NPC)
+        # Script gets: %s%/%S% = speaker, %a%/%A% = this actor (recipient), %*% = text
+        vars = {**(vars or {}),
+                's': vars.get('a', '') if vars else '',
+                'S': vars.get('A', '') if vars else '',
+                'a': self.actor_.name,
+                'A': Constants.REFERENCE_SYMBOL + self.actor_.reference_number,
+                'p': self.actor_.pronoun_subject,
+                'P': self.actor_.pronoun_object,
+                '*': text or ''}
+        vars.update(self.actor_.get_vars("a"))
+        for i, crit in enumerate(self.criteria_):
+            result = crit.evaluate(vars, game_state)
+            self._trigger_run_debug_log(game_state, f"criterion[{i}]", subject=getattr(crit, 'subject', None), operator=getattr(crit, 'operator', None), predicate=getattr(crit, 'predicate', None), result=result, vars_star=vars.get('*', ''))
+            if not result:
+                return False
+        await self.execute_trigger_script(self.actor_, vars, game_state)
+        return True
+
+
+class TriggerCatchCommand(Trigger):
+    """
+    Fires when the player types a command whose first word is in this trigger's
+    comma-separated list of command words. Check order: room, then room objects,
+    then room NPCs, then each character's top-level inventory (not container contents).
+    Condition: criteria with operator "oneof" and predicate = comma-separated command words.
+    Variables: %text% = full command input (including the command word); %*% = command word only (for criteria).
+    If the trigger runs, command processing stops.
+    """
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.CATCH_COMMAND, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface = None) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerCatchCommand.run()> ")
+        if self.disabled_:
+            return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
+        # actor = player who issued the command; self.actor_ = owner (room/object/npc/item)
+        vars = {**(vars or {}),
+                **({'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                    'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text}),
+                **(actor.get_vars("a"))}
+        for crit in self.criteria_:
+            if not crit.evaluate(vars, game_state):
+                return False
+        await self.execute_trigger_script(self.actor_, vars, game_state)
         return True
 
 
@@ -462,6 +609,7 @@ class TriggerCatchGo(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerCatchGo.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
                 **(actor.get_vars("a"))}
@@ -493,6 +641,7 @@ class TriggerOnEnter(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnEnter.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         # vars must include room_id (set by caller to zone_id.subzone_id.room_id of room entered)
         vars = {**(vars or {}),
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -534,7 +683,7 @@ class TriggerOnArrive(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnArrive.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         # Build vars with arriving character info
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
@@ -575,6 +724,7 @@ class TriggerCatchZerohp(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerCatchZerohp.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         # vars from caller: a/A = damaged (this actor), s/S = damager, t/T = damaged
         vars = {**(vars or {}),
                 **({ 'a': self.actor_.name, 'A': Constants.REFERENCE_SYMBOL + self.actor_.reference_number,
@@ -678,6 +828,7 @@ class TriggerOnSignal(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnSignal.run()> ")
         if self.disabled_:
             return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(signaler, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         signal_name = (vars or {}).get('signal', '')
         target_actor = (vars or {}).get('target_actor')
         vars = {**(vars or {}),
@@ -719,7 +870,7 @@ class TriggerOnLeave(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnLeave.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -762,7 +913,7 @@ class TriggerOnReceive(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnReceive.run()> ")
         if self.disabled_:
             return False
-
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         # Vars from give: a/A=receiver, s/S=giver, t/T=receiver, o/O=item. Add * and trigger-owner prefixed vars.
         vars = {**(vars or {}),
                 '*': text or '',
@@ -799,7 +950,7 @@ class TriggerOnGet(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnGet.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -837,7 +988,7 @@ class TriggerOnDrop(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnDrop.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -868,7 +1019,7 @@ class TriggerOnOpen(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnOpen.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -897,7 +1048,7 @@ class TriggerOnClose(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnClose.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -926,7 +1077,7 @@ class TriggerOnLock(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnLock.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -955,7 +1106,7 @@ class TriggerOnUnlock(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnUnlock.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
                      's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
@@ -973,12 +1124,10 @@ class TriggerOnUnlock(Trigger):
 
 class TriggerOnUse(Trigger):
     """
-    Fires when an object is used.
-    
-    Variables available:
-    - %S% = the character using the object
-    - %target% = the target of the use (if "use X on Y")
-    - %target_id% = the target's id
+    Fires when an object is used, drunk, or read (e.g. potions, scrolls).
+    Actor = trigger owner (the item). Subject = initiator (character using the object). Target = thing acted upon (item when use/read without "on X", else the specified target).
+    Variables: %a%/%A% = actor (item), %s%/%S% = subject (user), %t%/%T% = target (acted upon).
+    %use_type% = "use" | "drink" | "read". When "use X on Y", %target% and %target_id% are the target's name and id.
     """
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
         super().__init__(id, TriggerType.ON_USE, actor)
@@ -991,13 +1140,12 @@ class TriggerOnUse(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnUse.run()> ")
         if self.disabled_:
             return False
-        
-        vars = {**(vars or {}), 
-                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 
-                     's': actor.name, 'S': Constants.REFERENCE_SYMBOL + actor.reference_number,
-                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, 
-                     'q': actor.pronoun_possessive, '*': text or '' }),
-                **(actor.get_vars("s"))}
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
+        # actor = trigger owner (the item). Keep s/S from incoming vars = character using the object (per docstring).
+        vars = {**(vars or {}),
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,
+                     'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text or '' }),
+                **(actor.get_vars("a"))}
         
         for crit in self.criteria_:
             if not crit.evaluate(vars, game_state):
@@ -1042,7 +1190,7 @@ class TriggerOnAttacked(Trigger):
         logger = StructuredLogger(__name__, prefix="TriggerOnAttacked.run()> ")
         if self.disabled_:
             return False
-        
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         # Build vars - attacker info goes in 'a'/'A', defender (trigger owner) in 's'/'S'
         vars = {**(vars or {}), 
                 **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number,

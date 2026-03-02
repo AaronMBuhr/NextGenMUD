@@ -5,7 +5,7 @@ from ..basic_types import DescriptiveFlags
 class TriggerType(Enum):
     ON_ANY = 1
     ON_SAY = 2
-    CATCH_TELL = 3
+    ON_TELL = 3
     TIMER_TICK = 4
     CATCH_LOOK = 5
     ON_ARRIVE = 6     # Fires when someone arrives at this room/NPC/object (their perspective: they enter)
@@ -23,6 +23,7 @@ class TriggerType(Enum):
     ON_ENTER = 18     # Fires when this actor enters a room (condition: %room_id% contains zone/subzone/room)
     CATCH_ZEROHP = 19 # Fires when damage reduces this actor's HP to 0 or less; script can heal to cancel death
     ON_SIGNAL = 20   # Fires when a signal is sent to this receiver's room/subzone/zone/world
+    CATCH_COMMAND = 21  # Fires when player types a command word in this trigger's list; %text% = full input
     UNKNOWN = 99
 
     def __str__(self):

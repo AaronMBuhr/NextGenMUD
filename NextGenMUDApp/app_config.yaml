@@ -175,23 +175,22 @@ STAMINA_GAIN_BY_CLASS:
 # Stamina scaling: +1 max stamina per point of CON above 10
 STAMINA_ATTRIBUTE_SCALING: 2  # Per point above 10
 
-# Regeneration rates (per tick, ~0.5 seconds)
-# Combat regen is very slow
-MANA_REGEN_COMBAT: 0.1
-MANA_REGEN_WALKING: 0.5
-MANA_REGEN_RESTING: 2.0
-MANA_REGEN_MEDITATING: 4.0
+# Regeneration rates (per second; regen pulse runs once per second)
+MANA_REGEN_COMBAT: 1
+MANA_REGEN_WALKING: 2
+MANA_REGEN_RESTING: 4
+MANA_REGEN_MEDITATING: 8
 
 # Stamina regens faster than mana
-STAMINA_REGEN_COMBAT: 0.5
-STAMINA_REGEN_WALKING: 2.0
-STAMINA_REGEN_RESTING: 4.0
+STAMINA_REGEN_COMBAT: 1
+STAMINA_REGEN_WALKING: 2
+STAMINA_REGEN_RESTING: 4
 
-# HP regeneration - off in combat, slow when walking, faster when resting/sleeping
-HP_REGEN_COMBAT: 0       # No HP regen in combat
-HP_REGEN_WALKING: 0.1    # Very slow when moving around
-HP_REGEN_RESTING: 0.5    # Moderate when sitting
-HP_REGEN_SLEEPING: 1.0   # Fastest when sleeping
+# HP regeneration - off in combat; 1/2/4 per pulse (pulse every 8 sec) when walking/resting/sleeping
+HP_REGEN_COMBAT: 0
+HP_REGEN_WALKING: 1
+HP_REGEN_RESTING: 2
+HP_REGEN_SLEEPING: 4
 XP_PROGRESSION: [
   0,            # Level 1 requires 0 XP
   1000,         # Level 2 

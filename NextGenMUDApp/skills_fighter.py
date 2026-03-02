@@ -706,7 +706,7 @@ class Skills_Fighter(Skills):
                         THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                         attacker_attribute=CharacterAttributes.STRENGTH)
                     if saved:
-                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                         continue
                 new_state = CharacterStateStunned(target, cls._get_game_state(), source_actor=actor, state_type_name="shield swept", tick_created=game_tick)
                 await new_state.apply_state(game_tick, duration)
@@ -755,6 +755,8 @@ class Skills_Fighter(Skills):
         if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
             await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
+            if THIS_SKILL_DATA.stamina_cost > 0:
+                await Skills.consume_resources(actor, THIS_SKILL_DATA)
         else:
             await cls.send_failure_message(actor, [target], THIS_SKILL_DATA, vars)    
             return False
@@ -763,7 +765,7 @@ class Skills_Fighter(Skills):
                 THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                 attacker_attribute=CharacterAttributes.STRENGTH)
             if saved:
-                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                 return True
         await cls.send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
         new_state = CharacterStateForcedSitting(target, cls._get_game_state(), source_actor=actor, state_type_name="kicked", tick_created=game_tick)
@@ -819,6 +821,8 @@ class Skills_Fighter(Skills):
         if success_by := check_skill_roll(skill_roll, actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.MIGHTY_KICK],
                               difficulty_modifier - attrib_mod) >= 0:
             await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
+            if THIS_SKILL_DATA.stamina_cost > 0:
+                await Skills.consume_resources(actor, THIS_SKILL_DATA)
         else:
             await cls.send_failure_message(actor, targets, THIS_SKILL_DATA, vars)    
             return False
@@ -828,10 +832,10 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     continue
             await cls.send_apply_message(actor, [target], THIS_SKILL_DATA, vars)
-            new_state = CharacterStateHitPenalty(target, actor, "demoralized", hit_penalty, tick_created=game_tick)
+            new_state = CharacterStateHitPenalty(target, cls._get_game_state(), actor, "demoralized", hit_penalty, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
         return True
@@ -883,9 +887,9 @@ class Skills_Fighter(Skills):
                         THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                         attacker_attribute=CharacterAttributes.STRENGTH)
                     if saved:
-                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                        await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                         continue
-                new_state = CharacterStateHitPenalty(target, actor, "intimidated", hit_penalty, tick_created=game_tick)
+                new_state = CharacterStateHitPenalty(target, cls._get_game_state(), actor, "intimidated", hit_penalty, tick_created=game_tick)
                 await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
             return True
@@ -935,7 +939,7 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.DEXTERITY)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             new_state = CharacterStateDisarmed(target, cls._get_game_state(), source_actor=actor, state_type_name="disarmed", tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
@@ -990,7 +994,7 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             new_state = CharacterStateDodgePenalty(target, cls._get_game_state(), source_actor=actor, state_type_name="slammed", affect_amount=dodge_penalty, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
@@ -1042,7 +1046,7 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             new_state = CharacterStateStunned(target, cls._get_game_state(), source_actor=actor, state_type_name="bashed", tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
@@ -1149,7 +1153,7 @@ class Skills_Fighter(Skills):
                     THIS_SKILL_DATA.save_type, actor, THIS_SKILL_DATA,
                     attacker_attribute=CharacterAttributes.STRENGTH)
                 if saved:
-                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars)
+                    await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
             new_state = CharacterStateBleeding(target, actor, "rended", damage, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)

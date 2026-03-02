@@ -161,13 +161,15 @@ class MainProcess:
                 await gs.check_linkdead_timeouts()
                 last_linkdead_check_tick = gs.world_clock_tick
 
-            # Regenerate mana/stamina for all characters
-            for ref_id, actor in Actor.references_.items():
-                if actor.actor_type == ActorType.CHARACTER:
-                    resources_changed = actor.regenerate_resources()
-                    # Send status update to PCs when their resources change
-                    if resources_changed and actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                        await actor.send_status_update()
+            # Regenerate mana/stamina once per second (every 2 ticks); HP every 8 seconds (every 16 ticks)
+            if gs.world_clock_tick % 2 == 0:
+                hp_pulse = (gs.world_clock_tick % 16 == 0)
+                for ref_id, actor in Actor.references_.items():
+                    if actor.actor_type == ActorType.CHARACTER:
+                        resources_changed = actor.regenerate_resources(include_hp=hp_pulse)
+                        # Send status update to PCs when their resources change
+                        if resources_changed and actor.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                            await actor.send_status_update()
 
             # Process scheduled actions and check aggressive NPCs
             await gs.perform_scheduled_events(gs.world_clock_tick)
