@@ -3,11 +3,12 @@ from enum import Enum
 from ..basic_types import DescriptiveFlags
 
 class TriggerType(Enum):
-    ON_ANY = 1
+    ON_SEE = 1
     ON_SAY = 2
     ON_TELL = 3
     TIMER_TICK = 4
-    CATCH_LOOK = 5
+    CATCH_INSPECT = 5   # Fires when someone looks at something matching criteria; script runs in addition to normal description
+    ON_LOOK = 22        # Replaces normal description: when present, script runs instead of showing room/object/character description (script should echo the description)
     ON_ARRIVE = 6     # Fires when someone arrives at this room/NPC/object (their perspective: they enter)
     ON_LEAVE = 7     # Fires when a character leaves the room
     ON_RECEIVE = 8    # Fires when an NPC receives an item via give

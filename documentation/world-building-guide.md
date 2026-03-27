@@ -32,7 +32,7 @@ world_data/
 ├── central_city.yaml      # A zone file
 ├── enchanted_forest.yaml  # Another zone file
 ├── gloomy_graveyard.yaml  # Zone with quest example
-└── debug_zone.yaml        # Testing zone
+└── master_zone.yaml       # Master / testing zone
 ```
 
 Each zone file contains all data for that zone: the zone definition, rooms, characters, and objects.
@@ -211,6 +211,16 @@ When players do `look north`, they see the description.
           - underwater     # Underwater room
 ```
 
+### Room `perm_variables`
+
+Room definitions can seed persistent variables on room instances at load time.
+
+```yaml
+        perm_variables:
+          weather_state: stormy
+          ritual_active: false
+```
+
 ### Spawning Characters in Rooms
 
 ```yaml
@@ -243,8 +253,8 @@ See [Triggers](#triggers) section for full details.
 
 ```yaml
         triggers:
-          - id: catch_any_howl
-            type: catch_any
+          - id: on_see_howl
+            type: on_see
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -279,6 +289,9 @@ ZONES:
         pronoun_subject: it            # he/she/it/they
         pronoun_object: it             # him/her/it/them
         pronoun_possessive: its        # his/her/its/their
+        perm_variables:                # optional persistent variables for this NPC
+          seen_intruders: 0
+          faction: graveyard_undead
 ```
 
 ### Attributes
@@ -513,6 +526,9 @@ ZONES:
           A piece of expensive stationery, torn roughly.
         examine_text: >                # Additional detail on close examination
           The note reads: "...hereby dismiss you from service..."
+        perm_variables:                # optional persistent variables for this object
+          inspected: false
+          owner_tag: ashford_house
 ```
 
 ### Object Permanent Flags
@@ -771,8 +787,9 @@ Triggers are event-driven scripts that execute when conditions are met.
 | `on_enter` | Character enters room | Room, NPC, Object |
 | `on_leave` | Character leaves room | Room, NPC, Object |
 | `catch_say` | Someone speaks | Room, NPC |
-| `catch_look` | Someone looks at entity | Object, NPC |
-| `catch_any` | Any text matches criteria | Room, NPC |
+| `on_look` | Replaces normal description when present; script should echo description (e.g. by var state) | Room, Object, NPC |
+| `catch_inspect` | Someone looks at entity matching criteria; runs in addition to normal description | Object, NPC |
+| `on_see` | Room sees text matching criteria | Room, NPC |
 | `timer_tick` | Periodic (every ~0.5 sec if conditions met) | Any |
 | `on_receive` | NPC receives item via give | NPC |
 | `on_get` | Object is picked up | Object |
@@ -999,7 +1016,7 @@ Quests are built using quest variables, triggers, and LLM goals.
 ```yaml
     # In object triggers:
           - id: discover_body
-            type: catch_look
+            type: catch_inspect
             script: |
               setquestvar %S% murder_mystery.found_body true
               echo You've found Lord Ashford's body!
@@ -1291,9 +1308,11 @@ Scripts are sequences of commands executed when triggers fire.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `damage` | Deal damage | `damage %S% 10 fire` |
-| `heal` | Restore health | `heal %S% 20` |
+| `damage` | Deal damage (single, multi, all, allexcept) | `damage %S% 10 fire` |
+| `heal` | Restore health (single, multi, all, allexcept) | `heal %S% 20` |
 | `attack` | Start combat | `attack %S%` |
+
+Both `damage` and `heal` support comma-separated targets (`damage guard,bandit 2d6 fire`), `all` to affect everyone in the room (`damage all 3d8 fire`), and `allexcept` to exclude specific targets (`damage allexcept me 10 holy`). `me` is valid as a target or exclusion. Use `$random()` with dice notation for a shared roll: `damage all $random(3d6+6) fire`.
 
 ### Conditionals
 
@@ -1314,6 +1333,7 @@ Use `$function(args)` to evaluate values:
 | Function | Description | Example |
 |----------|-------------|---------|
 | `$random(min,max)` | Random number | `$random(1,100)` |
+| `$random(NdS+B)` | Roll dice notation | `$random(3d6+6)` |
 | `$permvar(char,key)` | Get perm variable | `$permvar(%S%,visited)` |
 | `$tempvar(char,key)` | Get temp variable | `$tempvar(%S%,mood)` |
 | `$questvar(char,id)` | Get quest variable | `$questvar(%S%,murder.found_body)` |
@@ -1544,7 +1564,7 @@ Variables in scripts use `%symbol%` format.
               setquestvar %S% murder_mystery.found_murder_weapon true
               echo You've found what must be the murder weapon!
           - id: reveal_on_look
-            type: catch_look
+            type: catch_inspect
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -1650,7 +1670,7 @@ Variables in scripts use `%symbol%` format.
 
 7. **Common Knowledge**: Use for shared facts, reference in individual NPC configs
 
-8. **Testing**: Use the debug_zone for testing new mechanics before adding to main zones
+8. **Testing**: Use the master_zone for testing new mechanics before adding to main zones
 
 9. **NPC Skills**: Let the auto-population handle most skills. Only specify explicit skills when you want to override levels or remove inappropriate skills (e.g., remove "disarm" from animals)
 

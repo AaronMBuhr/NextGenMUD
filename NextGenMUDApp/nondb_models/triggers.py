@@ -180,15 +180,18 @@ class Trigger(TriggerInterface):
             logger.error(f"Invalid trigger_type type ({type(trigger_type)}) passed to new_trigger for actor '{actor.rid if actor else 'None'}'")
             raise TypeError(f"trigger_type must be str or TriggerType enum, got {type(trigger_type)}")
 
-        if trigger_type_enum == TriggerType.ON_ANY:
-            logger.debug3("returning TriggerOnAny")
-            return TriggerOnAny(trigger_id, actor, disabled)
+        if trigger_type_enum == TriggerType.ON_SEE:
+            logger.debug3("returning TriggerOnSee")
+            return TriggerOnSee(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.TIMER_TICK:
             logger.debug3("returning TriggerTimerTick")
             return TriggerTimerTick(trigger_id, actor, disabled)
-        elif trigger_type_enum == TriggerType.CATCH_LOOK:
-            logger.debug3("returning TriggerCatchLook")
-            return TriggerCatchLook(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.CATCH_INSPECT:
+            logger.debug3("returning TriggerCatchInspect")
+            return TriggerCatchInspect(trigger_id, actor, disabled)
+        elif trigger_type_enum == TriggerType.ON_LOOK:
+            logger.debug3("returning TriggerOnLook")
+            return TriggerOnLook(trigger_id, actor, disabled)
         elif trigger_type_enum == TriggerType.ON_SAY:
             logger.debug3("returning TriggerOnSay")
             return TriggerOnSay(trigger_id, actor, disabled)
@@ -358,16 +361,16 @@ class Trigger(TriggerInterface):
 #             await 
             
 
-class TriggerOnAny(Trigger):
+class TriggerOnSee(Trigger):
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
-        super().__init__(id, TriggerType.ON_ANY, actor)
+        super().__init__(id, TriggerType.ON_SEE, actor)
         if disabled:
             self.disable()
         else:
             self.enable()
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
-        logger = StructuredLogger(__name__, prefix="TriggerOnAny.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerOnSee.run()> ")
         self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
         if self.disabled_:
             return False
@@ -467,10 +470,11 @@ class TriggerTimerTick(Trigger):
         await self.execute_trigger_script(actor, vars, game_state)
         return True
 
-class TriggerCatchLook(Trigger):
+class TriggerCatchInspect(Trigger):
+    """Fires when someone looks at something matching criteria. Script runs in addition to the normal description."""
 
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
-        super().__init__(id, TriggerType.CATCH_LOOK, actor)
+        super().__init__(id, TriggerType.CATCH_INSPECT, actor)
         if disabled:
             self.disable()
         else:
@@ -478,7 +482,7 @@ class TriggerCatchLook(Trigger):
 
     async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
         from ..nondb_models.actors import Actor
-        logger = StructuredLogger(__name__, prefix="TriggerCatchLook.run()> ")
+        logger = StructuredLogger(__name__, prefix="TriggerCatchInspect.run()> ")
         if self.disabled_:
             return False
         self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
@@ -492,7 +496,30 @@ class TriggerCatchLook(Trigger):
         logger.debug3("executing script")
         await self.execute_trigger_script(actor, vars, game_state)
         return True
-    
+
+
+class TriggerOnLook(Trigger):
+    """Replaces the normal description when present. Script runs instead of showing room/object/character description; script should echo the appropriate description (e.g. based on var state)."""
+
+    def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:
+        super().__init__(id, TriggerType.ON_LOOK, actor)
+        if disabled:
+            self.disable()
+        else:
+            self.enable()
+
+    async def run(self, actor: 'Actor', text: str, vars: dict, game_state: GameStateInterface) -> bool:
+        logger = StructuredLogger(__name__, prefix="TriggerOnLook.run()> ")
+        if self.disabled_:
+            return False
+        self._trigger_run_debug_log(game_state, "run() entered", trigger_id=self.id, trigger_type=self.trigger_type_.name, run_actor_rid=getattr(actor, 'rid', None), text=(text[:60] + "..." if text and len(text) > 60 else text))
+        vars = {**(vars or {}), 
+                **({ 'a': actor.name, 'A': Constants.REFERENCE_SYMBOL + actor.reference_number, 'p': actor.pronoun_subject, 'P': actor.pronoun_object, '*': text }),
+                **(actor.get_vars("a"))}
+        logger.debug3("executing script (replaces default description)")
+        await self.execute_trigger_script(actor, vars, game_state)
+        return True
+
 
 class TriggerOnSay(Trigger):
     def __init__(self, id: str, actor: 'Actor', disabled=True) -> None:

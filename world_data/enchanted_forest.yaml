@@ -43,7 +43,7 @@ ZONES:
           script: |
             echo You notice a faint shimmering in the air, as if the very atmosphere of the glade is alive with enchantment.
         - id: catch_look_tree
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -51,7 +51,7 @@ ZONES:
           script: |
             echo The tree you look at seems ancient and wise, its bark glowing faintly with runic symbols.
         - id: on_any_sing
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -59,14 +59,14 @@ ZONES:
           script: |
             echo Your singing seems to harmonize with the natural sounds of the forest, creating a beautiful melody.
         - id: on_any_dance
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "dance"
           script: |
             echo As you dance, the leaves around you seem to sway in rhythm, as if joining in your joy.
-        CHARACTERS:
+        characters:
         - id: rabbit
           quantity: 3
           respawn time min: 30
@@ -100,7 +100,7 @@ ZONES:
           script: |
             echo Softly glowing crystals pulsate gently, casting dancing lights across the cave walls.
         - id: catch_look_crystal
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -108,7 +108,7 @@ ZONES:
           script: |
             echo As you gaze at the crystal, it sparkles brilliantly, momentarily capturing a rainbow within its facets.
         - id: on_any_touch
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -116,7 +116,7 @@ ZONES:
           script: |
             echo As your fingers brush against the crystal, it emits a soft, harmonious tone, resonating through the cave.
         - id: on_any_sing_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -164,7 +164,7 @@ ZONES:
           script: |
             echo The waterfall's whispers intensify, recounting ancient tales lost to time.
         - id: catch_look_rainbow
-          type: catch_look
+          type: catch_inspect
           flags:
           - only_when_pc_room
           criteria:
@@ -174,7 +174,7 @@ ZONES:
           script: |
             echo Mesmerized by the rainbow, you feel a deep connection to the waterfall's mystical energy.
         - id: on_any_water
-          type: on_any
+          type: on_see
           flags:
           - only_when_pc_room
           criteria:
@@ -211,7 +211,7 @@ ZONES:
           script: |
             echo The air shimmers as mischievous fairies play hide and seek among the flowers, their laughter ringing like tiny bells.
         - id: catch_look_flower
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -219,14 +219,14 @@ ZONES:
           script: |
             echo Gazing at a particularly bright flower, you catch a fleeting glimpse of a fairy darting behind its petals.
         - id: on_any_fairy
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "fairy"
           script: |
             echo A curious fairy pauses in its flight to regard you, its wings a blur of iridescent color, before flitting away.
-        CHARACTERS:
+        characters:
         - id: fairy
           quantity: 3
           respawn time min: 30
@@ -258,7 +258,7 @@ ZONES:
           script: |
             echo As the twilight deepens, the shadows dance and play, creating a mesmerizing, ever-changing pattern on the forest floor.
         - id: catch_look_shadow
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -266,7 +266,7 @@ ZONES:
           script: |
             echo Focusing on the shadows, you feel a sense of ancient mysteries surrounding you, as if the thicket guards old secrets.
         - id: on_any_twilight
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -298,7 +298,7 @@ ZONES:
           script: |
             echo A gentle breeze rustles the leaves, making the moonlight dance and play across the clearing in a mesmerizing pattern.
         - id: catch_look_moon
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -306,14 +306,14 @@ ZONES:
           script: |
             echo Looking up at the moon, you feel a profound sense of peace and connection to the wider universe.
         - id: on_any_star
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "star"
           script: |
             echo The stars above twinkle brightly, each one telling its own ancient story in the tapestry of the night sky.
-        CHARACTERS:
+        characters:
         - id: deer
           quantity: 3
           respawn time min: 30
@@ -343,7 +343,7 @@ ZONES:
           script: |
             echo The soft echo of a distant bird's song creates a harmonious melody that resonates around the pond.
         - id: catch_look_water
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -351,7 +351,7 @@ ZONES:
           script: |
             echo Peering into the water, you see not only your reflection but a glimpse into a world as tranquil and mysterious as the pond itself.
         - id: on_any_echo
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -383,7 +383,7 @@ ZONES:
           script: |
             echo A sense of ancient wisdom seems to emanate from the oak, its presence grounding and profound.
         - id: catch_look_door
-          type: catch_look
+          type: catch_inspect
           flags:
           - only_when_pc_room
           criteria:
@@ -393,7 +393,7 @@ ZONES:
           script: |
             echo As you examine the door, you feel a pull towards it, as if it's inviting you to discover its secrets.
         - id: on_any_tree
-          type: on_any
+          type: on_see
           flags:
           - only_when_pc_room
           criteria:
@@ -425,7 +425,7 @@ ZONES:
           script: |
             echo The gentle whispering of the pines intensifies, as if they are sharing age-old secrets of the forest.
         - id: catch_look_pine
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -433,7 +433,7 @@ ZONES:
           script: |
             echo Observing the pines closely, you feel enveloped by their ancient presence, standing as silent witnesses to time.
         - id: on_any_wind
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -466,7 +466,7 @@ ZONES:
           script: |
             echo The gentle murmur of the stream creates a harmonious backdrop, its sounds soothing your mind and spirit.
         - id: catch_look_water_2
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -474,7 +474,7 @@ ZONES:
           script: |
             echo Gazing into the water, you are captivated by the stream's serene flow, its rhythm like a meditative chant.
         - id: on_any_fish
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -508,7 +508,7 @@ ZONES:
           script: |
             echo The ethereal light in the glade pulses gently, as if breathing with the life of the forest.
         - id: catch_look_flower_2
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -516,7 +516,7 @@ ZONES:
           script: |
             echo As you gaze at the flowers, their colors seem to brighten, responding to your attention with a vibrant display.
         - id: on_any_light
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -548,7 +548,7 @@ ZONES:
           script: |
             echo The golden leaves rustle softly in the breeze, their shimmering surfaces reflecting the light in a dazzling display.
         - id: catch_look_leaf
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -556,7 +556,7 @@ ZONES:
           script: |
             echo As you pick up a golden leaf, its texture and the intricate patterns etched upon it captivate your senses.
         - id: on_any_sunbeam
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -596,7 +596,7 @@ ZONES:
             echo The mist swirls around you, its tendrils caressing the
             landscape and adding an air of mystery to the copse.
         - id: catch_look_mist
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -605,7 +605,7 @@ ZONES:
             echo Peering into the mist, you feel a sense of timelessness,
             as if the copse exists in a world apart from the rest.
         - id: on_any_tree_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -645,7 +645,7 @@ ZONES:
         script: |
           leaverandom stayinzone
       - id: on_any_kicks_you
-        type: on_any
+        type: on_see
         criteria:
         - subject: "%*%"
           operator: contains
@@ -654,7 +654,7 @@ ZONES:
           emote dodges your kick!
           lick %S%
       - id: on_any_starts_fighting_you
-        type: on_any
+        type: on_see
         criteria:
         - subject: "%*%"
           operator: contains
@@ -686,6 +686,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: animal
+      race: rabbit
     - id: deer
       name: deer
       group_id: small_creatures
@@ -727,6 +729,8 @@ ZONES:
         script: |
           leaverandom stayinzone
 
+      type: animal
+      race: deer
     - id: fairy
       name: fairy
       article: a
@@ -768,3 +772,5 @@ ZONES:
         script: |
           leaverandom stayinzone
 
+      type: fey
+      race: fairy

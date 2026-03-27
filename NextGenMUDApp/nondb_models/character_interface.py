@@ -39,11 +39,12 @@ class TemporaryCharacterFlags(DescriptiveFlags):
     IS_INVISIBLE = 2**8
     DARKVISION = 2**9
     IS_FROZEN = 2**10
+    IS_CONFUSED = 2**11
 
     @classmethod
     def field_name_unsafe(cls, idx):
         return ["is dead", "is sitting", "is sleeping", "is stunned", "is disarmed", "is stealthed", "is hidden",
-                "see invisible", "is invisible", "darkvision"][idx]
+                "see invisible", "is invisible", "darkvision", "is confused"][idx]
 
 
 class GamePermissionFlags(DescriptiveFlags):

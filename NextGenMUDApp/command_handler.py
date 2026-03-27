@@ -96,6 +96,25 @@ class CommandHandler(CommandHandlerInterface):
         {"name": "npc_commands", "description": "Log commands issued by NPCs only when the NPC is in your room."},
     ]
 
+    IMPAIRED_COMMAND_WHITELIST = {
+        "look", "help", "say", "tell", "whisper",
+        "status", "self", "inventory", "sayto", "ask",
+    }
+
+    @classmethod
+    def is_command_allowed_while_impaired(cls, command_name: str) -> bool:
+        return command_name in cls.IMPAIRED_COMMAND_WHITELIST
+
+    @classmethod
+    def get_command_impairment_message(cls, actor: Actor, command_name: str) -> str | None:
+        if cls.is_command_allowed_while_impaired(command_name):
+            return None
+        if getattr(actor, "charmed_by", None) is not None:
+            return "You are under another's control."
+        if hasattr(actor, "has_temp_flags") and actor.has_temp_flags(TemporaryCharacterFlags.IS_CONFUSED):
+            return "You're too confused to do that."
+        return None
+
     @classmethod
     def is_instant_command(cls, command_str: str) -> bool:
         """
@@ -360,7 +379,8 @@ class CommandHandler(CommandHandlerInterface):
         return False
 
     @classmethod
-    async def process_command(cls, actor: Actor, input: str, vars: dict = None, from_script: bool = False) -> bool:
+    async def process_command(cls, actor: Actor, input: str, vars: dict = None, from_script: bool = False,
+                              bypass_impairment: bool = False) -> bool:
         """
         Process a command for an actor.
         
@@ -464,38 +484,43 @@ class CommandHandler(CommandHandlerInterface):
                         # Route by lowercase command so "Get", "GET", "get" all work
                         command_lower = parts[0].lower()
                         rest = ' '.join(parts[1:])
-                        # Lowercase argument text for all commands except say/whisper/echo/emote etc.
-                        preserve_cap = (command_lower in cls.PRESERVE_CAPITALIZATION_COMMANDS
-                                       or command_lower in cls.EMOTE_MESSAGES)
-                        if not preserve_cap:
-                            rest = (rest or "").lower()
-                        # Try catch_command triggers first (room → objects → NPCs → inventories)
-                        if await cls._try_catch_command_triggers(actor, command_lower, first_command):
-                            pass  # trigger ran and command processing stops
-                        elif command_lower in cls.command_handlers:
-                            # Privileged commands: only admins or NPCs/scripts may use them
-                            if command_lower in cls.privileged_commands:
-                                is_pc = hasattr(actor, 'has_perm_flags') and actor.has_perm_flags(PermanentCharacterFlags.IS_PC)
-                                if is_pc and not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
-                                    await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to do that.")
+                        if actor.actor_type == ActorType.CHARACTER and not bypass_impairment:
+                            if impairment_msg := cls.get_command_impairment_message(actor, command_lower):
+                                msg = impairment_msg
+                                succeeded = False
+                        else:
+                            # Lowercase argument text for all commands except say/whisper/echo/emote etc.
+                            preserve_cap = (command_lower in cls.PRESERVE_CAPITALIZATION_COMMANDS
+                                           or command_lower in cls.EMOTE_MESSAGES)
+                            if not preserve_cap:
+                                rest = (rest or "").lower()
+                            # Try catch_command triggers first (room → objects → NPCs → inventories)
+                            if await cls._try_catch_command_triggers(actor, command_lower, first_command):
+                                pass  # trigger ran and command processing stops
+                            elif command_lower in cls.command_handlers:
+                                # Privileged commands: only admins or NPCs/scripts may use them
+                                if command_lower in cls.privileged_commands:
+                                    is_pc = hasattr(actor, 'has_perm_flags') and actor.has_perm_flags(PermanentCharacterFlags.IS_PC)
+                                    if is_pc and not actor.has_game_flags(GamePermissionFlags.IS_ADMIN):
+                                        await actor.send_text(CommTypes.DYNAMIC, "You don't have permission to do that.")
+                                    else:
+                                        await cls.command_handlers[command_lower](command_lower, actor, rest)
                                 else:
                                     await cls.command_handlers[command_lower](command_lower, actor, rest)
+                            elif command_lower in cls.EMOTE_MESSAGES:
+                                await cls.cmd_specific_emote(command_lower, actor, rest)
                             else:
-                                await cls.command_handlers[command_lower](command_lower, actor, rest)
-                        elif command_lower in cls.EMOTE_MESSAGES:
-                            await cls.cmd_specific_emote(command_lower, actor, rest)
-                        else:
-                            input_for_skill = (command_lower + ' ' + rest) if rest else command_lower
-                            logger.debug3(f"checking skills registry for: {input_for_skill}")
-                            skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(input_for_skill)
-                            if skill_name:
-                                logger.debug3(f"found skill: {skill_name}")
-                                await SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
-                            else:
-                                logger.debug3(f"no skill found")
-                                logger.debug3(f"Unknown command: {command_lower}")
-                                msg = "Unknown command"
-                                succeeded = False
+                                input_for_skill = (command_lower + ' ' + rest) if rest else command_lower
+                                logger.debug3(f"checking skills registry for: {input_for_skill}")
+                                skill_name, remainder = SkillsRegistry.parse_skill_name_from_input(input_for_skill)
+                                if skill_name:
+                                    logger.debug3(f"found skill: {skill_name}")
+                                    await SkillsRegistry.invoke_skill_by_name(cls._game_state, actor, skill_name, remainder, 0)
+                                else:
+                                    logger.debug3(f"no skill found")
+                                    logger.debug3(f"Unknown command: {command_lower}")
+                                    msg = "Unknown command"
+                                    succeeded = False
 
                 # Queue any additional commands
                 if len(commands) > 1:
@@ -865,116 +890,226 @@ class CommandHandler(CommandHandlerInterface):
 
     async def cmd_damage(cls, actor: Actor, input: str):
         """
-        Apply damage to a target. This is a privileged/script command.
-        
-        Usage: damage <target> <amount> <damage_type>
-        
-        The amount can be:
-        - A constant: damage target 10 fire
-        - Dice notation: damage target 2d6+3 fire
-        - Dice without bonus: damage target 2d6 fire
-        
+        Apply damage to one or more targets. This is a privileged/script command.
+
+        Usage:
+            damage <target>[,target2,...] <amount> <damage_type>
+            damage all <amount> <damage_type>
+            damage allexcept <exclude1>[,exclude2,...] <amount> <damage_type>
+
+        Targets can be comma-separated names, references, or 'me'/'self'.
+        'all' targets every character in the room (including the actor).
+        'allexcept' targets everyone in the room except the listed exclusions.
+        'me' is valid as a target or in the allexcept exclusion list.
+
+        The amount can be a constant (10) or dice notation (2d6+3).
+
         Examples:
-            damage %S% 10 fire
-            damage guard 2d6+5 slashing
-            damage %T% 1d8 cold
+            damage guard 10 fire
+            damage guard,bandit 2d6+5 slashing
+            damage me,guard 5 cold
+            damage all 3d8 fire
+            damage allexcept me 10 holy
+            damage allexcept me,guard 2d6 slashing
         """
         from .utility import roll_dice, get_dice_parts
         logger = StructuredLogger(__name__, prefix="cmd_damage()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
-        
+
         pieces = split_preserving_quotes(input)
         if len(pieces) < 3:
-            await actor.send_text(CommTypes.DYNAMIC, "Usage: damage <target> <amount> <damage_type>")
+            await actor.send_text(CommTypes.DYNAMIC,
+                "Usage: damage <target(s)> <amount> <type>  |  damage all <amount> <type>  |  damage allexcept <excludes> <amount> <type>")
             return
-        
-        target_name = pieces[0]
-        damage_str = pieces[1]
-        damage_type_str = pieces[2].upper()
-        
-        # Find target
-        target = cls._game_state.find_target_character(actor, target_name)
-        if target is None:
-            await actor.send_text(CommTypes.DYNAMIC, f"Cannot find target: {target_name}")
-            return
-        
-        # Parse damage amount (supports dice notation like "2d6+3" or constants like "10")
-        dice_parts = get_dice_parts(damage_str)
-        if dice_parts[0] > 0:  # Has dice to roll
-            damage = roll_dice(dice_parts[0], dice_parts[1], dice_parts[2])
+
+        def _get_actor_room():
+            if isinstance(actor, Character) and actor.location_room:
+                return actor.location_room
+            if isinstance(actor, Room):
+                return actor
+            if hasattr(actor, 'location_room') and actor.location_room:
+                return actor.location_room
+            return None
+
+        keyword = pieces[0].lower()
+        targets: list = []
+
+        if keyword == "all":
+            if len(pieces) < 3:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: damage all <amount> <damage_type>")
+                return
+            room = _get_actor_room()
+            if not room:
+                await actor.send_text(CommTypes.DYNAMIC, "Cannot determine room.")
+                return
+            targets = list(room.characters)
+            damage_str = pieces[1]
+            damage_type_str = pieces[2].upper()
+
+        elif keyword == "allexcept":
+            if len(pieces) < 4:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: damage allexcept <exclude1>[,exclude2,...] <amount> <damage_type>")
+                return
+            room = _get_actor_room()
+            if not room:
+                await actor.send_text(CommTypes.DYNAMIC, "Cannot determine room.")
+                return
+            exclude_names = [n.strip() for n in pieces[1].split(",") if n.strip()]
+            excluded = set()
+            for ename in exclude_names:
+                found = cls._game_state.find_target_character(actor, ename, exclude_initiator=False)
+                if found is None:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Cannot find exclusion target: {ename}")
+                    return
+                excluded.add(found)
+            targets = [c for c in room.characters if c not in excluded]
+            damage_str = pieces[2]
+            damage_type_str = pieces[3].upper()
+
         else:
-            damage = dice_parts[2]  # Just use the constant
-        
-        # Parse damage type
+            target_names = [n.strip() for n in pieces[0].split(",") if n.strip()]
+            for tname in target_names:
+                found = cls._game_state.find_target_character(actor, tname, exclude_initiator=False)
+                if found is None:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Cannot find target: {tname}")
+                    return
+                targets.append(found)
+            damage_str = pieces[1]
+            damage_type_str = pieces[2].upper()
+
+        if not targets:
+            await actor.send_text(CommTypes.DYNAMIC, "No targets found.")
+            return
+
+        dice_parts = get_dice_parts(damage_str)
         try:
             damage_type = DamageType[damage_type_str]
         except KeyError:
             valid_types = ", ".join([dt.name.lower() for dt in DamageType])
             await actor.send_text(CommTypes.DYNAMIC, f"Unknown damage type: {damage_type_str}. Valid types: {valid_types}")
             return
-        
-        # Apply damage
-        await CoreActionsInterface.get_instance().do_damage(actor, target, damage, damage_type)
-        logger.debug3(f"Applied {damage} {damage_type.name.lower()} damage to {target.name}")
+
+        for target in targets:
+            if dice_parts[0] > 0:
+                damage = roll_dice(dice_parts[0], dice_parts[1], dice_parts[2])
+            else:
+                damage = dice_parts[2]
+            await CoreActionsInterface.get_instance().do_damage(actor, target, damage, damage_type)
+            logger.debug3(f"Applied {damage} {damage_type.name.lower()} damage to {target.name}")
 
 
     async def cmd_heal(cls, actor: Actor, input: str):
         """
-        Heal a target. This is a privileged/script command.
-        
-        Usage: heal <target> <amount>
-        
-        The amount can be:
-        - A constant: heal target 20
-        - Dice notation: heal target 2d6+5
-        
+        Heal one or more targets. This is a privileged/script command.
+
+        Usage:
+            heal <target>[,target2,...] <amount>
+            heal all <amount>
+            heal allexcept <exclude1>[,exclude2,...] <amount>
+
+        Targets can be comma-separated names, references, or 'me'/'self'.
+        'all' targets every character in the room (including the actor).
+        'allexcept' targets everyone in the room except the listed exclusions.
+        'me' is valid as a target or in the allexcept exclusion list.
+
+        The amount can be a constant (20) or dice notation (2d6+5).
+
         Examples:
-            heal %S% 20
-            heal player 3d8+10
+            heal guard 20
+            heal guard,bandit 3d8+10
+            heal me,guard 15
+            heal all 2d6+5
+            heal allexcept me 20
+            heal allexcept me,guard 3d8
         """
         from .utility import roll_dice, get_dice_parts
         logger = StructuredLogger(__name__, prefix="cmd_heal()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
-        
+
         pieces = split_preserving_quotes(input)
         if len(pieces) < 2:
-            await actor.send_text(CommTypes.DYNAMIC, "Usage: heal <target> <amount>")
+            await actor.send_text(CommTypes.DYNAMIC,
+                "Usage: heal <target(s)> <amount>  |  heal all <amount>  |  heal allexcept <excludes> <amount>")
             return
-        
-        target_name = pieces[0]
-        heal_str = pieces[1]
-        
-        # Find target
-        target = cls._game_state.find_target_character(actor, target_name)
-        if target is None:
-            await actor.send_text(CommTypes.DYNAMIC, f"Cannot find target: {target_name}")
+
+        def _get_actor_room():
+            if isinstance(actor, Character) and actor.location_room:
+                return actor.location_room
+            if isinstance(actor, Room):
+                return actor
+            if hasattr(actor, 'location_room') and actor.location_room:
+                return actor.location_room
+            return None
+
+        keyword = pieces[0].lower()
+        targets: list = []
+
+        if keyword == "all":
+            if len(pieces) < 2:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: heal all <amount>")
+                return
+            room = _get_actor_room()
+            if not room:
+                await actor.send_text(CommTypes.DYNAMIC, "Cannot determine room.")
+                return
+            targets = list(room.characters)
+            heal_str = pieces[1]
+
+        elif keyword == "allexcept":
+            if len(pieces) < 3:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: heal allexcept <exclude1>[,exclude2,...] <amount>")
+                return
+            room = _get_actor_room()
+            if not room:
+                await actor.send_text(CommTypes.DYNAMIC, "Cannot determine room.")
+                return
+            exclude_names = [n.strip() for n in pieces[1].split(",") if n.strip()]
+            excluded = set()
+            for ename in exclude_names:
+                found = cls._game_state.find_target_character(actor, ename, exclude_initiator=False)
+                if found is None:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Cannot find exclusion target: {ename}")
+                    return
+                excluded.add(found)
+            targets = [c for c in room.characters if c not in excluded]
+            heal_str = pieces[2]
+
+        else:
+            target_names = [n.strip() for n in pieces[0].split(",") if n.strip()]
+            for tname in target_names:
+                found = cls._game_state.find_target_character(actor, tname, exclude_initiator=False)
+                if found is None:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Cannot find target: {tname}")
+                    return
+                targets.append(found)
+            heal_str = pieces[1]
+
+        if not targets:
+            await actor.send_text(CommTypes.DYNAMIC, "No targets found.")
             return
-        
-        # Parse heal amount (supports dice notation like "2d6+3" or constants like "20")
+
         dice_parts = get_dice_parts(heal_str)
-        if dice_parts[0] > 0:  # Has dice to roll
-            heal_amount = roll_dice(dice_parts[0], dice_parts[1], dice_parts[2])
-        else:
-            heal_amount = dice_parts[2]  # Just use the constant
-        
-        # Apply healing
-        actual_heal = target.increase_hp(heal_amount)
-        
-        # Send messages
-        if actual_heal > 0:
-            msg = f"You heal {target.art_name} for {actual_heal} HP!"
-            await actor.send_text(CommTypes.DYNAMIC, msg)
-            if target != actor:
-                msg = f"{actor.art_name_cap} heals you for {actual_heal} HP!"
-                await target.send_text(CommTypes.DYNAMIC, msg)
-            
-            # Send status update if target is a PC
-            if target.has_perm_flags(PermanentCharacterFlags.IS_PC):
-                await target.send_status_update()
-        else:
-            await actor.send_text(CommTypes.DYNAMIC, f"{target.art_name_cap} is already at full health.")
-        
-        logger.debug3(f"Healed {target.name} for {actual_heal} HP")
+
+        for target in targets:
+            if dice_parts[0] > 0:
+                heal_amount = roll_dice(dice_parts[0], dice_parts[1], dice_parts[2])
+            else:
+                heal_amount = dice_parts[2]
+
+            actual_heal = target.increase_hp(heal_amount)
+
+            if actual_heal > 0:
+                msg = f"You heal {target.art_name} for {actual_heal} HP!"
+                await actor.send_text(CommTypes.DYNAMIC, msg)
+                if target != actor:
+                    msg = f"{actor.art_name_cap} heals you for {actual_heal} HP!"
+                    await target.send_text(CommTypes.DYNAMIC, msg)
+                if target.has_perm_flags(PermanentCharacterFlags.IS_PC):
+                    await target.send_status_update()
+            else:
+                await actor.send_text(CommTypes.DYNAMIC, f"{target.art_name_cap} is already at full health.")
+
+            logger.debug3(f"Healed {target.name} for {actual_heal} HP")
 
     async def cmd_applystate(cls, actor: Actor, input: str):
         """
@@ -984,6 +1119,12 @@ class CommandHandler(CommandHandlerInterface):
 
         States and their extra arguments:
           experiencemodifier <multiplier>   e.g. 0.75 death penalty, 1.25 scroll of learning (target must be character)
+          damagemultiplier <damage_type> <multiplier>   e.g. fire 0.5 for 50% fire resistance, cold 1.5 for 50% cold vulnerability
+          maxhp <amount>   flat temporary max HP bonus (does not heal current HP)
+          shielded <multiplier>   multiplier applied to all incoming damage types (e.g. 0.8 for 20% resistance)
+          dodgebonus <amount>   flat dodge bonus while active
+          damagebonus <amount>   flat damage bonus while active
+          regenerating <heal_amount> [pulse_seconds]   heals periodically while active
           admin   (FOR DEBUGGING) temporary is_admin for duration (target must be character)
         """
         from .utility import ticks_from_seconds
@@ -1083,7 +1224,214 @@ class CommandHandler(CommandHandlerInterface):
             await actor.send_text(CommTypes.DYNAMIC, f"Applied admin (godlike) to {target.art_name} for {duration_sec:.0f} seconds.")
             return
 
-        await actor.send_text(CommTypes.DYNAMIC, f"Unknown state: {state_name}. Known states: experiencemodifier, admin.")
+        if state_name == "damagemultiplier":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "damagemultiplier state requires a character target.")
+                return
+            if len(extra) < 2:
+                await actor.send_text(CommTypes.DYNAMIC,
+                    "Usage: applystate <target> damagemultiplier <duration_seconds> <damage_type> <multiplier>\n"
+                    "  multiplier < 1 = resistance (e.g. 0.5 = 50% fire resistance)\n"
+                    "  multiplier > 1 = vulnerability (e.g. 1.5 = 50% more fire damage)")
+                return
+            dt_str = extra[0].strip().upper()
+            try:
+                dmg_type = DamageType[dt_str]
+            except KeyError:
+                valid_types = ", ".join(dt.name.lower() for dt in DamageType)
+                await actor.send_text(CommTypes.DYNAMIC, f"Unknown damage type: {dt_str}. Valid types: {valid_types}")
+                return
+            try:
+                multiplier = float(extra[1])
+                if multiplier < 0:
+                    raise ValueError("multiplier must be non-negative")
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid multiplier: {extra[1]}. Use a non-negative number (e.g. 0.5 or 1.5).")
+                return
+            from .nondb_models.actor_states import CharacterStateDamageMultiplier
+            state = CharacterStateDamageMultiplier(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                damage_type=dmg_type,
+                multiplier=multiplier,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+            )
+            dt_word = dmg_type.name.lower()
+            if multiplier < 1:
+                pct = int((1 - multiplier) * 100)
+                desc = f"{pct}% resistance to {dt_word}"
+            elif multiplier > 1:
+                pct = int((multiplier - 1) * 100)
+                desc = f"{pct}% vulnerability to {dt_word}"
+            else:
+                desc = f"neutral {dt_word} modifier"
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied damagemultiplier ({desc}) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        if state_name == "maxhp":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "maxhp state requires a character target.")
+                return
+            if len(extra) < 1:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: applystate <target> maxhp <duration_seconds> <amount>")
+                return
+            try:
+                amount = int(extra[0])
+                if amount <= 0:
+                    raise ValueError("amount must be positive")
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid max HP bonus: {extra[0]}. Use a positive integer (e.g. 20).")
+                return
+            from .nondb_models.actor_states import CharacterStateMaxHpBonus
+            state = CharacterStateMaxHpBonus(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                state_type_name="fortified",
+                affect_amount=amount,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+            )
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied maxhp (+{amount} max HP) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        if state_name == "shielded":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "shielded state requires a character target.")
+                return
+            if len(extra) < 1:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: applystate <target> shielded <duration_seconds> <multiplier>")
+                return
+            try:
+                multiplier = float(extra[0])
+                if multiplier < 0:
+                    raise ValueError("multiplier must be non-negative")
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid multiplier: {extra[0]}. Use a non-negative number (e.g. 0.8).")
+                return
+            from .nondb_models.attacks_and_damage import DamageMultipliers
+            from .nondb_models.actor_states import CharacterStateShielded
+            multipliers = DamageMultipliers()
+            for damage_type in DamageType:
+                multipliers.set(damage_type, multiplier)
+            state = CharacterStateShielded(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                state_type_name="shielded",
+                multipliers=multipliers,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+            )
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied shielded ({multiplier}x incoming damage) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        if state_name == "dodgebonus":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "dodgebonus state requires a character target.")
+                return
+            if len(extra) < 1:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: applystate <target> dodgebonus <duration_seconds> <amount>")
+                return
+            try:
+                amount = int(extra[0])
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid dodge bonus: {extra[0]}. Use an integer (e.g. 15).")
+                return
+            from .nondb_models.actor_states import CharacterStateDodgeBonus
+            state = CharacterStateDodgeBonus(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                state_type_name="blurred",
+                affect_amount=amount,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+            )
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied dodgebonus ({amount}) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        if state_name == "damagebonus":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "damagebonus state requires a character target.")
+                return
+            if len(extra) < 1:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: applystate <target> damagebonus <duration_seconds> <amount>")
+                return
+            try:
+                amount = int(extra[0])
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid damage bonus: {extra[0]}. Use an integer (e.g. 5).")
+                return
+            from .nondb_models.actor_states import CharacterStateDamageBonus
+            state = CharacterStateDamageBonus(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                state_type_name="empowered",
+                affect_amount=amount,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+            )
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied damagebonus ({amount}) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        if state_name == "regenerating":
+            if not isinstance(target, Character):
+                await actor.send_text(CommTypes.DYNAMIC, "regenerating state requires a character target.")
+                return
+            if len(extra) < 1:
+                await actor.send_text(CommTypes.DYNAMIC, "Usage: applystate <target> regenerating <duration_seconds> <heal_amount> [pulse_seconds]")
+                return
+            try:
+                heal_amount = int(extra[0])
+                if heal_amount < 0:
+                    raise ValueError("heal_amount must be non-negative")
+            except ValueError:
+                await actor.send_text(CommTypes.DYNAMIC, f"Invalid heal amount: {extra[0]}. Use a non-negative integer (e.g. 5).")
+                return
+            pulse_seconds = 6.0
+            if len(extra) >= 2:
+                try:
+                    pulse_seconds = float(extra[1])
+                    if pulse_seconds <= 0:
+                        raise ValueError("pulse_seconds must be positive")
+                except ValueError:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Invalid pulse seconds: {extra[1]}. Use a positive number (e.g. 6).")
+                    return
+            pulse_ticks = ticks_from_seconds(int(pulse_seconds))
+            if pulse_ticks <= 0:
+                await actor.send_text(CommTypes.DYNAMIC, "Pulse period too small for the game tick rate; use a larger value.")
+                return
+            from .nondb_models.actor_states import CharacterStateRegenerating
+            state = CharacterStateRegenerating(
+                actor=target,
+                game_state=cls._game_state,
+                source_actor=actor,
+                state_type_name="regenerating",
+                heal_amount=heal_amount,
+            )
+            await state.apply_state(
+                start_tick=cls._game_state.get_current_tick(),
+                duration_ticks=duration_ticks,
+                pulse_period_ticks=pulse_ticks,
+            )
+            await actor.send_text(CommTypes.DYNAMIC, f"Applied regenerating ({heal_amount} HP every {pulse_seconds:.0f}s) to {target.art_name} for {duration_sec:.0f} seconds.")
+            return
+
+        await actor.send_text(CommTypes.DYNAMIC, f"Unknown state: {state_name}. Known states: experiencemodifier, admin, damagemultiplier, maxhp, shielded, dodgebonus, damagebonus, regenerating.")
 
     async def cmd_setstat(cls, actor: Actor, input: str):
         """
@@ -1759,6 +2107,12 @@ class CommandHandler(CommandHandlerInterface):
         logger = StructuredLogger(__name__, prefix="cmd_look()> ")
         logger.debug3(f"actor.rid: {actor.rid}, input: {input}")
         if not input:
+            room = actor.location_room
+            if room and TriggerType.ON_LOOK in room.triggers_by_type:
+                vars = set_vars(room, actor, room, "")
+                for trigger in room.triggers_by_type[TriggerType.ON_LOOK]:
+                    await trigger.run(room, "", vars, cls._game_state)
+                return
             await CoreActionsInterface.get_instance().do_look_room(actor, actor.location_room)
             return
         pieces = split_preserving_quotes(input)
@@ -1801,21 +2155,35 @@ class CommandHandler(CommandHandlerInterface):
         
         if target is None:
             room = actor.location_room
-            if TriggerType.CATCH_LOOK in room.triggers_by_type:
+            if TriggerType.CATCH_INSPECT in room.triggers_by_type:
                 vars = set_vars(room, actor, room, keyword)
-                for trigger in room.triggers_by_type[TriggerType.CATCH_LOOK]:
+                for trigger in room.triggers_by_type[TriggerType.CATCH_INSPECT]:
                     if await trigger.run(room, keyword, vars, cls._game_state):
                         return
             await actor.send_text(CommTypes.DYNAMIC, "Look at what?")
             return
         
         if isinstance(target, Character):
-            await CoreActionsInterface.get_instance().do_look_character(actor, target)
-        elif isinstance(target, Object):
-            await CoreActionsInterface.get_instance().do_look_object(actor, target)
-            if TriggerType.CATCH_LOOK in target.triggers_by_type:
+            if TriggerType.ON_LOOK in target.triggers_by_type:
                 vars = set_vars(target, actor, target, keyword)
-                for trigger in target.triggers_by_type[TriggerType.CATCH_LOOK]:
+                for trigger in target.triggers_by_type[TriggerType.ON_LOOK]:
+                    await trigger.run(target, keyword, vars, cls._game_state)
+                return
+            await CoreActionsInterface.get_instance().do_look_character(actor, target)
+            if TriggerType.CATCH_INSPECT in target.triggers_by_type:
+                vars = set_vars(target, actor, target, keyword)
+                for trigger in target.triggers_by_type[TriggerType.CATCH_INSPECT]:
+                    await trigger.run(target, keyword, vars, cls._game_state)
+        elif isinstance(target, Object):
+            if TriggerType.ON_LOOK in target.triggers_by_type:
+                vars = set_vars(target, actor, target, keyword)
+                for trigger in target.triggers_by_type[TriggerType.ON_LOOK]:
+                    await trigger.run(target, keyword, vars, cls._game_state)
+                return
+            await CoreActionsInterface.get_instance().do_look_object(actor, target)
+            if TriggerType.CATCH_INSPECT in target.triggers_by_type:
+                vars = set_vars(target, actor, target, keyword)
+                for trigger in target.triggers_by_type[TriggerType.CATCH_INSPECT]:
                     await trigger.run(target, keyword, vars, cls._game_state)
         else:
             await actor.send_text(CommTypes.DYNAMIC, "Look at what?")
@@ -3264,14 +3632,6 @@ class CommandHandler(CommandHandlerInterface):
             if target is None:
                 target = cls._game_state.find_target_character(actor, target_name)
         
-        # Check if this is a consumable item we can handle directly
-        if item.object_flags.are_flags_set(ObjectFlags.IS_CONSUMABLE) or \
-           item.object_flags.are_flags_set(ObjectFlags.IS_POTION) or \
-           item.object_flags.are_flags_set(ObjectFlags.IS_BANDAGE) or \
-           item.object_flags.are_flags_set(ObjectFlags.IS_FOOD):
-            await cls._use_consumable(actor, item, target)
-            return
-        
         # Check if item has ON_USE triggers
         if TriggerType.ON_USE not in item.triggers_by_type:
             if target:
@@ -3279,13 +3639,23 @@ class CommandHandler(CommandHandlerInterface):
             else:
                 await actor.send_text(CommTypes.DYNAMIC, f"You can't figure out how to use {item.art_name}.")
             return
-        
-        triggered = await cls._fire_on_use(actor, item, target, 'use')
-        if not triggered:
-            if target:
-                await actor.send_text(CommTypes.DYNAMIC, f"Using {item.art_name} on {target.art_name} has no effect.")
-            else:
-                await actor.send_text(CommTypes.DYNAMIC, f"Using {item.art_name} has no effect.")
+
+        is_consumable = item.object_flags.are_flags_set(ObjectFlags.IS_CONSUMABLE) or \
+                        item.object_flags.are_flags_set(ObjectFlags.IS_POTION) or \
+                        item.object_flags.are_flags_set(ObjectFlags.IS_BANDAGE) or \
+                        item.object_flags.are_flags_set(ObjectFlags.IS_FOOD)
+
+        if is_consumable:
+            await actor.send_text(CommTypes.DYNAMIC, f"You use {item.art_name}.")
+            await cls._fire_on_use(actor, item, target, 'use')
+            await cls._consume_item(actor, item)
+        else:
+            triggered = await cls._fire_on_use(actor, item, target, 'use')
+            if not triggered:
+                if target:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Using {item.art_name} on {target.art_name} has no effect.")
+                else:
+                    await actor.send_text(CommTypes.DYNAMIC, f"Using {item.art_name} has no effect.")
 
 
     async def _consume_item(cls, actor: Actor, item: Object) -> None:
@@ -3299,126 +3669,26 @@ class CommandHandler(CommandHandlerInterface):
             if item.charges == 0:
                 await actor.send_text(CommTypes.DYNAMIC, f"{firstcap(item.art_name)} is now empty.")
 
-    async def _use_consumable(cls, actor: Actor, item: Object, target: Actor = None):
-        """
-        Handle using a consumable item (potion, bandage, food).
-        Applies healing/restoration effects and removes/decrements the item.
-        """
-        from .utility import roll_dice, get_dice_parts
-        
-        logger = StructuredLogger(__name__, prefix="_use_consumable()> ")
-        
-        # Determine the actual target (self if not specified)
-        heal_target = target if target and target.actor_type == ActorType.CHARACTER else actor
-        
-        # Check if bandage - can't use in combat
-        if item.object_flags.are_flags_set(ObjectFlags.IS_BANDAGE):
-            if actor.fighting_whom is not None:
-                await actor.send_text(CommTypes.DYNAMIC, "You can't apply a bandage while fighting!")
-                return
-        
-        # Calculate healing amount
-        heal_amount = item.heal_amount
-        if item.heal_dice:
-            dice_parts = get_dice_parts(item.heal_dice)
-            if dice_parts:
-                heal_amount += roll_dice(dice_parts[0], dice_parts[1]) + dice_parts[2]
-        
-        # Apply effects
-        effects_applied = []
-        
-        # HP healing
-        if heal_amount > 0:
-            actual_heal = heal_target.increase_hp(heal_amount)
-            if actual_heal > 0:
-                effects_applied.append(f"healed {actual_heal} HP")
-        
-        # Mana restoration
-        if item.mana_restore > 0 and heal_target.max_mana > 0:
-            actual_restore = heal_target.increase_mana(item.mana_restore)
-            if actual_restore > 0:
-                effects_applied.append(f"restored {actual_restore} mana")
-        
-        # Stamina restoration
-        if item.stamina_restore > 0 and heal_target.max_stamina > 0:
-            actual_restore = heal_target.increase_stamina(item.stamina_restore)
-            if actual_restore > 0:
-                effects_applied.append(f"restored {actual_restore} stamina")
-        
-        # Determine the verb based on item type
-        if item.object_flags.are_flags_set(ObjectFlags.IS_POTION):
-            verb = "quaff"
-            verb_past = "quaff"
-        elif item.object_flags.are_flags_set(ObjectFlags.IS_BANDAGE):
-            verb = "apply"
-            verb_past = "applies"
-        elif item.object_flags.are_flags_set(ObjectFlags.IS_FOOD):
-            verb = "eat"
-            verb_past = "eats"
-        else:
-            verb = "use"
-            verb_past = "uses"
-        
-        # Send messages
-        if item.use_message:
-            # Custom use message
-            msg = item.use_message
-            await actor.echo(CommTypes.DYNAMIC, msg, set_vars(actor, actor, heal_target, msg), 
-                           game_state=cls._game_state)
-        else:
-            # Default messages
-            if heal_target == actor:
-                await actor.send_text(CommTypes.DYNAMIC, f"You {verb} {item.art_name}.")
-                msg = f"{firstcap(actor.name)} {verb_past} {item.art_name}."
-                await actor.location_room.echo(CommTypes.DYNAMIC, msg, 
-                                               set_vars(actor, actor, actor, msg),
-                                               exceptions=[actor], game_state=cls._game_state)
-            else:
-                await actor.send_text(CommTypes.DYNAMIC, f"You {verb} {item.art_name} on {heal_target.art_name}.")
-                await heal_target.send_text(CommTypes.DYNAMIC, f"{firstcap(actor.name)} {verb_past} {item.art_name} on you.")
-                msg = f"{firstcap(actor.name)} {verb_past} {item.art_name} on {heal_target.art_name}."
-                await actor.location_room.echo(CommTypes.DYNAMIC, msg,
-                                               set_vars(actor, actor, heal_target, msg),
-                                               exceptions=[actor, heal_target], game_state=cls._game_state)
-        
-        # Report effects
-        if effects_applied:
-            effects_str = ", ".join(effects_applied)
-            if heal_target == actor:
-                await actor.send_text(CommTypes.DYNAMIC, f"You feel better! ({effects_str})")
-            else:
-                await heal_target.send_text(CommTypes.DYNAMIC, f"You feel better! ({effects_str})")
-                await actor.send_text(CommTypes.DYNAMIC, f"{firstcap(heal_target.name)} is healed. ({effects_str})")
-        
-        # Send status update
-        if heal_target.has_perm_flags(PermanentCharacterFlags.IS_PC):
-            await heal_target.send_status_update()
-
-        await cls._consume_item(actor, item)
-
 
     async def cmd_quaff(cls, actor: Actor, input: str, drink_verb: str = "quaff"):
-        """Drink a potion or other drinkable (checks ON_USE first; potions without trigger use consumable logic)."""
+        """Drink a potion or other drinkable; fires ON_USE trigger then consumes."""
         if not input:
             await actor.send_text(CommTypes.DYNAMIC, "Quaff what?" if drink_verb == "quaff" else "Drink what?")
             return
-        
+
         item = cls._game_state.find_target_object(input, actor=actor)
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{input}'.")
             return
-        
+
+        if not (item.object_flags.are_flags_set(ObjectFlags.IS_POTION) or item.object_flags.are_flags_set(ObjectFlags.IS_CONSUMABLE)):
+            await actor.send_text(CommTypes.DYNAMIC, f"You can't {drink_verb} {item.art_name}.")
+            return
+
+        await actor.send_text(CommTypes.DYNAMIC, f"You {drink_verb} {item.art_name}.")
         if TriggerType.ON_USE in item.triggers_by_type:
-            await actor.send_text(CommTypes.DYNAMIC, f"You {drink_verb} {item.art_name}.")
             await cls._fire_on_use(actor, item, None, 'drink')
-            # Consume potion/consumable even when ON_USE fired (e.g. god potion)
-            if item.object_flags.are_flags_set(ObjectFlags.IS_POTION) or item.object_flags.are_flags_set(ObjectFlags.IS_CONSUMABLE):
-                await cls._consume_item(actor, item)
-            return
-        if item.object_flags.are_flags_set(ObjectFlags.IS_POTION):
-            await cls._use_consumable(actor, item)
-            return
-        await actor.send_text(CommTypes.DYNAMIC, f"You can't {drink_verb} {item.art_name}.")
+        await cls._consume_item(actor, item)
 
 
     async def cmd_drink(cls, actor: Actor, input: str):
@@ -3444,27 +3714,31 @@ class CommandHandler(CommandHandlerInterface):
         await actor.send_text(CommTypes.DYNAMIC, f"There's nothing of interest to read on {item.art_name}.")
 
     async def cmd_apply(cls, actor: Actor, input: str):
-        """Apply a bandage to yourself or another character."""
+        """Apply a bandage to yourself or another character; fires ON_USE trigger then consumes."""
         if not input:
             await actor.send_text(CommTypes.DYNAMIC, "Apply what?")
             return
-        
+
         # Parse "apply X to Y" format
         parts = input.lower().split(" to ", 1)
         item_name = parts[0].strip()
         target_name = parts[1].strip() if len(parts) > 1 else None
-        
+
         # Find the bandage in inventory
         item = cls._game_state.find_target_object(item_name, actor=actor)
-        
+
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{item_name}'.")
             return
-        
+
         if not item.object_flags.are_flags_set(ObjectFlags.IS_BANDAGE):
             await actor.send_text(CommTypes.DYNAMIC, f"You can't apply {item.art_name} as a bandage.")
             return
-        
+
+        if actor.fighting_whom is not None:
+            await actor.send_text(CommTypes.DYNAMIC, "You can't apply a bandage while fighting!")
+            return
+
         # Find target if specified
         target = None
         if target_name:
@@ -3472,28 +3746,33 @@ class CommandHandler(CommandHandlerInterface):
             if not target:
                 await actor.send_text(CommTypes.DYNAMIC, f"You don't see '{target_name}' here.")
                 return
-        
-        await cls._use_consumable(actor, item, target)
+
+        if TriggerType.ON_USE in item.triggers_by_type:
+            await cls._fire_on_use(actor, item, target, 'apply')
+        await cls._consume_item(actor, item)
 
 
     async def cmd_eat(cls, actor: Actor, input: str):
-        """Eat food."""
+        """Eat food; fires ON_USE trigger then consumes."""
         if not input:
             await actor.send_text(CommTypes.DYNAMIC, "Eat what?")
             return
-        
+
         # Find the food in inventory
         item = cls._game_state.find_target_object(input, actor=actor)
-        
+
         if item is None:
             await actor.send_text(CommTypes.DYNAMIC, f"You don't have '{input}'.")
             return
-        
+
         if not item.object_flags.are_flags_set(ObjectFlags.IS_FOOD):
             await actor.send_text(CommTypes.DYNAMIC, f"You can't eat {item.art_name}.")
             return
-        
-        await cls._use_consumable(actor, item)
+
+        await actor.send_text(CommTypes.DYNAMIC, f"You eat {item.art_name}.")
+        if TriggerType.ON_USE in item.triggers_by_type:
+            await cls._fire_on_use(actor, item, None, 'eat')
+        await cls._consume_item(actor, item)
 
 
     async def cmd_makeadmin(cls, actor: Actor, input: str):
@@ -4918,7 +5197,7 @@ class CommandHandler(CommandHandlerInterface):
             msg = f"{actor.art_name_cap} commands {target.art_name}."
             await actor.location_room.echo(CommTypes.DYNAMIC, msg, vars=None, exceptions=[actor], game_state=cls._game_state)
 
-        await cls.process_command(target, command, {})
+        await cls.process_command(target, command, {}, bypass_impairment=True)
 
     async def cmd_stop(cls, actor: Actor, input: str):
         logger = StructuredLogger(__name__, prefix="cmd_stop()> ")

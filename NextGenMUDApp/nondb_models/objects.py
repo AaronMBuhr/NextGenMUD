@@ -39,12 +39,6 @@ class Object(Actor, ObjectInterface):
         self.contents: List[Object] = []
         # location_room is a read-only property resolved through in_actor
         self.initial_contents_ids: List[str] = []  # Object definition ids (zone_id.object_id or object_id) for world YAML contents
-        # Consumable properties
-        self.heal_amount: int = 0           # Fixed HP heal
-        self.heal_dice: str = ""            # Dice-based heal (e.g., "2d6+4")
-        self.mana_restore: int = 0          # Mana restored
-        self.stamina_restore: int = 0       # Stamina restored
-        self.use_message: str = ""          # Custom message when used
         self.charges: int = -1              # -1 = single use destroyed, 0+ = remaining charges
         self.description_: str = ""
 
@@ -78,6 +72,8 @@ class Object(Actor, ObjectInterface):
             self.pronoun_object_ = yaml_data['pronoun_object'] if 'pronoun_object' in yaml_data else "it"
             self.pronoun_possessive_ = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
             self.keywords = yaml_data.get('keywords', [])
+            perm_vars = yaml_data.get('perm_variables', {})
+            self.perm_variables = copy.deepcopy(perm_vars) if isinstance(perm_vars, dict) else {}
             self.weight = yaml_data.get('weight', 0)
             self.value = yaml_data.get('value', 0)
             if 'equip_locations' in yaml_data:
@@ -119,18 +115,6 @@ class Object(Actor, ObjectInterface):
                     new_trigger = Trigger.new_trigger(trig["type"], self, disabled=True).from_dict(trig)
                     self.triggers_by_type[new_trigger.trigger_type_].append(new_trigger)
             
-            # Consumable properties
-            logger.debug3(f"object.from_yaml()> consumable properties")
-            if 'heal_amount' in yaml_data:
-                self.heal_amount = yaml_data['heal_amount']
-            if 'heal_dice' in yaml_data:
-                self.heal_dice = yaml_data['heal_dice']
-            if 'mana_restore' in yaml_data:
-                self.mana_restore = yaml_data['mana_restore']
-            if 'stamina_restore' in yaml_data:
-                self.stamina_restore = yaml_data['stamina_restore']
-            if 'use_message' in yaml_data:
-                self.use_message = yaml_data['use_message']
             if 'charges' in yaml_data:
                 self.charges = yaml_data['charges']
             

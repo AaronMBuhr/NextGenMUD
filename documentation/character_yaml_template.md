@@ -48,6 +48,12 @@ class:
 permanent_flags:
   - can_cast_spells
 
+# Persistent instance variables copied to character.perm_variables
+perm_variables:
+  quest_hint_seen: true
+  patrol_route: north_gate
+  greeting_count: 0
+
 experience_points: 5000
 
 damage_multipliers:
@@ -122,6 +128,10 @@ class:
       fireball:
         level: 1
 
+perm_variables:
+  has_spellblade_training: true
+  faction: arcane_guard
+
 hit_dice: 6d10+18
 dodge_dice: 1d60+12
 hit_modifier: 95
@@ -169,6 +179,10 @@ class:
         level: 2
       bless:
         level: 1
+
+perm_variables:
+  knows_secret_passage: true
+  shrine_access: novice
 
 hit_dice: 5d8+10
 dodge_dice: 1d70+15

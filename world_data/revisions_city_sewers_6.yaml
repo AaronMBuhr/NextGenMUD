@@ -1,0 +1,127 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: giant_crab
+        triggers:
+          - id: crab_bubble
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The giant sewer crab clacks its massive pincers together and blows a stream of foul-smelling bubbles.
+          - id: crab_attacked
+            type: on_attacked
+            script: |
+              echo The giant crab scuttles sideways, raising its crushing pincers defensively!
+
+      - id: rubble_dweller
+        triggers:
+          - id: dweller_beg
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "coin,gold,help,food,money"
+            script: |
+              echo The desperate rubble dweller clutches their jagged stone tighter. "Nothing here! I have nothing! Leave me to the dark!"
+          - id: dweller_cower
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The rubble dweller shrinks back into the shadows, watching you with wide, terrified eyes.
+
+      - id: shadow_lurker
+        triggers:
+          - id: lurker_hide
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo You catch a glimpse of pale skin shifting in the darkness before the shadow lurker melts completely out of sight.
+          - id: lurker_ambush
+            type: on_attacked
+            script: |
+              echo The shadow lurker hisses in annoyance as its ambush is ruined, lunging forward with a hidden blade!
+
+      - id: sewer_troll
+        triggers:
+          - id: troll_hunger
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "hello,who,stop,pass"
+            script: |
+              echo The filth-encrusted troll sniffs the air loudly. "Surface meat... smells better than rat. You pay toll, or you be dinner."
+          - id: troll_attacked
+            type: on_attacked
+            script: |
+              echo The troll lets out a deafening, gurgling roar and swings a massive, garbage-covered claw!
+
+      - id: shadow_thief
+        triggers:
+          - id: thief_threaten
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "stop,guard,law,surrender"
+            script: |
+              echo The shadow thief sneers, pulling their cloak tight. "The guard doesn't come down here, friend. You're in our jurisdiction now."
+          - id: thief_attacked
+            type: on_attacked
+            script: |
+              echo The shadow thief curses under their breath, quickly drawing a poisoned dagger to counterattack!
+
+      - id: echo_bat
+        triggers:
+          - id: echo_bat_shriek
+            type: on_attacked
+            script: |
+              echo The blind echo bat emits a painfully loud, focused shriek that bounces off the stone walls and rattles your teeth!
+
+      - id: shadow_scout
+        triggers:
+          - id: scout_warn
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,8)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo A small pebble clatters to the ground nearby. The shadow scout is watching you closely from the perimeter.
+          - id: scout_attacked
+            type: on_attacked
+            script: |
+              echo The shadow scout smoothly draws their shortsword, shouting an alert down the tunnel to their guildmates!
+
+      - id: gold_mite
+        triggers:
+          - id: mite_scurry
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The glittering gold mite scurries rapidly over a pile of refuse, its metallic-dusted carapace catching the faint light.
+          - id: mite_coin_react
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "gold,coin,shiny,treasure"
+            script: |
+              echo At the sound of the word, the gold mite pauses its scavenging and twitches its antennae toward you.

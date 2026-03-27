@@ -125,10 +125,10 @@ class TestRespawn:
     
     def test_respawn_at_start_room(self):
         """Player should respawn at the start room."""
-        start_room_id = "debug_zone.starting_room"
+        start_room_id = "master_zone.starting_room"
         
         # Default respawn location
-        assert start_room_id == "debug_zone.starting_room"
+        assert start_room_id == "master_zone.starting_room"
     
     def test_hp_restored_on_respawn(self):
         """HP should be restored on respawn."""

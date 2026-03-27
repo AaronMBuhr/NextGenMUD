@@ -1,3 +1,4 @@
+import copy
 from typing import Dict, List, Callable
 from .actor_attitudes import ActorAttitude
 from .actor_interface import ActorType, ActorSpawnData
@@ -71,6 +72,8 @@ class Room(Actor, RoomInterface):
             self.description_ = yaml_data['description']
             self.zone = zone
             self.subzone_id = yaml_data.get('subzone')
+            perm_vars = yaml_data.get('perm_variables', {})
+            self.perm_variables = copy.deepcopy(perm_vars) if isinstance(perm_vars, dict) else {}
 
             for direction, exit_info in yaml_data['exits'].items():
                 # logger.debug3(f"loading direction: {direction}")
@@ -89,8 +92,10 @@ class Room(Actor, RoomInterface):
                         spawn_id = character['id']
                     logger.debug(f"spawn_id: {spawn_id}")
                     # print(repr(character))
+                    respawn_min = character.get('respawn time min') or character.get('respawn_time_min')
+                    respawn_max = character.get('respawn time max') or character.get('respawn_time_max')
                     respawn = ActorSpawnData(self, ActorType.CHARACTER, spawn_id, character['quantity'],
-                                                character.get('respawn time min'), character.get('respawn time max'))
+                                                respawn_min, respawn_max)
                     self.spawn_data.append(respawn)
 
             room_objects = yaml_data.get('OBJECTS') or yaml_data.get('objects')

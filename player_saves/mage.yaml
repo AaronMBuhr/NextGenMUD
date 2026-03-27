@@ -1,0 +1,279 @@
+name: Mage
+description: ''
+article: ''
+pronoun_subject: they
+pronoun_object: them
+pronoun_possessive: their
+location:
+  zone: gloomy_graveyard
+  room: dark_forest_s
+was_in_combat: false
+class_priority:
+- MAGE
+levels_by_role:
+  MAGE: 3
+specializations: {}
+skill_levels: {}
+skill_points_available: 0
+skill_levels_by_role:
+  MAGE:
+    blur: 0
+    detect_magic: 0
+    ignite: 30
+    light: 0
+    magic_missile: 40
+    shield: 30
+attributes:
+  STRENGTH: 5
+  DEXTERITY: 10
+  CONSTITUTION: 10
+  INTELLIGENCE: 25
+  WISDOM: 5
+  CHARISMA: 5
+permanent_flags:
+- IS_PC
+game_permission_flags: []
+experience_points: 110410
+hit_dice: 1
+hit_dice_size: 4
+hit_point_bonus: 0
+max_hit_points: 208
+current_hit_points: 94
+max_mana: 135
+current_mana: 135
+max_stamina: 0
+current_stamina: 0
+max_carrying_capacity: 100
+base_hit_modifier: 40
+base_dodge_modifier: 5
+dodge_dice_number: 1
+dodge_dice_size: 50
+critical_chance: 5
+critical_multiplier: 100
+num_main_hand_attacks: 1
+num_off_hand_attacks: 0
+damage_multipliers:
+  RAW: 41
+  SLASHING: 41
+  PIERCING: 41
+  BLUDGEONING: 41
+  FIRE: 41
+  COLD: 41
+  LIGHTNING: 41
+  ACID: 41
+  POISON: 41
+  DISEASE: 41
+  HOLY: 41
+  UNHOLY: 41
+  ARCANE: 41
+  PSYCHIC: 41
+  FORCE: 41
+  NECROTIC: 41
+  RADIANT: 41
+damage_reduction:
+  RAW: 0
+  SLASHING: 0
+  PIERCING: 0
+  BLUDGEONING: 0
+  FIRE: 0
+  COLD: 0
+  LIGHTNING: 0
+  ACID: 0
+  POISON: 0
+  DISEASE: 0
+  HOLY: 0
+  UNHOLY: 0
+  ARCANE: 0
+  PSYCHIC: 0
+  FORCE: 0
+  NECROTIC: 0
+  RADIANT: 0
+inventory:
+- id: savant_scroll_of_learning
+  definition_zone_id: master_zone
+  name: Savant scroll of learning
+  article: a
+  description: A scroll inscribed with runes of learning. Reading it sharpens the
+    mind.
+  weight: 0
+  value: 100
+  object_flags: 0
+  equip_locations: []
+  equipped_location:
+  damage_multipliers:
+    RAW: 1
+    SLASHING: 1
+    PIERCING: 1
+    BLUDGEONING: 1
+    FIRE: 1
+    COLD: 1
+    LIGHTNING: 1
+    ACID: 1
+    POISON: 1
+    DISEASE: 1
+    HOLY: 1
+    UNHOLY: 1
+    ARCANE: 1
+    PSYCHIC: 1
+    FORCE: 1
+    NECROTIC: 1
+    RADIANT: 1
+  damage_reduction:
+    RAW: 0
+    SLASHING: 0
+    PIERCING: 0
+    BLUDGEONING: 0
+    FIRE: 0
+    COLD: 0
+    LIGHTNING: 0
+    ACID: 0
+    POISON: 0
+    DISEASE: 0
+    HOLY: 0
+    UNHOLY: 0
+    ARCANE: 0
+    PSYCHIC: 0
+    FORCE: 0
+    NECROTIC: 0
+    RADIANT: 0
+  damage_type:
+  damage_num_dice: 0
+  damage_dice_size: 0
+  damage_bonus: 0
+  attack_bonus: 0
+  dodge_penalty: 0
+  contents: []
+- id: god_potion
+  definition_zone_id: master_zone
+  name: God Potion
+  article: a
+  description: A shimmering vial that radiates divine authority. Drinking it grants
+    temporary admin powers.
+  weight: 0
+  value: 0
+  object_flags: 0
+  equip_locations: []
+  equipped_location:
+  damage_multipliers:
+    RAW: 1
+    SLASHING: 1
+    PIERCING: 1
+    BLUDGEONING: 1
+    FIRE: 1
+    COLD: 1
+    LIGHTNING: 1
+    ACID: 1
+    POISON: 1
+    DISEASE: 1
+    HOLY: 1
+    UNHOLY: 1
+    ARCANE: 1
+    PSYCHIC: 1
+    FORCE: 1
+    NECROTIC: 1
+    RADIANT: 1
+  damage_reduction:
+    RAW: 0
+    SLASHING: 0
+    PIERCING: 0
+    BLUDGEONING: 0
+    FIRE: 0
+    COLD: 0
+    LIGHTNING: 0
+    ACID: 0
+    POISON: 0
+    DISEASE: 0
+    HOLY: 0
+    UNHOLY: 0
+    ARCANE: 0
+    PSYCHIC: 0
+    FORCE: 0
+    NECROTIC: 0
+    RADIANT: 0
+  damage_type:
+  damage_num_dice: 0
+  damage_dice_size: 0
+  damage_bonus: 0
+  attack_bonus: 0
+  dodge_penalty: 0
+  contents: []
+- id: potion_of_godly_healing
+  definition_zone_id: master_zone
+  name: potion of godly healing
+  article: a
+  description: A radiant vial that seems to contain the essence of life itself.
+  weight: 0
+  value: 0
+  object_flags: 12288
+  equip_locations: []
+  equipped_location:
+  damage_multipliers:
+    RAW: 1
+    SLASHING: 1
+    PIERCING: 1
+    BLUDGEONING: 1
+    FIRE: 1
+    COLD: 1
+    LIGHTNING: 1
+    ACID: 1
+    POISON: 1
+    DISEASE: 1
+    HOLY: 1
+    UNHOLY: 1
+    ARCANE: 1
+    PSYCHIC: 1
+    FORCE: 1
+    NECROTIC: 1
+    RADIANT: 1
+  damage_reduction:
+    RAW: 0
+    SLASHING: 0
+    PIERCING: 0
+    BLUDGEONING: 0
+    FIRE: 0
+    COLD: 0
+    LIGHTNING: 0
+    ACID: 0
+    POISON: 0
+    DISEASE: 0
+    HOLY: 0
+    UNHOLY: 0
+    ARCANE: 0
+    PSYCHIC: 0
+    FORCE: 0
+    NECROTIC: 0
+    RADIANT: 0
+  damage_type:
+  damage_num_dice: 0
+  damage_dice_size: 0
+  damage_bonus: 0
+  attack_bonus: 0
+  dodge_penalty: 0
+  contents: []
+equipment:
+  MAIN_HAND:
+  OFF_HAND:
+  BOTH_HANDS:
+  HEAD:
+  NECK:
+  SHOULDERS:
+  ARMS:
+  WRISTS:
+  HANDS:
+  LEFT_FINGER:
+  RIGHT_FINGER:
+  WAIST:
+  LEGS:
+  FEET:
+  BODY:
+  BACK:
+  EYES:
+temporary_flags: []
+states:
+- class: CharacterStateExperienceModifier
+  duration: 3467.0
+  state_type_name: perspicacious
+  modifier: 100.0
+cooldowns: []
+password_hash: 
+  b177db6bf616e982242a0b56c2c0196050a5ca0c250d164755e076006dacc53d$8be580c4c4f892aa1072d5e802d835f692187357586ac1467c5afe932e133dfc

@@ -1,0 +1,24 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: muck_beast
+        inventory: [rusted_iron_gear, gnawed_bone]
+
+      - id: rust_monster
+        inventory: [glittering_slag]
+
+      - id: pipe_crawler
+        inventory: [corrosive_acid_vial]
+
+      - id: marrow_leech
+        inventory: [gnawed_bone]
+
+      - id: tunnel_serpent
+        inventory: [gnawed_bone]
+
+      - id: sewer_mutant
+        equipment: [rusted_iron_pipe, filthy_rag_cloak]
+        inventory: [tarnished_silver_signet]
+
+      - id: mutant_abomination
+        inventory: [unstable_arcane_core, corrosive_acid_vial]

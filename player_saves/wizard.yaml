@@ -1,0 +1,106 @@
+name: Wizard
+description: ''
+article: ''
+pronoun_subject: they
+pronoun_object: them
+pronoun_possessive: their
+location:
+  zone: central_city
+  room: city_gates
+was_in_combat: false
+class_priority:
+- MAGE
+levels_by_role:
+  MAGE: 1
+specializations: {}
+skill_levels: {}
+skill_points_available: 60
+skill_levels_by_role:
+  MAGE: {}
+attributes:
+  STRENGTH: 5
+  DEXTERITY: 10
+  CONSTITUTION: 10
+  INTELLIGENCE: 25
+  WISDOM: 5
+  CHARISMA: 5
+permanent_flags:
+- IS_PC
+game_permission_flags: []
+experience_points: 0
+hit_dice: 1
+hit_dice_size: 4
+hit_point_bonus: 0
+max_hit_points: 21
+current_hit_points: 21
+max_mana: 45
+current_mana: 45
+max_stamina: 0
+current_stamina: 0
+max_carrying_capacity: 100
+base_hit_modifier: 40
+base_dodge_modifier: 5
+dodge_dice_number: 1
+dodge_dice_size: 50
+critical_chance: 5
+critical_multiplier: 100
+num_main_hand_attacks: 1
+num_off_hand_attacks: 0
+damage_multipliers:
+  RAW: 1
+  SLASHING: 1
+  PIERCING: 1
+  BLUDGEONING: 1
+  FIRE: 1
+  COLD: 1
+  LIGHTNING: 1
+  ACID: 1
+  POISON: 1
+  DISEASE: 1
+  HOLY: 1
+  UNHOLY: 1
+  ARCANE: 1
+  PSYCHIC: 1
+  FORCE: 1
+  NECROTIC: 1
+  RADIANT: 1
+damage_reduction:
+  RAW: 0
+  SLASHING: 0
+  PIERCING: 0
+  BLUDGEONING: 0
+  FIRE: 0
+  COLD: 0
+  LIGHTNING: 0
+  ACID: 0
+  POISON: 0
+  DISEASE: 0
+  HOLY: 0
+  UNHOLY: 0
+  ARCANE: 0
+  PSYCHIC: 0
+  FORCE: 0
+  NECROTIC: 0
+  RADIANT: 0
+inventory: []
+equipment:
+  MAIN_HAND:
+  OFF_HAND:
+  BOTH_HANDS:
+  HEAD:
+  NECK:
+  SHOULDERS:
+  ARMS:
+  WRISTS:
+  HANDS:
+  LEFT_FINGER:
+  RIGHT_FINGER:
+  WAIST:
+  LEGS:
+  FEET:
+  BODY:
+  BACK:
+  EYES:
+temporary_flags: []
+states: []
+cooldowns: []

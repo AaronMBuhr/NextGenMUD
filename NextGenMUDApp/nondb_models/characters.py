@@ -1,4 +1,5 @@
 import copy
+import random
 from ..structured_logger import StructuredLogger
 from enum import Enum, auto
 from typing import Dict, List, Callable, Optional
@@ -202,7 +203,10 @@ class Character(Actor, CharacterInterface):
         self.group_id: str = None
         self.starting_eq = None
         self.starting_inv = None
+        self.loot = []  # List of loot table entries: [{table, chance_percent, quantity_percent_chances}]
         self.attitude = ActorAttitude.NEUTRAL
+        self.character_type: str = "unknown"
+        self.race: str = "unknown"
         self.specializations = {}  # Maps base class to chosen specialization
         self.guards_rooms: List[str] = []  # List of zone.room IDs this NPC guards (blocks access to)
         self.last_entered_from: Optional[str] = None  # Direction player last entered current room from
@@ -243,6 +247,14 @@ class Character(Actor, CharacterInterface):
             self.pronoun_possessive = yaml_data['pronoun_possessive'] if 'pronoun_possessive' in yaml_data else "its"
             self.keywords = yaml_data.get('keywords', [])
             self.group_id = yaml_data['group_id'] if 'group_id' in yaml_data else None
+            # Taxonomy fields for broad class + specific lineage
+            # Accept top-level "type" for world YAML compatibility.
+            raw_character_type = yaml_data.get('character_type', yaml_data.get('type', 'unknown'))
+            raw_race = yaml_data.get('race', 'unknown')
+            self.character_type = str(raw_character_type).strip().lower() if raw_character_type is not None else "unknown"
+            self.race = str(raw_race).strip().lower() if raw_race is not None else "unknown"
+            perm_vars = yaml_data.get('perm_variables', {})
+            self.perm_variables = copy.deepcopy(perm_vars) if isinstance(perm_vars, dict) else {}
             
             # Set attitude from YAML if provided, defaulting to NEUTRAL
             if 'attitude' in yaml_data:
@@ -455,6 +467,18 @@ class Character(Actor, CharacterInterface):
                 self.starting_eq = yaml_data['equipment']
             if 'inventory' in yaml_data:
                 self.starting_inv = yaml_data['inventory']
+            if 'loot' in yaml_data:
+                loot_data = yaml_data['loot']
+                if isinstance(loot_data, dict):
+                    loot_data = [loot_data]
+                self.loot = []
+                for entry in loot_data:
+                    if isinstance(entry, dict) and 'table' in entry:
+                        self.loot.append({
+                            'table': entry['table'],
+                            'chance_percent': entry.get('chance_percent', 100),
+                            'quantity_percent_chances': entry.get('quantity_percent_chances', {1: 100}),
+                        })
             if 'triggers' in yaml_data: 
                 for trig in yaml_data['triggers']:
                     logger.debug3(f"got trigger for {self.name}: {trig}")
@@ -718,6 +742,9 @@ class Character(Actor, CharacterInterface):
                     logger.error(f"Could not create object from definition for {inv_id}")
                     continue
                 new_char.add_object(new_obj)
+        if new_char.loot and include_items and game_state:
+            new_char._generate_loot(game_state, logger)
+        new_char.loot = []
         for trig_type, trig_data in new_char.triggers_by_type.items():
             for trig in trig_data:
                 logger.debug3(f"enabling trigger: {trig.to_dict()}")
@@ -728,7 +755,47 @@ class Character(Actor, CharacterInterface):
         new_char._update_class_features()
         
         return new_char
-    
+
+    def _generate_loot(self, game_state: GameStateInterface, logger):
+        """Roll loot tables and add resulting items to inventory."""
+        for entry in self.loot:
+            table_name = entry['table']
+            chance = entry.get('chance_percent', 100)
+            qty_chances = entry.get('quantity_percent_chances', {1: 100})
+
+            if random.randint(1, 100) > chance:
+                continue
+
+            # Determine quantity from weighted percent chances
+            roll = random.randint(1, 100)
+            cumulative = 0
+            quantity = 1
+            for qty, pct in sorted(qty_chances.items(), key=lambda x: int(x[0])):
+                cumulative += int(pct)
+                if roll <= cumulative:
+                    quantity = int(qty)
+                    break
+
+            # Resolve the loot table: try zone-qualified, then local zone
+            qualified = table_name if '.' in table_name else f"{self.definition_zone_id}.{table_name}"
+            items_list = game_state.world_definition.loot_tables.get(qualified)
+            if not items_list:
+                logger.warning(f"Loot table '{qualified}' not found for {self.name}")
+                continue
+
+            for _ in range(quantity):
+                item_id = random.choice(items_list)
+                if '.' not in item_id:
+                    item_id = f"{self.definition_zone_id}.{item_id}"
+                obj_def = game_state.world_definition.find_object_definition(item_id)
+                if not obj_def:
+                    logger.warning(f"Loot item '{item_id}' not found for {self.name}")
+                    continue
+                new_obj = Object.create_from_definition(obj_def)
+                if new_obj:
+                    self.add_object(new_obj)
+                    logger.debug3(f"Loot: added {new_obj.name} to {self.name}")
+
     def get_status_description(self):
         health_percent = self.current_hit_points * 100 / self.max_hit_points
         if health_percent < 10:

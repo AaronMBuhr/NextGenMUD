@@ -3,51 +3,49 @@ ZONES:
     name: Shattered Dominion
     description: |
       A desert realm of buried pyramids and forgotten sun-kings. The sands hide the remnants of an ancient civilization that sought divine ascension through elaborate ritual—and failed. Now only echoes, constructs, and the undying remain to guard secrets that were never meant to be unearthed.
-ZONES:
-  shattered_dominion:
     quests:
       sun_king_legacy:
         __replace__: true
         title: The Sun King's Legacy
         description: Navigate the crystalline ruins of the Shattered Dominion to restore the Solar Lens and reactive the Apex Shrine.
         objectives:
-          - Locate the Solar Lens within the vitrified Ossuary.
-          - Infiltrate the Scriptorium to find the calculation for the solar alignment.
-          - Ascend the Great Pyramid to the Apex Shrine.
-          - Align the Solar Lens to ignite the desert's ancient beacon.
+        - Locate the Solar Lens within the vitrified Ossuary.
+        - Infiltrate the Scriptorium to find the calculation for the solar alignment.
+        - Ascend the Great Pyramid to the Apex Shrine.
+        - Align the Solar Lens to ignite the desert's ancient beacon.
         stages:
-          - name: The Glassed Expanse
-            sequence: 10
-            description: The desert sands have turned to glass. You must find a way into the Sun King's Ossuary to begin your search for the Solar Lens.
-            conditions:
-              sun_king_legacy.status: "not_started"
+        - name: The Glassed Expanse
+          sequence: 10
+          description: The desert sands have turned to glass. You must find a way into the Sun King's Ossuary to begin your search for the Solar Lens.
+          conditions:
+            sun_king_legacy.status: "not_started"
 
-          - name: Heart of Refraction
-            sequence: 20
-            description: You have entered the Ossuary. Locate the Solar Lens within the vitrified corridors before the crystalline echoes overwhelm you.
-            conditions:
-              sun_king_legacy.status: "started"
-              sun_king_legacy.has_lens: false
+        - name: Heart of Refraction
+          sequence: 20
+          description: You have entered the Ossuary. Locate the Solar Lens within the vitrified corridors before the crystalline echoes overwhelm you.
+          conditions:
+            sun_king_legacy.status: "started"
+            sun_king_legacy.has_lens: false
 
-          - name: The Scriptorium's Secret
-            sequence: 30
-            description: You have the Lens, but it must be aligned. Search the Scriptorium's Hall of Records for the ancient calculation scrolls.
-            conditions:
-              sun_king_legacy.has_lens: true
-              sun_king_legacy.has_calculations: false
+        - name: The Scriptorium's Secret
+          sequence: 30
+          description: You have the Lens, but it must be aligned. Search the Scriptorium's Hall of Records for the ancient calculation scrolls.
+          conditions:
+            sun_king_legacy.has_lens: true
+            sun_king_legacy.has_calculations: false
 
-          - name: The Final Ascent
-            sequence: 40
-            description: With both the Lens and the calculations, you must climb to the Apex Shrine of the Great Pyramid for the final alignment.
-            conditions:
-              sun_king_legacy.has_calculations: true
-              sun_king_legacy.status: "started"
+        - name: The Final Ascent
+          sequence: 40
+          description: With both the Lens and the calculations, you must climb to the Apex Shrine of the Great Pyramid for the final alignment.
+          conditions:
+            sun_king_legacy.has_calculations: true
+            sun_king_legacy.status: "started"
 
-          - name: Beacon of the Sands
-            sequence: 100
-            description: The Solar Lens is set, and the desert beacon shines once more. The Shattered Dominion's ancient power has been restored.
-            conditions:
-              sun_king_legacy.status: "completed"
+        - name: Beacon of the Sands
+          sequence: 100
+          description: The Solar Lens is set, and the desert beacon shines once more. The Shattered Dominion's ancient power has been restored.
+          conditions:
+            sun_king_legacy.status: "completed"
 
         variables:
           status:
@@ -59,17 +57,17 @@ ZONES:
             default: false
             description: Player has recovered the Solar Lens from the Ossuary.
             knowledge_updates:
-              - condition: true
-                updates:
-                  lens_recovered: true
+            - condition: true
+              updates:
+                lens_recovered: true
           has_calculations:
             type: boolean
             default: false
             description: Player has found the alignment scrolls in the Scriptorium.
             knowledge_updates:
-              - condition: true
-                updates:
-                  alignment_known: true
+            - condition: true
+              updates:
+                alignment_known: true
     ROOMS:
       room_pyr_desert_approach:
         subzone: great_pyramid
@@ -182,15 +180,15 @@ ZONES:
           north:
             destination: room_pyr_processional_ring
             description: A circular passage curves into darkness ahead.
-        CHARACTERS:
+        characters:
         - id: npc_pyr_sand_woken_serpent
           quantity: 1
-          respawn_time_min: 120
-          respawn_time_max: 240
+          respawn time min: 120
+          respawn time max: 240
         - id: npc_pyr_sand_woken_scarab
           quantity: 3
-          respawn_time_min: 90
-          respawn_time_max: 180
+          respawn time min: 90
+          respawn time max: 180
         triggers:
         - id: pyr_gallery_collapse
           type: on_arrive
@@ -225,18 +223,18 @@ ZONES:
           south:
             destination: room_pyr_collapse_galleries
             description: The unstable galleries wind back toward the entrance.
-        CHARACTERS:
+        characters:
         - id: npc_pyr_royal_echo_attendant
           quantity: 2
-          respawn_time_min: 180
-          respawn_time_max: 300
+          respawn time min: 180
+          respawn time max: 300
         - id: npc_pyr_royal_echo_priest
           quantity: 1
-          respawn_time_min: 180
-          respawn_time_max: 300
+          respawn time min: 180
+          respawn time max: 300
         triggers:
         - id: pyr_ring_examine_murals
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -280,11 +278,11 @@ ZONES:
           north:
             destination: room_pyr_solar_lens
             description: Blinding light flickers from a chamber to the north.
-        CHARACTERS:
+        characters:
         - id: npc_pyr_seal_bound_sentinel
           quantity: 1
-          respawn_time_min: 300
-          respawn_time_max: 600
+          respawn time min: 300
+          respawn time max: 600
         triggers:
         - id: pyr_seals_reaction
           type: on_arrive
@@ -360,7 +358,7 @@ ZONES:
           south:
             destination: room_pyr_kings_path
             description: The King's Ascending Path leads back down into the pyramid.
-        CHARACTERS:
+        characters:
         - id: npc_last_solar_archivist
           quantity: 1
         triggers:
@@ -398,7 +396,7 @@ ZONES:
           west:
             destination: room_temple_scorched_path
             description: A heat-scorched processional road leads west toward towering ruins.
-        CHARACTERS:
+        characters:
         - id: npc_wind_marked_guide
           quantity: 1
         triggers:
@@ -416,7 +414,7 @@ ZONES:
           script: |
             echo The wind carries fragments of voices—prayers, warnings, or both.
         - id: crossroads_waystone_examine
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -456,7 +454,7 @@ ZONES:
           script: |
             echo The wind stills momentarily as your offering settles into the sand.
             $if($questvar(%S%, shattered_dominion.desert_unrest), numgt, 0){
-              setquestvar %S% shattered_dominion.desert_unrest $math($questvar(%S%, shattered_dominion.desert_unrest) - 1)
+              setquestvar %S% shattered_dominion.desert_unrest $sub($questvar(%S%, shattered_dominion.desert_unrest), 1)
               echoto %S% Something in the air eases, as if the land acknowledges your gesture.
             }
       # =========================================================
@@ -528,7 +526,7 @@ ZONES:
             destination: room_scriptorium_scorched_arch
             description: |
               A heavy stone archway, blackened and bubbling from extreme heat, leads into the ruins of the Scriptorium.
-        CHARACTERS:
+        characters:
         - id: npc_ash_bound_hierophant
           quantity: 1
         triggers:
@@ -567,7 +565,7 @@ ZONES:
           west:
             destination: room_temple_acolyte_cells
             description: A narrow corridor of abandoned cells extends westward.
-        CHARACTERS:
+        characters:
         - id: npc_temple_sun_scarred_penitent
           quantity: 1
         triggers:
@@ -609,7 +607,7 @@ ZONES:
           up:
             destination: room_temple_sun_altar
             description: A narrow stairway ascends toward open sky and residual heat.
-        CHARACTERS:
+        characters:
         - id: npc_temple_ash_bound_hierophant
           quantity: 1
         - id: npc_temple_doctrine_warden
@@ -684,7 +682,7 @@ ZONES:
           west:
             destination: room_temple_outer_sanctum
             description: The outer sanctum's scorched nave opens to the west.
-        CHARACTERS:
+        characters:
         - id: npc_temple_solar_choir_chanter
           quantity: 2
         triggers:
@@ -713,12 +711,12 @@ ZONES:
           east:
             destination: room_temple_outer_sanctum
             description: The outer sanctum lies at the corridor's eastern end.
-        CHARACTERS:
+        characters:
         - id: npc_temple_acolyte_observer
           quantity: 1
         triggers:
         - id: acolyte_cells_evacuation_clue
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -914,7 +912,7 @@ ZONES:
           north:
             destination: room_oasis_central_pool
             description: The central pool's still waters lie just to the north.
-        CHARACTERS:
+        characters:
         - id: npc_veiled_speaker
           quantity: 1
         - id: npc_oasis_veiled_speaker
@@ -937,7 +935,7 @@ ZONES:
           west:
             destination: room_oasis_outer_camp
             description: The outer camp spreads beneath palm shade to the west.
-        CHARACTERS:
+        characters:
         - id: npc_oasis_caravan_trader
           quantity: 1
         triggers:
@@ -967,7 +965,7 @@ ZONES:
           east:
             destination: room_oasis_outer_camp
             description: The bustle of the outer camp lies to the east.
-        CHARACTERS:
+        characters:
         - id: npc_oasis_memory_keeper
           quantity: 1
         triggers:
@@ -1019,16 +1017,16 @@ ZONES:
           south:
             destination: room_wastes_salt_flats
             description: White salt flats stretch endlessly to the south.
-        OBJECTS:
+        objects:
         - id: obj_wastes_glass_shards
           quantity: 1
-        CHARACTERS:
+        characters:
         - id: npc_wastes_glassbound_watcher
           quantity: 1
         - id: npc_wastes_solar_echo
           quantity: 1
-          respawn_time_min: 120
-          respawn_time_max: 300
+          respawn time min: 120
+          respawn time max: 300
         triggers:
         - id: glassed_expanse_heat
           type: timer_tick
@@ -1045,7 +1043,7 @@ ZONES:
             echo The glass radiates stored heat, burning through your protection.
             damage %S% 1d6 fire
         - id: glassed_expanse_pattern
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1167,7 +1165,7 @@ ZONES:
             description: The glassed expanse glitters blindingly to the south.
         triggers:
         - id: conduit_array_examination
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1199,7 +1197,7 @@ ZONES:
             destination: room_barracks_salt_trail
             description: |
               Bone cairns mark a narrow path leading away from the salt flats toward a cluster of low stone buildings.
-        CHARACTERS:
+        characters:
         - id: npc_wastes_relic_scavenger
           quantity: 1
         triggers:
@@ -1217,7 +1215,7 @@ ZONES:
           script: |
             echo Mirages dance across the salt—cities, processions, flames. Echoes of what was lost.
         - id: salt_flats_evidence
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1242,7 +1240,7 @@ ZONES:
           west:
             destination: room_wastes_salt_flats
             description: The endless salt flats stretch back to the west.
-        CHARACTERS:
+        characters:
         - id: npc_wastes_salt_scoured_nomad
           quantity: 1
         triggers:
@@ -1298,11 +1296,11 @@ ZONES:
           script: |
             echo The descent is treacherous; sharp glass edges catch at your gear.
             damage %S% 1d4 slashing
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_vitrified_husk
           quantity: 2
-          respawn_time_min: 120
-          respawn_time_max: 240
+          respawn time min: 120
+          respawn time max: 240
       room_ossuary_vitrified_corridor:
         subzone: the_ossuary
         name: Vitrified Burial Corridor
@@ -1330,15 +1328,15 @@ ZONES:
             predicate: 40
           script: |
             echo Light refracts through the walls, creating the illusion of movement in the corner of your eye.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_vitrified_husk
           quantity: 3
-          respawn_time_min: 120
-          respawn_time_max: 240
+          respawn time min: 120
+          respawn time max: 240
         - id: npc_ossuary_crystalline_shambler
           quantity: 1
-          respawn_time_min: 180
-          respawn_time_max: 300
+          respawn time min: 180
+          respawn time max: 300
       room_ossuary_heart_of_refraction:
         subzone: the_ossuary
         name: The Heart of Refraction
@@ -1371,15 +1369,15 @@ ZONES:
           script: |
             echo The central pillar flares with unstable energy!
             damage %S% 1d8 radiant
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_prismatic_stalker
           quantity: 2
-          respawn_time_min: 300
-          respawn_time_max: 600
+          respawn time min: 300
+          respawn time max: 600
         - id: npc_ossuary_memory_echo
           quantity: 1
-          respawn_time_min: 240
-          respawn_time_max: 480
+          respawn time min: 240
+          respawn time max: 480
       room_ossuary_shattered_gallery:
         subzone: the_ossuary
         name: Gallery of Shattered Souls
@@ -1403,13 +1401,13 @@ ZONES:
           script: |
             echo The glass shards crunch beneath your feet, vibrating with residual heat.
             damage %S% 1d4 fire
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_vitrified_husk
           quantity: 3
-          respawn_time_min: 120
+          respawn time min: 120
         - id: npc_ossuary_crystalline_shambler
           quantity: 2
-          respawn_time_min: 180
+          respawn time min: 180
       room_ossuary_echo_chamber:
         subzone: the_ossuary
         name: The Resonant Echo Chamber
@@ -1431,11 +1429,11 @@ ZONES:
           type: on_arrive
           script: |
             echo The trapped sound of the ritual presses against your ears.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_memory_echo
           quantity: 3
-          respawn_time_min: 240
-          respawn_time_max: 480
+          respawn time min: 240
+          respawn time max: 480
       room_ossuary_noble_crypts:
         subzone: the_ossuary
         name: The Noble Crypts
@@ -1457,12 +1455,12 @@ ZONES:
           type: on_arrive
           script: |
             echo The air is unnaturally still here, insulated from the tremors of the surface.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_vitrified_husk
           quantity: 2
         - id: npc_ossuary_prismatic_stalker
           quantity: 1
-          respawn_time_min: 300
+          respawn time min: 300
       room_ossuary_sun_kings_repose:
         subzone: the_ossuary
         name: The High Priest's Repose
@@ -1478,14 +1476,14 @@ ZONES:
             description: The noble crypts lie to the south.
         triggers:
         - id: ossuary_sarcophagus_look
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: sarcophagus
           script: |
             echo The interior of the sarcophagus is empty, save for a layer of fine, grey ash.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_solar_flare_sentinel
           quantity: 1
       room_ossuary_vitrified_archives:
@@ -1515,7 +1513,7 @@ ZONES:
             predicate: 60
           script: |
             echo The melted archive mass pulses with a dim, sickly light.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_crystalline_shambler
           quantity: 2
         - id: npc_ossuary_memory_echo
@@ -1541,7 +1539,7 @@ ZONES:
           type: on_arrive
           script: |
             echo You feel a sense of frantic urgency clinging to this narrow space.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_vitrified_husk
           quantity: 2
         - id: npc_ossuary_prismatic_stalker
@@ -1566,10 +1564,10 @@ ZONES:
         - id: ossuary_junction_blast
           type: on_arrive
           script: echo The blast pattern on the gates indicates energy erupted from the ossuary, not into it.
-        CHARACTERS:
+        characters:
         - id: npc_ossuary_crystalline_shambler
           quantity: 2
-          respawn_time_min: 180
+          respawn time min: 180
       room_scriptorium_scorched_arch:
         subzone: the_scriptorium
         name: The Scorched Archway
@@ -1592,11 +1590,11 @@ ZONES:
           type: on_arrive
           script: |
             echo The air here is stagnant, carrying the weight of centuries-old fire.
-        CHARACTERS:
+        characters:
         - id: npc_script_burned_cantor
           quantity: 2
-          respawn_time_min: 150
-          respawn_time_max: 300
+          respawn time min: 150
+          respawn time max: 300
       room_scriptorium_hall_of_records:
         subzone: the_scriptorium
         name: Hall of Melted Records
@@ -1618,17 +1616,17 @@ ZONES:
             description: Small, cramped alcoves branch off to the south.
         triggers:
         - id: scriptorium_slab_flicker
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: slab
           script: |
             echo The slab flickers with a series of complex energy dissipation equations before fading into darkness.
-        CHARACTERS:
+        characters:
         - id: npc_script_ink_wraith
           quantity: 3
-          respawn_time_min: 120
+          respawn time min: 120
         - id: npc_script_burned_cantor
           quantity: 1
       room_scriptorium_calculation_chamber:
@@ -1659,11 +1657,11 @@ ZONES:
             predicate: 50
           script: |
             echo The melted orrery groans as the metal expands in the residual heat.
-        CHARACTERS:
+        characters:
         - id: npc_script_living_equation
           quantity: 2
-          respawn_time_min: 300
-          respawn_time_max: 600
+          respawn time min: 300
+          respawn time max: 600
       room_scriptorium_scribe_alcoves:
         subzone: the_scriptorium
         name: The Scribe Alcoves
@@ -1679,17 +1677,17 @@ ZONES:
             description: The main hall of records lies to the north.
         triggers:
         - id: scribe_desperation
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: wall
           script: |
             echo You see the same phrase repeated: "The dissipation channels are insufficient."
-        CHARACTERS:
+        characters:
         - id: npc_script_ink_wraith
           quantity: 4
-          respawn_time_min: 120
+          respawn time min: 120
       room_scriptorium_containment_cell:
         subzone: the_scriptorium
         name: Failed Containment Cell
@@ -1719,10 +1717,10 @@ ZONES:
           script: |
             echo Residual energy flares from the floor!
             damage %S% 1d6 radiant
-        CHARACTERS:
+        characters:
         - id: npc_script_living_equation
           quantity: 2
-          respawn_time_min: 300
+          respawn time min: 300
       room_scriptorium_restricted_stacks:
         subzone: the_scriptorium
         name: The Restricted Stacks
@@ -1741,14 +1739,14 @@ ZONES:
             description: An ornate, soot-stained door leads west.
         triggers:
         - id: restricted_stacks_knowledge
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: tablet
           script: |
             echo These tablets detail the "omitted safeguards" mentioned in the old records.
-        CHARACTERS:
+        characters:
         - id: npc_script_burned_cantor
           quantity: 2
         - id: npc_script_ink_wraith
@@ -1774,7 +1772,7 @@ ZONES:
           type: on_arrive
           script: |
             echo The air smells of ink and ancient, cold ash.
-        CHARACTERS:
+        characters:
         - id: npc_script_chief_archivist
           quantity: 1
       room_scriptorium_secret_scriptorium:
@@ -1799,10 +1797,10 @@ ZONES:
           type: on_arrive
           script: |
             echo You feel the weight of a thousand suppressed lies in this silent room.
-        CHARACTERS:
+        characters:
         - id: npc_script_ink_wraith
           quantity: 3
-          respawn_time_min: 180
+          respawn time min: 180
       room_scriptorium_observation_deck:
         subzone: the_scriptorium
         name: Scriptorium Observation Deck
@@ -1821,10 +1819,10 @@ ZONES:
         - id: observation_deck_vision
           type: on_arrive
           script: echo The scale of the "infrastructure failure" is breathtaking from this height.
-        CHARACTERS:
+        characters:
         - id: npc_script_living_equation
           quantity: 1
-          respawn_time_min: 300
+          respawn time min: 300
       room_scriptorium_failed_alcove:
         subzone: the_scriptorium
         name: The Failed Alcove
@@ -1835,7 +1833,7 @@ ZONES:
         exits:
           east:
             destination: room_scriptorium_hall_of_records
-        CHARACTERS:
+        characters:
         - id: npc_script_burned_cantor
           quantity: 2
       room_barracks_salt_trail:
@@ -1860,12 +1858,12 @@ ZONES:
           type: on_arrive
           script: |
             echo Your footsteps echo sharply in the dry, still air.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_desiccated_warbeast
           quantity: 2
-          respawn_time_min: 120
-          respawn_time_max: 240
-        OBJECTS:
+          respawn time min: 120
+          respawn time max: 240
+        objects:
         - id: obj_barracks_cairn_stone
           quantity: 3
       room_barracks_main_gate:
@@ -1890,11 +1888,11 @@ ZONES:
           type: on_arrive
           script: |
             echo You feel the weight of unseen eyes watching from the crumbling battlements.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_salt_phalanx
           quantity: 2
-          respawn_time_min: 150
-          respawn_time_max: 300
+          respawn time min: 150
+          respawn time max: 300
       room_barracks_training_grounds:
         subzone: military_camp
         name: Salt-Fused Training Grounds
@@ -1930,12 +1928,12 @@ ZONES:
             predicate: 20
           script: |
             echo The wind whistles through the weapon racks, sounding like the clash of phantom blades.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_salt_phalanx
           quantity: 4
-          respawn_time_min: 150
-          respawn_time_max: 300
-        OBJECTS:
+          respawn time min: 150
+          respawn time max: 300
+        objects:
         - id: obj_barracks_legion_shield
           quantity: 2
       room_barracks_officer_quarters:
@@ -1953,19 +1951,19 @@ ZONES:
             description: The training grounds lie outside to the east.
         triggers:
         - id: barracks_officer_memory
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: furniture
           script: |
             echo The furniture is caked in a thick layer of salt, its original shape barely recognizable.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_warden_proto
           quantity: 1
-          respawn_time_min: 300
-          respawn_time_max: 600
-        OBJECTS:
+          respawn time min: 300
+          respawn time max: 600
+        objects:
         - id: obj_barracks_salt_pitted_key
           quantity: 1
       room_barracks_mess_hall:
@@ -1989,11 +1987,11 @@ ZONES:
           type: on_arrive
           script: |
             echo The air is thick with the smell of brine and ancient dust.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_desiccated_warbeast
           quantity: 2
-          respawn_time_min: 120
-        OBJECTS:
+          respawn time min: 120
+        objects:
         - id: obj_barracks_salt_rations
           quantity: 5
       room_barracks_sleeping_quarters:
@@ -2017,10 +2015,10 @@ ZONES:
           type: on_arrive
           script: |
             echo This room holds an oppressive silence, as if the occupants simply vanished in their sleep.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_salt_phalanx
           quantity: 3
-          respawn_time_min: 150
+          respawn time min: 150
       room_barracks_armory_foyer:
         subzone: military_camp
         name: Armory Foyer
@@ -2039,17 +2037,17 @@ ZONES:
             description: A massive, salt-pitted door leads south.
         triggers:
         - id: armory_shield_look
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: shield
           script: |
             echo The shields are fused together by heat and salt, forming a solid wall of metal.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_warden_proto
           quantity: 2
-          respawn_time_min: 300
+          respawn time min: 300
       room_barracks_high_security_vault:
         subzone: military_camp
         name: Garrison Commander's Vault
@@ -2078,10 +2076,10 @@ ZONES:
             predicate: 30
           script: |
             echo A pulse of energy ripples through the floor, sparking against the salt-encrusted walls.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_garrison_commander
           quantity: 1
-        OBJECTS:
+        objects:
         - id: obj_barracks_command_claymore
           quantity: 1
         - id: obj_barracks_doctrinal_codex
@@ -2105,10 +2103,10 @@ ZONES:
           type: on_arrive
           script: |
             echo From this height, the "environmental overload" that glassed the desert is clearly visible.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_salt_phalanx
           quantity: 2
-          respawn_time_min: 150
+          respawn time min: 150
       room_barracks_subterranean_cistern:
         subzone: military_camp
         name: Subterranean Cistern
@@ -2128,10 +2126,10 @@ ZONES:
           type: on_arrive
           script: |
             echo The scale of the tragedy is evident in the piles of white, salt-preserved bones.
-        CHARACTERS:
+        characters:
         - id: npc_barracks_desiccated_warbeast
           quantity: 2
-          respawn_time_min: 120
+          respawn time min: 120
     common_knowledge:
       # LLM-facing: concise status lines for "WHAT THE PLAYER ALREADY KNOWS"
       # Technical/True
@@ -2270,7 +2268,7 @@ ZONES:
       short_description: the last solar archivist
       long_description: |
         A tall, desiccated figure bound in layers of sun-etched stone and gold-inlaid script. Its eyes glow faintly, not with malice, but with the weight of preserved memory. It does not move unless addressed.
-      race: undead
+      race: mummy
       class:
         Mage:
           level: 18
@@ -2396,6 +2394,7 @@ ZONES:
         script: |
           say Faith is not a relevant variable in energy dissipation calculations.
           emote's eyes dim momentarily, as if rejecting corrupted input.
+      type: undead
     - id: npc_wind_marked_guide
       name: the Wind-Marked Guide
       short_description: a wind-marked guide
@@ -2490,7 +2489,7 @@ ZONES:
           echo The Guide examines your offering with weathered fingers.
           pause 0.3
           $if($questvar(%S%, shattered_dominion.guide_favor), numlt, 2){
-            setquestvar %S% shattered_dominion.guide_favor $math($questvar(%S%, shattered_dominion.guide_favor) + 1)
+            setquestvar %S% shattered_dominion.guide_favor $add($questvar(%S%, shattered_dominion.guide_favor), 1)
             say This has value. The desert takes note.
           }
       - id: guide_warns_about_desert
@@ -2777,10 +2776,10 @@ ZONES:
           emote stiffens, ash falling from scorched vestments.
           say Failure implies flawed design. The design was divine. Only human doubt was flawed.
           $if($questvar(%S%, shattered_dominion.temple_alignment), numgt, -2){
-            setquestvar %S% shattered_dominion.temple_alignment $math($questvar(%S%, shattered_dominion.temple_alignment) - 1)
+            setquestvar %S% shattered_dominion.temple_alignment $sub($questvar(%S%, shattered_dominion.temple_alignment), 1)
           }
           $if($questvar(%S%, shattered_dominion.desert_unrest), numlt, 10){
-            setquestvar %S% shattered_dominion.desert_unrest $math($questvar(%S%, shattered_dominion.desert_unrest) + 1)
+            setquestvar %S% shattered_dominion.desert_unrest $add($questvar(%S%, shattered_dominion.desert_unrest), 1)
           }
       - id: hierophant_reacts_to_truth_seeker
         type: on_arrive
@@ -2907,7 +2906,7 @@ ZONES:
           pause 0.3
           echoto %S% Something in the Veiled Speaker's tone suggests this is not the full story.
           $if($questvar(%S%, shattered_dominion.truth_integrity), numgt, -3){
-            setquestvar %S% shattered_dominion.truth_integrity $math($questvar(%S%, shattered_dominion.truth_integrity) - 1)
+            setquestvar %S% shattered_dominion.truth_integrity $sub($questvar(%S%, shattered_dominion.truth_integrity), 1)
           }
       - id: veiled_speaker_shares_with_trust
         type: on_say
@@ -2931,7 +2930,7 @@ ZONES:
           echo The Veiled Speaker accepts your offering with deliberate care.
           pause 0.3
           $if($questvar(%S%, shattered_dominion.nomad_trust), numlt, 3){
-            setquestvar %S% shattered_dominion.nomad_trust $math($questvar(%S%, shattered_dominion.nomad_trust) + 1)
+            setquestvar %S% shattered_dominion.nomad_trust $add($questvar(%S%, shattered_dominion.nomad_trust), 1)
             say You understand exchange. That is a beginning.
           }
       - id: veiled_speaker_distrust_temple
@@ -2979,7 +2978,7 @@ ZONES:
       short_description: a priestly royal echo
       long_description: |
         This spectral priest murmurs fragments of invocation, hands forever raised toward an absent sun. Its form flickers when questioned.
-      race: undead
+      race: ghost
       class:
         Cleric:
           level: 8
@@ -3000,12 +2999,13 @@ ZONES:
       natural_attacks:
       - type: necrotic
         damage: 1d6
+      type: undead
     - id: npc_pyr_seal_bound_sentinel
       name: a seal-bound sentinel
       short_description: a seal-bound sentinel
       long_description: |
         A stone-and-bronze construct engraved with layered ritual sigils. Its eyes glow faintly as it monitors adherence to forgotten doctrine.
-      race: construct
+      race: stone golem
       class:
         Fighter:
           level: 12
@@ -3028,12 +3028,13 @@ ZONES:
       natural_attacks:
       - type: bludgeoning
         damage: 2d6
+      type: construct
     - id: npc_pyr_sand_woken_serpent
       name: a sand-woken serpent
       short_description: a sand-woken serpent
       long_description: |
         This pale, heat-scarred serpent coils silently among the rubble, its scales reflecting light in unsettling patterns.
-      race: reptile
+      race: snake
       class:
         Fighter:
           level: 5
@@ -3055,12 +3056,13 @@ ZONES:
         damage: 1d6
       - type: poison
         damage: 1d4
+      type: animal
     - id: npc_pyr_sand_woken_scarab
       name: a sand-woken scarab
       short_description: a sand-woken scarab
       long_description: |
         A fist-sized scarab fused with crystalline growths, skittering toward sources of light with relentless focus.
-      race: insect
+      race: scarab
       class:
         Fighter:
           level: 3
@@ -3080,12 +3082,13 @@ ZONES:
       natural_attacks:
       - type: piercing
         damage: 1d4
+      type: insect
     - id: npc_pyr_archivist_fragment
       name: a fractured solar archivist
       short_description: a fractured solar archivist
       long_description: |
         This partial manifestation of the Last Solar Archivist appears incomplete, sections of its body replaced by floating glyphs and fractured memory slabs.
-      race: undead
+      race: mummy
       class:
         Mage:
           level: 10
@@ -3104,6 +3107,7 @@ ZONES:
       - sentinel
       - immune_charm
       - immune_fear
+      type: undead
     - id: npc_temple_ash_bound_hierophant
       name: the Temple Hierophant
       short_description: the ash-bound temple hierophant
@@ -3618,7 +3622,7 @@ ZONES:
           pause 0.5
           echoto %S% It does not breathe. It does not react.
       - id: watcher_reacts_to_examination
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -4308,7 +4312,7 @@ ZONES:
       - pattern
       description: |
         A manifest pattern of golden light and humming energy. It is a mathematical error given physical form, a fragment of the ritual's energy focusing system that never dissipated.
-      race: elemental
+      race: energy
       class:
         Mage:
           level: 13
@@ -4353,6 +4357,7 @@ ZONES:
         script: |
           echo The air crackles with the sound of a thousand solving variables.
           damage %S% 1d4 lightning
+      type: elemental
     - id: npc_script_chief_archivist
       name: the Fractured Chief Archivist
       article: ''
@@ -4363,7 +4368,7 @@ ZONES:
       - boss
       description: |
         A towering undead figure fused with a master chronicle slab. Its eyes burn with a hateful, intelligent light, and its voice sounds like the grinding of stone on bone.
-      race: undead
+      race: lich
       class:
         Mage:
           level: 16
@@ -4422,6 +4427,7 @@ ZONES:
           [DIRECTIVE: TOPIC LINKING]
           - If asked about the "Messy parts," refer to the "Sacrifice of the Willing."
           - Admit you deleted the records of their screams because it "Spoiled the narrative symmetry."
+      type: undead
     - id: npc_barracks_salt_phalanx
       name: salt-crusted phalanx
       article: a
@@ -4779,7 +4785,7 @@ ZONES:
       - stationary
       triggers:
       - id: pyr_sigils_on_look
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -4838,7 +4844,7 @@ ZONES:
         The grooves are engineered channels, designed to carry energy toward a central focus. This was infrastructure, not ornament.
       weight: 3
       value: 20
-      object_flags:
+      permanent_flags:
       - is_quest_item
       triggers:
       - id: conduit_fragment_recognition
@@ -4862,11 +4868,11 @@ ZONES:
         The markings are measurements—angles, distances, tolerances. Nothing about this was meant to honor the dead.
       weight: 50
       value: 5
-      object_flags:
+      permanent_flags:
       - heavy
       triggers:
       - id: marker_stone_evidence
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -4889,7 +4895,7 @@ ZONES:
         The interior damage radiates outward, as if whatever it contained exceeded its limits catastrophically.
       weight: 5
       value: 30
-      object_flags:
+      permanent_flags:
       - is_container
       container_capacity: 3
       triggers:
@@ -4913,7 +4919,7 @@ ZONES:
         The marked danger zones align with the blast radius of the disaster. Someone mapped this after it happened.
       weight: 0
       value: 15
-      object_flags:
+      permanent_flags:
       - is_quest_item
       triggers:
       - id: nomad_map_insight
@@ -4937,7 +4943,7 @@ ZONES:
         This is not magic residue. It is energy that never dispersed.
       weight: 1
       value: 75
-      object_flags:
+      permanent_flags:
       - is_quest_item
       triggers:
       - id: solar_echo_release
@@ -4963,12 +4969,12 @@ ZONES:
         The calibration sequence ends abruptly. Safety tolerances were never extended beyond this point.
       weight: 10
       value: 40
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - heavy
       triggers:
       - id: control_rod_realization
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -4990,7 +4996,7 @@ ZONES:
         Nearly invisible razor-edged shards lie buried just beneath the sand.
       weight: 0
       value: 0
-      object_flags:
+      permanent_flags:
       - is_hidden
       triggers:
       - id: glass_shard_hazard
@@ -5024,7 +5030,7 @@ ZONES:
       value: 100
       equip_locations:
       - both_hands
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - heavy
       triggers:
@@ -5250,10 +5256,11 @@ ZONES:
       - weapon
       description: |
         A long, wickedly sharp shard of vitrified sand. It hums faintly with trapped energy and glows with a pale, inner light.
-      object_flags:
+      permanent_flags:
       - is_weapon
       - takeable
-      equip_location: main_hand
+      equip_locations:
+      - main_hand
       weapon_attacks:
       - attack_noun: shard
         attack_verb: lacerates
@@ -5277,7 +5284,7 @@ ZONES:
       - crystal
       description: |
         A heavy disc of multi-faceted glass. When held to the light, it projects complex geometric patterns associated with the "solar tolerances" of the old ritual.
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - takeable
       triggers:
@@ -5299,7 +5306,7 @@ ZONES:
       - brass
       description: |
         A large brass fork etched with "gold-inlaid script." It was used to calibrate the "incomplete harmonies" within the resonant chambers.
-      object_flags:
+      permanent_flags:
       - takeable
       triggers:
       - id: fork_resonate
@@ -5319,7 +5326,7 @@ ZONES:
       - container
       description: |
         An urn made of sand that was flash-melted into glass. The remains inside have become a solid, glowing core of "energy residue."
-      object_flags:
+      permanent_flags:
       - is_container
       - openable
       - closed
@@ -5341,10 +5348,11 @@ ZONES:
       - gold
       description: |
         A heavy gold medallion found near the "High Priest's Repose." It bears the "unbroken sun seal" and grants authority within the ritual hierarchy.
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - takeable
-      equip_location: neck
+      equip_locations:
+      - neck
       triggers:
       - id: medallion_authority
         type: on_arrive
@@ -5366,12 +5374,12 @@ ZONES:
       - solar
       description: |
         A central pillar of solar-etched crystal. It is the source of the "unstable solar energy" flooding this sub-zone.
-      object_flags:
+      permanent_flags:
       - is_static
       - stationary
       triggers:
       - id: pillar_energy_drain
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -5391,15 +5399,15 @@ ZONES:
       - ash
       description: |
         A scroll made of heavy vellum, scorched almost to the point of disintegration. Fragments of "gold-inlaid script" still glimmer amid the black ash.
-      object_flags:
+      permanent_flags:
       - is_consumable
       - takeable
       charges: 1
-      use_message: You attempt to read the crumbling scroll, releasing a final burst of trapped magic.
       triggers:
       - id: scroll_ash_burst
         type: on_use
         script: |
+          echoto %S% You attempt to read the crumbling scroll, releasing a final burst of trapped magic.
           echo As you unfurl the scroll, it dissolves into hot ash!
           damage %S% 1d4 fire
           $if($random(1,100), numlte, 50){
@@ -5416,14 +5424,14 @@ ZONES:
       - stone
       description: |
         A heavy slab of dark basalt, etched with the "omitted safeguards" of the ascension ritual. The stone is cool to the touch despite the surrounding heat.
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - takeable
       - heavy
       weight: 15
       triggers:
       - id: tablet_study_safeguards
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -5443,7 +5451,7 @@ ZONES:
       - obsidian
       description: |
         A small pot of carved obsidian containing a thick, swirling liquid that seems to absorb the light. This ink was used for "doctrinal revision".
-      object_flags:
+      permanent_flags:
       - takeable
       triggers:
       - id: ink_stain_hazard
@@ -5461,10 +5469,11 @@ ZONES:
       - fragment
       description: |
         A heavy brass gear from the "melted orrery" in the calculation chamber. It is warped and slagged, yet it still emits a low-frequency hum.
-      object_flags:
+      permanent_flags:
       - is_weapon
       - takeable
-      equip_location: main_hand
+      equip_locations:
+      - main_hand
       weapon_attacks:
       - attack_noun: gear
         attack_verb: bludgeons
@@ -5496,10 +5505,11 @@ ZONES:
       - ring
       description: |
         A ring of "scorched metal" bearing the "ritual authority sigil." It was once used by the Chief Archivist to access the restricted stacks.
-      object_flags:
+      permanent_flags:
       - is_key
       - takeable
-      equip_location: left_finger
+      equip_locations:
+      - left_finger
       key_id: script_restricted_lock
       triggers:
       - id: signet_cold_pulse
@@ -5515,12 +5525,12 @@ ZONES:
       - stone
       description: |
         A tall pedestal of polished obsidian used for displaying "crystalline memory slabs." It remains "stationary" and untouched by the heat.
-      object_flags:
+      permanent_flags:
       - is_static
       - stationary
       triggers:
       - id: pedestal_reflection
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -5536,18 +5546,18 @@ ZONES:
       - preserved
       description: |
         A block of dried meat and grain, perfectly preserved by a thick crust of salt. It is incredibly dry but still carries the residual energy of the garrison.
-      object_flags:
+      permanent_flags:
       - is_consumable
       - is_food
       - takeable
-      heal_amount: 15
-      stamina_restore: 30
       charges: 2
-      use_message: You chew on the salty rations. They are nearly inedible, but a surge of energy follows the salt.
       triggers:
-      - id: rations_thirst
+      - id: rations_use
         type: on_use
         script: |
+          echoto %S% You chew on the salty rations. They are nearly inedible, but a surge of energy follows the salt.
+          heal %S% 15
+          setstat %S% stamina +30
           echoto %S% The intense salt makes your throat burn with thirst.
     - id: obj_barracks_legion_shield
       name: scorched legionnaire's shield
@@ -5559,10 +5569,11 @@ ZONES:
       - scorched
       description: |
         A heavy metal shield etched with the "sun-disc imagery" of the Black Sun. The metal is scorched and salt-pitted, yet it remains remarkably sturdy.
-      object_flags:
+      permanent_flags:
       - is_armor
       - takeable
-      equip_location: off_hand
+      equip_locations:
+      - off_hand
       armor_class_bonus: 3
       triggers:
       - id: shield_solar_retort
@@ -5584,12 +5595,12 @@ ZONES:
       - doctrinal
       description: |
         A heavy, salt-encrusted book detailing the military laws and evacuation protocols of the Dominion. Many sections regarding "omitted safeguards" have been redacted.
-      object_flags:
+      permanent_flags:
       - is_quest_item
       - takeable
       triggers:
       - id: codex_read_protocols
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -5610,11 +5621,12 @@ ZONES:
       - commander
       description: |
         A massive blade of "scorched metal" that crackles with "residual energy." It was once the badge of office for the garrison's commander.
-      object_flags:
+      permanent_flags:
       - is_weapon
       - takeable
       - heavy
-      equip_location: both_hands
+      equip_locations:
+      - both_hands
       weapon_attacks:
       - attack_noun: claymore
         attack_verb: cleaves
@@ -5641,7 +5653,7 @@ ZONES:
       - bone
       description: |
         A heavy stone used to anchor "cairns of stacked bones." It is marked with seasonal route shifts.
-      object_flags:
+      permanent_flags:
       - takeable
       - heavy
       weight: 20
@@ -5654,7 +5666,7 @@ ZONES:
           predicate: room_wastes_nomad_crossing
         script: |
           $if($questvar(%S%, shattered_dominion.nomad_trust), numlt, 4){
-            setquestvar %S% shattered_dominion.nomad_trust $math($questvar(%S%, shattered_dominion.nomad_trust) + 1)
+            setquestvar %S% shattered_dominion.nomad_trust $add($questvar(%S%, shattered_dominion.nomad_trust), 1)
             echo You repair the scattered cairn. The desert wind seems to ease.
           }
     - id: obj_barracks_salt_pitted_key
@@ -5667,7 +5679,7 @@ ZONES:
       - pitted
       description: |
         A massive iron key encrusted with white salt crystals. It is heavy and cold.
-      object_flags:
+      permanent_flags:
       - is_key
       - takeable
       key_id: barracks_vault_lock

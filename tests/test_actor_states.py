@@ -248,3 +248,47 @@ class TestResourceRegeneration:
         meditating_rate = test_mage.get_mana_regen_rate()
         
         assert meditating_rate > normal_rate
+
+
+class TestCharacterStateExperienceModifier:
+    """Tests for the experience modifier state (perspicacious)."""
+
+    def test_experience_modifier_default_is_one(self, test_fighter):
+        """With no ExperienceModifier state, get_experience_modifier should be 1.0."""
+        test_fighter.states = []
+        assert test_fighter.get_experience_modifier() == 1.0
+
+    def test_experience_modifier_multiplies_xp(self, mock_game_state, test_fighter):
+        """With ExperienceModifier state at 1.5, gain_xp(100) should add 150 XP."""
+        from NextGenMUDApp.nondb_models.actor_states import CharacterStateExperienceModifier
+
+        char = test_fighter
+        char.experience_points = 0
+        char.states = []
+
+        state = CharacterStateExperienceModifier(
+            actor=char,
+            game_state=mock_game_state,
+            source_actor=None,
+            state_type_name="perspicacious",
+            modifier=1.5,
+        )
+        char.states.append(state)
+
+        assert char.get_experience_modifier() == 1.5
+        actual_xp, can_level = char.gain_xp(100)
+        assert actual_xp == 150
+        assert char.experience_points == 150
+
+    def test_experience_modifier_stores_float(self, mock_game_state):
+        """CharacterStateExperienceModifier should store modifier as float."""
+        from NextGenMUDApp.nondb_models.actor_states import CharacterStateExperienceModifier
+
+        actor = create_mock_character()
+        state = CharacterStateExperienceModifier(
+            actor=actor,
+            game_state=mock_game_state,
+            modifier=1.5,
+        )
+        assert state.modifier == 1.5
+        assert isinstance(state.modifier, float)

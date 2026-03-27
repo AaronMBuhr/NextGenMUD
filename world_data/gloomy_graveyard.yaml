@@ -1,5 +1,7 @@
 ZONES:
+
   gloomy_graveyard:
+
     name: Gloomy Graveyard
     description: |
       A gloomy graveyard and it's surrounds, including a dark forest, a manor house, a crypt, and a inn. Recently, a dark murder has cast a shadow over the area -  Lord Ashford of the manor house was found dead in the graveyard.
@@ -20,9 +22,11 @@ ZONES:
       butler_reputation_suspect: Edmund is prime suspect—dismissal threat, manor tensions, and evidence make his loyalty look like a mask.
       local_geography: Inn on forest road; graveyard north then east; manor east along road; crypts southeast of graveyard; Enchanted Forest surrounds all—stick to roads.
       dismissal_note: No written motive found yet.
-      dismissal_note_found: "Torn note on body: Lord Ashford was about to fire a long-serving employee (\"your position is no longer required\"). Motive taking shape."
+      dismissal_note_found: 'Torn note on body: Lord Ashford was about to fire a long-serving employee ("your position is no longer required"). Motive taking shape.'
       case_solved: Not enough evidence yet to name the killer.
       case_solved_evidence: Monogrammed cufflink as evidence; someone close to Lord Ashford and connected to the manor was at the scene.
+
+
     quests:
       murder_mystery:
         __replace__: true
@@ -131,10 +135,10 @@ ZONES:
                 murder_case_solved: true
                 village_mood_solved: true
               replaces:
-                - murder_case_heard
-                - murder_case_found_body
-                - murder_case_figure
-                - murder_case_weapon
+              - murder_case_heard
+              - murder_case_found_body
+              - murder_case_figure
+              - murder_case_weapon
         stages:
         - name: Case closed
           sequence: 100
@@ -266,6 +270,8 @@ ZONES:
             murder_mystery.quest_complete:
               op: neq
               val: true
+
+
     ROOMS:
       forest_road_s:
         subzone: forest_verge
@@ -285,7 +291,7 @@ ZONES:
             description: A well-worn trail leads eastward toward the grand gates of Central City.
         triggers:
         - id: on_any_howl
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -315,7 +321,7 @@ ZONES:
             destination: dark_forest_se
         triggers:
         - id: on_any_growl
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -323,7 +329,7 @@ ZONES:
           script: |
             echo A low growl resonates from the shadows, its source unseen but unnervingly close.
         - id: catch_look_tree
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -345,7 +351,7 @@ ZONES:
             destination: dark_forest_s
         triggers:
         - id: on_any_whisper
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -378,7 +384,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_rustle
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -413,7 +419,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_howl_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -439,6 +445,9 @@ ZONES:
             destination: dark_forest_w
           east:
             destination: dark_forest_n
+          west:
+            destination: cave_exterior
+            description: The trees thin out as the ground rises into sharp, rocky crags to the west.
         characters:
         - id: werewolf
           quantity: 1
@@ -446,7 +455,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_growl_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -474,6 +483,9 @@ ZONES:
             destination: dark_forest_se
           west:
             destination: dark_forest_sw
+          south:
+            destination: bog_edge
+            description: The ground grows soft, and the smell of sulfur and rot intensifies to the south.
         characters:
         - id: werewolf
           quantity: 1
@@ -481,7 +493,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_whistle
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -518,7 +530,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_scream
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -553,7 +565,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_growl_3
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -588,7 +600,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_rustling
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -614,6 +626,9 @@ ZONES:
             destination: dark_forest_e
           west:
             destination: dark_forest_n
+          east:
+            destination: dark_forest_fallen_tree
+            description: A massive, shadowed shape blocks the path further east, draped in pale threads.
         characters:
         - id: werewolf
           quantity: 1
@@ -621,7 +636,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_howl_3
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -654,7 +669,7 @@ ZONES:
             destination: graveyard_road_e
         triggers:
         - id: on_any_whisper_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -734,7 +749,7 @@ ZONES:
           script: |
             echo Waves of heat shimmer across the barren landscape ahead.
         - id: borderlands_markers
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -759,7 +774,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_laugh
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -798,7 +813,7 @@ ZONES:
             destination: inn_room_w
         triggers:
         - id: on_any_creak
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -836,7 +851,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_breeze
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -862,7 +877,7 @@ ZONES:
             destination: inn_hallway
         triggers:
         - id: on_any_crackle
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -890,7 +905,7 @@ ZONES:
             destination: graveyard_entrance
         triggers:
         - id: on_any_rustle_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -924,7 +939,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_creak_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -940,7 +955,7 @@ ZONES:
           script: |
             echo A chill wind blows through the gates, carrying with it the faint scent of decay.
         - id: catch_look_shack
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -976,7 +991,7 @@ ZONES:
             destination: manor_house_entrance
         triggers:
         - id: on_any_whisper_3
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1017,7 +1032,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_rustling_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1064,7 +1079,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_whisper_4
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1113,7 +1128,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_moan
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1158,7 +1173,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_bell
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1195,7 +1210,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_owl
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1232,7 +1247,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_echo
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1260,7 +1275,7 @@ ZONES:
             destination: crypt_center
         triggers:
         - id: on_any_drip
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1291,7 +1306,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_whisper_5
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1322,7 +1337,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_echo_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1369,7 +1384,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_fire
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1399,7 +1414,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_book
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1437,7 +1452,7 @@ ZONES:
             description: A grand staircase sweeps down to the parlor below.
         triggers:
         - id: on_any_creak_3
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1486,7 +1501,7 @@ ZONES:
           quantity: 1
         triggers:
         - id: on_any_mirror
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1513,7 +1528,7 @@ ZONES:
             destination: manor_house_kitchen
         triggers:
         - id: on_any_chandelier
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1552,7 +1567,7 @@ ZONES:
               linked_exit: gloomy_graveyard.manor_house_wine_cellar.up
         triggers:
         - id: on_any_sizzle
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1595,7 +1610,7 @@ ZONES:
         objects: []
         triggers:
         - id: on_any_drip_2
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1611,7 +1626,7 @@ ZONES:
           script: |
             echo The shadows between the racks seem to deepen, creating an eerie feeling that you're not alone.
         - id: catch_look_barrels
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1656,7 +1671,7 @@ ZONES:
           respawn time max: 90
         triggers:
         - id: on_any_music
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -1671,6 +1686,100 @@ ZONES:
             predicate: 165
           script: |
             echo The chandeliers sway gently, as if moved by the echoes of dances long past.
+      cave_exterior:
+        subzone: rocky_crags
+        name: Rocky Outcropping
+        description: |-
+          The dense forest canopy gives way to a steep, rocky hillside. The air here smells of damp stone and old decay. A dark, jagged fissure in the rock face forms a natural cave entrance, surrounded by deep claw marks and scattered, unidentifiable bones.
+          Exits: east, in
+        exits:
+          east:
+            destination: dark_forest_nw
+            description: The path leads back down into the dark forest.
+          in:
+            destination: cave_interior
+            description: A foul, musky stench wafts from the dark cave entrance.
+      cave_interior:
+        subzone: rocky_crags
+        name: Dank Cave
+        description: |-
+          This cavern is pitch black and reeks of rotting meat and matted fur. The stone floor is uneven and slick with grime, littered with the grisly remains of previous meals. The space is claustrophobic, the low ceiling echoing with heavy, ragged breathing.
+          Exits: out
+        exits:
+          out:
+            destination: cave_exterior
+            description: The cave exit leads back outside to the rocky outcropping.
+        characters:
+        - id: giant_diseased_bear
+          quantity: 1
+          respawn time min: 45
+          respawn time max: 120
+      bog_edge:
+        subzone: stinking_bog
+        name: Edge of the Stinking Bog
+        description: |-
+          The trees thin out, replaced by twisting cypress knees and hanging moss. The ground here is treacherous, transitioning from damp earth to foul-smelling mud. Bubbles slowly rise and pop on the surface of stagnant puddles.
+          Exits: north, south
+        exits:
+          north:
+            destination: dark_forest_s
+            description: The forest floor looks much more solid to the north.
+          south:
+            destination: bog_deep
+            description: The bog deepens to the south, the water murky and dark.
+        characters:
+        - id: giant_frog
+          quantity: 1
+          respawn time min: 30
+          respawn time max: 90
+      bog_deep:
+        subzone: stinking_bog
+        name: Deep in the Bog
+        description: |-
+          You are wading through knee-deep muck. The smell of sulfur and decaying matter is overwhelming. Strange, twisted roots offer the only semi-solid footing in this treacherous quagmire.
+          Exits: north, east
+        exits:
+          north:
+            destination: bog_edge
+            description: The water becomes shallower toward the north.
+          east:
+            destination: bog_pool
+            description: A large, unusually still pool of water lies to the east.
+        characters:
+        - id: mud_slime
+          quantity: 1
+          respawn time min: 45
+          respawn time max: 120
+      bog_pool:
+        subzone: stinking_bog
+        name: Stagnant Pool
+        description: |-
+          A wide, unnervingly still pool of dark green water dominates this area. Swarms of biting insects hover in clouds above the surface. The mud banks are slick and dotted with strange, glowing fungi.
+          Exits: west
+        exits:
+          west:
+            destination: bog_deep
+            description: Wade back into the thickest part of the bog to the west.
+        characters:
+        - id: giant_frog
+          quantity: 2
+          respawn time min: 30
+          respawn time max: 90
+      dark_forest_fallen_tree:
+        subzone: deep_woods
+        name: Fallen Tree
+        description: "A massive, ancient tree has crashed down here, tearing up the earth and creating a natural timber barricade. The rotting bark is completely choked in thick, pale webbing that clings to your boots. The air here is dead and still, and the usual sounds of the forest are completely absent. \nExits: west"
+        exits:
+          west:
+            destination: dark_forest_ne
+            description: The path leads back into the dense dark forest.
+        characters:
+        - id: giant_spider
+          quantity: 1
+          respawn time min: 30
+          respawn time max: 90
+
+
     CHARACTERS:
     - id: werewolf
       name: werewolf
@@ -1691,6 +1800,16 @@ ZONES:
       hit_dice: 2d8
       permanent_flags:
       - is_aggressive
+      loot:
+        - table: minor_loot
+          chance_percent: 5
+          quantity_percent_chances:
+            1: 80
+            2: 20
+        - table: items_loot
+          chance_percent: 2
+          quantity_percent_chances:
+            1: 100
       triggers:
       - id: timer_tick_trigger_1138
         type: timer_tick
@@ -1734,7 +1853,7 @@ ZONES:
       permanent_flags:
       - is_aggressive
       equipment:
-      - debug_zone.rusty_sword
+      - master_zone.rusty_sword
       triggers:
       - id: timer_tick_trigger_1182
         type: timer_tick
@@ -1760,6 +1879,12 @@ ZONES:
       critical_chance: 0.05
       critical_multiplier: 2
       experience_points: 30
+      loot:
+        table: minor_loot
+        chance_percent: 5
+        quantity_percent_chances:
+          1: 80
+          2: 20
     - id: zombie
       name: zombie
       article: a
@@ -1779,6 +1904,12 @@ ZONES:
       hit_dice: 1d8+2
       permanent_flags:
       - is_aggressive
+      loot:
+        table: minor_loot
+        chance_percent: 5
+        quantity_percent_chances:
+          1: 80
+          2: 20
       triggers:
       - id: timer_tick_trigger_1226
         type: timer_tick
@@ -1869,6 +2000,16 @@ ZONES:
       critical_chance: 0.05
       critical_multiplier: 2
       experience_points: 60
+      loot:
+        - table: minor_loot
+          chance_percent: 10
+          quantity_percent_chances:
+            1: 80
+            2: 20
+        - table: items_loot
+          chance_percent: 5
+          quantity_percent_chances:
+            1: 100
     - id: wight
       name: wight
       article: a
@@ -1903,6 +2044,16 @@ ZONES:
       experience_points: 60
     # ============================================
     # QUEST NPCs - LLM-driven conversation NPCs
+      loot:
+        - table: minor_loot
+          chance_percent: 10
+          quantity_percent_chances:
+            1: 80
+            2: 20
+        - table: items_loot
+          chance_percent: 5
+          quantity_percent_chances:
+            1: 100
     - id: barkeep
       name: Maggie
       article: ''
@@ -2318,7 +2469,170 @@ ZONES:
         - anything from after death
         common_knowledge_refs:
         - manor_history
+    - id: giant_diseased_bear
+      name: giant diseased bear
+      article: a
+      description: A towering, hulking bear with patches of missing fur and weeping sores. Its eyes are milky and mad, and thick, foul drool drips from its massive jaws.
+      group_id: cave_creatures
+      attributes:
+        strength: 18
+        dexterity: 10
+        constitution: 16
+        intelligence: 2
+        wisdom: 8
+        charisma: 3
+      class:
+        Fighter:
+          level: 4
+      hit_dice: 4d10+10
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: claw
+        attack_verb: mauls
+        potential_damage:
+        - damage_type: slashing
+          damage_dice: 2d6+3
+      - attack_noun: bite
+        attack_verb: chomps
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d8+2
+      hit_modifier: 3
+      dodge_dice: 2d20+15
+      critical_chance: 0.1
+      critical_multiplier: 2
+      experience_points: 120
+    - id: giant_frog
+      name: giant frog
+      article: a
+      description: A massive, warty amphibian the size of a large dog. Its bulbous eyes track your every movement, and a thick layer of toxic slime coats its mottled skin.
+      group_id: bog_creatures
+      attributes:
+        strength: 12
+        dexterity: 16
+        constitution: 14
+        intelligence: 2
+        wisdom: 10
+        charisma: 3
+      class:
+        Fighter:
+          level: 2
+      hit_dice: 2d8+2
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: tongue
+        attack_verb: lashes
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d6
+      - attack_noun: bite
+        attack_verb: chomps
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d8
+      hit_modifier: 2
+      dodge_dice: 3d20+15
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 65
+    - id: mud_slime
+      name: mud slime
+      article: a
+      description: A pulsating, gelatinous mound of sentient mud, rotting leaves, and bones. It slithers wetly across the bog surface, leaving a trail of acidic ooze.
+      group_id: bog_creatures
+      attributes:
+        strength: 14
+        dexterity: 6
+        constitution: 18
+        intelligence: 1
+        wisdom: 5
+        charisma: 1
+      class:
+        Fighter:
+          level: 3
+      hit_dice: 3d10+15
+      permanent_flags:
+      - is_aggressive
+      damage_multipliers:
+        bludgeoning: 0.5
+        piercing: 0.5
+        acid: 0.0
+        fire: 1.5
+      natural_attacks:
+      - attack_noun: pseudopod
+        attack_verb: slams
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d8+2
+        - damage_type: acid
+          damage_dice: 1d4
+      hit_modifier: 1
+      dodge_dice: 1d20
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 90
+    - id: giant_spider
+      name: giant spider
+      article: a
+      description: A bloated, terrifyingly large spider with twitching, hairy legs and a cluster of multiple unblinking eyes reflecting the pale moonlight.
+      group_id: dark_forest_creatures
+      attributes:
+        strength: 14
+        dexterity: 18
+        constitution: 12
+        intelligence: 3
+        wisdom: 10
+        charisma: 4
+      class:
+        Fighter:
+          level: 3
+      hit_dice: 3d8+3
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: bite
+        attack_verb: bites
+        potential_damage:
+        - damage_type: piercing
+          damage_dice: 1d8+2
+      hit_modifier: 2
+      dodge_dice: 3d20+20
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 75
+
+
     OBJECTS:
+    - id: plusone_sword
+      name: +1 sword
+      article: a
+      description: A sword with a +1 bonus.
+      damage_type: slashing
+      damage: 1d6+1
+      weight: 5
+      value: 1
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
+    - id: plustwo_dagger
+      name: +2 dagger 
+      article: a
+      description: A dagger with a +2 bonus.
+      damage_type: slashing
+      damage: 1d4+2
+      weight: 5
+      value: 1
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
     - id: murder_victim_body
       name: crumpled body
       article: a
@@ -2358,7 +2672,7 @@ ZONES:
           pause 0.5
           echo A breeze stirs the torn note still clutched in the victim's hand, making it flutter.
       - id: examine_body_find_clues
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2380,7 +2694,7 @@ ZONES:
       permanent_flags: []
       triggers:
       - id: read_note
-        type: catch_look
+        type: catch_inspect
         script: |
           setquestvar %S% murder_mystery.found_note true
           echo The fragment reads: "...hereby dismiss you from service effective immediately... ...twenty years means nothing when trust is broken... ...cannot continue to employ someone who... ...signed, Lord Ash..."
@@ -2455,7 +2769,7 @@ ZONES:
       flags: []
       triggers:
       - id: find_weapon
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2464,7 +2778,7 @@ ZONES:
           echo You examine the candlestick closely. Dark stains mar the base... blood.
           setquestvar %S% murder_mystery.found_murder_weapon true
       - id: find_weapon
-        type: catch_look
+        type: catch_inspect
         script: |-
           echo You examine the candlestick closely. Dark stains mar the base... blood.
           setquestvar %S% murder_mystery.found_murder_weapon true
@@ -2575,7 +2889,7 @@ ZONES:
       flags: []
       triggers:
       - id: read_journal
-        type: catch_look
+        type: catch_inspect
         criteria:
         - subject: '%*%'
           operator: contains
@@ -2617,3 +2931,13 @@ ZONES:
       - beer
       - ale
       - mug
+
+    LOOT_TABLES:
+    - id: minor_loot
+      items:
+      - master_zone.healing_potion
+      - master_zone.greater_healing_potion
+    - id: items_loot
+      items:
+      - plusone_sword
+      - plustwo_dagger

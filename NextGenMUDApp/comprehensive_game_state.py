@@ -174,6 +174,16 @@ class ComprehensiveGameState:
                                 obj.from_yaml(objdef, zone_id, self)
                                 target_wd.objects[f"{zone_id}.{obj.id}"] = obj
 
+                        # 5. Load Loot Tables belonging to this zone
+                        loot_tables_data = zone_info.get('LOOT_TABLES') or zone_info.get('loot_tables')
+                        if isinstance(loot_tables_data, list):
+                            for lt in loot_tables_data:
+                                if not isinstance(lt, dict) or 'id' not in lt:
+                                    continue
+                                table_id = lt['id']
+                                items = lt.get('items', [])
+                                target_wd.loot_tables[f"{zone_id}.{table_id}"] = items
+
                         target_wd.zones[zone_id] = new_zone
 
                 # Reject top-level zone content: everything must be under ZONES.<zone_id>
@@ -570,9 +580,7 @@ class ComprehensiveGameState:
 
     @staticmethod
     def _normalize_reference_key(ref_str: str) -> str:
-        """Normalize client reference key so |c915 matches stored key C915 (ActorType.name[0] + number)."""
-        if len(ref_str) > 1 and ref_str[0].isalpha() and ref_str[1:].isdigit():
-            return ref_str[0].upper() + ref_str[1:]
+        """Identity pass-through (UUIDs need no normalization). Kept for call-site compatibility."""
         return ref_str
 
     def find_target_characters(self, actor: Actor, target_name: str, first_match: int = 1, last_match: int = 0,
@@ -1480,7 +1488,7 @@ class ComprehensiveGameState:
         if spawned_by and len(spawned_by.spawned) >= spawned_by.desired_quantity:
             logger.debug3(f"Spawn cap reached for {spawned_by.id} in room {room.rid}, skipping spawn")
             return
-        new_character = Character.create_from_definition(character_def)
+        new_character = Character.create_from_definition(character_def, self)
         new_character.spawned_from = spawned_by
         self.characters.append(new_character)
         room.add_character(new_character)
@@ -1837,7 +1845,7 @@ class ComprehensiveGameState:
                 target_player.equipped = {loc: None for loc in EquipLocation}
                 
                 # Helper function to create an object from saved data.
-                # When a world definition exists for this object, create from definition so triggers (e.g. catch_look) are preserved.
+                # When a world definition exists for this object, create from definition so triggers (e.g. catch_inspect) are preserved.
                 def create_object_from_save(obj_data):
                     definition_zone_id = obj_data.get('definition_zone_id')
                     obj_id = obj_data['id']
@@ -1846,7 +1854,7 @@ class ComprehensiveGameState:
                         def_key = f"{definition_zone_id}.{obj_id}"
                         obj_def = self.world_definition.find_object_definition(def_key)
                     if obj_def is None and obj_id:
-                        # Fallback: look up by id only so triggers (e.g. catch_look) are preserved
+                        # Fallback: look up by id only so triggers (e.g. catch_inspect) are preserved
                         obj_def = self.world_definition.find_object_definition(obj_id)
                     if obj_def is not None:
                         obj = Object.create_from_definition(obj_def)

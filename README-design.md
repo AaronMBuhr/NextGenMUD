@@ -238,9 +238,9 @@ def evaluate_functions_in_line(line: str, vars: dict, game_state) -> str:
 class TriggerType(Enum):
     CATCH_ANY = 1      # Fires on any game event matching criteria
     CATCH_SAY = 2      # Fires when someone speaks
-    CATCH_TELL = 3     # Fires on private messages
+    ON_TELL = 3        # Fires when sayto/tell/whisper/ask directed at this actor
     TIMER_TICK = 4     # Fires periodically based on elapsed time
-    CATCH_LOOK = 5     # Fires when someone looks at something
+    CATCH_INSPECT = 5  # Fires when someone looks at something matching criteria; runs in addition to normal description
     ON_ENTER = 6       # Fires when character enters room
     ON_LEAVE = 7       # Fires when character leaves room
     ON_RECEIVE = 8     # Fires when NPC receives item via give
@@ -252,6 +252,8 @@ class TriggerType(Enum):
     ON_UNLOCK = 14     # Fires when something is unlocked
     ON_USE = 15        # Fires when object is used
     ON_ATTACKED = 16   # Fires when actor is attacked
+    # ... (CATCH_GO, ON_ENTER, CATCH_ZEROHP, ON_SIGNAL, CATCH_COMMAND, etc.)
+    ON_LOOK = 22       # Replaces normal description; script runs instead and should echo description (e.g. by var state)
 ```
 
 ### Class Hierarchy
@@ -550,7 +552,7 @@ characters:
 ```python
 # In Character.from_dict()
 for trigger_data in values.get('triggers', []):
-    trigger_type_str = trigger_data.get('type', 'catch_any')
+    trigger_type_str = trigger_data.get('type', 'on_see')
     trigger = Trigger.new_trigger(trigger_type_str, self, disabled=True)
     trigger.from_dict(trigger_data)
     

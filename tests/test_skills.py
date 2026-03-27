@@ -79,7 +79,13 @@ class TestSkillNameParsing:
         
         # The skill should be found
         assert skill_name is not None
-    
+
+    def test_parse_shield_me_word_boundary(self):
+        """'shield me' should parse as skill 'shield' + remainder 'me', not tie with 'shield block'/'shield sweep'."""
+        skill_name, remainder = SkillsRegistry.parse_skill_name_from_input("shield me")
+        assert skill_name == "shield"
+        assert remainder == "me"
+
     def test_parse_unknown_skill(self):
         """Should return None for unknown skills."""
         skill_name, remainder = SkillsRegistry.parse_skill_name_from_input("xyzzy_nonexistent")

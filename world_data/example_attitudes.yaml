@@ -35,6 +35,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 30
 
+      type: undead
+      race: skeleton
     - id: unfriendly_zombie
       name: unfriendly zombie
       article: an
@@ -65,6 +67,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 30
 
+      type: undead
+      race: zombie
     - id: neutral_ghost
       name: neutral ghost
       article: a
@@ -95,6 +99,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 30
 
+      type: undead
+      race: ghost
     - id: friendly_vampire
       name: friendly vampire
       article: a
@@ -125,6 +131,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 50
 
+      type: undead
+      race: vampire
     - id: charmed_wraith
       name: charmed wraith
       article: a
@@ -155,6 +163,8 @@ ZONES:
       critical_multiplier: 3
       experience_points: 50
 
+      type: undead
+      race: wraith
     - id: dominated_banshee
       name: dominated banshee
       article: a
@@ -185,3 +195,5 @@ ZONES:
       critical_chance: 0.10
       critical_multiplier: 2
       experience_points: 80
+      type: undead
+      race: banshee

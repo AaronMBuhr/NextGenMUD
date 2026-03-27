@@ -392,7 +392,7 @@ class CoreActions(CoreActionsInterface):
     #     if actor.actor_type == ActorType.CHARACTER and actor.connection_ != None: 
     #         await actor.send_text(comm_type, text)
     #     # check triggers
-    #     for trigger_type in [ TriggerType.ON_ANY ]:
+    #     for trigger_type in [ TriggerType.ON_SEE ]:
     #         if trigger_type in actor.triggers_by_type:
     #             for trigger in actor.triggers_by_type[trigger_type]:
     #                 await trigger.run(actor, text, None)
@@ -880,8 +880,15 @@ class CoreActions(CoreActionsInterface):
         if target_multiplier > 1:
             target_multiplier = 1
         damage = damage * (1 - target_multiplier) - target.damage_reduction.get(damage_type)
+
+        # Apply per-damage-type multiplier states (resistance / vulnerability)
+        from .nondb_models.actor_states import CharacterStateDamageMultiplier, get_actor_states
+        for state in get_actor_states(target, CharacterStateDamageMultiplier):
+            if state.damage_type == damage_type:
+                damage *= state.multiplier
+
         if damage < 1:
-            return 0
+            return 0, target.current_hit_points
         damage, target_hp = await self.do_damage(actor, target, damage, damage_type, do_msg=do_msg, do_die=do_die)
         return damage, target_hp
 

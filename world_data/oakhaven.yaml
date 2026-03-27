@@ -1,0 +1,79 @@
+ZONES:
+  oakhaven:
+    name: Oakhaven
+    description: |-
+      An isolated, rugged coastal town and its immediate environs. The villagers here are tight-lipped and deeply suspicious of outsiders, living in the shadow of ancient, elemental ruins that lie just beyond the town borders.
+    common_knowledge:
+      town_rumors: "The villagers of Oakhaven are tight-lipped, but everyone knows the old ruins inland are cursed."
+    ROOMS:
+      oakhaven_docks:
+        subzone: oakhaven_village
+        name: Oakhaven Docks
+        description: |-
+          The ferry from Central City drops you off at these creaky, salt-stained docks. The village of Oakhaven sits quietly to the north, nestled against a backdrop of looming, mist-shrouded hills. The locals working the fishing nets eye strangers with open suspicion.
+          Exits: north, board
+        exits:
+          north:
+            destination: oakhaven_square
+            description: "Walk up the wooden stairs into the village proper."
+          board:
+            destination: central_city.ferry_pier
+            description: "Board the ferry to return to the safety of Central City."
+            
+      oakhaven_square:
+        subzone: oakhaven_village
+        name: Oakhaven Village Square
+        description: |-
+          A muddy, unpaved square forms the center of this gloomy settlement. The buildings are made of heavy timber and fieldstone, built to withstand harsh coastal storms. To the east is the local tavern, 'The Brazen Gull,' where most of the town's whispers take place. To the north, a muddy road leads out of town toward the looming hills.
+          Exits: south, north, east
+        exits:
+          south:
+            destination: oakhaven_docks
+            description: "Head back down to the docks."
+          east:
+            destination: brazen_gull_tavern
+            description: "The warm, flickering light of the tavern invites you in."
+          north:
+            destination: muddy_trail
+            description: "A treacherous path leads out of town toward the wilderness."
+
+      brazen_gull_tavern:
+        subzone: oakhaven_village
+        name: The Brazen Gull Tavern
+        description: |-
+          The interior of the tavern is dark, smelling of stale ale and woodsmoke. A massive stone hearth dominates one wall, but it barely cuts through the damp chill. Villagers sit huddled at heavy oak tables, their conversations stopping dead the moment you walk in. 
+          Exits: west
+        exits:
+          west:
+            destination: oakhaven_square
+            description: "Step back out into the muddy village square."
+
+      muddy_trail:
+        subzone: oakhaven_environs
+        name: Muddy Trail
+        description: |-
+          The village of Oakhaven falls behind you as the trail rises into the rugged coastal hills. The vegetation here looks sickly, twisted by some unseen blight. The wind howls through the rocks, carrying faint, unnatural sounds—the grinding of stone, the hiss of steam, and the crackle of distant fires. 
+          Exits: south, north
+        flags:
+          - outdoors
+        exits:
+          south:
+            destination: oakhaven_square
+            description: "Retreat to the safety of the village."
+          north:
+            destination: ruined_watchtower
+            description: "The trail continues toward a crumbled, overgrown structure in the distance."
+
+      ruined_watchtower:
+        subzone: oakhaven_environs
+        name: Ruined Watchtower
+        description: |-
+          The crumbling remains of an ancient stone watchtower mark the edge of Oakhaven's territory. The stonework is scorched and scored by deep, unnatural claw marks. Beyond this point, the true danger begins. A dark, foreboding path descends into the valley to the north, leading toward the Temple.
+          Exits: south
+        flags:
+          - outdoors
+        exits:
+          south:
+            destination: muddy_trail
+            description: "Head back down the trail toward Oakhaven."
+          # You can hook your future Temple zone's first room up to a north exit here!

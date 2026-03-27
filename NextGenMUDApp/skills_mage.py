@@ -393,7 +393,7 @@ class Skills_Mage(Skills):
                 DamageType.PIERCING: DAMAGE_REDUCTION_AMOUNT,
                 DamageType.SLASHING: DAMAGE_REDUCTION_AMOUNT
             })
-            new_state = CharacterStateShielded(target, actor, "magic barrier", multipliers=None, reductions=reductions,
+            new_state = CharacterStateShielded(target, cls._game_state, actor, "magic barrier", multipliers=None, reductions=reductions,
                                                tick_created=game_tick)
             await new_state.apply_state(game_tick, THIS_SKILL_DATA.duration_min_ticks)
             

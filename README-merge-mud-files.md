@@ -378,7 +378,7 @@ ZONES:
           hidden: { destination: secret_grove, description: "A hidden path." }
         triggers:
           - id: new_trigger
-            type: catch_any
+            type: on_see
             criteria: [{ subject: "%*%", operator: contains, predicate: "search" }]
             script: |
               echo You find something interesting!
@@ -610,7 +610,7 @@ ZONES:
       manor_house_library:
         triggers:
           - id: find_secret_door
-            type: catch_any
+            type: on_see
             criteria:
               - subject: "%*%"
                 operator: contains
@@ -688,8 +688,8 @@ ZONES:
           A narrow path...  # Inline comments preserved too
         triggers:
           # This trigger fires when player howls
-          - id: catch_any_howl
-            type: catch_any
+          - id: on_see_howl
+            type: on_see
 ```
 
 **What gets preserved:**
@@ -765,7 +765,7 @@ triggers:
   - id: quest_completion_check
     # This trigger fires when player has all evidence
     # and accuses the butler in the dining room
-    type: catch_any
+    type: on_see
     criteria:
       - subject: "%*%"
         operator: contains

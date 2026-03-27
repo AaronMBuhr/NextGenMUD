@@ -362,6 +362,18 @@ def get_quest_var_wrapper(char_ref: str, var_id: str, game_state: 'GameStateInte
     return str(result)
 
 
+def script_random(a: str, b: str) -> str:
+    """$random(min,max) or $random(NdS+B) dice notation."""
+    a = a.strip() if a else ""
+    b = b.strip() if b else ""
+    if b:
+        return str(random.randint(to_int(a), to_int(b)))
+    if 'd' in a.lower():
+        parts = get_dice_parts(a)
+        return str(roll_dice(parts[0], parts[1], parts[2]))
+    return str(to_int(a))
+
+
 SCRIPT_FUNCTIONS = {
     "cap" : lambda a,b,c,gs: firstcap(a),
     "name" : lambda a,b,c,gs: a.name_,
@@ -382,7 +394,7 @@ SCRIPT_FUNCTIONS = {
     "numgte" : lambda a,b,c,gs: "true" if to_int(a) >= to_int(b) else "false",
     "numlte" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) else "false",
     "between" : lambda a,b,c,gs: "true" if to_int(a) <= to_int(b) <= to_int(c) else "false",
-    "random" : lambda a,b,c,gs: str(random.randint(to_int(a), to_int(b))),
+    "random" : lambda a,b,c,gs: script_random(a, b),
     "tempvar" : lambda a,b,c,gs: gs.get_temp_var(a, b),
     "permvar" : lambda a,b,c,gs: gs.get_perm_var(a, b),
     "questvar": lambda a,b,c,gs: get_quest_var_wrapper(a, b, gs),

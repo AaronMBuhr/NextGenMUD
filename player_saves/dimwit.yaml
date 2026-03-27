@@ -5,8 +5,8 @@ pronoun_subject: they
 pronoun_object: them
 pronoun_possessive: their
 location:
-  zone: gloomy_graveyard
-  room: inn_common_room
+  zone: central_city
+  room: city_gates
 was_in_combat: false
 class_priority:
 - MAGE
@@ -94,14 +94,14 @@ damage_reduction:
   NECROTIC: 0
   RADIANT: 0
 inventory:
-- id: torn_note
-  definition_zone_id: gloomy_graveyard
-  name: torn note
+- id: savant_scroll_of_learning
+  definition_zone_id: master_zone
+  name: Savant scroll of learning
   article: a
-  description: "A piece of expensive stationery, torn roughly in half. Only a fragment
-    of text remains visible in Lord Ashford's elegant hand.\n"
+  description: A scroll inscribed with runes of learning. Reading it sharpens the
+    mind.
   weight: 0
-  value: 0
+  value: 100
   object_flags: 0
   equip_locations: []
   equipped_location:

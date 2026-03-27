@@ -1,0 +1,98 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: skeletal_warrior
+        triggers:
+          - id: skeleton_rattle
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The dry rattling of old bones echoes slightly as the skeletal warrior shifts its stance.
+          - id: skeleton_attacked
+            type: on_attacked
+            script: |
+              echo The skeletal warrior swings its rusted blade with jerky, mechanical precision!
+
+      - id: ghost
+        triggers:
+          - id: ghost_wail
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo A bone-chilling wail echoes through the damp corridor, freezing the breath in your lungs.
+
+      - id: bone_construct
+        triggers:
+          - id: bone_construct_smash
+            type: on_attacked
+            script: |
+              echo The hulking bone construct silently raises a fused, jagged fist to smash you into the muck!
+
+      - id: necromancer_shade
+        triggers:
+          - id: shade_taunt
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: neq
+                predicate: ""
+            script: |
+              echo The necromancer's shade crackles with dark energy. "Your warm flesh will feed the deep, fool."
+          - id: shade_attacked
+            type: on_attacked
+            script: |
+              echo The shade hisses, weaving necrotic magic through the air with terrifying speed!
+
+      - id: smuggler_ghost
+        triggers:
+          - id: smuggler_ghost_hoard
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "gold,treasure,cargo,mine,take"
+            script: |
+              echo The smuggler ghost drifts forward aggressively. "My cargo... you can't have my cargo! I died for it!"
+
+      - id: ghostly_accountant
+        triggers:
+          - id: accountant_mutter
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The ghostly accountant furiously scribbles in a spectral ledger, muttering endlessly about unbalanced debts and missing shipments.
+          - id: accountant_ignore
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: neq
+                predicate: ""
+            script: |
+              echo The ghostly accountant doesn't even look up from its ledger, completely consumed by its spectral math.
+
+      - id: treasure_guardian
+        triggers:
+          - id: guardian_warn
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "open,take,chest,gold,treasure"
+            script: |
+              echo The spectral treasure guardian tightens its grip on its greatsword. "Turn back. The cache is sealed by oath and blood."
+          - id: guardian_attacked
+            type: on_attacked
+            script: |
+              echo The guardian's eyes flare with a menacing, cold blue light as it sweeps its freezing blade in a deadly arc!

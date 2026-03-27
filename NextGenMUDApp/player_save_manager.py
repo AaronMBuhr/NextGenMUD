@@ -6,6 +6,7 @@ Files are named {character_name}.yaml with spaces converted to dashes.
 """
 
 import os
+import copy
 import hashlib
 import secrets
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
@@ -183,7 +184,7 @@ class PlayerSaveManager:
             target_character: Optional Character object to populate with loaded data
             restore_location: Whether to restore the saved location (for combat reconnection)
             world_definition: If provided, inventory/equipment objects are created from templates
-                so triggers (e.g. catch_look) are preserved; otherwise objects are rebuilt from
+                so triggers (e.g. catch_inspect) are preserved; otherwise objects are rebuilt from
                 save data only and have no scripts.
             game_state: Required when target_character is set and save has states; used to restore state objects.
 
@@ -304,11 +305,15 @@ class PlayerSaveManager:
         
         data = {
             'name': character.name,
+            'instance_id': character.reference_number,
             'description': character.description,
+            'character_type': getattr(character, 'character_type', 'unknown'),
+            'race': getattr(character, 'race', 'unknown'),
             'article': character.article,
             'pronoun_subject': character.pronoun_subject,
             'pronoun_object': character.pronoun_object,
             'pronoun_possessive': character.pronoun_possessive,
+            'perm_variables': copy.deepcopy(getattr(character, 'perm_variables', {}) or {}),
             
             # Location (for potential combat reconnection)
             'location': {
@@ -394,10 +399,12 @@ class PlayerSaveManager:
         
         return {
             'id': obj.id,
+            'instance_id': obj.reference_number,
             'definition_zone_id': obj.definition_zone_id,
             'name': obj.name,
             'article': obj.article,
             'description': obj.description,
+            'perm_variables': copy.deepcopy(getattr(obj, 'perm_variables', {}) or {}),
             'weight': obj.weight,
             'value': obj.value,
             'object_flags': obj.object_flags.value,
@@ -451,13 +458,23 @@ class PlayerSaveManager:
         logger = StructuredLogger(__name__, prefix="_apply_data_to_character()> ")
         
         try:
+            # Restore stable instance UUID if present in save data
+            saved_instance_id = data.get('instance_id')
+            if saved_instance_id:
+                from .nondb_models.actors import Actor
+                character.create_reference(instance_id=saved_instance_id)
+
             # Basic info
             character.name = data.get('name', character.name)
             character.description_ = data.get('description', character.description)
+            character.character_type = str(data.get('character_type', getattr(character, 'character_type', 'unknown'))).strip().lower()
+            character.race = str(data.get('race', getattr(character, 'race', 'unknown'))).strip().lower()
             character.article = data.get('article', character.article)
             character.pronoun_subject = data.get('pronoun_subject', 'it')
             character.pronoun_object = data.get('pronoun_object', 'it')
             character.pronoun_possessive = data.get('pronoun_possessive', 'its')
+            loaded_perm_vars = data.get('perm_variables', {})
+            character.perm_variables = copy.deepcopy(loaded_perm_vars) if isinstance(loaded_perm_vars, dict) else {}
             
             # Class information
             if 'class_priority' in data:
@@ -602,7 +619,7 @@ class PlayerSaveManager:
             traceback.print_exc()
     
     def _dict_to_object(self, data: Dict[str, Any], world_definition: Optional['WorldDefinition'] = None) -> Optional['Object']:
-        """Convert a dictionary back to an Object. If world_definition is provided, create from template so triggers (e.g. catch_look) are preserved; otherwise build from save data only."""
+        """Convert a dictionary back to an Object. If world_definition is provided, create from template so triggers (e.g. catch_inspect) are preserved; otherwise build from save data only."""
         from .nondb_models.character_interface import EquipLocation
         from .nondb_models.attacks_and_damage import DamageType, DamageMultipliers, DamageReduction
         from .nondb_models.objects import Object, ObjectFlags
@@ -621,6 +638,11 @@ class PlayerSaveManager:
                         obj_def = world_definition.find_object_definition(obj_id)
                     if obj_def is not None:
                         obj = Object.create_from_definition(obj_def)
+                        saved_instance_id = data.get('instance_id')
+                        if saved_instance_id:
+                            obj.create_reference(instance_id=saved_instance_id)
+                        saved_perm_vars = data.get('perm_variables', {})
+                        obj.perm_variables = copy.deepcopy(saved_perm_vars) if isinstance(saved_perm_vars, dict) else {}
                         # Restore container contents from save (each content created from template when possible)
                         if obj.has_flags(ObjectFlags.IS_CONTAINER) and data.get('contents'):
                             for content_data in data['contents']:
@@ -635,6 +657,11 @@ class PlayerSaveManager:
                 name=data.get('name', 'Unknown Object'),
                 create_reference=True
             )
+            saved_instance_id = data.get('instance_id')
+            if saved_instance_id:
+                obj.create_reference(instance_id=saved_instance_id)
+            saved_perm_vars = data.get('perm_variables', {})
+            obj.perm_variables = copy.deepcopy(saved_perm_vars) if isinstance(saved_perm_vars, dict) else {}
 
             obj.article = data.get('article', '')
             obj.description_ = data.get('description', '')

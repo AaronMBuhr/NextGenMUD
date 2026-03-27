@@ -10,6 +10,7 @@ class WorldDefinition:
         self.zones = {}
         self.characters = {}
         self.objects = {}
+        self.loot_tables = {}  # keyed by "zone_id.table_id" -> list of item IDs
 
     def find_character_definition(self, character_id_or_name: str) -> 'Character':
         if "." in character_id_or_name:

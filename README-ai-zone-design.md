@@ -59,6 +59,8 @@ Revised methodology:
 - determine some quests or other multi-step-interaction-sequences, that may span sub-zones
   - develop the quest story lines, the progress measurement and steps, and the quest variables
 - develop zone-wide common knowledge
+- map the whole zone aiming for 48 rooms on average
+- divide the whole zone into 8 room blocks, completely arbitrarily. the rooms in a block need not have anything to  do with each other, just 8 is a good size for one response
 - develop each sub-zone one at a time:
   - determine for each first the detailed map
   - then the sub-zone npcs with their associated objects, and npc groups

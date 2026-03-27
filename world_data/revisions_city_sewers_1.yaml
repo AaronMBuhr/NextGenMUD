@@ -1,0 +1,75 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: rat_king
+        triggers:
+          - id: rat_king_attacked
+            type: on_attacked
+            script: |
+              echo The rat king bears his yellowed teeth and shrieks, "Feast, my subjects! Flesh for the swarm!"
+          - id: rat_king_bribe
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "coin,gold,money,bribe,deal"
+            script: |
+              echo The rat king twitches his scarred snout and laughs a raspy, hacking laugh. "We have no use for your shiny surface trash. We deal only in meat and survival."
+          - id: rat_king_taunt
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "die,kill,surrender,rat"
+            script: |
+              echoto %S% The rat king glares directly at you. "Many surface-dwellers have spoken such words. Their bones now build my throne."
+
+      - id: rat_swarm
+        triggers:
+          - id: rat_swarm_ambient
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The seething carpet of rats writhes continuously, a sickening chorus of squeaks and clicking teeth filling the space.
+
+      - id: cave_spider
+        triggers:
+          - id: spider_hiss
+            type: on_attacked
+            script: |
+              echo The bloated cave spider rears back on its bristly hind legs, mandibles clacking furiously as venom drips to the stone floor!
+
+      - id: giant_leech
+        triggers:
+          - id: leech_drop
+            type: on_attacked
+            script: |
+              echo The giant leech pulsates sickeningly, its toothy maw expanding as it tries to latch onto a warm vein!
+
+      - id: giant_roach
+        triggers:
+          - id: roach_skitter
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The giant roach's massive antennae whip through the air, sensing the vibrations of your movements.
+
+      - id: bat_swarm
+        triggers:
+          - id: bat_swarm_ambient
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo A chaotic fluttering of leathery wings echoes through the damp tunnel as the bat swarm shifts restlessly.

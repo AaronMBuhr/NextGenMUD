@@ -81,14 +81,14 @@ ZONES:
           script: |
             echo The Life-Breath Spire pulses with a deep azure light, sending a wave of warmth through the plaza.
         - id: look_spire
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: spire
           script: |
             echo The crystal is semi-translucent. Deep within, you can see massive gears turning in a slow, rhythmic dance.
-        CHARACTERS:
+        characters:
         - id: unit_734b
           quantity: 1
       promenade_n:
@@ -125,7 +125,7 @@ ZONES:
           north: scholarium_hall_runes
         triggers:
         - id: rune_hum
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -143,11 +143,11 @@ ZONES:
           north: aethel_plaza_center
           south: gateway_barracks
           west: shattered_vista
-        CHARACTERS:
+        characters:
         - id: rust_mite_creature
           quantity: 3
-          respawn_time_min: 60
-          respawn_time_max: 120
+          respawn time min: 60
+          respawn time max: 120
       gateway_barracks:
         subzone: inner_promenade
         name: The Iron Threshold
@@ -198,7 +198,7 @@ ZONES:
         exits:
           east: promenade_w
           up: palace_wing.throne_approach
-        CHARACTERS:
+        characters:
         - id: golden_automaton_guardian
           quantity: 2
       shattered_vista:
@@ -219,11 +219,11 @@ ZONES:
             predicate: 45
           script: |
             echo You watch as a massive shadow, perhaps a leviathan, swims slowly past the glass outside.
-        CHARACTERS:
+        characters:
         - id: silt_skulker_ooze
           quantity: 1
-          respawn_time_min: 180
-          respawn_time_max: 300
+          respawn time min: 180
+          respawn time max: 300
       civic_podium:
         subzone: citadel_core
         name: The Civic Podium
@@ -262,7 +262,7 @@ ZONES:
           script: |
             echo The Life-Breath Spire pulses with intense azure light, and you feel the vibration deep in your bones.
         - id: look_conduits
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -270,18 +270,18 @@ ZONES:
           script: |
             echo The brass conduits are inscribed with runes of binding and resonance, their purpose clearly vital to the city's survival.
         - id: look_catwalks
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: catwalk
           script: |
             echo Most of the catwalks have rusted through. Only a few sections remain passable, and even those creak ominously.
-        CHARACTERS:
+        characters:
         - id: spire_warden_sphere
           quantity: 3
-          respawn_time_min: 180
-          respawn_time_max: 360
+          respawn time min: 180
+          respawn time max: 360
       scholarium_hall_runes:
         subzone: the_scholarium
         name: The Hall of Runes
@@ -305,18 +305,18 @@ ZONES:
               echo You feel the hair on your arms stand up as static fills the air.
             }
         - id: look_hall_runes
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: runes
           script: |
             echo The runes represent complex calculations for "Gravity Anchoring" and "Veil Harmonics".
-        CHARACTERS:
+        characters:
         - id: spire_warden_sphere
           quantity: 2
-          respawn_time_min: 300
-          respawn_time_max: 600
+          respawn time min: 300
+          respawn time max: 600
       archive_waves:
         subzone: the_scholarium
         name: The Archive of Waves
@@ -341,7 +341,7 @@ ZONES:
           script: |
             echo A heavy thud echoes from the upper tiers, as if a book has fallen from a shelf.
         - id: search_for_tome
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -352,13 +352,13 @@ ZONES:
               spawn here shark_skin_tome
               setquestvar %S% the_drowned_queen.found_tome true
             }
-        CHARACTERS:
+        characters:
         - id: archivist_thalassa_echo
           quantity: 1
         - id: floating_grimoire_construct
           quantity: 2
-          respawn_time_min: 120
-          respawn_time_max: 240
+          respawn time min: 120
+          respawn time max: 240
       resonance_lab:
         subzone: the_scholarium
         name: The Resonance Laboratory
@@ -371,7 +371,7 @@ ZONES:
           north: scripting_nook
         triggers:
         - id: harvest_prism_shard
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -424,7 +424,7 @@ ZONES:
             predicate: 25
           script: |
             echo The sound of rapid, rhythmic clicking comes from a nearby carrel.
-        CHARACTERS:
+        characters:
         - id: scribe_unit_4
           quantity: 1
       barracks_iron_threshold:
@@ -444,7 +444,7 @@ ZONES:
               echo A hidden sensor clicks, and a dim red light pulses once from the ceiling.
               setpermvar char %S% seen_barracks true
             }
-        CHARACTERS:
+        characters:
         - id: iron_sentry_construct
           quantity: 1
       barracks_training_grounds:
@@ -469,11 +469,11 @@ ZONES:
             predicate: 20
           script: |
             echo One of the massive floor plates shifts with a grinding metallic groan.
-        CHARACTERS:
+        characters:
         - id: vigil_soldier_echo
           quantity: 4
-          respawn_time_min: 60
-          respawn_time_max: 120
+          respawn time min: 60
+          respawn time max: 120
       sentinel_bay:
         name: The Sentinel Bay
         description: |
@@ -492,7 +492,7 @@ ZONES:
             predicate: 120
           script: |
             echo A high-pitched whine emanates from one of the suspended spheres, then fades.
-        CHARACTERS:
+        characters:
         - id: sentry_prime_boss
           quantity: 1
       high_command_chamber:
@@ -506,7 +506,7 @@ ZONES:
           down: pressure_pits
         triggers:
         - id: read_bronze_map
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -518,7 +518,7 @@ ZONES:
             else {
               echo The map is dark, its arcane power too low to show details.
             }
-        CHARACTERS:
+        characters:
         - id: commander_vaelen_echo
           quantity: 1
       pressure_pits:
@@ -545,7 +545,7 @@ ZONES:
             echoto %S% Scalding steam vents near you!
             damage %S% 10 fire
         - id: find_regulator
-          type: on_any
+          type: on_see
           criteria:
           - subject: '%*%'
             operator: contains
@@ -556,11 +556,11 @@ ZONES:
               spawn here pressure_regulator
               setquestvar %S% citadel_main_arc.found_regulator true
             }
-        CHARACTERS:
+        characters:
         - id: rust_mite_creature
           quantity: 5
-          respawn_time_min: 30
-          respawn_time_max: 60
+          respawn time min: 30
+          respawn time max: 60
       breach_chamber:
         subzone: industrial_depths
         name: The Breach Chamber
@@ -591,7 +591,7 @@ ZONES:
           script: |
             echo A deep rumble shakes loose debris from the tunnel walls. The structural damage here is concerning.
         - id: look_chisel_marks
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -599,18 +599,18 @@ ZONES:
           script: |
             echo The chisel marks are old but deliberate—someone carved this tunnel with purpose, not haste.
         - id: look_tunnel
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
             predicate: tunnel
           script: |
             echo The tunnel stretches westward into darkness, the air growing fouler the deeper it goes.
-        creatures:
+        characters:
         - id: silt_skulker_ooze
           quantity: 2
-          respawn_time_min: 60
-          respawn_time_max: 180
+          respawn time min: 60
+          respawn time max: 180
       bazaar_entrance:
         subzone: the_markets
         name: The Sunken Bazaar
@@ -639,7 +639,7 @@ ZONES:
           script: |
             echo The ghostly murmur of haggling merchants drifts through the empty stalls.
         - id: look_stalls
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -666,7 +666,7 @@ ZONES:
           script: |
             echo A massive shadow glides slowly past the glass.
         - id: coronation_lore_check
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: '%*%'
             operator: contains
@@ -695,11 +695,11 @@ ZONES:
             predicate: 25
           script: |
             echo A group of Veil-Moths takes flight, casting a flash of light.
-        CHARACTERS:
+        characters:
         - id: veil_moth_creature
           quantity: 6
-          respawn_time_min: 45
-          respawn_time_max: 90
+          respawn time min: 45
+          respawn time max: 90
       royal_ascent_ballroom:
         name: The Ballroom of Whispers
         description: |
@@ -714,7 +714,7 @@ ZONES:
           type: on_arrive
           script: |
             echo You hear the upbeat strains of a violin, quickly fading.
-        CHARACTERS:
+        characters:
         - id: high_chamberlain_kaelas
           quantity: 1
       royal_ascent_solar:
@@ -750,7 +750,7 @@ ZONES:
           type: on_arrive
           script: |
             echo The air here is heavy with ancient power.
-        CHARACTERS:
+        characters:
         - id: empress_valerius_echo
           quantity: 1
     # LLM-facing: concise status lines for "WHAT THE PLAYER ALREADY KNOWS" and NPC common_knowledge_refs
@@ -1139,7 +1139,7 @@ ZONES:
       experience_points: 450
       triggers:
       - id: prime_logic_error
-        type: on_any
+        type: on_see
         criteria:
         - subject: '%*%'
           operator: contains
@@ -1295,7 +1295,7 @@ ZONES:
       experience_points: 100
       triggers:
       - id: detect_loud_magic
-        type: on_any
+        type: on_see
         criteria:
         - subject: '%*%'
           operator: contains

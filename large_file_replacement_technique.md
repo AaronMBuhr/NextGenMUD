@@ -11,7 +11,7 @@ Our successful approach for updating trigger IDs and fixing indentation in YAML 
 
 1. **Backup Protection**: Create a backup of the target file before any modifications
 2. **Reset Existing IDs**: Reset any existing timer_tick IDs to a standard format to avoid compounding changes
-3. **Fix Generic Catch Triggers**: Replace generic triggers (catch_look, catch_say, catch_any) with specific ones based on predicates
+3. **Fix Generic Catch Triggers**: Replace generic triggers (catch_inspect, catch_say, on_see) with specific ones based on predicates
 4. **Room-Based Processing**:
    - Parse the file to identify each room section
    - Handle the special case of the first room (sewer_entrance)

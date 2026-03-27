@@ -1080,7 +1080,7 @@ ZONES:
       library:
         triggers:
           - id: find_secret
-            type: catch_any
+            type: on_see
             criteria:
               - subject: "%*%"
                 operator: contains

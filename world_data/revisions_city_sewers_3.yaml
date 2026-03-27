@@ -1,0 +1,91 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: muck_beast
+        triggers:
+          - id: muck_beast_sludge
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo A wet, heavy squelch echoes as a chunk of garbage and sludge sloughs off the muck beast's body.
+          - id: muck_beast_slam
+            type: on_attacked
+            script: |
+              echo The muck beast lets out a gurgling roar, raising a massive arm of compressed trash to slam down!
+
+      - id: rust_monster
+        triggers:
+          - id: rust_monster_sniff
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The rust monster's feathery antennae twitch frantically as it scours the air for the scent of oxidized iron.
+          - id: rust_monster_lash
+            type: on_attacked
+            script: |
+              echo The rust monster clicks its mandibles excitedly, its antennae lashing out to corrode your equipment!
+
+      - id: pipe_crawler
+        triggers:
+          - id: crawler_scrape
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The metallic scraping of the pipe crawler's many legs against the stone sets your teeth on edge.
+
+      - id: marrow_leech
+        triggers:
+          - id: marrow_leech_bore
+            type: on_attacked
+            script: |
+              echo The pale marrow leech expands its serrated maw, attempting to latch on and bore straight to the bone!
+
+      - id: tunnel_serpent
+        triggers:
+          - id: tunnel_serpent_hiss
+            type: on_attacked
+            script: |
+              echo The blind tunnel serpent rears back, tasting the air furiously before lunging with its heavy coils.
+
+      - id: sewer_mutant
+        triggers:
+          - id: mutant_mutter
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The hunched sewer mutant mutters to itself, rocking back and forth. "Too bright up there. Burned the skin. Better in the dark. Better down here."
+          - id: mutant_warn
+            type: on_say
+            criteria:
+              - subject: "%*%"
+                operator: contains
+                predicate: "hello,who,what,help"
+            script: |
+              echo The sewer mutant recoils, clutching its rusted pipe tighter. "Leave! Surface-dweller leave! You bring the burning magic! Leave us be!"
+          - id: mutant_attacked
+            type: on_attacked
+            script: |
+              echo The mutant lets out a desperate, garbled scream and swings its weapon with frantic, terrified strength!
+
+      - id: mutant_abomination
+        triggers:
+          - id: abomination_roar
+            type: on_attacked
+            script: |
+              echo The mutant abomination roars with multiple overlapping, distorted voices as its asymmetrical limbs thrash violently!

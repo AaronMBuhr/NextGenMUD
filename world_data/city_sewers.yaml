@@ -46,7 +46,7 @@ ZONES:
             script: |
               echo The distant sound of rushing water echoes from deep within the sewer system.
           - id: catch_look_torch
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -54,7 +54,7 @@ ZONES:
             script: |
               echo The torch flickers weakly, its flame struggling against the damp air of the sewers.
           - id: on_any_smell
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -69,19 +69,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your voice echoes ominously through the sewer entrance, but only silence answers back.
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 2
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: giant_roach
             quantity: 1
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
       
       main_junction:
         subzone: central_conduits
@@ -133,7 +133,7 @@ ZONES:
             script: |
               echo A piece of unidentifiable debris floats by in one of the water channels, quickly disappearing into the central whirlpool.
           - id: catch_look_fungi
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -141,7 +141,7 @@ ZONES:
             script: |
               echo The phosphorescent fungi glow with an eerie, pale blue light, providing just enough illumination to navigate the chamber.
           - id: on_any_sewer_swim
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -160,19 +160,19 @@ ZONES:
               } else {
                 echo The echoes of your voice seem to awaken something in the shadows. You hear a distant skittering sound.
               }
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 3
-            respawn_time_min: 15
-            respawn_time_max: 45
+            respawn time min: 15
+            respawn time max: 45
           - id: slime
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
       
       northern_tunnel:
         subzone: northern_conduits
@@ -218,7 +218,7 @@ ZONES:
             script: |
               echo Something large splashes in the water channel, momentarily disturbing the sluggish flow.
           - id: catch_look_torch
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -226,7 +226,7 @@ ZONES:
             script: |
               echo The torch flickers weakly, its flame struggling against the damp air. The rusted bracket holding it looks ready to give way at any moment.
           - id: on_any_sewer_drink
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -241,19 +241,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your greeting echoes down the tunnel, fading into an eerie silence. Then, from somewhere in the darkness, you hear what sounds like a faint, mocking echo of your voice.
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 2
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
           - id: slime
             quantity: 1
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
 
       waste_processing_chamber:
         subzone: industrial_sector
@@ -303,7 +303,7 @@ ZONES:
             script: |
               echo A burst of foul gas erupts from one of the water channels, causing you to gag momentarily.
           - id: catch_look_jar
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -311,7 +311,7 @@ ZONES:
             script: |
               echo The clay jars are labeled with crude symbols. You recognize some as basic alchemical notations for acids and bases.
           - id: on_any_sewer_touch
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -326,19 +326,19 @@ ZONES:
                 predicate: "help"
             script: |
               echo Your cry for help is drowned out by the grinding of stones and rushing of water. If anyone heard you, they gave no sign.
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 3
-            respawn_time_min: 15
-            respawn_time_max: 45
+            respawn time min: 15
+            respawn time max: 45
           - id: slime
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
 
       filtration_room:
         subzone: industrial_sector
@@ -386,7 +386,7 @@ ZONES:
             script: |
               echo You hear a muffled splash from the underground stream below, followed by an unsettling gurgling sound.
           - id: catch_look_basin
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -394,7 +394,7 @@ ZONES:
             script: |
               echo As you peer into the basin, you notice small, pale creatures darting between the layers of filtration material.
           - id: on_any_sewer_drink
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -409,19 +409,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your voice echoes strangely in the humid air, distorted by the constant sound of trickling water.
-        creatures:
+        characters:
           - id: giant_frog
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: slime
             quantity: 1
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 50
-            respawn_time_max: 120
+            respawn time min: 50
+            respawn time max: 120
 
       sludge_pit:
         subzone: industrial_sector
@@ -468,7 +468,7 @@ ZONES:
             script: |
               echo Something large and unseen moves beneath the surface of the sludge, creating a series of ripples that lap at the edges of the pit.
           - id: catch_look_fungi
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -476,7 +476,7 @@ ZONES:
             script: |
               echo The bioluminescent fungi pulsate slowly, their eerie green light seeming to throb in time with the bubbling of the sludge.
           - id: on_any_jump
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -491,19 +491,19 @@ ZONES:
                 predicate: "help"
             script: |
               echo Your cry for help is swallowed by the gurgling of the sludge. If anything heard you, it's probably not something you'd want to come to your aid.
-        creatures:
+        characters:
           - id: giant_leech
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: slime
             quantity: 3
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: giant_frog
             quantity: 1
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
             
       underground_stream:
         subzone: natural_caverns
@@ -551,7 +551,7 @@ ZONES:
             script: |
               echo A cool breeze wafts through the cavern, carrying with it the distant sound of falling water.
           - id: catch_look_crystal
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -559,7 +559,7 @@ ZONES:
             script: |
               echo As you examine the crystals more closely, you notice they seem to pulse faintly with an inner light.
           - id: on_any_sewer_drink
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -574,19 +574,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your voice echoes off the cavern walls, mixing with the sound of rushing water in an eerie chorus.
-        creatures:
+        characters:
           - id: giant_frog
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: giant_leech
             quantity: 1
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: giant_crayfish
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 150
+            respawn time min: 60
+            respawn time max: 150
 
       muck_cavern:
         subzone: natural_caverns
@@ -633,7 +633,7 @@ ZONES:
             script: |
               echo Something large and unseen moves beneath the surface of the muck, creating ripples that spread across the cavern floor.
           - id: catch_look_fungi
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -641,7 +641,7 @@ ZONES:
             script: |
               echo The mutated fungi seem to recoil as you look at them, their sickly glow flickering erratically.
           - id: on_any_sewer_swim
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -656,19 +656,19 @@ ZONES:
                 predicate: "help"
             script: |
               echo Your cry for help is muffled by the thick, foul air. Only the burbling muck seems to answer, mockingly.
-        creatures:
+        characters:
           - id: giant_leech
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: slime
             quantity: 3
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: muck_beast
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       waterfall_chamber:
         subzone: natural_caverns
@@ -715,7 +715,7 @@ ZONES:
             script: |
               echo You glimpse a large, pale fish leaping up the tiered pools, struggling against the current.
           - id: catch_look_algae
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -723,7 +723,7 @@ ZONES:
             script: |
               echo As you examine the phosphorescent algae, its glow intensifies, creating mesmerizing patterns on the wet stone.
           - id: on_any_sewer_swim
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -742,19 +742,19 @@ ZONES:
               } else {
                 echo Your voice echoes strangely, seeming to come from all directions at once before fading into the waterfall's roar.
               }
-        creatures:
+        characters:
           - id: giant_frog
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: cave_fish
             quantity: 3
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: water_elemental
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       fungal_grove:
         subzone: natural_caverns
@@ -801,7 +801,7 @@ ZONES:
             script: |
               echo You hear a soft rustling sound, and notice that some of the fungi seem to be slowly moving, their stalks bending and swaying.
           - id: catch_look_mushroom
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -809,7 +809,7 @@ ZONES:
             script: |
               echo As you examine the mushroom more closely, you notice intricate patterns on its surface that seem to shift and change as you watch.
           - id: on_any_eat
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -824,19 +824,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo As you speak, the fungi around you seem to react, their glow intensifying briefly before fading back to normal.
-        creatures:
+        characters:
           - id: giant_slug
             quantity: 2
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
           - id: spore_creature
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: fungal_shambler
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       whirlpool_room:
         subzone: central_conduits
@@ -883,7 +883,7 @@ ZONES:
             script: |
               echo A powerful surge of water splashes over the ledge, making the footing even more treacherous.
           - id: catch_look_whirlpool
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -891,7 +891,7 @@ ZONES:
             script: |
               echo As you gaze into the swirling vortex, you feel a momentary vertigo, as if the whirlpool might pull you in at any moment.
           - id: on_any_sewer_swim
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -906,19 +906,19 @@ ZONES:
                 predicate: "help"
             script: |
               echo Your cry for help is completely drowned out by the roar of the whirlpool. You doubt anyone could hear you over this din.
-        creatures:
+        characters:
           - id: water_elemental
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: giant_crab
             quantity: 2
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: vortex_spirit
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
 
       rat_nest:
         subzone: vermin_warrens
@@ -965,7 +965,7 @@ ZONES:
             script: |
               echo You hear a loud gnawing sound, and watch as a rat the size of a large dog emerges from one of the tunnels, dragging a bone.
           - id: catch_look_nest
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -973,7 +973,7 @@ ZONES:
             script: |
               echo As you examine the nest more closely, you notice it's constructed partially from gnawed human bones. A chill runs down your spine.
           - id: on_any_food
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -988,19 +988,19 @@ ZONES:
                 predicate: "cheese"
             script: |
               echo At the mention of cheese, you hear a flurry of excited squeaks, and several beady eyes turn in your direction.
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 5
-            respawn_time_min: 15
-            respawn_time_max: 45
+            respawn time min: 15
+            respawn time max: 45
           - id: rat_swarm
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: rat_king
             quantity: 1
-            respawn_time_min: 120
-            respawn_time_max: 360
+            respawn time min: 120
+            respawn time max: 360
 
       flooded_corridor:
         subzone: western_floods
@@ -1047,7 +1047,7 @@ ZONES:
             script: |
               echo A section of the ceiling crumbles, sending debris splashing into the water around you.
           - id: catch_look_sewer_water
-            type: catch_look           # Corrected indentation
+            type: catch_inspect           # Corrected indentation
             criteria:
               - subject: "%{*}"
                 operator: contains
@@ -1055,7 +1055,7 @@ ZONES:
             script: |               # Corrected indentation
               echo As you peer into the murky water, you catch glimpses of pale, eyeless fish darting in the depths.
           - id: on_any_sewer_swim
-            type: on_any
+            type: on_see
             criteria:
               - subject: "%{*}"         # Corrected indentation
                 operator: contains
@@ -1070,19 +1070,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your voice echoes off the water's surface, creating an eerie, warbling effect that fades into the distance.
-        creatures:
+        characters:
           - id: giant_leech
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: sewer_crocodile
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: water_snake
             quantity: 3
-            respawn_time_min: 25
-            respawn_time_max: 75
+            respawn time min: 25
+            respawn time max: 75
 
       crumbling_passage:
         subzone: western_floods
@@ -1130,7 +1130,7 @@ ZONES:
             script: |
               echo You hear a loud crack, and a section of the wall nearby shifts slightly, sending a chill down your spine.
           - id: catch_look_crack
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1138,7 +1138,7 @@ ZONES:
             script: |
               echo Peering into a large crack in the wall, you catch a glimpse of something moving in the darkness beyond. You quickly step back.
           - id: on_any_sewer_touch
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1153,19 +1153,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your voice echoes strangely in the confined space, seeming to trigger a series of small stone falls further down the passage.
-        creatures:
+        characters:
           - id: cave_spider
             quantity: 3
-            respawn_time_min: 25
-            respawn_time_max: 75
+            respawn time min: 25
+            respawn time max: 75
           - id: stone_mite
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: rubble_dweller
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       pump_room:
         subzone: industrial_sector
@@ -1213,7 +1213,7 @@ ZONES:
             script: |
               echo A pipe near you suddenly bursts, releasing a spray of foul water before sputtering out.
           - id: catch_look_pump
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1221,7 +1221,7 @@ ZONES:
             script: |
               echo As you examine the pump, you notice strange, archaic symbols carved into its base, barely visible beneath years of grime.
           - id: on_any_sewer_touch
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1236,19 +1236,19 @@ ZONES:
                 predicate: "stop"
             script: |
               echo For a brief moment, the pump's rhythm seems to falter, as if responding to your command, before resuming its relentless pumping.
-        creatures:
+        characters:
           - id: rust_monster
             quantity: 2
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: steam_sprite
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: gear_golem
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       ancient_crypt:
         subzone: forgotten_depths
@@ -1297,7 +1297,7 @@ ZONES:
             script: |
               echo The lid of a nearby sarcophagus shifts slightly with a grating sound, then falls still.
           - id: catch_look_inscription
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1305,7 +1305,7 @@ ZONES:
             script: |
               echo As you study the faded inscription, you make out words like "guardian", "eternal vigil", and "seal", sending a chill down your spine.
           - id: on_any_open
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1320,19 +1320,19 @@ ZONES:
                 predicate: "rest"
             script: |
               echo As you speak of rest, the atmosphere in the crypt seems to grow heavier, as if the long-dead occupants are listening.
-        creatures:
+        characters:
           - id: skeletal_warrior
             quantity: 2
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: ghost
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
           - id: tomb_rat
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
 
       maintenance_shaft:
         subzone: upper_works
@@ -1381,7 +1381,7 @@ ZONES:
             script: |
               echo Something large and unseen scurries across a platform far above, sending a shower of rust and debris raining down.
           - id: catch_look_ladder
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1389,7 +1389,7 @@ ZONES:
             script: |
               echo The iron ladder looks dangerously corroded. You wonder if it could support your weight.
           - id: on_any_jump
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1404,19 +1404,19 @@ ZONES:
                 predicate: "hello"
             script: |
               echo Your greeting echoes up and down the shaft, repeating and distorting until it fades into an eerie whisper.
-        creatures:
+        characters:
           - id: pipe_crawler
             quantity: 2
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
           - id: rust_bat
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: shadow_lurker
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       bone_pile:
         subzone: forgotten_depths
@@ -1464,7 +1464,7 @@ ZONES:
             script: |
               echo A cold, unnatural wind sweeps through the chamber, carrying with it the faint sound of agonized whispers.
           - id: catch_look_skull
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1472,7 +1472,7 @@ ZONES:
             script: |
               echo As you examine one of the skulls, its eye sockets seem to glow briefly with a malevolent red light.
           - id: on_any_take
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1487,19 +1487,19 @@ ZONES:
                 predicate: "who"
             script: |
               echo Your question echoes in the chamber. For a moment, the bone pile seems to vibrate in response, as if trying to answer.
-        creatures:
+        characters:
           - id: bone_construct
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: marrow_leech
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: necromancer_shade
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
 
       lower_tunnels:
         subzone: forgotten_depths
@@ -1550,7 +1550,7 @@ ZONES:
             script: |
               echo You hear a series of splashes in the darkness ahead, as if something large is moving through the water towards you.
           - id: catch_look_root
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1558,7 +1558,7 @@ ZONES:
             script: |
               echo As you examine the root, you notice it seems to twitch and move slightly, as if alive and aware of your presence.
           - id: on_any_sewer_drink
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1573,19 +1573,19 @@ ZONES:
                 predicate: "lost"
             script: |
               echo Your voice echoes through the tunnels. For a moment, you hear what sounds like a mocking laugh in response, but it's gone as quickly as it came.
-        creatures:
+        characters:
           - id: sewer_troll
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
           - id: giant_leech
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: tunnel_serpent
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       smugglers_den:
         subzone: clandestine_hideout
@@ -1634,7 +1634,7 @@ ZONES:
             script: |
               echo You hear the sound of a barrel toppling over in the darkness, followed by the scurrying of many tiny feet.
           - id: catch_look_crate
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1642,7 +1642,7 @@ ZONES:
             script: |
               echo As you peer into an open crate, you see the glint of glass vials filled with an unknown, swirling liquid.
           - id: on_any_search
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1657,19 +1657,19 @@ ZONES:
                 predicate: "password"
             script: |
               echo As you speak the word 'password', you hear a faint click from somewhere in the room, as if a hidden mechanism has been activated.
-        creatures:
+        characters:
           - id: giant_rat
             quantity: 3
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
           - id: smuggler_ghost
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
           - id: shadow_thief
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       slime_pools:
         subzone: clandestine_hideout
@@ -1718,7 +1718,7 @@ ZONES:
             script: |
               echo The colors of the pools suddenly shift, swirling into new patterns and hues before settling again.
           - id: catch_look_slime
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1726,7 +1726,7 @@ ZONES:
             script: |
               echo As you examine the slime closely, you see tiny, squirming organisms moving within it. The longer you look, the more you feel drawn to the hypnotic movements.
           - id: on_any_sewer_touch
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1741,19 +1741,19 @@ ZONES:
                 predicate: "magic"
             script: |
               echo As you speak the word 'magic', the pools pulse brightly in response, their light momentarily intensifying.
-        creatures:
+        characters:
           - id: slime_elemental
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: mutant_newt
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: ooze_horror
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
 
       echoing_chamber:
         subzone: clandestine_hideout
@@ -1801,7 +1801,7 @@ ZONES:
             script: |
               echo You hear what sounds like whispered voices coming from all directions, but the words are indistinct and fade quickly.
           - id: catch_look_pillar
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1809,7 +1809,7 @@ ZONES:
             script: |
               echo As you examine the pillar, you notice faint inscriptions near its base. They appear to be musical notes, barely visible after years of erosion.
           - id: on_any_sing
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1828,19 +1828,19 @@ ZONES:
               } else {
                 echo The chamber seems to latch onto your word, repeating it with increasing volume until it's almost deafening, then suddenly falling silent.
               }
-        creatures:
+        characters:
           - id: echo_bat
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: sound_elemental
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: whispering_shade
             quantity: 2
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
 
       secret_passage:
         subzone: clandestine_hideout
@@ -1889,7 +1889,7 @@ ZONES:
             script: |
               echo A sudden draft extinguishes one of the glowstones momentarily, plunging a section of the passage into darkness before it reignites.
           - id: catch_look_alcove
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1897,7 +1897,7 @@ ZONES:
             script: |
               echo As you examine the alcove, you notice faint markings on the wall - perhaps a code or message left for other passage users.
           - id: on_any_knock
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1912,19 +1912,19 @@ ZONES:
                 predicate: "open"
             script: |
               echo As you speak the word 'open', you hear a faint click from somewhere in the walls, as if a hidden mechanism has been activated.
-        creatures:
+        characters:
           - id: shadow_scout
             quantity: 2
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: whisper_sprite
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: illusory_guardian
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       alchemical_dumping_ground:
         subzone: industrial_sector
@@ -1973,7 +1973,7 @@ ZONES:
             script: |
               echo A bolt of wild magic arcs between two pools, briefly illuminating the chamber in a flash of prismatic light.
           - id: catch_look_pool
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -1981,7 +1981,7 @@ ZONES:
             script: |
               echo As you examine the pool, you see swirling patterns forming and dissolving rapidly on its surface. The longer you look, the more you feel a strange tingling sensation.
           - id: on_any_sewer_drink
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -1996,19 +1996,19 @@ ZONES:
                 predicate: "transmute"
             script: |
               echo As you speak the word 'transmute', a nearby puddle of liquid suddenly changes color and consistency, releasing a puff of iridescent smoke.
-        creatures:
+        characters:
           - id: ooze_elemental
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
           - id: mutant_rat
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: chaos_wisp
             quantity: 2
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
 
       bat_roost:
         subzone: natural_caverns
@@ -2056,7 +2056,7 @@ ZONES:
             script: |
               echo The chittering suddenly intensifies, reaching a fever pitch before abruptly falling silent. The silence is almost more unnerving than the noise.
           - id: catch_look_bat
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2064,7 +2064,7 @@ ZONES:
             script: |
               echo As you peer into the darkness, you see a pair of enormous, glowing eyes staring back at you. They blink once, then vanish.
           - id: on_any_climb
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2079,19 +2079,19 @@ ZONES:
               predicate: "echo"
             script: |
               echo Your word echoes through the chamber, causing a wave of agitation among the bats. The air fills with the sound of rustling wings and alarmed squeaks.
-        creatures:
+        characters:
           - id: giant_sewer_bat
             quantity: 3
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: bat_swarm
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: guano_beetle
             quantity: 4
-            respawn_time_min: 20
-            respawn_time_max: 60
+            respawn time min: 20
+            respawn time max: 60
 
       forgotten_treasury:
         subzone: forgotten_depths
@@ -2140,7 +2140,7 @@ ZONES:
             script: |
               echo You hear the faint sound of coins shifting, as if an unseen hand is sifting through one of the treasure piles.
           - id: catch_look_chest
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2148,7 +2148,7 @@ ZONES:
             script: |
               echo As you examine the chest, you notice intricate locking mechanisms and what appear to be magical wards etched into its surface.
           - id: on_any_take
-            type: on_any
+            type: on_see
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2163,19 +2163,19 @@ ZONES:
                 predicate: "gold"
             script: |
               echo At the mention of gold, you hear a faint, spectral chuckle echoing through the chamber.
-        creatures:
+        characters:
           - id: treasure_guardian
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
           - id: gold_mite
             quantity: 3
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
           - id: ghostly_accountant
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 180
+            respawn time min: 60
+            respawn time max: 180
 
       mutant_lair:
         subzone: vermin_warrens
@@ -2224,7 +2224,7 @@ ZONES:
             script: |
               echo You hear a series of splashes followed by a chorus of inhuman screeches, as if something has emerged from one of the mutagenic pools.
           - id: catch_look_pool
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2232,7 +2232,7 @@ ZONES:
             script: |
               echo As you peer into the mutagenic pool, you see a half-formed creature staring back at you with too many eyes. It reaches out with a misshapen limb before sinking back into the sludge.
           - id: on_any_sewer_touch
-            type: on_any
+            type: on_see
             criteria:
             - subject: "%{*}"
               operator: contains
@@ -2247,19 +2247,19 @@ ZONES:
                 predicate: "human"
             script: |
               echo At the word 'human', you hear a cacophony of angry growls and screeches from the shadows. The mutants seem to react violently to reminders of their former selves.
-        creatures:
+        characters:
           - id: sewer_mutant
             quantity: 3
-            respawn_time_min: 45
-            respawn_time_max: 120
+            respawn time min: 45
+            respawn time max: 120
           - id: mutant_abomination
             quantity: 1
-            respawn_time_min: 90
-            respawn_time_max: 240
+            respawn time min: 90
+            respawn time max: 240
           - id: parasitic_slime
             quantity: 2
-            respawn_time_min: 30
-            respawn_time_max: 90
+            respawn time min: 30
+            respawn time max: 90
 
       rough_hewn_tunnel_entrance:
         subzone: citadel_approach
@@ -2305,7 +2305,7 @@ ZONES:
             script: |
               echo A cold draft wafts up from the depths, carrying an unfamiliar, briny scent.
           - id: catch_look_markings
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2313,22 +2313,22 @@ ZONES:
             script: |
               echo The chalk markings are faded and cryptic—arrows, numbers, and symbols that might have meant something to the original diggers.
           - id: catch_look_chisel
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "chisel"
             script: |
               echo The chisel marks suggest this tunnel was carved over many months, perhaps years, by determined hands.
-        creatures:
+        characters:
           - id: cave_spider
             quantity: 2
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
           - id: tunnel_serpent
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 150
+            respawn time min: 60
+            respawn time max: 150
 
       rough_hewn_tunnel_descent:
         subzone: citadel_approach
@@ -2374,7 +2374,7 @@ ZONES:
             script: |
               echo The phosphorescent lichen pulses briefly, as if responding to some unseen stimulus.
           - id: catch_look_lichen
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2382,22 +2382,22 @@ ZONES:
             script: |
               echo The lichen glows with a soft, bluish light unlike anything found in the sewers above. It seems almost... cultivated.
           - id: catch_look_steps
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "step"
             script: |
               echo The worn steps tell a story of frequent use. Whatever lies below was visited often.
-        creatures:
+        characters:
           - id: cave_spider
             quantity: 1
-            respawn_time_min: 50
-            respawn_time_max: 120
+            respawn time min: 50
+            respawn time max: 120
           - id: shadow_lurker
             quantity: 1
-            respawn_time_min: 75
-            respawn_time_max: 180
+            respawn time min: 75
+            respawn time max: 180
 
       rough_hewn_tunnel_deep:
         subzone: citadel_approach
@@ -2444,7 +2444,7 @@ ZONES:
             script: |
               echo You hear what might be distant machinery—or perhaps the groaning of immense pressure against ancient stone.
           - id: catch_look_brazier
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2452,22 +2452,22 @@ ZONES:
             script: |
               echo The brazier is encrusted with centuries of rust. Charred remnants of wood suggest it hasn't been lit in ages.
           - id: catch_look_tools
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "tool"
             script: |
               echo The broken tools are of ancient make, their metal corroded beyond use. Whoever dug this tunnel did so long, long ago.
-        creatures:
+        characters:
           - id: stone_mite
             quantity: 3
-            respawn_time_min: 35
-            respawn_time_max: 90
+            respawn time min: 35
+            respawn time max: 90
           - id: tunnel_serpent
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 150
+            respawn time min: 60
+            respawn time max: 150
 
       rough_hewn_tunnel_citadel_approach:
         subzone: citadel_approach
@@ -2515,7 +2515,7 @@ ZONES:
             script: |
               echo A shimmer of azure light pulses through the breach from somewhere deep within the ancient structure beyond.
           - id: catch_look_breach
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2523,7 +2523,7 @@ ZONES:
             script: |
               echo The breach was made with desperate force—whoever broke through this wall needed access badly enough to deface this magnificent construction.
           - id: catch_look_patterns
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
@@ -2531,19 +2531,1961 @@ ZONES:
             script: |
               echo The geometric patterns seem to flow like water frozen in stone. They remind you of tide charts and mathematical calculations.
           - id: catch_look_masonry
-            type: catch_look
+            type: catch_inspect
             criteria: 
               - subject: "%{*}"
                 operator: contains
                 predicate: "masonry"
             script: |
               echo This is no ordinary construction. The precision and scale suggest a civilization of immense capability—one that may have sunk beneath the earth long ago.
-        creatures:
+        characters:
           - id: shadow_lurker
             quantity: 1
-            respawn_time_min: 60
-            respawn_time_max: 150
+            respawn time min: 60
+            respawn time max: 150
           - id: rust_bat
             quantity: 2
-            respawn_time_min: 40
-            respawn_time_max: 100
+            respawn time min: 40
+            respawn time max: 100
+
+CHARACTERS:
+      - id: giant_rat
+        name: giant rat
+        article: a
+        description: >
+          A massive, disease-ridden rat with patchy fur, yellow teeth, and glowing red eyes.
+          Despite its unnatural size, it moves with the same skittering gait as its smaller kin.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 16
+          constitution: 8
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6+2
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 20
+        type: animal
+        race: rat
+
+      - id: giant_roach
+        name: giant roach
+        article: a
+        description: >
+          An unnervingly large cockroach, its carapace slick with sewer grime. Its antennae
+          whip through the air, sensing for the smallest traces of rot.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 12
+          constitution: 10
+          intelligence: 1
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6+2
+        natural_attacks:
+          - attack_noun: mandibles
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4
+        hit_modifier: 0
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 20
+        type: insect
+        race: roach
+
+      - id: giant_leech
+        name: giant leech
+        article: a
+        description: >
+          A thick, pulsating leech the size of a man's arm, dropping from the ceiling 
+          in search of warm blood.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 8
+          constitution: 14
+          intelligence: 1
+          wisdom: 6
+          charisma: 2
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d8+2
+        natural_attacks:
+          - attack_noun: toothy maw
+            attack_verb: latches onto
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4+1
+        hit_modifier: 0
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 25
+        type: animal
+        race: leech
+
+      - id: giant_frog
+        name: giant frog
+        article: a
+        description: >
+          An overgrown, warty amphibian that blends in perfectly with the murky water,
+          waiting to lash out with its heavy, sticky tongue.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 14
+          constitution: 12
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bites
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d6+2
+        hit_modifier: 2
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 45
+        type: animal
+        race: frog
+
+      - id: giant_crayfish
+        name: giant crayfish
+        article: a
+        description: >
+          A mud-caked crustacean easily the size of a hunting dog. Its massive, 
+          crushing claws snap aggressively at anything that approaches.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 10
+          constitution: 14
+          intelligence: 1
+          wisdom: 10
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8+6
+        natural_attacks:
+          - attack_noun: heavy claw
+            attack_verb: pinches
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d8+3
+        hit_modifier: 3
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 70
+        type: animal
+        race: crustacean
+
+      - id: cave_fish
+        name: blind cave fish
+        article: a
+        description: >
+          A pale, translucent fish that has completely lost its eyes after generations 
+          in the dark sewer waters. It is completely reliant on vibration.
+        group_id: sewer_beasts
+        attitude: NEUTRAL
+        attributes:
+          strength: 4
+          dexterity: 14
+          constitution: 8
+          intelligence: 1
+          wisdom: 12
+          charisma: 2
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d4
+        natural_attacks:
+          - attack_noun: fin
+            attack_verb: slaps
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d2
+        hit_modifier: -1
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 10
+        type: animal
+        race: fish
+
+      - id: rat_swarm
+        name: chittering rat swarm
+        article: a
+        description: >
+          A seething, tumbling carpet of hundreds of desperate, starving rats moving 
+          and biting as a single mind.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 16
+          constitution: 10
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8
+        natural_attacks:
+          - attack_noun: thousand teeth
+            attack_verb: swarms over
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 2d4
+        hit_modifier: 3
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 75
+        type: animal
+        race: rat
+
+      - id: rat_king
+        name: rat king
+        article: the
+        description: >
+          A hunched, bipedal humanoid with distinct rat-like features. It wears patched 
+          together rags, clutches a jagged scrap-metal blade, and barks orders to the 
+          lesser rodents in a chittering, raspy dialect.
+        group_id: sewer_rulers
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 18
+          constitution: 14
+          intelligence: 12
+          wisdom: 14
+          charisma: 10
+        class:
+          Rogue:
+            level: 5
+        hit_dice: 5d8+5
+        natural_attacks:
+          - attack_noun: rusted shiv
+            attack_verb: slashes
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d6+3
+        hit_modifier: 5
+        dodge_dice: 1d10+18
+        critical_chance: 0.15
+        critical_multiplier: 2
+        experience_points: 200
+        type: humanoid
+        race: rat
+
+      - id: sewer_crocodile
+        name: pale sewer crocodile
+        article: a
+        description: >
+          An enormous reptile with milky, sightless eyes and scales bleached white 
+          by the lack of sun. It navigates the foul water with deadly precision.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 18
+          dexterity: 10
+          constitution: 16
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d10+8
+        natural_attacks:
+          - attack_noun: crushing jaws
+            attack_verb: chomps
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d10+4
+        hit_modifier: 4
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 150
+        type: animal
+        race: crocodile
+
+      - id: water_snake
+        name: banded water snake
+        article: a
+        description: >
+          A thick-bodied serpent that weaves silently through the slow-moving effluent, 
+          tasting the foul air with its forked tongue.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 16
+          constitution: 12
+          intelligence: 2
+          wisdom: 12
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: fangs
+            attack_verb: strikes
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+1
+        hit_modifier: 3
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 40
+        type: animal
+        race: snake
+
+      - id: cave_spider
+        name: bloated cave spider
+        article: a
+        description: >
+          A terrifyingly large arachnid with bristly hairs and mandibles dripping 
+          with venom. It spins thick, gray webs between the sewer pipes.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 16
+          constitution: 12
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: venomous bite
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+1
+              - damage_type: poison
+                damage_dice: 1d4
+        hit_modifier: 2
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 50
+        type: insect
+        race: spider
+
+      - id: stone_mite
+        name: burrowing stone mite
+        article: a
+        description: >
+          A pale, multi-legged parasite that usually feeds on subterranean fungus 
+          but isn't afraid to take a bite out of passing adventurers.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 14
+          constitution: 10
+          intelligence: 1
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6+1
+        natural_attacks:
+          - attack_noun: pincers
+            attack_verb: nips
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d4
+        hit_modifier: 1
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 15
+        type: insect
+        race: mite
+
+      - id: tomb_rat
+        name: vicious tomb rat
+        article: a
+        description: >
+          A surprisingly aggressive breed of rat that has migrated from the city's 
+          crypts down into the upper sewer network.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 4
+          dexterity: 16
+          constitution: 8
+          intelligence: 2
+          wisdom: 12
+          charisma: 4
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6
+        natural_attacks:
+          - attack_noun: sharp teeth
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4
+        hit_modifier: 2
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 15
+        type: animal
+        race: rat
+
+      - id: rust_bat
+        name: rust bat
+        article: a
+        description: >
+          A small, aggressive bat with a coat of reddish-brown fur that makes it 
+          look like a fluttering chunk of oxidized iron.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 4
+          dexterity: 18
+          constitution: 8
+          intelligence: 2
+          wisdom: 14
+          charisma: 4
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6
+        natural_attacks:
+          - attack_noun: claws
+            attack_verb: scratches
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d3
+        hit_modifier: 3
+        dodge_dice: 1d10+18
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 15
+        type: animal
+        race: bat
+
+      - id: giant_sewer_bat
+        name: giant sewer bat
+        article: a
+        description: >
+          A terrifying flying mammal with leathery wings that span several feet across, 
+          and a screech that echoes painfully down the drainage pipes.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 16
+          constitution: 10
+          intelligence: 2
+          wisdom: 12
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: fangs
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+1
+        hit_modifier: 3
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 40
+        type: animal
+        race: bat
+
+      - id: bat_swarm
+        name: cloud of bats
+        article: a
+        description: >
+          A chaotic, fluttering vortex of panic-stricken bats, attacking anything 
+          that disturbs their roost.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 18
+          constitution: 10
+          intelligence: 2
+          wisdom: 12
+          charisma: 4
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8
+        natural_attacks:
+          - attack_noun: flurry of bites
+            attack_verb: swarms
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 2d4
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 75
+        type: animal
+        race: bat
+
+      - id: guano_beetle
+        name: massive guano beetle
+        article: a
+        description: >
+          A foul-smelling, heavily armored insect that spends its life rolling 
+          and consuming the waste left behind by the sewer's bat population.
+        group_id: sewer_vermin
+        attitude: NEUTRAL
+        attributes:
+          strength: 14
+          dexterity: 8
+          constitution: 16
+          intelligence: 1
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+4
+        natural_attacks:
+          - attack_noun: horn
+            attack_verb: gores
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+2
+        hit_modifier: 1
+        dodge_dice: 1d10+8
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 45
+        type: insect
+        race: beetle
+
+      - id: mutant_rat
+        name: multi-eyed mutant rat
+        article: a
+        description: >
+          A grotesque rodent warped by alchemical runoff. It has several extra 
+          eyes clustered on one side of its head and patches of raw, hairless skin.
+        group_id: sewer_vermin
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 14
+          constitution: 12
+          intelligence: 3
+          wisdom: 10
+          charisma: 2
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: jagged teeth
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6
+              - damage_type: acid
+                damage_dice: 1d4
+        hit_modifier: 2
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 50
+        type: animal
+        race: rat
+
+      - id: mutant_newt
+        name: toxic mutant newt
+        article: a
+        description: >
+          An overgrown amphibian glowing with a sickly, neon-green luminescence. 
+          Its skin constantly drips with a corrosive slime.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 14
+          constitution: 14
+          intelligence: 2
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: bite
+            attack_verb: bites
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d6+1
+              - damage_type: acid
+                damage_dice: 1d6
+        hit_modifier: 3
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 80
+        type: animal
+        race: newt
+		
+      - id: slime
+        name: toxic slime
+        article: a
+        description: >
+          A quivering puddle of caustic, green ooze that moves with surprising intent, 
+          leaving a sizzling trail of melted stone in its wake.
+        group_id: oozes
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 6
+          constitution: 16
+          intelligence: 1
+          wisdom: 6
+          charisma: 1
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+4
+        natural_attacks:
+          - attack_noun: pseudopod
+            attack_verb: strikes
+            potential_damage:
+              - damage_type: acid
+                damage_dice: 1d6+2
+        hit_modifier: 2
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 40
+        type: ooze
+        race: slime
+
+      - id: giant_slug
+        name: giant slug
+        article: a
+        description: >
+          A massive, fleshy gastropod the size of a boar. It slowly inches along 
+          the damp walls, leaving behind a thick, sticky trail of mucus.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 4
+          constitution: 18
+          intelligence: 1
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d10+6
+        natural_attacks:
+          - attack_noun: acidic bite
+            attack_verb: chomps
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+1
+              - damage_type: acid
+                damage_dice: 1d4
+        hit_modifier: 2
+        dodge_dice: 1d10+8
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 60
+        type: animal
+        race: slug
+
+      - id: spore_creature
+        name: glowing spore creature
+        article: a
+        description: >
+          A walking colony of luminescent purple and blue fungus, puffing out 
+          clouds of hazardous, glowing spores with every shuddering step.
+        group_id: fungi
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 8
+          constitution: 16
+          intelligence: 2
+          wisdom: 10
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d10+6
+        natural_attacks:
+          - attack_noun: heavy stalk
+            attack_verb: bashes
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d6+2
+        hit_modifier: 3
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 90
+        type: plant
+        race: fungus
+
+      - id: fungal_shambler
+        name: fungal shambler
+        article: a
+        description: >
+          A vaguely humanoid mass of decaying organic matter completely overtaken 
+          by parasitic mushrooms and fibrous mycelium.
+        group_id: fungi
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 6
+          constitution: 18
+          intelligence: 2
+          wisdom: 12
+          charisma: 2
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d10+8
+        natural_attacks:
+          - attack_noun: rotting fist
+            attack_verb: slams
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d8+3
+              - damage_type: poison
+                damage_dice: 1d4
+        hit_modifier: 4
+        dodge_dice: 1d10+9
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 120
+        type: plant
+        race: fungus
+
+      - id: slime_elemental
+        name: caustic slime elemental
+        article: a
+        description: >
+          A towering, semi-translucent pillar of animated sewer runoff. Garbage 
+          and bones float within its churning, acidic core.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 10
+          constitution: 18
+          intelligence: 4
+          wisdom: 10
+          charisma: 4
+        class:
+          Fighter:
+            level: 5
+        hit_dice: 5d10+10
+        natural_attacks:
+          - attack_noun: liquid appendage
+            attack_verb: engulfs
+            potential_damage:
+              - damage_type: acid
+                damage_dice: 2d6+3
+        hit_modifier: 5
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 180
+        type: elemental
+        race: slime
+
+      - id: ooze_horror
+        name: bubbling ooze horror
+        article: a
+        description: >
+          A terrifying, shifting mass of black sludge that seems to consume 
+          everything it touches, growing larger with every meal.
+        group_id: oozes
+        attitude: HOSTILE
+        attributes:
+          strength: 18
+          dexterity: 8
+          constitution: 20
+          intelligence: 2
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 6
+        hit_dice: 6d12+12
+        natural_attacks:
+          - attack_noun: crushing pseudopod
+            attack_verb: crushes
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d10+4
+              - damage_type: acid
+                damage_dice: 1d6
+        hit_modifier: 6
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 250
+        type: ooze
+        race: ooze
+
+      - id: ooze_elemental
+        name: primordial ooze elemental
+        article: a
+        description: >
+          A sentient vortex of deep earth and corrupted water, brought together 
+          by foul magic into a singular, destructive entity.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 12
+          constitution: 16
+          intelligence: 6
+          wisdom: 12
+          charisma: 6
+        class:
+          Fighter:
+            level: 5
+        hit_dice: 5d10+10
+        natural_attacks:
+          - attack_noun: elemental slam
+            attack_verb: batters
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 2d6+4
+        hit_modifier: 5
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 200
+        type: elemental
+        race: ooze
+
+      - id: parasitic_slime
+        name: parasitic slime
+        article: a
+        description: >
+          A small, disturbingly fast blob of pinkish slime that leaps toward the 
+          faces of potential hosts, seeking to attach itself.
+        group_id: oozes
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 18
+          constitution: 10
+          intelligence: 2
+          wisdom: 14
+          charisma: 2
+        class:
+          Rogue:
+            level: 2
+        hit_dice: 2d8
+        natural_attacks:
+          - attack_noun: stinging tendril
+            attack_verb: lashes
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4
+              - damage_type: acid
+                damage_dice: 1d4
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 55
+        type: ooze
+        race: slime
+		
+      - id: muck_beast
+        name: muck beast
+        article: a
+        description: >
+          A horrifying amalgamation of sewer sludge, trash, and rotting organic matter 
+          given a crude, lumbering form by ambient magic.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 8
+          constitution: 18
+          intelligence: 4
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d10+8
+        natural_attacks:
+          - attack_noun: heavy slam
+            attack_verb: slams
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d8+3
+        hit_modifier: 4
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 120
+        type: monstrosity
+        race: sludge
+
+      - id: rust_monster
+        name: subterranean rust monster
+        article: a
+        description: >
+          An unnerving, four-legged beast with feathery antennae that twitch eagerly at the 
+          scent of metal. Its armored hide is a mottled, oxidized red.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 16
+          constitution: 14
+          intelligence: 2
+          wisdom: 12
+          charisma: 6
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d8+4
+        natural_attacks:
+          - attack_noun: sweeping antenna
+            attack_verb: lashes
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d8+1
+        hit_modifier: 4
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 130
+        type: monstrosity
+        race: rust_monster
+
+      - id: pipe_crawler
+        name: armored pipe crawler
+        article: an
+        description: >
+          A massive, multi-legged insect resembling a giant centipede. Its segmented body 
+          is covered in a thick, metallic-looking carapace that scrapes loudly against the pipes.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 12
+          constitution: 16
+          intelligence: 1
+          wisdom: 10
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8+6
+        natural_attacks:
+          - attack_noun: crushing mandibles
+            attack_verb: bites
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+2
+        hit_modifier: 3
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 85
+        type: insect
+        race: centipede
+
+      - id: marrow_leech
+        name: pale marrow leech
+        article: a
+        description: >
+          A horrific variation of the common leech, adapted to bore through the bones of 
+          carcasses washed down into the sewers to suck out the marrow.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 10
+          constitution: 16
+          intelligence: 1
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: serrated maw
+            attack_verb: bores into
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+2
+        hit_modifier: 3
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 75
+        type: animal
+        race: leech
+
+      - id: tunnel_serpent
+        name: blind tunnel serpent
+        article: a
+        description: >
+          A massive, eyeless snake with thick, leathery scales. It navigates the dark 
+          tunnels entirely by sensing heat and vibration.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 14
+          constitution: 14
+          intelligence: 2
+          wisdom: 12
+          charisma: 4
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d8+4
+        natural_attacks:
+          - attack_noun: heavy coils
+            attack_verb: constricts
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d8+3
+        hit_modifier: 4
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 110
+        type: animal
+        race: snake
+
+      - id: sewer_mutant
+        name: hunched sewer mutant
+        article: a
+        description: >
+          A tragic, bipedal figure wrapped in filthy rags. Though terribly disfigured 
+          by alchemical waste, it retains enough intelligence to fashion crude weapons 
+          and set rudimentary traps.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 12
+          constitution: 16
+          intelligence: 8
+          wisdom: 10
+          charisma: 6
+        class:
+          Fighter:
+            level: 4
+        hit_dice: 4d8+8
+        natural_attacks:
+          - attack_noun: rusted pipe
+            attack_verb: swings
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d6+2
+        hit_modifier: 4
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 140
+        type: humanoid
+        race: mutant
+
+      - id: mutant_abomination
+        name: mutant abomination
+        article: a
+        description: >
+          A towering, asymmetrical nightmare of warped flesh, extra limbs, and bulging eyes. 
+          It is a pure engine of destruction born from the city's magical pollution.
+        group_id: mutants
+        attitude: HOSTILE
+        attributes:
+          strength: 20
+          dexterity: 8
+          constitution: 20
+          intelligence: 4
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 8
+        hit_dice: 8d10+24
+        natural_attacks:
+          - attack_noun: massive fist
+            attack_verb: pummels
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 2d8+5
+        hit_modifier: 8
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 500
+        type: monstrosity
+        race: mutant
+
+      - id: water_elemental
+        name: foul water elemental
+        article: a
+        description: >
+          A towering vortex of rushing sewer water, debris, and raw elemental fury. 
+          Garbage orbits its churning center like planets around a watery sun.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 18
+          dexterity: 14
+          constitution: 16
+          intelligence: 6
+          wisdom: 10
+          charisma: 6
+        class:
+          Fighter:
+            level: 5
+        hit_dice: 5d10+10
+        natural_attacks:
+          - attack_noun: watery slam
+            attack_verb: crashes into
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 2d6+4
+        hit_modifier: 5
+        dodge_dice: 1d10+15
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 200
+        type: elemental
+        race: water
+
+      - id: vortex_spirit
+        name: swirling vortex spirit
+        article: a
+        description: >
+          A smaller, highly aggressive elemental formed from the violent eddies 
+          where the sewer tunnels flood together. It spins with razor-sharp momentum.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 18
+          constitution: 14
+          intelligence: 6
+          wisdom: 10
+          charisma: 6
+        class:
+          Rogue:
+            level: 4
+        hit_dice: 4d8+4
+        natural_attacks:
+          - attack_noun: spinning current
+            attack_verb: lashes
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d8+2
+        hit_modifier: 5
+        dodge_dice: 1d10+18
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 150
+        type: elemental
+        race: water
+
+      - id: steam_sprite
+        name: hissing steam sprite
+        article: a
+        description: >
+          A mischievous and dangerous entity composed entirely of superheated vapor, 
+          vented from the industrial sector above.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 20
+          constitution: 10
+          intelligence: 10
+          wisdom: 12
+          charisma: 8
+        class:
+          Rogue:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: scalding touch
+            attack_verb: burns
+            potential_damage:
+              - damage_type: fire
+                damage_dice: 1d6+2
+        hit_modifier: 6
+        dodge_dice: 1d10+20
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 110
+        type: elemental
+        race: steam
+
+      - id: gear_golem
+        name: rusted gear golem
+        article: a
+        description: >
+          A hulking, clanking automaton made of discarded cogs, pipes, and boiler plating. 
+          Its original purpose is lost, leaving only a directive to destroy intruders.
+        group_id: constructs
+        attitude: HOSTILE
+        attributes:
+          strength: 20
+          dexterity: 6
+          constitution: 20
+          intelligence: 2
+          wisdom: 10
+          charisma: 1
+        class:
+          Fighter:
+            level: 6
+        hit_dice: 6d10+12
+        natural_attacks:
+          - attack_noun: heavy iron fist
+            attack_verb: bludgeons
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 2d6+5
+        hit_modifier: 5
+        dodge_dice: 1d10+10
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 250
+        type: construct
+        race: golem
+
+      - id: sound_elemental
+        name: echoing sound elemental
+        article: an
+        description: >
+          An invisible but palpable entity of compressed sonic energy, born from the 
+          endless, roaring cacophony of the subterranean waterworks.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 16
+          constitution: 12
+          intelligence: 6
+          wisdom: 14
+          charisma: 6
+        class:
+          Mage:
+            level: 4
+        hit_dice: 4d6+4
+        natural_attacks:
+          - attack_noun: sonic wave
+            attack_verb: blasts
+            potential_damage:
+              - damage_type: thunder
+                damage_dice: 1d8+3
+        hit_modifier: 4
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 160
+        type: elemental
+        race: sound
+
+      - id: whispering_shade
+        name: whispering shade
+        article: a
+        description: >
+          A smoky, indistinct humanoid silhouette that clings to the darkest corners 
+          of the sewers, murmuring secrets to those it stalks.
+        group_id: spirits
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 16
+          constitution: 12
+          intelligence: 12
+          wisdom: 10
+          charisma: 10
+        class:
+          Rogue:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: chilling grasp
+            attack_verb: touches
+            potential_damage:
+              - damage_type: necrotic
+                damage_dice: 1d6+2
+        hit_modifier: 4
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 90
+        type: undead
+        race: shade
+
+      - id: whisper_sprite
+        name: malicious whisper sprite
+        article: a
+        description: >
+          A tiny, darting spark of corrupt magic that thrives on the echoing acoustics 
+          of the tunnels, using sonic bursts to disorient its prey.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 4
+          dexterity: 18
+          constitution: 8
+          intelligence: 8
+          wisdom: 12
+          charisma: 10
+        class:
+          Rogue:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: sonic ping
+            attack_verb: strikes
+            potential_damage:
+              - damage_type: thunder
+                damage_dice: 1d4+2
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 60
+        type: elemental
+        race: sound
+
+      - id: illusory_guardian
+        name: shimmering illusory guardian
+        article: a
+        description: >
+          A spectral knight projected by an ancient warding rune. Though made of light, 
+          the magical force behind its strikes is very real.
+        group_id: constructs
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 16
+          constitution: 14
+          intelligence: 10
+          wisdom: 14
+          charisma: 10
+        class:
+          Fighter:
+            level: 5
+        hit_dice: 5d10+5
+        natural_attacks:
+          - attack_noun: phantom greatsword
+            attack_verb: slashes
+            potential_damage:
+              - damage_type: force
+                damage_dice: 1d10+3
+        hit_modifier: 5
+        dodge_dice: 1d10+16
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 190
+        type: construct
+        race: illusion
+
+      - id: chaos_wisp
+        name: flickering chaos wisp
+        article: a
+        description: >
+          A dancing orb of unstable arcane energy, drawn to areas where the city's 
+          magical runoff pools and stagnates.
+        group_id: elementals
+        attitude: HOSTILE
+        attributes:
+          strength: 4
+          dexterity: 18
+          constitution: 10
+          intelligence: 4
+          wisdom: 10
+          charisma: 12
+        class:
+          Mage:
+            level: 3
+        hit_dice: 3d6+3
+        natural_attacks:
+          - attack_noun: arcane spark
+            attack_verb: jolts
+            potential_damage:
+              - damage_type: force
+                damage_dice: 1d6+2
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 100
+        type: elemental
+        race: wisp
+		
+      - id: skeletal_warrior
+        name: skeletal warrior
+        article: a
+        description: >
+          The animated, fleshless remains of an ancient guard. It still clutches a 
+          rusted blade in its bony fingers and moves with mechanical, jerky precision.
+        group_id: undead
+        attitude: HOSTILE
+        attributes:
+          strength: 14
+          dexterity: 14
+          constitution: 12
+          intelligence: 6
+          wisdom: 8
+          charisma: 4
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: rusted sword
+            attack_verb: slashes
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d8+2
+        hit_modifier: 3
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 80
+        type: undead
+        race: skeleton
+
+      - id: ghost
+        name: restless ghost
+        article: a
+        description: >
+          A translucent, floating apparition wailing in eternal agony. It brings an 
+          unnatural, freezing chill to the damp sewer air.
+        group_id: spirits
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 16
+          constitution: 10
+          intelligence: 10
+          wisdom: 12
+          charisma: 14
+        class:
+          Mage:
+            level: 4
+        hit_dice: 4d6+4
+        natural_attacks:
+          - attack_noun: spectral touch
+            attack_verb: touches
+            potential_damage:
+              - damage_type: necrotic
+                damage_dice: 1d6+2
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 110
+        type: undead
+        race: ghost
+
+      - id: bone_construct
+        name: hulking bone construct
+        article: a
+        description: >
+          A terrifying monstrosity built from the fused skeletal remains of dozens of 
+          different creatures, animated by foul necromantic magic into a single brute.
+        group_id: undead
+        attitude: HOSTILE
+        attributes:
+          strength: 18
+          dexterity: 8
+          constitution: 16
+          intelligence: 2
+          wisdom: 8
+          charisma: 2
+        class:
+          Fighter:
+            level: 5
+        hit_dice: 5d10+10
+        natural_attacks:
+          - attack_noun: jagged bone-fist
+            attack_verb: smashes
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d10+4
+              - damage_type: piercing
+                damage_dice: 1d4
+        hit_modifier: 5
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 180
+        type: undead
+        race: construct
+
+      - id: necromancer_shade
+        name: necromancer's shade
+        article: the
+        description: >
+          The lingering, spiteful soul of a dark spellcaster. Black energy crackles 
+          around its shadowy hands as it floats above the muck.
+        group_id: spirits
+        attitude: HOSTILE
+        attributes:
+          strength: 6
+          dexterity: 14
+          constitution: 12
+          intelligence: 18
+          wisdom: 14
+          charisma: 16
+        class:
+          Mage:
+            level: 6
+        hit_dice: 6d6+6
+        natural_attacks:
+          - attack_noun: dark blast
+            attack_verb: blasts
+            potential_damage:
+              - damage_type: necrotic
+                damage_dice: 2d6+4
+        hit_modifier: 6
+        dodge_dice: 1d10+16
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 260
+        type: undead
+        race: shade
+
+      - id: smuggler_ghost
+        name: smuggler ghost
+        article: a
+        description: >
+          The bitter spirit of a criminal who met a watery end in these tunnels. It 
+          still fiercely guards the territory it claimed in life.
+        group_id: spirits
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 16
+          constitution: 10
+          intelligence: 12
+          wisdom: 10
+          charisma: 12
+        class:
+          Rogue:
+            level: 4
+        hit_dice: 4d6+4
+        natural_attacks:
+          - attack_noun: phantom blade
+            attack_verb: slashes
+            potential_damage:
+              - damage_type: necrotic
+                damage_dice: 1d6+3
+        hit_modifier: 5
+        dodge_dice: 1d10+18
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 120
+        type: undead
+        race: ghost
+
+      - id: ghostly_accountant
+        name: ghostly accountant
+        article: a
+        description: >
+          A tragic, translucent figure still obsessively clutching a spectral ledger. 
+          It mutters endlessly about unbalanced debts and missing cargo.
+        group_id: spirits
+        attitude: NEUTRAL
+        attributes:
+          strength: 4
+          dexterity: 12
+          constitution: 10
+          intelligence: 16
+          wisdom: 12
+          charisma: 8
+        class:
+          Mage:
+            level: 2
+        hit_dice: 2d6+2
+        natural_attacks:
+          - attack_noun: spectral quill
+            attack_verb: jabs
+            potential_damage:
+              - damage_type: necrotic
+                damage_dice: 1d4+1
+        hit_modifier: 2
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 45
+        type: undead
+        race: ghost
+
+      - id: treasure_guardian
+        name: spectral treasure guardian
+        article: a
+        description: >
+          A towering, heavily armored wraith bound by ancient oaths to protect a hidden 
+          cache. Its eyes burn with a menacing, cold blue light.
+        group_id: spirits
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 14
+          constitution: 16
+          intelligence: 10
+          wisdom: 14
+          charisma: 12
+        class:
+          Fighter:
+            level: 6
+        hit_dice: 6d10+12
+        natural_attacks:
+          - attack_noun: freezing greatsword
+            attack_verb: cleaves
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d10+3
+              - damage_type: cold
+                damage_dice: 1d6
+        hit_modifier: 6
+        dodge_dice: 1d10+15
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 280
+        type: undead
+        race: wraith
+		
+      - id: giant_crab
+        name: giant sewer crab
+        article: a
+        description: >
+          A hulking crustacean scavenging through the flooded passages. Its thick, 
+          muck-stained shell deflects glancing blows, and its massive pincers can 
+          snap a femur in half.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 16
+          dexterity: 10
+          constitution: 16
+          intelligence: 1
+          wisdom: 10
+          charisma: 2
+        class:
+          Fighter:
+            level: 3
+        hit_dice: 3d10+6
+        natural_attacks:
+          - attack_noun: crushing pincer
+            attack_verb: snaps
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d8+3
+              - damage_type: slashing
+                damage_dice: 1d4
+        hit_modifier: 3
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 85
+        type: animal
+        race: crab
+
+      - id: rubble_dweller
+        name: desperate rubble dweller
+        article: a
+        description: >
+          A filthy, half-starved outcast who has made a home in a collapsed section 
+          of the ancient aqueduct. They clutch a jagged piece of masonry defensively.
+        group_id: outcasts
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 12
+          constitution: 10
+          intelligence: 8
+          wisdom: 10
+          charisma: 6
+        class:
+          Rogue:
+            level: 1
+        hit_dice: 1d8+1
+        natural_attacks:
+          - attack_noun: jagged stone
+            attack_verb: strikes
+            potential_damage:
+              - damage_type: bludgeoning
+                damage_dice: 1d4
+        hit_modifier: 1
+        dodge_dice: 1d10+12
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 20
+        type: humanoid
+        race: human
+
+      - id: shadow_lurker
+        name: shadow lurker
+        article: a
+        description: >
+          A shifty, pale-skinned humanoid perfectly adapted to the gloom. They stick 
+          to the darkest corners, waiting for vulnerable prey to wander past.
+        group_id: criminals
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 16
+          constitution: 12
+          intelligence: 10
+          wisdom: 12
+          charisma: 8
+        class:
+          Rogue:
+            level: 3
+        hit_dice: 3d8+3
+        natural_attacks:
+          - attack_noun: hidden blade
+            attack_verb: slashes
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+2
+        hit_modifier: 3
+        dodge_dice: 1d10+16
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 75
+        type: humanoid
+        race: goblin
+
+      - id: sewer_troll
+        name: filth-encrusted troll
+        article: a
+        description: >
+          A lanky, green-skinned giant that has made a comfortable home among the trash. 
+          Its regenerative abilities easily stave off the diseases of the sewers.
+        group_id: giants
+        attitude: HOSTILE
+        attributes:
+          strength: 18
+          dexterity: 12
+          constitution: 18
+          intelligence: 6
+          wisdom: 8
+          charisma: 6
+        class:
+          Fighter:
+            level: 6
+        hit_dice: 6d10+12
+        natural_attacks:
+          - attack_noun: dirty claw
+            attack_verb: rends
+            potential_damage:
+              - damage_type: slashing
+                damage_dice: 1d8+4
+        hit_modifier: 6
+        dodge_dice: 1d10+14
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 250
+        type: monstrosity
+        race: troll
+
+      - id: shadow_thief
+        name: shadow thief
+        article: a
+        description: >
+          A desperate, cloak-wrapped rogue hiding from the law in the city's underbelly. 
+          Their eyes constantly dart around, assessing threats and marks.
+        group_id: criminals
+        attitude: HOSTILE
+        attributes:
+          strength: 12
+          dexterity: 18
+          constitution: 12
+          intelligence: 14
+          wisdom: 10
+          charisma: 10
+        class:
+          Rogue:
+            level: 5
+        hit_dice: 5d8+5
+        natural_attacks:
+          - attack_noun: poisoned dagger
+            attack_verb: stabs
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+4
+              - damage_type: poison
+                damage_dice: 1d4
+        hit_modifier: 6
+        dodge_dice: 1d10+20
+        critical_chance: 0.15
+        critical_multiplier: 2
+        experience_points: 180
+        type: humanoid
+        race: human
+
+      - id: echo_bat
+        name: blind echo bat
+        article: an
+        description: >
+          A large, pallid bat with oversized ears. Instead of biting, it disorients 
+          its prey by emitting painfully loud, focused shrieks that bounce off the stone.
+        group_id: sewer_beasts
+        attitude: HOSTILE
+        attributes:
+          strength: 8
+          dexterity: 18
+          constitution: 10
+          intelligence: 2
+          wisdom: 14
+          charisma: 4
+        class:
+          Fighter:
+            level: 2
+        hit_dice: 2d8+2
+        natural_attacks:
+          - attack_noun: sonic screech
+            attack_verb: blasts
+            potential_damage:
+              - damage_type: thunder
+                damage_dice: 1d6+1
+        hit_modifier: 4
+        dodge_dice: 1d10+18
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 50
+        type: animal
+        race: bat
+
+      - id: shadow_scout
+        name: shadow scout
+        article: a
+        description: >
+          A lightly armored lookout employed by the local thieves' guild. They patrol 
+          the perimeter of the guild's hidden territory, armed with a shortbow.
+        group_id: criminals
+        attitude: HOSTILE
+        attributes:
+          strength: 10
+          dexterity: 16
+          constitution: 12
+          intelligence: 12
+          wisdom: 14
+          charisma: 10
+        class:
+          Rogue:
+            level: 4
+        hit_dice: 4d8+4
+        natural_attacks:
+          - attack_noun: shortsword
+            attack_verb: strikes
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d6+3
+        hit_modifier: 5
+        dodge_dice: 1d10+18
+        critical_chance: 0.10
+        critical_multiplier: 2
+        experience_points: 110
+        type: humanoid
+        race: half-elf
+
+      - id: gold_mite
+        name: glittering gold mite
+        article: a
+        description: >
+          A peculiar, multi-legged insect whose carapace is dusted with metallic flecks. 
+          It compulsively collects dropped coins and shiny trinkets from the muck.
+        group_id: sewer_vermin
+        attitude: NEUTRAL
+        attributes:
+          strength: 4
+          dexterity: 16
+          constitution: 8
+          intelligence: 1
+          wisdom: 10
+          charisma: 6
+        class:
+          Fighter:
+            level: 1
+        hit_dice: 1d6
+        natural_attacks:
+          - attack_noun: mandibles
+            attack_verb: nips
+            potential_damage:
+              - damage_type: piercing
+                damage_dice: 1d4
+        hit_modifier: 2
+        dodge_dice: 1d10+16
+        critical_chance: 0.05
+        critical_multiplier: 2
+        experience_points: 25
+        type: insect
+        race: mite
+		
+		

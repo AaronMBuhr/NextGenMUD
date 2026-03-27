@@ -9,7 +9,7 @@ Checklist before letting players in.
 | Item | Where | Notes |
 |------|--------|------|
 | **Admin flag default** | `comprehensive_game_state.py` ~199 | All loaded characters get admin flags by default. Remove so only intended admins have admin. |
-| **Start location / template** | `constants.py` | `DEFAULT_START_LOCATION = "debug_zone.starting_room"` and `DEFAULT_CHARACTER_TEMPLATE = "debug_zone.test_player"` reference debug data. Use real starting zone and character template. |
+| **Start location / template** | `constants.py` | `DEFAULT_START_LOCATION` and `DEFAULT_CHARACTER_TEMPLATE = "master_zone.test_player"` reference zone data. Use real starting zone and character template as needed. |
 | **Stealth isinstance bug** | `comprehensive_game_state.py` ~1455 | `isinstance(s) == CharacterStateStealthed` is wrong (and crashes). Use `isinstance(s, CharacterStateStealthed)`. |
 | **Save file corruption** | Load path for player saves | No validation of save file integrity; corrupted YAML can crash load. Add try/except and graceful fallback. |
 

@@ -1,0 +1,30 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: water_elemental
+        inventory: [vial_of_glowing_slime]
+
+      - id: vortex_spirit
+        inventory: [vial_of_glowing_slime]
+
+      - id: steam_sprite
+        inventory: [unstable_arcane_core]
+
+      - id: gear_golem
+        inventory: [rusted_iron_gear, rusted_iron_gear]
+
+      - id: sound_elemental
+        inventory: [glittering_slag]
+
+      - id: whispering_shade
+        inventory: [waterlogged_smuggler_ledger]
+
+      - id: whisper_sprite
+        inventory: [glittering_slag]
+
+      - id: illusory_guardian
+        equipment: [notched_broadsword]
+        inventory: [tarnished_guard_helm]
+
+      - id: chaos_wisp
+        inventory: [unstable_arcane_core]

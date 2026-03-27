@@ -1,0 +1,642 @@
+ZONES:
+  master_zone:
+    name: Master
+    description: The fundamental system zone.
+    ROOMS:
+      starting_room:
+        name: Starting Room
+        subzone: master_zone
+        description: >
+          You find yourself in a small, peaceful clearing. Soft grass cushions your feet,  and the air carries the fresh scent of pine. Tall trees surround you on all sides,  their whispering branches swaying gently in the breeze. A well-worn path leads  northward into a grove of towering pines.
+
+          Exits: north
+        exits:
+          north:
+            destination: enchanted_forest.whispering_pines
+            description: A path leads north into the whispering pines.
+        objects:
+        - id: savant_scroll_of_learning
+          quantity: 1
+        triggers:
+        - id: on_say_random
+          type: on_say
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "random"
+          script: |
+            settempvar char %S% starting_room_random $random(1,100)
+            echo The random number is $tempvar(%S%,starting_room_random).
+            $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
+              echo Less than or equal to 50.
+            }
+            else {
+              echo Greater than 50.
+            }
+            deltempvar char %S% starting_room_random
+        characters:
+        - id: goblin_warrior
+          quantity: 2
+          respawn time min: 120
+          respawn time max: 120
+      starting_room_2:
+        name: Starting Room 2
+        subzone: master_zone
+        description: >
+          The second room where all new characters begin their adventures.
+
+          Exits: south, east
+        exits:
+          south:
+            destination: starting_room
+          east:
+            destination: enchanted_forest.whispering_pines
+        triggers:
+        - id: on_any_arrives
+          type: on_see
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "arrives."
+          script: |
+            echoto %S% You trip as you enter.
+            echoexcept %S% $cap(%s%) trips as %q% enters.
+        - id: on_say_random
+          type: on_say
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "random"
+          script: |
+            settempvar char %S% starting_room_random $random(1,100)
+            echo The random number is $tempvar(%S%,starting_room_random).
+            $if($numlte($tempvar(%S%,starting_room_random),50), eq, true){
+              echo Less than or equal to 50.
+            }
+            else {
+              echo Greater than 50.
+            }
+            deltempvar char %S% starting_room_random
+        - id: timer_tick_wildlife_rustles
+          type: timer_tick
+          criteria:
+          - subject: "%time_elapsed%"
+            operator: "numgte"
+            predicate: 10
+          - subject: "$random(1,100)"
+            operator: "numlte"
+            predicate: 25
+          script: |
+            echo Wildlife rustles in the underbrush.
+        - id: catch_look_squirrel
+          type: catch_inspect
+          criteria:
+          - subject: "%*%"
+            operator: contains
+            predicate: "squirrel"
+          script: |
+            echoto %S% You see a squirrel.
+            echoexcept %S% %s% sees a squirrel.
+        - id: on_say_anything
+          type: on_say
+          criteria:
+          - subject: "%*%"
+            operator: true
+            predicate: ""
+          script: |
+            echoto %S% Your voice sounds strangely muffled.
+            echoexcept %S% %s% says something, but it sounds muffled.
+        characters:
+        - id: training_dummy_fighter
+          quantity: 1
+          respawn time min: 60
+          respawn time max: 60
+
+    CHARACTERS:
+    - id: test_player
+      name: Test Player
+      article: ""
+      description: >
+        A test player
+      pronoun_subject: he
+      pronoun_object_: him
+      pronoun_possessive: his
+      attributes:
+        strength: 10
+        dexterity: 10
+        constitution: 10
+        intelligence: 10
+        wisdom: 10
+        charisma: 10
+      class:
+        fighter:
+          level: 1
+      hit_dice: 100
+      permanent_flags:
+      - is_pc
+      natural_attacks:
+      - attack_noun: punch
+        attack_verb: punches
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d4+1
+      hit_modifier: 0
+      dodge_dice: 1d50
+      critical_chance: 0.05
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 80
+      - skill: demoralizing shout
+        level: 80
+      inventory:
+      - healing_potion
+      - healing_potion
+      - bandage
+      - bandage
+      - bread
+
+    # FOR DEBUGGING REMOVE BEFORE PRODUCTION: Debugger Gnome in starting room; say "help" for list; "xp"/"scroll", "potion"/"admin", or "heal"/"healing" to get items.
+      type: humanoid
+      race: human
+    - id: debugger_gnome
+      name: Debugger Gnome
+      article: a
+      description: >
+        A small gnome with a knowing grin, clutching a scroll.
+      attributes:
+        strength: 8
+        dexterity: 12
+        constitution: 8
+        intelligence: 14
+        wisdom: 12
+        charisma: 10
+      class:
+        Fighter:
+          level: 1
+      hit_dice: 1d6+1
+      natural_attacks:
+      - attack_noun: punch
+        attack_verb: punches
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d4
+      hit_modifier: 0
+      dodge_dice: 1d10+15
+      critical_chance: 0.05
+      critical_multiplier: 2
+      experience_points: 15
+      triggers:
+      - id: on_tell_help
+        type: on_tell
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "help"
+        script: |
+          echoto %S% Here's what I can give you—just ask with one of these words: "xp" or "scroll" for a Savant Scroll of Learning; "potion" or "admin" for a God Potion; "heal" or "healing" for a Potion of Godly Healing (restores 1000 HP). Those are your options!
+      - id: on_tell_heal
+        type: on_tell
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "heal,healing"
+        script: |
+          spawnobj me master_zone.potion_of_godly_healing
+          give potion of godly healing %S%
+      - id: on_tell_xp
+        type: on_tell
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "xp,scroll"
+        script: |
+          spawnobj me master_zone.savant_scroll_of_learning
+          give savant scroll of learning %S%
+      # FOR DEBUGGING REMOVE BEFORE PRODUCTION: say "potion" or "admin" to get God Potion; "heal"/"healing" handled by on_tell_heal
+      - id: on_tell_potion_admin
+        type: on_tell
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "potion,admin"
+        script: |
+          spawnobj me master_zone.god_potion
+          give god potion %S%
+      llm_conversation:
+        personality: |-
+          You are the Debugger Gnome: a small, friendly helper in this world. You're cheerful and eager to assist.
+          Your main job is to guide adventurers to ask you for "help". When they do, they get a list of your options: say "xp" or "scroll" for a Savant Scroll of Learning; "potion" or "admin" for a God Potion; "heal" or "healing" for a Potion of Godly Healing. So:
+          - If someone says hello, is confused, or asks what you do: tell them to say "help" to you and you'll list your options (including heal/healing for the godly healing potion). Example: "Say 'help' to me and I'll tell you exactly what I can give you!"
+          - If they seem stuck or lost: remind them they can say "help" to see your offerings (xp, potion, heal—those are the options). Never be cryptic—you want players to succeed.
+          - Keep replies short and friendly. After giving the nudge, you can add a warm line like "I'm here to help!"
+        speaking_style: |
+          Warm and a bit mischievous. You might wink or grin. Use brief, clear sentences. Gently steer the conversation toward "say help to me" so they discover your offerings.
+
+      type: humanoid
+      race: gnome
+    - id: training_dummy_fighter
+      name: training dummy
+      article: a
+      description: >
+        A wooden training dummy that looks surprisingly animated.
+        It seems eager to spar with anyone nearby.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attributes:
+        strength: 12
+        dexterity: 10
+        constitution: 14
+        intelligence: 6
+        wisdom: 6
+        charisma: 4
+      class:
+        fighter:
+          level: 5
+      hit_dice: 50
+      max_hit_points: 50
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: wooden arm
+        attack_verb: swings
+        potential_damage:
+        - damage_type: bludgeoning
+          damage_dice: 1d6+2
+      hit_modifier: 10
+      dodge_dice: 1d30+10
+      critical_chance: 0.05
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 50
+      - skill: demoralizing shout
+        level: 40
+      type: construct
+      race: wood dummy
+    - id: goblin_warrior
+      name: goblin warrior
+      article: a
+      description: >
+        A nasty-looking goblin wielding a rusty blade.
+        It eyes you menacingly.
+      pronoun_subject: it
+      pronoun_object: it
+      pronoun_possessive: its
+      attributes:
+        strength: 10
+        dexterity: 14
+        constitution: 10
+        intelligence: 8
+        wisdom: 6
+        charisma: 4
+      class:
+        fighter:
+          level: 3
+        rogue:
+          level: 2
+      hit_dice: 30
+      max_hit_points: 30
+      permanent_flags:
+      - is_aggressive
+      natural_attacks:
+      - attack_noun: rusty blade
+        attack_verb: slashes
+        potential_damage:
+        - damage_type: slashing
+          damage_dice: 1d8+1
+      hit_modifier: 15
+      dodge_dice: 1d40+20
+      critical_chance: 0.10
+      critical_multiplier: 2
+      skills:
+      - skill: mighty kick
+        level: 30
+
+    OBJECTS:
+    - id: savant_scroll_of_learning
+      name: Savant scroll of learning
+      article: a
+      description: A scroll inscribed with runes of learning. Reading it sharpens the mind.
+      weight: 0
+      value: 100
+      triggers:
+      - id: on_use_learning
+        type: on_use
+        criteria: []
+        script: |
+          echo A halo of light surrounds your head.
+          applystate %S% experiencemodifier 3600 100
+
+    - id: scroll_of_fire_resistance
+      name: scroll of fire resistance
+      article: a
+      description: A heat-scarred scroll warded with sigils that dull the bite of flame.
+      weight: 0
+      value: 80
+      flags:
+      - consumable
+      triggers:
+      - id: on_use_fire_resistance
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% The scroll's warding sigils flare and settle over your skin like cool ash.
+          applystate %S% damagemultiplier 300 fire 0.5
+
+    - id: scroll_of_shield
+      name: scroll of shield
+      article: a
+      description: A crisp silver-edged scroll that conjures a protective barrier when read.
+      weight: 0
+      value: 90
+      flags:
+      - consumable
+      triggers:
+      - id: on_use_shield
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% A translucent barrier shimmers into place around you.
+          applystate %S% shielded 180 0.8
+
+    - id: scroll_of_blur
+      name: scroll of blur
+      article: a
+      description: A wavering parchment whose ink seems to slide away from the eye.
+      weight: 0
+      value: 85
+      flags:
+      - consumable
+      triggers:
+      - id: on_use_blur
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% Your outline ripples and becomes hard to follow.
+          applystate %S% dodgebonus 180 15
+
+    - id: scroll_of_impact
+      name: scroll of impact
+      article: a
+      description: A dense scroll etched with forceful runes that lend extra weight to each blow.
+      weight: 0
+      value: 85
+      flags:
+      - consumable
+      triggers:
+      - id: on_use_impact
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% Force gathers in your limbs, ready to drive your attacks harder.
+          applystate %S% damagebonus 180 5
+
+    # =========================================================================
+    # FOR DEBUGGING REMOVE BEFORE PRODUCTION
+    # God Potion: drink to get is_admin for 1 minute. Remove before production.
+    # =========================================================================
+    - id: god_potion
+      name: God Potion
+      article: a
+      description: A shimmering vial that radiates divine authority. Drinking it grants temporary admin powers.
+      weight: 0
+      value: 0
+      triggers:
+      - id: on_use_god_potion
+        type: on_use
+        criteria: []
+        script: |
+          applystate %S% admin 60
+
+    - id: rusty_sword
+      name: rusty sword
+      article: a
+      description: A rusty sword.
+      damage_type: slashing
+      damage: 1d6
+      weight: 5
+      value: 1
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+      triggers:
+      - id: on_any_drops_you
+        type: on_see
+        criteria:
+        - subject: "%*%"
+          operator: contains
+          predicate: "drops you"
+        script: |
+          say "Pick me back up!"
+
+    - id: plusone_dagger
+      name: +1 dagger
+      article: a
+      description: A finely balanced dagger with a +1 bonus.
+      damage_type: slashing
+      damage: 1d4+1
+      weight: 2
+      value: 25
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
+    - id: plustwo_dagger
+      name: +2 dagger
+      article: a
+      description: A razor-edged dagger with a +2 bonus.
+      damage_type: slashing
+      damage: 1d4+2
+      weight: 2
+      value: 60
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
+    - id: plusthree_dagger
+      name: +3 dagger
+      article: a
+      description: A masterwork dagger with a +3 bonus.
+      damage_type: slashing
+      damage: 1d4+3
+      weight: 2
+      value: 120
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
+    - id: plusone_longsword
+      name: +1 longsword
+      article: a
+      description: A well-forged longsword with a +1 bonus.
+      damage_type: slashing
+      damage: 1d8+1
+      weight: 6
+      value: 75
+      equip_locations:
+      - main_hand
+      - off_hand
+      permanent_flags:
+      - is_weapon
+
+    - id: plusone_two_handed_battle_axe
+      name: +1 two handed battle axe
+      article: a
+      description: A heavy battle axe with a +1 bonus, built for crushing two-handed swings.
+      damage_type: slashing
+      damage: 1d10+1
+      weight: 10
+      value: 90
+      equip_locations:
+      - both_hands
+      permanent_flags:
+      - is_weapon
+
+      # Consumable items for testing
+    - id: healing_potion
+      name: healing potion
+      article: a
+      description: A small vial of red liquid that glows faintly.
+      weight: 1
+      value: 25
+      flags:
+      - consumable
+      - potion
+      triggers:
+      - id: on_use_healing_potion
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% Warmth spreads through your body.
+          heal %S% 2d8+4
+
+    - id: greater_healing_potion
+      name: greater healing potion
+      article: a
+      description: A large vial of deep red liquid that pulses with healing energy.
+      weight: 1
+      value: 100
+      flags:
+      - consumable
+      - potion
+      triggers:
+      - id: on_use_greater_healing_potion
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% A surge of vitality courses through you!
+          heal %S% 4d8+8
+
+    # FOR DEBUGGING REMOVE BEFORE PRODUCTION: godly healing on request from Debugger Gnome
+    - id: potion_of_godly_healing
+      name: potion of godly healing
+      article: a
+      description: A radiant vial that seems to contain the essence of life itself.
+      weight: 0
+      value: 0
+      flags:
+      - consumable
+      - potion
+      triggers:
+      - id: on_use_godly_healing
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% Divine warmth floods your body and your wounds vanish.
+          heal %S% 1000
+
+    - id: mana_potion
+      name: mana potion
+      article: a
+      description: A small vial of shimmering blue liquid.
+      weight: 1
+      value: 30
+      flags:
+      - consumable
+      - potion
+      triggers:
+      - id: on_use_mana_potion
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% Your mind clears and magical energy returns.
+          setstat %S% mana +25
+
+    - id: potion_of_regeneration
+      name: potion of regeneration
+      article: a
+      description: A bright green draught that knits flesh and vigor together over time.
+      weight: 1
+      value: 90
+      flags:
+      - consumable
+      - potion
+      triggers:
+      - id: on_use_regeneration_potion
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% A steady restorative warmth spreads through your body.
+          applystate %S% regenerating 60 5 6
+
+    - id: bandage
+      name: bandage
+      article: a
+      description: A clean linen bandage for treating wounds.
+      weight: 0
+      value: 5
+      flags:
+      - consumable
+      - bandage
+      triggers:
+      - id: on_use_bandage
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% You carefully apply the bandage to your wounds.
+          heal %S% 10
+
+    - id: medkit
+      name: medkit
+      article: a
+      description: A well-stocked medical kit with bandages and healing salves.
+      weight: 2
+      value: 50
+      flags:
+      - consumable
+      - bandage
+      triggers:
+      - id: on_use_medkit
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% You use the medkit to treat your injuries.
+          heal %S% 3d6+5
+
+    - id: bread
+      name: loaf of bread
+      article: a
+      description: A fresh loaf of crusty bread.
+      weight: 1
+      value: 2
+      flags:
+      - consumable
+      - food
+      triggers:
+      - id: on_use_bread
+        type: on_use
+        criteria: []
+        script: |
+          echoto %S% You eat the bread. It's surprisingly filling.
+          heal %S% 5
+          setstat %S% stamina +10

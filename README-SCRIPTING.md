@@ -31,16 +31,38 @@ Scripts can access and manipulate various variables:
 - **Temporary Variables**: Short-term storage for values during script execution
 - **Permanent Variables**: Long-term storage for persistent data
 
+### Definition `perm_variables` (YAML)
+
+You can define persistent variables directly in character, object, and room YAML definitions.
+These are copied into the instance's `perm_variables` when the world is loaded / instantiated.
+
+```yaml
+# Character / NPC definition
+perm_variables:
+  faction: city_watch
+  greeting_count: 0
+
+# Object definition
+perm_variables:
+  inspected: false
+  owner_tag: vault_master
+
+# Room definition
+perm_variables:
+  alarm_state: idle
+  shrine_blessed: true
+```
+
 ## Trigger Types
 
 NextGenMUD supports the following trigger types:
 
-### `on_any`
+### `on_see`
 
-Responds to any game event that matches the criteria.
+Fires when the room sees text that matches the criteria (e.g. when someone arrives, says something, or performs an action that produces room output).
 
 ```yaml
-- type: on_any
+- type: on_see
   criteria: 
     - subject: "%*%"
       operator: contains
@@ -52,7 +74,7 @@ Responds to any game event that matches the criteria.
 
 ### `on_say`
 
-Responds when a character says something matching the criteria.
+Fires when someone uses **say** in the room — i.e. speech that the whole room (and everyone in it) hears. Use on **rooms** or **characters** in the room. The said text is in `%*%`; `%s%`/`%S%` is the speaker.
 
 ```yaml
 - type: on_say
@@ -64,12 +86,63 @@ Responds when a character says something matching the criteria.
     emote waves hello in return.
 ```
 
-### `catch_look`
+### `on_tell`
 
-Responds when a character looks at something matching the criteria.
+Fires when someone **directs speech at this actor** via **sayto**, **tell**, **whisper**, or **ask** — i.e. only when the player explicitly targets this NPC. Does **not** fire on plain **say** (room speech); use `on_say` for that.
+
+Use on **characters** (NPCs) that should react only when spoken to directly. Variables: **%s%/%S%** = the speaker (who said to you), **%a%/%A%** = this actor (the recipient), **%*%** = the text that was said.
 
 ```yaml
-- type: catch_look
+- type: on_tell
+  criteria:
+    - subject: "%*%"
+      operator: contains
+      predicate: "hello,hi,hey"
+  script: |
+    sayto %S% Hello to you too, traveler.
+```
+
+### `on_use`
+
+Fires when a character **uses**, **drinks**, or **reads** the object (e.g. potions, scrolls, keys). Use on **objects** that have a use/drink/read effect.
+
+**Variable semantics:** **Actor** = trigger owner (the item); **subject** = the character using the item (initiator); **target** = the thing acted upon (the item when using or reading without "on X", or the specified target when "use X on Y"). So for **read scroll**: actor = scroll, subject = player, target = scroll. Use `%S%` to target the player in scripts (e.g. `applystate %S% experiencemodifier 3600 100`).
+
+**Extra variables:** `%use_type%` = the command that fired the trigger: `"use"`, `"drink"`, or `"read"`. When the command was "use X on Y", `%target%` and `%target_id%` are the target's name and id.
+
+```yaml
+- type: on_use
+  criteria: []
+  script: |
+    echo A halo of light surrounds your head.
+    applystate %S% experiencemodifier 3600 100
+```
+
+### `on_look`
+
+**Replaces** the normal description when present. Use on **rooms**, **objects**, or **characters**. When a player looks at the room (plain `look`) or looks at that object/character, the default description is **not** shown; instead this trigger’s script runs. The script should echo the appropriate description (e.g. with `echoto %S% ...`). This allows descriptions to vary by var state.
+
+```yaml
+# Room: dynamic description based on var
+- type: on_look
+  script: |
+    $if($permvar(zone,gate_open), eq, 1){
+      echoto %S% The gate stands open. Beyond lies the road north.
+    }{
+      echoto %S% A heavy iron gate blocks the way. It is closed.
+    }
+# Object: script provides the only description
+- type: on_look
+  script: |
+    echoto %S% The mirror shows your reflection, but its surface ripples oddly.
+```
+
+### `catch_inspect`
+
+Fires **in addition to** the normal description when someone looks at something matching the criteria. Use when you want the default description plus extra flavor (e.g. “The statue seems to watch you”). The look keyword is in `%*%`.
+
+```yaml
+- type: catch_inspect
   criteria: 
     - subject: "%*%"
       operator: contains
@@ -141,6 +214,29 @@ Use on **characters** (e.g. for "second wind", divine intervention, or one-time 
 
 ```
 
+### `catch_command`
+
+Fires when the **player types a command** whose first word is in this trigger's comma-separated list of command words. Use on **rooms**, **objects**, **characters**, or **inventory items** to intercept commands before normal handling.
+
+**Check order:** The command handler looks for matching `catch_command` triggers in this order: (1) the current room, (2) objects in the room, (3) NPCs/characters in the room, (4) each character's top-level inventory (items inside containers are not checked). The first trigger that matches and runs **stops** command processing; no normal command or "Unknown command" runs.
+
+**Criteria:** Use one criterion with **subject** `%*%`, **operator** `oneof`, and **predicate** a comma-separated list of command words (e.g. `get,take,grab`). The command word is compared case-insensitively.
+
+**Variables:** `%text%` = the **complete** command input (including the command word and any arguments). `%*%` is also set to the full input. Actor/subject is the player who typed the command.
+
+```yaml
+# On a room: intercept "rub" / "polish" before default handling
+- type: catch_command
+  id: altar_rub
+  criteria:
+    - subject: "%*%"
+      operator: oneof
+      predicate: "rub,polish,shine"
+  script: |
+    echoto %S% You rub the altar; it warms beneath your hand.
+    echoexcept %S% $cap(%s%) rubs the altar thoughtfully.
+```
+
 ### `on_signal`
 
 Fires when a **signal** is sent to this receiver's scope (room, subzone, zone, or world). The **signal** command sends to all registered `on_signal` triggers whose location matches the scope. Use on **rooms**, **characters**, or **objects** that should react to signals.
@@ -179,7 +275,8 @@ Each trigger contains one or more criteria that determine when it should activat
 - `gte` / `numgte` - Greater than or equal to (numeric)
 - `lte` / `numlte` - Less than or equal to (numeric)
 - `between` - Numerically between two values
-- `contains` - String contains
+- `contains` - Subject string contains the predicate. If the **predicate is a comma-separated list** (e.g. `"xp,scroll,learning"`), the condition is true if the subject contains **any** of those words (case-insensitive). Useful for activation-word lists on `on_say` and `on_tell` triggers.
+- `oneof` - Subject (single value) equals one of the comma-separated list in the predicate (e.g. subject `%*%`, predicate `"get,take,grab"`). Case-insensitive. Used by `catch_command` for command-word lists.
 - `matches` - Regular expression match
 - `true` - Always true
 - `false` - Always false
@@ -188,10 +285,12 @@ Each trigger contains one or more criteria that determine when it should activat
 
 ### Special Variables in Criteria
 
-- `%*%` - The current message or event text
+- `%*%` - The current message or event text (e.g. said text for `on_say` / `on_tell`, command input for `catch_command`, keyword for `catch_inspect`)
 - `%time_elapsed%` - Time elapsed since the last trigger execution (for timer_tick triggers)
 - `%room_id%` - Full id of the room being entered (for `on_enter` triggers); use with `contains` to match zone, subzone, or full room id
 - `%signal%` - The signal name (for `on_signal` triggers); use with `eq` to match a specific signal
+
+For **on_tell** triggers only: **%s%/%S%** is the **speaker** (who said to you), **%a%/%A%** is **this actor** (the recipient). Use **%S%** in scripts to target the speaker (e.g. `give item %S%`).
 
 ## Script Commands
 
@@ -240,13 +339,52 @@ setquestvar %s% murder_mystery.found_body true
 
 - `say [text]` - Make the actor say something
 - `tell [character] [text]` - Send a private message
+- `sayto [character] [text]` - Say something to a specific character (directed speech; triggers `on_tell` on that character)
 - `move [direction]` - Move in a direction
+- `damage <target(s)> <amount> <damage_type>` - Deal damage to one or more targets (see **damage command** below)
+- `heal <target(s)> <amount>` - Heal one or more targets (see **heal command** below)
 - `attack [character]` - Attack a character
 - `give [item] [target]` - Give an item to a character or to a room (see **Give command** below)
+- `spawnobj [target] [object_id]` - Create an instance of an object and put it somewhere (see **spawnobj** below)
+- `spawn here [zone.char_id]` - Spawn a character in the current room (see **spawn command** below)
+- `applystate [target] [state_name] [duration_seconds] [state args...]` - Apply a timed state to a target (see **applystate** below)
+- `setstat [target] [stat] [value]` - Set or adjust a character stat (see **setstat command** below)
+- `transfer [target] [zone.room_id]` - Teleport an actor to a room (see **transfer command** below)
+- `force [target] [command]` - Force an actor to execute a command as if they typed it (see **force command** below)
+- `leaverandom` - Trigger owner leaves through a random available exit
+- `pause [seconds]` - Pause script execution for the given number of seconds before continuing
 - `signal [scope] [signal_name] [target] [message...]` - Send a signal to on_signal receivers (see **Signal command** below)
 - `deregistersignals [target]` - Disable all on_signal triggers for the target (default: me), so that actor no longer receives signals until re-enabled. Optional; invalid receivers (dead, no location, etc.) are pruned automatically. Target can be a reference (e.g. `@C123`).
 - `get [object]` - Pick up an object
 - `drop [object]` - Drop an object
+
+#### spawnobj command
+
+**Syntax:** `spawnobj <target> <object_id>`
+
+Creates an instance of the object identified by `object_id` (e.g. `master_zone.savant_scroll_of_learning`) and places it according to **target**:
+
+- **Character** (e.g. `me`, `%S%`, or a reference) — object is added to that character's inventory.
+- **Room** (e.g. `here` or a room id) — object is added to that room.
+- **Object** — if the object is a container, the new object is placed inside it; otherwise the command fails with "Couldn't figure out where to put it."
+
+If `object_id` has no zone prefix (no dot), the zone is inferred from the script context (e.g. the trigger owner's zone or start zone).
+
+#### applystate command
+
+**Syntax:** `applystate <target> <state_name> <duration_seconds> [state-specific args...]`
+
+Applies a timed state to a target. **Target** is resolved like other script commands (reference, character name, `here` for room, etc.). **duration_seconds** is the state duration in seconds (converted to game ticks internally). Only the **applier** (the actor running the script) receives confirmation or error messages; the target does not get a message from the command itself (the state may have its own apply/remove messages).
+
+**States:**
+
+- **experiencemodifier** — (target must be a character.) One extra arg: **xp multiplier** (e.g. `0.75` for penalty, `1.25` for bonus). Multiplies experience gained while the state is active. Example: `applystate %S% experiencemodifier 3600 100` grants 100× XP for 3600 seconds (1 hour).
+- **damagemultiplier** — (target must be a character.) Two extra args: **damage type** and **multiplier**. Example: `applystate %S% damagemultiplier 300 fire 0.5` grants 50% fire resistance for 5 minutes.
+- **maxhp** — (target must be a character.) One extra arg: **flat max HP bonus**. Example: `applystate %S% maxhp 300 20` grants +20 max HP for 5 minutes. This raises max HP only; it does not heal current HP, and current HP is clamped back down if needed when the state expires.
+- **shielded** — (target must be a character.) One extra arg: **multiplier** applied to all incoming damage types. Example: `applystate %S% shielded 180 0.8` grants 20% resistance to all damage for 3 minutes.
+- **dodgebonus** — (target must be a character.) One extra arg: **flat dodge bonus**. Example: `applystate %S% dodgebonus 180 15` grants +15 dodge for 3 minutes.
+- **damagebonus** — (target must be a character.) One extra arg: **flat damage bonus**. Example: `applystate %S% damagebonus 180 5` grants +5 damage for 3 minutes.
+- **regenerating** — (target must be a character.) One required extra arg: **heal amount**. Optional second extra arg: **pulse seconds**. Example: `applystate %S% regenerating 60 5 6` heals 5 HP every 6 seconds for 1 minute.
 
 #### Give command
 
@@ -272,6 +410,100 @@ Sends a signal to all **on_signal** triggers whose receiver is in the given scop
 
 Example: `signal zone alarm @C455 The gates are under attack!` notifies all on_signal receivers in the same zone; their scripts see actor = trigger owner (me), subject = signaler, target = @C455, `%signal%` = "alarm", `%text%` = "The gates are under attack!".
 
+#### damage command
+
+**Syntax:**
+- `damage <target>[,target2,...] <amount> <damage_type>` — damage one or more named targets
+- `damage all <amount> <damage_type>` — damage every character in the room
+- `damage allexcept <exclude1>[,exclude2,...] <amount> <damage_type>` — damage everyone except the listed characters
+
+Targets can be names, references (`%S%`, `@C123`), or `me`/`self`. Multiple targets are comma-separated (no spaces around commas). The amount supports constants (`10`) or dice notation (`2d6+5`). When using dice notation directly in the amount, each target gets an independent roll. To give everyone the same roll, pre-resolve with `$random()`: e.g. `damage all $random(3d6+6) fire`.
+
+**Damage types:** `slashing`, `piercing`, `bludgeoning`, `fire`, `cold`, `lightning`, `poison`, `acid`, `necrotic`, `radiant`, `force`, `psychic`, `divine`, `nature`, `unholy`
+
+**Examples:**
+```
+damage %S% 10 fire
+damage guard,bandit 2d6+5 slashing
+damage me,guard 5 cold
+damage all 3d8 fire
+damage all $random(3d6+6) fire
+damage allexcept me 10 holy
+damage allexcept me,guard 2d6 slashing
+```
+
+#### heal command
+
+**Syntax:**
+- `heal <target>[,target2,...] <amount>` — heal one or more named targets
+- `heal all <amount>` — heal every character in the room
+- `heal allexcept <exclude1>[,exclude2,...] <amount>` — heal everyone except the listed characters
+
+Targets follow the same rules as `damage` (names, references, `me`/`self`, comma-separated). The amount supports constants (`20`) or dice notation (`2d6+5`). Dice are rolled independently per target; use `$random()` for a shared roll.
+
+**Examples:**
+```
+heal %S% 20
+heal guard,bandit 3d8+10
+heal all 2d6+5
+heal all $random(2d8+4)
+heal allexcept me 20
+heal allexcept me,guard 3d8
+```
+
+#### spawn command
+
+**Syntax:** `spawn here <char_id>`
+
+Spawns a new instance of a character definition in the current room. The `char_id` can be a local id (resolved to the current zone) or fully qualified (`zone_id.char_id`). The spawned character is independent of any room spawn data and will not respawn automatically when killed.
+
+**Examples:**
+```
+spawn here goblin_warrior
+spawn here shattered_dominion.dust_guardian
+```
+
+#### setstat command
+
+**Syntax:** `setstat <target> <stat> <value>`
+
+Sets or adjusts a stat on a character. The target is resolved like other commands (`%S%`, `me`, character name, reference). The value can be an absolute number or prefixed with `+` or `-` for relative adjustment.
+
+**Stats:** `hp`, `mana`, `stamina`, and base attributes (`strength`, `dexterity`, `constitution`, `intelligence`, `wisdom`, `charisma`).
+
+**Examples:**
+```
+setstat %S% hp 50
+setstat %S% mana +25
+setstat %S% stamina +10
+setstat %A% hp 5
+```
+
+#### transfer command
+
+**Syntax:** `transfer <target> <room_id>`
+
+Teleports the target actor to the specified room. The room id can be local (same zone) or fully qualified (`zone_id.room_id`). The actor is silently removed from their current room and placed in the destination.
+
+**Examples:**
+```
+transfer %S% shattered_dominion.room_pyr_apex_shrine
+transfer me starting_room
+```
+
+#### force command
+
+**Syntax:** `force <target> <command>`
+
+Forces the target actor to execute a command as if they typed it. The target is resolved like other commands. The forced command goes through normal command processing including trigger checks.
+
+**Examples:**
+```
+force %S% drop sword
+force %S% say I surrender!
+force me stop
+```
+
 ## Script Functions
 
 Functions can be used within scripts to perform calculations, manipulate strings, and access game state information. Functions are called using the syntax `$function_name(arg1, arg2, ...)`.
@@ -279,10 +511,12 @@ Functions can be used within scripts to perform calculations, manipulate strings
 ### String Functions
 
 - `$cap(text)` - Capitalize the first letter of a string
+- `$words(text, first, last)` - Extract a range of words from **text**. Punctuation (e.g. `, . ! ?`) is stripped from word boundaries and ignored when determining words (e.g. "Hello, world!" is two words). Word numbering is **1-based** (the first word is 1). Returns words from index **first** through **last** (inclusive). If **last** is less than 1 or greater than the number of words, returns from **first** through the end of the text. Examples: `$words(my name is bob, 2, 2)` → `"name"`; `$words(my name is bob, 2, 0)` → `"name is bob"`.
 
 ### Numeric Functions
 
-- `$random(min, max)` - Generate a random number between min and max
+- `$random(min, max)` - Generate a random number between min and max (inclusive)
+- `$random(NdS+B)` - Roll dice notation (e.g. `$random(3d6+6)` rolls 3d6 and adds 6)
 - `$numeq(a, b)` - Returns "true" if a equals b numerically, otherwise "false"
 - `$numneq(a, b)` - Returns "true" if a does not equal b numerically, otherwise "false"
 - `$numgt(a, b)` - Returns "true" if a is greater than b numerically, otherwise "false"
@@ -350,21 +584,29 @@ else {
 
 ## System Variables
 
+**Actor, subject, and target (general rule):** In trigger scripts, the same three roles are used consistently:
+
+- **Actor** (`%a%` / `%A%`) — the **trigger owner**: the room, character, or object the trigger is on. The script runs “as” this actor.
+- **Subject** (`%s%` / `%S%`) — the **initiator** of the action: whoever or whatever caused the trigger to fire (e.g. the player who said something, who used the item, who arrived).
+- **Target** (`%t%` / `%T%`) — the **thing acted upon** (if any): e.g. the character being spoken to, the object being used on someone, or the item being used/read.
+
+Examples: For **read scroll**, actor = the scroll (trigger owner), subject = the player (who read it), target = the scroll (thing acted upon). For **on_tell**, actor = the NPC (trigger owner), subject = the speaker, target = that same NPC.
+
 The following system variables are available in scripts:
 
-- `%a%` - The actor's name with article
+- `%a%` - The actor's name with article (trigger owner)
 - `%A%` - The actor's reference number with reference symbol
 - `%p%` - The actor's subject pronoun (he, she, it)
 - `%P%` - The actor's object pronoun (him, her, it)
-- `%s%` - The subject's name with article (usually the triggering character)
-- `%S%` - The subject's reference number with reference symbol
+- `%s%` - The subject's name with article (initiator of the action)
+- `%S%` - The subject's reference number with reference symbol (use for `give`, `echoto`, `applystate`, etc. to target the initiator)
 - `%q%` - The subject's subject pronoun
 - `%Q%` - The subject's object pronoun
-- `%t%` - The target's name with article (if applicable)
+- `%t%` - The target's name with article (thing acted upon, if applicable)
 - `%T%` - The target's reference number with reference symbol
 - `%r%` - The target's subject pronoun
 - `%R%` - The target's object pronoun
-- `%*%` - The current message or event text
+- `%*%` - The current message or event text (e.g. the said line for **on_say** / **on_tell**)
 - `%room_id%` - Full id of the room just entered (for `on_enter` triggers): `zone_id.subzone_id.room_id` or `zone_id.room_id`
 - `%signal%` - Signal name (for `on_signal` triggers)
 - `%text%` - Message text from the signal command (fourth and later words)
@@ -413,14 +655,14 @@ Triggers can have optional flags that modify when they can execute:
   article: a
   description: A glowing magical orb.
   triggers:
-    - type: catch_look
+    - type: catch_inspect
       criteria:
         - subject: "%*%"
           operator: true
           predicate: ""
       script: |
         echoto %S% The orb pulses briefly as you look at it.
-    - type: on_any
+    - type: on_see
       criteria:
         - subject: "%*%"
           operator: contains
@@ -450,7 +692,7 @@ starting_room:
           predicate: 20
       script: |
         echo A gentle breeze rustles the leaves around you.
-    - type: on_any
+    - type: on_see
       criteria:
         - subject: "%*%"
           operator: contains
@@ -589,7 +831,7 @@ Use permanent variables to give NPCs memory of past interactions:
     setpermvar char %a% knows_%S%_name $tempvar(%a%, player_name)
     sayto %S% Nice to meet you, $tempvar(%a%, player_name)!
 
-- type: on_any
+- type: on_see
   criteria:
     - subject: "%*%"
       operator: contains

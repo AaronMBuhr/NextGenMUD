@@ -649,7 +649,7 @@ class Skills_Fighter(Skills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.SHIELD_BLOCK],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateShielded(actor, actor, "shielded", multipliers, tick_created=game_tick)
+            new_state = CharacterStateShielded(actor, cls._get_game_state(), actor, "shielded", multipliers, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
@@ -1098,9 +1098,9 @@ class Skills_Fighter(Skills):
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.RALLY],
                               difficulty_modifier - attrib_mod):
             for target in targets:
-                new_state = CharacterStateHitBonus(target, actor, "rallied", hit_bonus, tick_created=game_tick)
+                new_state = CharacterStateHitBonus(target, cls._get_game_state(), actor, "rallied", hit_bonus, tick_created=game_tick)
                 await new_state.apply_state(game_tick, duration)
-                new_state = CharacterStateDamageBonus(target, actor, "rallied", damage_bonus, tick_created=game_tick)
+                new_state = CharacterStateDamageBonus(target, cls._get_game_state(), actor, "rallied", damage_bonus, tick_created=game_tick)
                 await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, targets, THIS_SKILL_DATA, vars)
             return True
@@ -1155,7 +1155,7 @@ class Skills_Fighter(Skills):
                 if saved:
                     await cls.send_resist_message(actor, [target], THIS_SKILL_DATA, vars, start_combat_on_resist=True)
                     return True
-            new_state = CharacterStateBleeding(target, actor, "rended", damage, tick_created=game_tick)
+            new_state = CharacterStateBleeding(target, cls._get_game_state(), actor, "rended", damage, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, [target], THIS_SKILL_DATA, vars)
             return True
@@ -1431,7 +1431,7 @@ class Skills_Fighter(Skills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.ENRAGE],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateDamageBonus(actor, actor, "enraged", damage_bonus, tick_created=game_tick)
+            new_state = CharacterStateDamageBonus(actor, cls._get_game_state(), actor, "enraged", damage_bonus, tick_created=game_tick)
             await new_state.apply_state(game_tick, duration)
             await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True
@@ -1536,7 +1536,7 @@ class Skills_Fighter(Skills):
         await cooldown.start(game_tick, THIS_SKILL_DATA.cooldown_ticks)
         if cls.do_skill_check(actor, actor.skills_by_class[CharacterClassRole.FIGHTER][Skills_Fighter.BERSERKER_STANCE],
                               difficulty_modifier - attrib_mod):
-            new_state = CharacterStateBerserkerStance(actor, actor, "berserker stance", dodge_mod, hit_mod, tick_created=game_tick)
+            new_state = CharacterStateBerserkerStance(actor, cls._get_game_state(), actor, "berserker stance", dodge_mod, hit_mod, tick_created=game_tick)
             await new_state.apply_state(game_tick)
             await cls.send_success_message(actor, [actor], THIS_SKILL_DATA, vars)
             return True

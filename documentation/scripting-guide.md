@@ -33,6 +33,29 @@ The NextGenMUD scripting system allows you to create dynamic, interactive game c
 - **Variables**: Dynamic values that can be substituted into scripts
 - **Functions**: Built-in operations for calculations and game state queries
 
+### Definition `perm_variables` (YAML)
+
+You can pre-seed persistent variables on definitions (room, character, object) by adding a
+`perm_variables` mapping in YAML. These values are copied into the instance's
+`perm_variables` when the world is loaded / entities are instantiated.
+
+```yaml
+# Character / NPC definition
+perm_variables:
+  faction: city_watch
+  greeting_count: 0
+
+# Object definition
+perm_variables:
+  inspected: false
+  owner_tag: vault_master
+
+# Room definition
+perm_variables:
+  alarm_state: idle
+  shrine_blessed: true
+```
+
 ---
 
 ## Variable Substitution (% Variables)
@@ -116,6 +139,7 @@ Functions are called with the syntax `$function_name(arg1, arg2, ...)` and retur
 | Function | Description | Example |
 |----------|-------------|---------|
 | `$random(min, max)` | Random integer between min and max | `$random(1, 100)` |
+| `$random(NdS+B)` | Roll dice notation (single arg) | `$random(3d6+6)` |
 | `$numeq(a, b)` | Returns "true" if a == b | `$numeq(5, 5)` → "true" |
 | `$numneq(a, b)` | Returns "true" if a != b | `$numneq(5, 3)` → "true" |
 | `$numgt(a, b)` | Returns "true" if a > b | `$numgt(10, 5)` → "true" |
@@ -194,13 +218,13 @@ triggers:
 
 ### Trigger Types
 
-#### `catch_any`
+#### `on_see`
 
-Fires on any game event matching the criteria. This is the most general-purpose trigger.
+Fires when the room sees text matching the criteria (e.g. when someone arrives, says something, or performs an action that produces room output).
 
 ```yaml
 - id: catch_singing
-  type: catch_any
+  type: on_see
   criteria:
     - subject: "%*%"
       operator: contains
@@ -224,13 +248,23 @@ Fires when someone says something matching the criteria.
     sayto %S% Hello, traveler! Welcome to my shop.
 ```
 
-#### `catch_look`
+#### `on_look`
 
-Fires when someone looks at something matching the criteria.
+Replaces the normal description when present. Use on rooms, objects, or characters. When a player looks at the room (plain `look`) or looks at that object/character, the default description is not shown; the script runs instead and should echo the description (e.g. with `echoto %S% ...`). Descriptions can vary by var state.
+
+```yaml
+- type: on_look
+  script: |
+    echoto %S% The gate stands open. Beyond lies the road north.
+```
+
+#### `catch_inspect`
+
+Fires in addition to the normal description when someone looks at something matching the criteria.
 
 ```yaml
 - id: look_at_statue
-  type: catch_look
+  type: catch_inspect
   criteria:
     - subject: "%*%"
       operator: contains
@@ -453,17 +487,39 @@ These flags are essential for `timer_tick` triggers to prevent NPCs from acting 
 
 | Command | Syntax | Description |
 |---------|--------|-------------|
-| `damage` | `damage <target> <amount> <type>` | Apply damage (dice notation supported) |
-| `heal` | `heal <target> <amount>` | Heal target (dice notation supported) |
+| `damage` | `damage <target(s)> <amount> <type>` | Apply damage to one or more targets |
+| `damage` | `damage all <amount> <type>` | Damage every character in the room |
+| `damage` | `damage allexcept <excludes> <amount> <type>` | Damage everyone except listed targets |
+| `heal` | `heal <target(s)> <amount>` | Heal one or more targets |
+| `heal` | `heal all <amount>` | Heal every character in the room |
+| `heal` | `heal allexcept <excludes> <amount>` | Heal everyone except listed targets |
 | `attack` | `attack <target>` | Initiate combat |
+
+Targets can be comma-separated (e.g. `guard,bandit`), references (`%S%`, `@C123`), or `me`/`self`. The amount supports constants (`10`) or dice notation (`2d6+5`). Dice are rolled independently per target; use `$random()` for a shared roll (e.g. `damage all $random(3d6+6) fire`).
 
 Damage types: `SLASHING`, `PIERCING`, `BLUDGEONING`, `FIRE`, `COLD`, `LIGHTNING`, `POISON`, `ACID`, `NECROTIC`, `RADIANT`, `FORCE`, `PSYCHIC`, `DIVINE`, `NATURE`
 
 ```yaml
-# Examples
+# Single target
 damage %S% 10 fire
 damage guard 2d6+5 slashing
+
+# Multiple targets (comma-separated)
+damage guard,bandit 2d6+5 slashing
+damage me,guard 5 cold
+
+# All targets in room
+damage all 3d8 fire
+damage all $random(3d6+6) fire
+
+# All except listed targets
+damage allexcept me 10 holy
+damage allexcept me,guard 2d6 slashing
+
+# Healing (same targeting rules)
 heal %S% 3d8+10
+heal all 2d6+5
+heal allexcept me 20
 ```
 
 ### Item Management
@@ -859,8 +915,8 @@ These commands are only available in scripts, not for players:
 | `getquestvar` | `getquestvar <target> <var_id>` | Get a quest variable value |
 | `spawn` | `spawn <npc_id>` | Spawn an NPC from a zone definition |
 | `spawnobj` | `spawnobj <object_id>` | Spawn an object from a zone definition |
-| `damage` | `damage <target> <amount> <type>` | Apply damage (supports dice notation) |
-| `heal` | `heal <target> <amount>` | Heal a target (supports dice notation) |
+| `damage` | `damage <target(s)\|all\|allexcept> ...` | Apply damage (supports multi-target, `all`, `allexcept`, dice notation) |
+| `heal` | `heal <target(s)\|all\|allexcept> ...` | Heal targets (supports multi-target, `all`, `allexcept`, dice notation) |
 | `removeitem` | `removeitem <target> <item>` | Remove and destroy an item |
 | `transfer` | `transfer <target> <zone.room>` | Teleport a character to a room |
 | `teleport` | `teleport <who> <target>` | Teleport to a room, NPC, or object location |

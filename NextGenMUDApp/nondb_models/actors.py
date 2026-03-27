@@ -1,10 +1,12 @@
 from abc import abstractmethod
+import asyncio
 from collections import defaultdict
 import copy
 from ..structured_logger import StructuredLogger
 from enum import Enum, auto, IntFlag
 import json
 import random
+import uuid
 from typing import Dict, List, Optional, TYPE_CHECKING
 from .actor_interface import ActorInterface, ActorType, ActorSpawnData
 from ..basic_types import DescriptiveFlags
@@ -20,8 +22,7 @@ from ..constants import Constants as CONSTANTS
 
 
 class Actor(ActorInterface):
-    references_ = {}  # Class variable for storing references
-    current_reference_num_ = 1  # Class variable for tracking the current reference number
+    references_ = {}  # Class variable: UUID -> Actor instance
 
     def __init__(self, actor_type: ActorType, id: str, name: str = "", create_reference=False):
         self.actor_type = actor_type
@@ -49,13 +50,16 @@ class Actor(ActorInterface):
         if create_reference:
             self.create_reference()
 
-    def create_reference(self) -> str:
+    def create_reference(self, instance_id: str = None) -> str:
+        """Create or restore a reference for this actor.
+        If instance_id is provided, use it (restore from save); otherwise generate a new UUID.
+        If this actor already has a reference registered, it is deregistered first."""
         logger = StructuredLogger(__name__, prefix="Actor.create_reference()> ")
         logger.debug3(f"creating reference for {self.name} ({self.id})")
-        reference_prefix = self.actor_type.name[0]  # First character of ActorType
-        self.reference_number = reference_prefix + str(Actor.current_reference_num_)
+        if self.reference_number and self.reference_number in Actor.references_:
+            del Actor.references_[self.reference_number]
+        self.reference_number = instance_id or str(uuid.uuid4())
         Actor.references_[self.reference_number] = self
-        Actor.current_reference_num_ += 1
         return self.reference_number
 
     @classmethod
@@ -66,7 +70,9 @@ class Actor(ActorInterface):
     def rid(self):
         if not self.reference_number:
             raise Exception("self.reference_number_ is None for actor: " + self.name + " (" + self.id + ")")
-        return self.reference_number + "{" + self.id + "}"
+        type_prefix = self.actor_type.name[0]
+        short_id = self.reference_number[:8]
+        return f"{type_prefix}:{short_id}{{{self.id}}}"
 
     @property
     def scheduled_events(self):
@@ -90,27 +96,10 @@ class Actor(ActorInterface):
         return f"{self.__class__.__name__}({fields_info})"
 
     @classmethod
-    def _reference_key_canonical(cls, key: str):
-        """Return the actual key in references_ that matches key case-insensitively, or key if not found."""
-        if not key:
-            return key
-        if key in cls.references_:
-            return key
-        key_upper = key.upper()
-        for k in cls.references_.keys():
-            if k.upper() == key_upper:
-                return k
-        return key
-
-    @classmethod
     def get_reference(cls, reference_number):
         if reference_number is None:
             return None
-        canonical = cls._reference_key_canonical(reference_number)
-        try:
-            return cls.references_[canonical]
-        except KeyError:
-            return None
+        return cls.references_.get(reference_number)
 
     @classmethod
     def get_reference_if_alive(cls, reference_number):
@@ -128,9 +117,8 @@ class Actor(ActorInterface):
 
     @classmethod
     def dereference_(cls, reference_number):
-        canonical = cls._reference_key_canonical(reference_number) if reference_number else None
-        if canonical and canonical in cls.references_:
-            del cls.references_[canonical]
+        if reference_number and reference_number in cls.references_:
+            del cls.references_[reference_number]
 
     def dereference(self):
         Actor.dereference_(self.reference_number)
@@ -154,6 +142,24 @@ class Actor(ActorInterface):
         logger = StructuredLogger(__name__, prefix="Actor.remove_state()> ")
         logger.debug(f"Remove state {state.state_type_name if hasattr(state, 'state_type_name') else type(state).__name__} from actor {self.name} ({self.id}): not in states (already removed).")
         return True
+
+    async def remove_states_by_source(self, source_refid: str) -> int:
+        """Remove all WHILE_SOURCE_PRESENT states whose source_refid matches (legacy: source_instance_id on state).
+        Returns the number of states removed."""
+        from .actor_states import DurationType
+        to_remove = [s for s in self.states
+                     if getattr(s, 'duration_type', None) == DurationType.WHILE_SOURCE_PRESENT
+                     and (
+                         getattr(s, 'source_refid', None) == source_refid
+                         or getattr(s, 'source_instance_id', None) == source_refid
+                     )]
+        removed = 0
+        for state in to_remove:
+            result = state.remove_state()
+            if asyncio.iscoroutine(result):
+                await result
+            removed += 1
+        return removed
         
     def can_act(self, allow_if_hindered=False) -> tuple[bool, str]:
         if self.has_temp_flags(TemporaryCharacterFlags.IS_FROZEN):
@@ -219,7 +225,7 @@ class Actor(ActorInterface):
             logger.debug3("skipping triggers")
         else:
             logger.debug3(f"triggers:\n{self.triggers_by_type}")
-            for trigger_type in [ TriggerType.ON_ANY ]:
+            for trigger_type in [ TriggerType.ON_SEE ]:
                 if trigger_type in self.triggers_by_type:
                     logger.debug3(f"checking trigger_type: {trigger_type}")
                     for trigger in self.triggers_by_type[trigger_type]:

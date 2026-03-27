@@ -29,7 +29,7 @@ def game_state():
 @pytest.fixture
 def small_zone_id():
     """A zone with few rooms for fast tests."""
-    return "debug_zone"
+    return "master_zone"
 
 
 @pytest.fixture
@@ -141,7 +141,7 @@ class TestCmdReload:
         with patch.object(CommandHandler, "_game_state", mock_game_state), \
              patch("NextGenMUDApp.command_handler.flush_admin_log_queue", new_callable=AsyncMock), \
              patch("NextGenMUDApp.command_handler.clear_current_actor"):
-            await CommandHandler.process_command(actor, "reload zone debug_zone")
+            await CommandHandler.process_command(actor, "reload zone master_zone")
 
         # Dispatcher should have sent the permission message (and the echo "> reload ...")
         messages_sent = [call_args[0][1] for call_args in actor.send_text.call_args_list if call_args[0]]
@@ -170,7 +170,7 @@ class TestCmdReload:
             actor.has_game_flags = MagicMock(return_value=True)
             actor.send_text = AsyncMock()
 
-            await CommandHandler.cmd_reload(CommandHandler, actor, "zone debug_zone")
+            await CommandHandler.cmd_reload(CommandHandler, actor, "zone master_zone")
 
             actor.send_text.assert_called()
             call_args = actor.send_text.call_args[0]
@@ -185,7 +185,7 @@ class TestCmdReload:
             actor.has_game_flags = MagicMock(return_value=True)
             actor.send_text = AsyncMock()
 
-            await CommandHandler.cmd_reload(CommandHandler, actor, "rooms debug_zone")
+            await CommandHandler.cmd_reload(CommandHandler, actor, "rooms master_zone")
 
             actor.send_text.assert_called()
             call_args = actor.send_text.call_args[0]

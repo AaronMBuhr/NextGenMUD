@@ -1,0 +1,33 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: giant_rat
+        inventory: [giant_rat_tail]
+
+      - id: tomb_rat
+        inventory: [giant_rat_tail, gnawed_bone]
+
+      - id: mutant_rat
+        inventory: [giant_rat_tail, corrosive_acid_vial]
+
+      - id: rat_king
+        equipment: [scrap_metal_shiv, filthy_rag_cloak]
+        inventory: [tarnished_silver_signet]
+
+      - id: giant_sewer_bat
+        inventory: [giant_bat_wing]
+
+      - id: rust_bat
+        inventory: [giant_bat_wing]
+
+      - id: echo_bat
+        inventory: [giant_bat_wing]
+
+      - id: giant_frog
+        inventory: [gnawed_bone]
+
+      - id: sewer_crocodile
+        inventory: [tarnished_guard_helm]
+
+      - id: gold_mite
+        inventory: [glittering_slag, glittering_slag]

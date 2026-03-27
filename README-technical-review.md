@@ -132,7 +132,7 @@ Skills have: cooldowns, resource costs (mana/stamina), cast times, level require
 | `nondb_models/triggers.py` | Event-driven trigger dispatch. Criteria evaluation with subject/operator/predicate matching. |
 
 **Trigger Types:**
-`CATCH_ANY`, `CATCH_SAY`, `CATCH_LOOK`, `ON_ENTER`, `ON_LEAVE`, `ON_ATTACKED`, `ON_DEATH`, `ON_GET`, `ON_DROP`, `ON_USE`, `ON_EQUIP`, `ON_UNEQUIP`, `TIMER_TICK`, `ON_RECEIVE`, `ON_RESET`, `ON_GREET`
+`CATCH_ANY`, `CATCH_SAY`, `CATCH_INSPECT`, `ON_LOOK`, `ON_ENTER`, `ON_LEAVE`, `ON_ATTACKED`, `ON_DEATH`, `ON_GET`, `ON_DROP`, `ON_USE`, `ON_EQUIP`, `ON_UNEQUIP`, `TIMER_TICK`, `ON_RECEIVE`, `ON_RESET`, `ON_GREET`
 
 ### AI Integration
 
@@ -229,7 +229,7 @@ ZONES:
         # ... properties, triggers
 ```
 
-**Current zones:** `central_city`, `enchanted_forest`, `gloomy_graveyard`, `sunken_citadel`, `city_sewers`, `shattered_dominion`, `debug_zone`, `example_attitudes`
+**Current zones:** `central_city`, `enchanted_forest`, `gloomy_graveyard`, `sunken_citadel`, `city_sewers`, `shattered_dominion`, `master_zone`, `example_attitudes`
 
 ---
 
@@ -395,7 +395,7 @@ NextGenMUD/
 |   |-- sunken_citadel.yaml
 |   |-- city_sewers.yaml
 |   |-- shattered_dominion.yaml
-|   |-- debug_zone.yaml
+|   |-- master_zone.yaml
 |   +-- example_attitudes.yaml
 |
 |-- player_saves/                  # Per-character YAML saves

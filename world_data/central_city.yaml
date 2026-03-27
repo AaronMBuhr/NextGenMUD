@@ -45,7 +45,7 @@ ZONES:
           script: |
             echo A town crier bellows, "Hear ye, hear ye! The Council of Elders will convene at noon tomorrow to discuss the recent trade agreements!"
         - id: catch_look_guard
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -53,7 +53,7 @@ ZONES:
           script: |
             echo The city guard stands at attention, their armor gleaming in the sunlight. They regard you with a mixture of caution and curiosity.
         - id: on_any_bow
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -68,9 +68,9 @@ ZONES:
             predicate: "password"
           script: |
             echo The guards exchange a quick glance but remain silent, their expressions unreadable.
-        CHARACTERS:
+        characters:
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: traveling_merchant
@@ -125,7 +125,7 @@ ZONES:
           script: |
             echo A street performer begins juggling flaming torches, drawing gasps and applause from a growing crowd.
         - id: catch_look_fountain
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -133,7 +133,7 @@ ZONES:
           script: |
             echo The central fountain is a marvel of craftsmanship, depicting heroic figures from the city's history. Coins glitter at the bottom, tossed by those hoping for good fortune.
         - id: on_any_haggle
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -149,20 +149,20 @@ ZONES:
           script: |
             echo A nearby merchant overhears and calls out, "Best prices in all of Central City, right here! Come and see for yourself!"
         - id: on_any_perform
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "perform"
           script: |
             echo Your impromptu performance catches the attention of nearby marketgoers. A small crowd begins to gather, watching with interest.
-        CHARACTERS:
+        characters:
         - id: market_merchant
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: street_performer
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: city_guard
@@ -170,7 +170,7 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
         - id: local_shopper
-          quantity: 4
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
 
@@ -221,7 +221,7 @@ ZONES:
           script: |
             echo A group of nobles strolls by, engaged in animated conversation about the latest city politics.
         - id: catch_look_fountain_detail
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -229,7 +229,7 @@ ZONES:
           script: |
             echo Upon closer inspection, you notice that the water in the fountain seems to shimmer with an unusual, almost magical quality. Small, iridescent fish dart about in the lower basins.
         - id: on_any_sit
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -245,16 +245,16 @@ ZONES:
           script: |
             echo As the word 'wish' leaves your lips, you notice a slight ripple in the fountain's water, as if in response to your words.
         - id: on_any_coin
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "coin"
           script: |
             echo You toss a coin into the fountain. It arcs through the air, catching the sunlight before plinking into the water with a satisfying splash. For a moment, you could swear the statue's eyes twinkled.
-        CHARACTERS:
+        characters:
         - id: city_noble
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: fountain_caretaker
@@ -262,13 +262,17 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
         - id: relaxing_citizen
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: wandering_minstrel
           quantity: 1
           respawn time min: 75
           respawn time max: 150
+        - id: master_zone.debugger_gnome
+          quantity: 1
+          respawn time min: 60
+          respawn time max: 120
 
       merchant_row:
         subzone: commercial_district
@@ -315,7 +319,7 @@ ZONES:
           script: |
             echo The enticing aroma of freshly baked bread wafts from a nearby bakery, making your mouth water.
         - id: catch_look_shop
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -323,7 +327,7 @@ ZONES:
           script: |
             echo As you peer into the shop, you're amazed by the variety of goods on display. Exotic items from far-off lands sit beside locally crafted wares, creating a treasure trove of potential purchases.
         - id: on_any_haggle_merchant
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -339,24 +343,24 @@ ZONES:
           script: |
             echo Nearby merchants perk up at the mention of prices. One calls out, "Whatever they're offering, I'll beat it! Come see my wares, friend!"
         - id: on_any_buy
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "buy"
           script: |
             echo As you express interest in making a purchase, you notice other shoppers glancing your way, curious about what caught your attention.
-        CHARACTERS:
+        characters:
         - id: skilled_merchant
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: window_shopper
-          quantity: 4
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
         - id: street_vendor
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: city_guard
@@ -409,7 +413,7 @@ ZONES:
           script: |
             echo The sound of a beautiful melody drifts from a luthier's shop, as a newly crafted instrument is tested.
         - id: catch_look_workshop
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -417,7 +421,7 @@ ZONES:
           script: |
             echo Peering into the workshop, you're amazed by the intricate tools and half-finished projects scattered about. The artisan's skill is evident in every detail.
         - id: on_any_craft
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -433,24 +437,24 @@ ZONES:
           script: |
             echo At the mention of a commission, several artisans perk up, their eyes sparkling with creative possibilities.
         - id: on_any_apprentice
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
             predicate: "apprentice"
           script: |
             echo A young apprentice, overhearing your interest, looks up from their work with hopeful eyes, eager to showcase their developing skills.
-        CHARACTERS:
+        characters:
         - id: master_artisan
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: eager_apprentice
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: art_enthusiast
-          quantity: 2
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: wandering_minstrel
@@ -503,7 +507,7 @@ ZONES:
           script: |
             echo A group of nobles exits the Council Chambers, engaged in heated debate about the latest city ordinance.
         - id: catch_look_portrait
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -511,7 +515,7 @@ ZONES:
           script: |
             echo The portrait you examine shows a stern-faced individual in official robes. A plaque beneath reads, "Mayor Aldric the Just, who guided our city through the Great Plague."
         - id: on_any_petition
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -526,21 +530,21 @@ ZONES:
             predicate: "mayor"
           script: |
             echo At the mention of the mayor, several heads turn in your direction. A guard steps closer, listening intently to your words.
-        CHARACTERS:
+        characters:
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: city_noble
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: town_clerk
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: local_citizen
-          quantity: 2
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
 
@@ -589,7 +593,7 @@ ZONES:
           script: |
             echo A scribe hurries in, arms full of scrolls and ledgers. They begin arranging the documents on the table, preparing for the next council session.
         - id: catch_look_council_table
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -597,7 +601,7 @@ ZONES:
           script: |
             echo As you examine the council table, you notice that the inlaid design is actually a detailed map of Central City, with tiny gemstones marking important locations.
         - id: on_any_council_sit
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -612,17 +616,17 @@ ZONES:
             predicate: "law"
           script: |
             echo Your mention of law catches the attention of a nearby council member. They regard you with interest, clearly curious about your thoughts on city governance.
-        CHARACTERS:
+        characters:
         - id: city_noble
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: town_clerk
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: master_artisan
@@ -668,7 +672,7 @@ ZONES:
           script: |
             echo The sound of classical music drifts from one of the nearby mansions, hinting at a sophisticated gathering within.
         - id: catch_look_mansion
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -676,7 +680,7 @@ ZONES:
           script: |
             echo The mansion you examine is a masterpiece of architecture, its facade adorned with intricate carvings and gold leaf accents.
         - id: on_any_greet
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -691,17 +695,17 @@ ZONES:
             predicate: "party"
           script: |
             echo At the mention of a party, a few nearby nobles turn their heads, their interest piqued by the possibility of a social gathering.
-        CHARACTERS:
+        characters:
         - id: city_noble
-          quantity: 4
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: servant
-          quantity: 3
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: wandering_minstrel
@@ -748,7 +752,7 @@ ZONES:
           script: |
             echo A group of pilgrims passes by, their faces serene as they make their way to one of the shrines.
         - id: catch_look_temple
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -756,7 +760,7 @@ ZONES:
           script: |
             echo The temple you examine is an architectural marvel, its facade adorned with intricate religious symbols and statues of deities.
         - id: on_any_pray
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -771,13 +775,13 @@ ZONES:
             predicate: "blessing"
           script: |
             echo At the mention of a blessing, a nearby acolyte turns to you with a gentle smile, offering a quiet word of benediction.
-        CHARACTERS:
+        characters:
         - id: priest
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: pilgrim
-          quantity: 4
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: city_guard
@@ -785,7 +789,7 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
         - id: local_citizen
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
 
@@ -828,7 +832,7 @@ ZONES:
           script: |
             echo A group of burly dockworkers passes by, carrying heavy crates from a newly docked ship.
         - id: catch_look_ship
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -836,7 +840,7 @@ ZONES:
           script: |
             echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
         - id: on_any_swim
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -851,17 +855,17 @@ ZONES:
             predicate: "voyage"
           script: |
             echo At the mention of a voyage, several heads turn in your direction. A grizzled captain pipes up, "Looking for passage, are ye? I might have a berth available."
-        CHARACTERS:
+        characters:
         - id: sailor
-          quantity: 4
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: merchant
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: dockworker
-          quantity: 3
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: city_guard
@@ -906,7 +910,7 @@ ZONES:
           script: |
             echo The square erupts in cheers as a master craftsman unveils their latest creation - a stunningly intricate clockwork automaton.
         - id: catch_look_workshop
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -914,7 +918,7 @@ ZONES:
           script: |
             echo The workshop you examine is a hive of activity. Craftsmen of all ages work diligently, their hands moving with practiced precision as they shape raw materials into works of art.
         - id: on_any_apprentice
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -929,21 +933,21 @@ ZONES:
             predicate: "commission"
           script: |
             echo At the mention of a commission, several craftsmen perk up, their eyes gleaming with the prospect of a new challenge.
-        CHARACTERS:
+        characters:
         - id: master_artisan
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: eager_apprentice
-          quantity: 4
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: merchant
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: local_citizen
-          quantity: 2
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
 
@@ -984,7 +988,7 @@ ZONES:
           script: |
             echo The delicate chimes of a nearby crystal wind sculpture create a soothing melody as a gentle breeze passes through the garden.
         - id: catch_look_flower
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -992,7 +996,7 @@ ZONES:
           script: |
             echo The flower you examine is a rare and beautiful specimen, its petals an array of vibrant colors unlike any you've seen before.
         - id: on_any_sit
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1007,17 +1011,17 @@ ZONES:
             predicate: "beautiful"
           script: |
             echo Your words of admiration catch the ear of a nearby noble, who smiles and nods in agreement. "Indeed, the High Garden is one of our city's greatest treasures," they say proudly.
-        CHARACTERS:
+        characters:
         - id: city_noble
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: royal_gardener
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: servant
-          quantity: 2
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: city_guard
@@ -1062,7 +1066,7 @@ ZONES:
           script: |
             echo The sound of exquisite music drifts from an open window, hinting at a sophisticated gathering within one of the mansions.
         - id: catch_look_mansion_row
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1070,7 +1074,7 @@ ZONES:
           script: |
             echo The mansion you examine is a true masterpiece of architecture. Its facade is adorned with intricate carvings, and you catch a glimpse of a beautiful garden through the ornate iron gates.
         - id: on_any_enter
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1085,17 +1089,17 @@ ZONES:
             predicate: "invitation"
           script: |
             echo At the mention of an invitation, a few nearby servants exchange glances, clearly curious about potential social events they haven't heard about yet.
-        CHARACTERS:
+        characters:
         - id: city_noble
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: servant
-          quantity: 4
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: wandering_minstrel
@@ -1140,7 +1144,7 @@ ZONES:
           script: |
             echo A procession of priests moves through the cathedral, swinging censers that fill the air with fragrant incense.
         - id: catch_look_window
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1148,7 +1152,7 @@ ZONES:
           script: |
             echo The stained glass window you examine depicts a scene from religious lore, its vibrant colors telling a story of divine intervention and mortal faith.
         - id: on_any_pray
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1163,21 +1167,21 @@ ZONES:
             predicate: "blessing"
           script: |
             echo At the mention of a blessing, a nearby priest turns to you with a gentle smile. "May the light of the divine shine upon you," he intones softly.
-        CHARACTERS:
+        characters:
         - id: priest
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: acolyte
-          quantity: 4
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: pilgrim
-          quantity: 5
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: city_noble
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
       monastery_grounds:
@@ -1217,7 +1221,7 @@ ZONES:
           script: |
             echo The gentle sound of a prayer bell rings out across the grounds, its clear tone seeming to purify the very air.
         - id: catch_look_garden
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1225,7 +1229,7 @@ ZONES:
           script: |
             echo The garden you examine is meticulously maintained, with neat rows of medicinal herbs and vibrant flowers. A monk tends to the plants with careful, practiced movements.
         - id: on_any_meditate
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1240,17 +1244,17 @@ ZONES:
             predicate: "knowledge"
           script: |
             echo Your mention of knowledge catches the attention of a nearby monk. He approaches quietly, saying, "Seeking knowledge is a noble pursuit. Our library may have what you seek."
-        CHARACTERS:
+        characters:
         - id: monk
-          quantity: 5
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: pilgrim
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: scholar
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: gardener
@@ -1295,7 +1299,7 @@ ZONES:
           script: |
             echo A group of burly dockworkers marches past, carrying heavy crates from a newly arrived ship to a nearby warehouse.
         - id: catch_look_harbor_ship
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1303,7 +1307,7 @@ ZONES:
           script: |
             echo The ship you examine is a sturdy vessel, its hull weathered by countless voyages. The crew busily moves about the deck, preparing for their next journey.
         - id: on_any_harbor_swim
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1318,21 +1322,21 @@ ZONES:
             predicate: "voyage"
           script: |
             echo At the mention of a voyage, several sailors turn their heads in your direction. One calls out, "Looking for passage, are ye? I'm sure we can find a ship that suits your needs!"
-        CHARACTERS:
+        characters:
         - id: sailor
-          quantity: 4
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: merchant
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: dockworker
-          quantity: 5
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
         - id: city_guard
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
 
@@ -1373,7 +1377,7 @@ ZONES:
           script: |
             echo A cart laden with blocks of ice rumbles down the alley, delivering fresh supplies to the fishmongers.
         - id: catch_look_fish
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1381,7 +1385,7 @@ ZONES:
           script: |
             echo The fish you examine looks impressively fresh, its scales glistening in the light. The fishmonger notices your interest and begins extolling its quality and flavor.
         - id: on_any_smell
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1396,21 +1400,21 @@ ZONES:
             predicate: "recipe"
           script: |
             echo Your mention of a recipe catches the ear of a fishmonger. "Looking to cook up something special? I've got just the fish for you, and I'll even throw in some cooking tips!"
-        CHARACTERS:
+        characters:
         - id: fishmonger
-          quantity: 5
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: customer
-          quantity: 4
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
         - id: street_vendor
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: stray_cat
-          quantity: 3
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
 
@@ -1451,7 +1455,7 @@ ZONES:
           script: |
             echo An apprentice rushes past, carefully carrying a bucket of water to cool a freshly forged piece.
         - id: catch_look_forge
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1459,7 +1463,7 @@ ZONES:
           script: |
             echo The forge burns with an intense heat, the flames dancing hypnotically as they heat metal to malleability. The blacksmith works with practiced precision, their movements a testament to years of experience.
         - id: on_any_weapon
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1474,13 +1478,13 @@ ZONES:
             predicate: "commission"
           script: |
             echo At the mention of a commission, several blacksmiths look up from their work, intrigued by the potential challenge.
-        CHARACTERS:
+        characters:
         - id: master_blacksmith
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: apprentice_smith
-          quantity: 4
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: merchant
@@ -1529,7 +1533,7 @@ ZONES:
           script: |
             echo The palace gates open with a grand flourish as a royal carriage departs, its occupants hidden behind ornate curtains.
         - id: catch_look_palace_guard
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1537,7 +1541,7 @@ ZONES:
           script: |
             echo The palace guard you observe stands perfectly still, their armor gleaming in the sunlight. Their eyes, however, are alert and watchful, missing nothing.
         - id: on_any_enter_palace
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1552,21 +1556,21 @@ ZONES:
             predicate: "audience"
           script: |
             echo At the mention of an audience, a nearby courtier turns to you with interest. "Seeking an audience with royalty? That's not easily granted, but perhaps I could advise you on the proper channels."
-        CHARACTERS:
+        characters:
         - id: royal_guard
-          quantity: 4
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: courtier
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: servant
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: city_noble
-          quantity: 2
+          quantity: 1
           respawn time min: 50
           respawn time max: 100
 
@@ -1607,7 +1611,7 @@ ZONES:
           script: |
             echo The tower briefly shimmers and seems to fade from view, only to reappear moments later. A nearby mage mutters, "Temporal flux. Perfectly normal."
         - id: catch_look_rune
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1615,7 +1619,7 @@ ZONES:
           script: |
             echo As you examine the runes, they seem to shift and change before your eyes. You feel a slight tingling sensation in your fingertips.
         - id: on_any_spell
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1630,17 +1634,17 @@ ZONES:
             predicate: "magic"
           script: |
             echo At the word 'magic', several nearby mages turn to look at you. One approaches, saying, "Interested in the arcane arts, are we? It's not for the faint of heart, you know."
-        CHARACTERS:
+        characters:
         - id: archmage
           quantity: 1
           respawn time min: 90
           respawn time max: 180
         - id: apprentice_mage
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: magical_researcher
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: magical_creature
@@ -1682,7 +1686,7 @@ ZONES:
           script: |
             echo A flock of pigeons takes flight from the rafters, startled by some unseen disturbance, their wings fluttering loudly in the enclosed space.
         - id: catch_look_bell
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1690,7 +1694,7 @@ ZONES:
           script: |
             echo The bell you examine is enormous up close, its surface covered in intricate religious symbols and dedications. You can see your distorted reflection in the polished bronze.
         - id: on_any_ring
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1705,13 +1709,13 @@ ZONES:
             predicate: "view"
           script: |
             echo Your comment about the view draws the attention of the bell keeper. "Aye, it's a sight to behold," they say, pointing out landmarks in the city below.
-        CHARACTERS:
+        characters:
         - id: bell_keeper
           quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: acolyte
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: pilgrim
@@ -1761,7 +1765,7 @@ ZONES:
           script: |
             echo The sound of chanting drifts faintly through the passageways, its source impossible to pinpoint. The ethereal voices seem to speak of ancient secrets.
         - id: catch_look_inscription
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1769,7 +1773,7 @@ ZONES:
           script: |
             echo As you examine the inscription, the symbols seem to shift and change. You feel a slight dizziness, as if the very act of reading is altering your perception.
         - id: on_any_touch
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1784,9 +1788,9 @@ ZONES:
             predicate: "secret"
           script: |
             echo Your words about secrets echo strangely in the catacombs. For a moment, it almost seems as if the very walls are listening.
-        CHARACTERS:
+        characters:
         - id: monk
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: scholar
@@ -1837,7 +1841,7 @@ ZONES:
           script: |
             echo A strong gust of wind blows in from the sea, carrying with it the scent of brine and adventure.
         - id: catch_look_distant_ship
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1845,7 +1849,7 @@ ZONES:
           script: |
             echo You spot a majestic ship in the distance, its sails full as it makes its way towards the harbor. The lighthouse's beam sweeps over it, guiding its path.
         - id: on_any_climb_lighthouse
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1860,21 +1864,21 @@ ZONES:
             predicate: "storm"
           script: |
             echo At the mention of storms, the lighthouse keeper nods gravely. "Aye, we've seen our share of tempests here. But this old light has never failed to guide ships to safe harbor."
-        CHARACTERS:
+        characters:
         - id: lighthouse_keeper
           quantity: 1
           respawn time min: 90
           respawn time max: 180
         - id: sailor
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: fisherman
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: seagull
-          quantity: 5
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
 
@@ -1913,7 +1917,7 @@ ZONES:
           script: |
             echo The crowd suddenly surges toward one stall as word spreads of a rare and exotic fish just put on display.
         - id: catch_look_market_fish
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1921,7 +1925,7 @@ ZONES:
           script: |
             echo The fish you examine looks remarkably fresh, its eyes clear and scales glistening. The fishmonger notices your interest and begins extolling its quality and flavor.
         - id: on_any_market_haggle
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1936,13 +1940,13 @@ ZONES:
             predicate: "recipe"
           script: |
             echo Your mention of a recipe catches the ear of a nearby fishmonger. "Looking to cook up something special? I've got just the fish for you, and I'll even throw in my grandmother's secret seasoning blend!"
-        CHARACTERS:
+        characters:
         - id: fishmonger
-          quantity: 5
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: customer
-          quantity: 8
+          quantity: 1
           respawn time min: 15
           respawn time max: 45
         - id: city_guard
@@ -1950,7 +1954,7 @@ ZONES:
           respawn time min: 75
           respawn time max: 150
         - id: street_vendor
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
 
@@ -1989,7 +1993,7 @@ ZONES:
           script: |
             echo The soft strains of courtly music fill the air as a group of minstrels begins to play from a secluded alcove.
         - id: catch_look_royal_throne
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -1997,7 +2001,7 @@ ZONES:
           script: |
             echo As you examine the throne, you're struck by its intricate craftsmanship. Every inch is covered in delicate engravings and inlaid with precious stones. It's as much a work of art as it is a seat of power.
         - id: on_any_court_bow
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2012,21 +2016,21 @@ ZONES:
             predicate: "audience"
           script: |
             echo At the mention of an audience, a royal advisor approaches you. "Seeking an audience with the crown? I'm afraid it's not that simple, but perhaps we could discuss your business?"
-        CHARACTERS:
+        characters:
         - id: royal_guard
-          quantity: 4
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: courtier
-          quantity: 5
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: noble
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: royal_advisor
-          quantity: 2
+          quantity: 1
           respawn time min: 75
           respawn time max: 150
       wizards_study:
@@ -2064,7 +2068,7 @@ ZONES:
           script: |
             echo A small explosion erupts from one of the bubbling cauldrons, filling the room with sweet-smelling purple smoke that quickly dissipates.
         - id: catch_look_magical_book
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2072,7 +2076,7 @@ ZONES:
           script: |
             echo As you look at the book, the letters on its spine seem to rearrange themselves. You blink, and they settle back into their original configuration.
         - id: on_any_touch_artifact
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2087,13 +2091,13 @@ ZONES:
             predicate: "spell"
           script: |
             echo At the mention of a spell, several nearby books flutter their pages excitedly, as if eager to share their arcane knowledge.
-        CHARACTERS:
+        characters:
         - id: archmage
           quantity: 1
           respawn time min: 90
           respawn time max: 180
         - id: apprentice_mage
-          quantity: 2
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: magical_familiar
@@ -2101,7 +2105,7 @@ ZONES:
           respawn time min: 60
           respawn time max: 120
         - id: enchanted_object
-          quantity: 3
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
 
@@ -2142,7 +2146,7 @@ ZONES:
           script: |
             echo The watch captain's voice rings out, calling the roll and assigning duties for the next shift.
         - id: catch_look_barracks_weapon
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2150,7 +2154,7 @@ ZONES:
           script: |
             echo The weapons are meticulously maintained, each one a lethal work of art. A nearby guard eyes you warily as you examine them.
         - id: on_any_join_guard
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2165,9 +2169,9 @@ ZONES:
             predicate: "crime"
           script: |
             echo At the mention of crime, several guards perk up, their hands instinctively moving to their weapon hilts. The watch captain approaches, asking, "Is there something you'd like to report, citizen?"
-        CHARACTERS:
+        characters:
         - id: city_guard
-          quantity: 6
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: watch_captain
@@ -2175,7 +2179,7 @@ ZONES:
           respawn time min: 90
           respawn time max: 180
         - id: guard_recruit
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: armorer
@@ -2218,7 +2222,7 @@ ZONES:
           script: |
             echo An archery instructor calls out, "Hold!" The air fills with the simultaneous twang of bowstrings as a volley of arrows is released at the targets.
         - id: catch_look_training_weapon
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2226,7 +2230,7 @@ ZONES:
           script: |
             echo The training weapons are well-worn but carefully maintained. They're blunted for safety, but still look capable of delivering a solid blow.
         - id: on_any_train
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2241,17 +2245,17 @@ ZONES:
             predicate: "duel"
           script: |
             echo At the mention of a duel, several guards turn to look at you with interest. One calls out, "If it's a friendly spar you're after, I'd be happy to oblige. With the captain's permission, of course."
-        CHARACTERS:
+        characters:
         - id: city_guard
-          quantity: 4
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
         - id: guard_instructor
-          quantity: 2
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: guard_recruit
-          quantity: 5
+          quantity: 1
           respawn time min: 20
           respawn time max: 50
         - id: weapon_master
@@ -2294,7 +2298,7 @@ ZONES:
           script: |
             echo A new prisoner is brought in, escorted by two guards. The captive is quickly processed and led to an empty cell.
         - id: catch_look_jail_cell
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2302,7 +2306,7 @@ ZONES:
           script: |
             echo The cell is small and sparsely furnished, with a simple cot and a bucket in the corner. The iron bars look thick and sturdy, designed to discourage any thoughts of escape.
         - id: on_any_prisoner
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2317,9 +2321,9 @@ ZONES:
             predicate: "innocent"
           script: |
             echo At the claim of innocence, a weary-looking jailer chuckles. "That's what they all say, friend. Tell it to the magistrate."
-        CHARACTERS:
+        characters:
         - id: city_guard
-          quantity: 3
+          quantity: 1
           respawn time min: 45
           respawn time max: 90
         - id: jailer
@@ -2327,7 +2331,7 @@ ZONES:
           respawn time min: 75
           respawn time max: 150
         - id: prisoner
-          quantity: 4
+          quantity: 1
           respawn time min: 60
           respawn time max: 120
         - id: visiting_magistrate
@@ -2372,7 +2376,7 @@ ZONES:
           script: |
             echo The scraping sound of claws on stone echoes from the darkness, followed by the squeaking of what sounds like a very large rat.
         - id: catch_look_sewer_water
-          type: catch_look
+          type: catch_inspect
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2380,7 +2384,7 @@ ZONES:
           script: |
             echo The water flowing into the sewer entrance is a murky, unpleasant-looking stream. Various bits of debris float on its surface, heading deeper into the tunnels.
         - id: on_any_enter_sewer
-          type: on_any
+          type: on_see
           criteria:
           - subject: "%{*}"
             operator: contains
@@ -2395,7 +2399,7 @@ ZONES:
             predicate: "secret"
           script: |
             echo At the mention of secrets, you notice a shadowy figure further down the tunnel perk up and then quickly disappear into the darkness.
-        CHARACTERS:
+        characters:
         - id: sewer_worker
           quantity: 1
           respawn time min: 60
@@ -2409,7 +2413,7 @@ ZONES:
           respawn time min: 45
           respawn time max: 90
         - id: giant_rat
-          quantity: 2
+          quantity: 1
           respawn time min: 30
           respawn time max: 60
 
@@ -2453,6 +2457,8 @@ ZONES:
         script: |
           leaverandom stayinzone
 
+      type: humanoid
+      race: human
     - id: traveling_merchant
       name: traveling merchant
       group_id: city_visitors
@@ -2491,6 +2497,8 @@ ZONES:
         script: |
           leaverandom stayinzone
 
+      type: humanoid
+      race: human
     - id: market_merchant
       name: market merchant
       group_id: city_residents
@@ -2520,6 +2528,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: street_performer
       name: street performer
       group_id: city_residents
@@ -2549,6 +2559,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: half-elf
     - id: local_shopper
       name: local shopper
       group_id: city_residents
@@ -2578,6 +2590,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: halfling
     - id: city_noble
       name: city noble
       group_id: city_residents
@@ -2607,6 +2621,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: high elf
     - id: fountain_caretaker
       name: fountain caretaker
       group_id: city_residents
@@ -2636,6 +2652,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: gnome
     - id: relaxing_citizen
       name: relaxing citizen
       group_id: city_residents
@@ -2665,6 +2683,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: wandering_minstrel
       name: relaxing citizen
       group_id: city_residents
@@ -2703,6 +2723,8 @@ ZONES:
         script: |
           leaverandom stayinzone
 
+      type: humanoid
+      race: half-elf
     - id: skilled_merchant
       name: skilled merchant
       group_id: city_residents
@@ -2732,6 +2754,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: window_shopper
       name: window shopper
       group_id: city_residents
@@ -2761,6 +2785,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: street_vendor
       name: street vendor
       group_id: city_residents
@@ -2790,6 +2816,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: halfling
     - id: master_artisan
       name: master artisan
       group_id: city_residents
@@ -2819,6 +2847,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: eager_apprentice
       name: eager apprentice
       group_id: city_residents
@@ -2848,6 +2878,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: art_enthusiast
       name: art enthusiast
       group_id: city_residents
@@ -2877,6 +2909,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: town_clerk
       name: town clerk
       group_id: city_residents
@@ -2906,6 +2940,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: local_citizen
       name: local citizen
       group_id: city_residents
@@ -2935,6 +2971,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: servant
       name: servant
       group_id: city_residents
@@ -2964,6 +3002,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: priest
       name: priest
       group_id: city_residents
@@ -2993,6 +3033,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: pilgrim
       name: pilgrim
       group_id: city_residents
@@ -3022,6 +3064,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: sailor
       name: sailor
       group_id: city_residents
@@ -3051,6 +3095,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: merchant
       name: merchant
       group_id: city_residents
@@ -3080,6 +3126,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: dockworker
       name: dockworker
       group_id: city_residents
@@ -3109,6 +3157,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: half-orc
     - id: royal_gardener
       name: royal gardener
       group_id: city_residents
@@ -3138,6 +3188,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: acolyte
       name: acolyte
       group_id: city_residents
@@ -3167,6 +3219,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: monk
       name: monk
       group_id: city_residents
@@ -3196,6 +3250,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: scholar
       name: scholar
       group_id: city_residents
@@ -3225,6 +3281,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: gardener
       name: gardener
       group_id: city_residents
@@ -3254,6 +3312,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: halfling
     - id: fishmonger
       name: fishmonger
       group_id: city_residents
@@ -3283,6 +3343,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: customer
       name: customer
       group_id: city_residents
@@ -3312,6 +3374,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: stray_cat
       name: stray cat
       group_id: city_animals
@@ -3341,6 +3405,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: animal
+      race: feline
     - id: master_blacksmith
       name: master blacksmith
       group_id: city_residents
@@ -3370,6 +3436,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: apprentice_smith
       name: apprentice smith
       group_id: city_residents
@@ -3399,6 +3467,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: royal_guard
       name: royal guard
       group_id: city_residents
@@ -3428,6 +3498,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: courtier
       name: courtier
       group_id: city_residents
@@ -3457,6 +3529,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: archmage
       name: archmage
       group_id: city_residents
@@ -3486,6 +3560,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: high elf
     - id: apprentice_mage
       name: apprentice mage
       group_id: city_residents
@@ -3515,6 +3591,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: magical_researcher
       name: magical researcher
       group_id: city_residents
@@ -3544,6 +3622,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: gnome
     - id: magical_creature
       name: magical creature
       group_id: city_residents
@@ -3573,6 +3653,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: magical animal
+      race: wisp
     - id: bell_keeper
       name: bell keeper
       group_id: city_residents
@@ -3602,6 +3684,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: half-orc
     - id: ghostly_figure
       name: ghostly figure
       group_id: city_residents
@@ -3631,6 +3715,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: undead
+      race: ghost
     - id: lighthouse_keeper
       name: lighthouse keeper
       group_id: city_residents
@@ -3660,6 +3746,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: fisherman
       name: fisherman
       group_id: city_residents
@@ -3689,6 +3777,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: seagull
       name: seagull
       group_id: city_animals
@@ -3718,6 +3808,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: animal
+      race: bird
     - id: noble
       name: noble
       group_id: city_animals
@@ -3747,6 +3839,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: royal_advisor
       name: royal advisor
       group_id: city_animals
@@ -3776,6 +3870,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: magical_familiar
       name: magical familiar
       group_id: city_residents
@@ -3805,6 +3901,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: magical animal
+      race: familiar
     - id: enchanted_object
       name: enchanted object
       group_id: city_residents
@@ -3834,6 +3932,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: construct
+      race: animated object
     - id: watch_captain
       name: watch captain
       group_id: city_guards
@@ -3863,6 +3963,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: guard_recruit
       name: guard recruit
       group_id: city_guards
@@ -3892,6 +3994,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: armorer
       name: armorer
       group_id: city_residents
@@ -3921,6 +4025,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: guard_instructor
       name: guard instructor
       group_id: city_guards
@@ -3950,6 +4056,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: weapon_master
       name: weapon master
       group_id: city_residents
@@ -3979,6 +4087,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: jailer
       name: jailer
       group_id: city_guards
@@ -4008,6 +4118,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: half-orc
     - id: prisoner
       name: prisoner
       article: a
@@ -4036,6 +4148,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: human
     - id: visiting_magistrate
       name: visiting magistrate
       article: a
@@ -4064,6 +4178,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: elf
     - id: sewer_worker
       name: sewer worker
       group_id: city_residents
@@ -4093,6 +4209,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: dwarf
     - id: suspicious_character
       name: suspicious character
       group_id: city_residents
@@ -4122,6 +4240,8 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: humanoid
+      race: tiefling
     - id: giant_rat
       name: giant rat
       group_id: city_animals
@@ -4151,3 +4271,5 @@ ZONES:
       critical_multiplier: 2
       experience_points: 20
 
+      type: animal
+      race: rat

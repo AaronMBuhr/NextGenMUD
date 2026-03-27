@@ -1,0 +1,73 @@
+ZONES:
+  city_sewers:
+    CHARACTERS:
+      - id: slime
+        triggers:
+          - id: slime_splash
+            type: on_attacked
+            script: |
+              echo The toxic slime quivers violently, splashing caustic green ooze across the stone!
+
+      - id: giant_slug
+        triggers:
+          - id: slug_trail
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The giant slug inches forward slowly, leaving a thick, foul-smelling trail of mucus in its wake.
+
+      - id: spore_creature
+        triggers:
+          - id: spore_puff
+            type: on_attacked
+            script: |
+              echo A shudder runs through the glowing spore creature, causing it to puff out a thick, choking cloud of hazardous spores!
+
+      - id: fungal_shambler
+        triggers:
+          - id: shambler_groan
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,12)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo The fungal shambler lets out a wet, tearing groan as the parasitic mycelium forces its rotting host's limbs to move.
+
+      - id: slime_elemental
+        triggers:
+          - id: slime_elemental_surge
+            type: on_attacked
+            script: |
+              echo The slime elemental surges upward, half-digested garbage and bones clattering within its acidic core!
+
+      - id: ooze_horror
+        triggers:
+          - id: ooze_bubble
+            type: timer_tick
+            flags: [only_when_pc_room]
+            criteria:
+              - subject: "$random(1,10)"
+                operator: eq
+                predicate: "1"
+            script: |
+              echo Large, black bubbles rise to the surface of the shifting ooze horror, popping with a sickening, acidic squelch.
+
+      - id: ooze_elemental
+        triggers:
+          - id: ooze_elemental_shift
+            type: on_attacked
+            script: |
+              echo The primordial ooze elemental shifts its massive weight, drawing corrupted water and deep earth together to strike!
+
+      - id: parasitic_slime
+        triggers:
+          - id: parasitic_leap
+            type: on_attacked
+            script: |
+              echo The pinkish parasitic slime vibrates rapidly, preparing to launch its stinging tendrils directly at you!
