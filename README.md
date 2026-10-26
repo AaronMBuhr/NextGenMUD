@@ -40,7 +40,7 @@ NextGenMUD is built on the following architecture:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/NextGenMUD.git
+git clone https://github.com/AaronMBuhr/NextGenMUD.git
 cd NextGenMUD
 ```
 
@@ -74,27 +74,29 @@ uvicorn NextGenMUD.asgi:application --host 0.0.0.0 --port 8000
 
 NextGenMUD uses YAML files for world definitions. Example world files are provided in the `world_data` directory. 
 
-A basic world file structure:
+A minimal world file uses a top-level `ZONES` mapping and uppercase `ROOMS` within each zone:
 
 ```yaml
-name: Example Zone
-description: A sample zone for demonstration purposes.
-rooms:
-  starting_room:
-    name: Starting Point
-    description: The beginning of your adventure.
-    exits:
-      north:
-        destination: second_room
-    triggers:
-      - type: timer_tick
-        criteria: 
-          - subject: "%time_elapsed%"
-            operator: "numgte"
-            predicate: 10
-        script: |
-          echo A gentle breeze passes through the room.
+ZONES:
+  example_zone:
+    name: Example Zone
+    description: A sample zone for demonstration purposes.
+    ROOMS:
+      starting_room:
+        name: Starting Point
+        description: The beginning of your adventure.
+        exits:
+          north:
+            destination: example_zone.second_room
+      second_room:
+        name: Second Room
+        description: A quiet clearing north of the starting point.
+        exits:
+          south:
+            destination: example_zone.starting_room
 ```
+
+See `world_data/master_zone.yaml` for a fuller example with objects, characters, and triggers. Adding a world file does not change the configured player starting location.
 
 ## Command System
 
